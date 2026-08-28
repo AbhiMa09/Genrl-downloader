@@ -32,9 +32,12 @@ class TorrentDownloadThread(QThread):
     progress_update = pyqtSignal(str)
     download_complete = pyqtSignal(bool, str)
 
-    def __init__(self, magnet_link: str, save_path: str = None, tags: List[str] = None, torrent_manager: TorrentManager = None):
-        super().__init__()
+    def __init__(self, magnet_link: str, save_path: str = None, tags: List[str] = None, torrent_manager: TorrentManager = None, parent=None):
+        super().__init__(parent)
         self.magnet_link = magnet_link
+        self.save_path = save_path
+        self.tags = tags or []
+        self.torrent_manager = torrent_manager if torrent_manager is not None else TorrentManager()
         self.save_path = save_path
         self.tags = tags or []
         self.torrent_manager = torrent_manager if torrent_manager is not None else TorrentManager()
@@ -1299,7 +1302,7 @@ Magnet: {torrent['magnet'][:100]}..."""
         save_path = self.anime_folder_input.text().strip() if hasattr(self, 'anime_folder_input') else None
 
         # Start download thread
-        self.download_thread = TorrentDownloadThread(magnet_link, save_path=save_path, torrent_manager=self.torrent_manager)
+        self.download_thread = TorrentDownloadThread(magnet_link, save_path=save_path, parent=self, torrent_manager=self.torrent_manager)
         self.download_thread.download_complete.connect(self.on_manual_download_complete)
         self.download_thread.finished.connect(lambda: self._remove_thread(self.download_thread))
         self.active_threads.append(self.download_thread)
