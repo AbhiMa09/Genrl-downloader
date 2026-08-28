@@ -1,0 +1,22 @@
+    def on_anime_tab_detected(self, tab: AnimeTabInfo):
+        """Callback for when an anime tab is detected"""
+        from datetime import datetime
+        
+        # Format the detection information
+        detection_text = f"Title: {tab.title}\n"
+        detection_text += f"Anime: {tab.anime_name or 'Unknown'}\n"
+        detection_text += f"Process: {tab.process_name}\n"
+        detection_text += f"Confidence: {tab.confidence:.2f}\n"
+        detection_text += f"Time: {tab.timestamp.strftime('%H:%M:%S')}\n"
+        detection_text += "-" * 50 + "\n"
+        
+        # Append to the detected tabs list
+        self.detected_tabs_list.insertPlainText(detection_text)
+        
+        # Auto-scroll to the bottom
+        cursor = self.detected_tabs_list.textCursor()
+        cursor.movePosition(cursor.End)
+        self.detected_tabs_list.setTextCursor(cursor)
+        
+        # Log to console as well
+        print(f"[DETECTED] {tab.title} -> {tab.anime_name or 'Unknown'} (confidence: {tab.confidence:.2f})"

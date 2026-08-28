@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+*.pyo
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Environment / secrets
+.env
+config.ini
+secrets.py
+
+# Build / dist
+build/
+dist/
+*.egg-info/
+
+# Temporary
+*.tmp
+*.temp
+*.bak
