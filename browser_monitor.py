@@ -40,6 +40,7 @@ class AnimeTabInfo:
     mal_id: Optional[int] = None
     total_episodes: Optional[int] = None
     total_seasons: Optional[int] = None
+    title_variants: Optional[List[str]] = None  # All title variants from AniList for comprehensive searching
 
 class BrowserMonitor:
     def __init__(self, check_interval: int = 3):
@@ -90,6 +91,7 @@ class BrowserMonitor:
               english
               native
             }
+            synonyms
             episodes
             format
             status
@@ -184,12 +186,32 @@ class BrowserMonitor:
                     else:
                         total_seasons = (episodes + 23) // 24  # Rough estimate
                 
+                # Collect all title variants for comprehensive searching
+                title_variants = []
+                if anime_data['title'].get('romaji'):
+                    title_variants.append(anime_data['title']['romaji'])
+                if anime_data['title'].get('english'):
+                    title_variants.append(anime_data['title']['english'])
+                if anime_data['title'].get('native'):
+                    title_variants.append(anime_data['title']['native'])
+                # Add synonyms if available
+                if anime_data.get('synonyms'):
+                    title_variants.extend(anime_data['synonyms'])
+                # Deduplicate while preserving order
+                seen = set()
+                unique_variants = []
+                for v in title_variants:
+                    if v and v not in seen:
+                        seen.add(v)
+                        unique_variants.append(v)
+
                 result = {
                     'id': anime_data['id'],
                     'mal_id': anime_data.get('idMal'),
                     'title_romaji': anime_data['title'].get('romaji'),
                     'title_english': anime_data['title'].get('english'),
                     'title_native': anime_data['title'].get('native'),
+                    'title_variants': unique_variants,  # All title variants for comprehensive searching
                     'episodes': episodes,
                     'format': format_type,
                     'status': anime_data.get('status'),
@@ -199,6 +221,7 @@ class BrowserMonitor:
                     'estimated_seasons': total_seasons,
                 }
                 self.anime_cache[cache_key] = result
+                self.logger.debug(f"Cached anime {unique_variants[0]} with {len(unique_variants)} title variants: {unique_variants}")
                 return result
         except Exception as e:
             self.logger.error(f"Failed to get anime info from AniList: {e}")
@@ -471,7 +494,8 @@ class BrowserMonitor:
                     confidence=confidence,
                     mal_id=mal_id,
                     total_episodes=total_episodes,
-                    total_seasons=total_seasons
+                    total_seasons=total_seasons,
+                    title_variants=anime_info.get('title_variants') if anime_info else None
                 )
                 tabs.append(tab_info)
                 self.logger.info(f"MAL tab from session: {title[:80]} -> {anime_name or 'Unknown'} (confidence: {confidence:.2f})")

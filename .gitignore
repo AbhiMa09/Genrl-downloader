@@ -39,3 +39,13 @@ dist/
 *.tmp
 *.temp
 *.bak
+
+# Backup files
+*.backup
+*.backup2
+
+# Debug files
+debug_*.py
+debug_*.html
+*_to_insert.txt
+test_*.txt

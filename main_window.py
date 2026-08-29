@@ -220,7 +220,7 @@ class SmartDownloadThread(QThread):
         if success:
             self.download_complete.emit(True, f"Smart download complete! Downloaded {total_downloaded} torrents across {total_seasons_found} seasons to {anime_folder}")
         else:
-            self.download_complete.emit(False, f"Smart download completed but no torrents were successfully added for {self.anime_name}"))
+            self.download_complete.emit(False, f"Smart download completed but no torrents were successfully added for {self.anime_name}")
 
     def _extract_episode_number(self, title: str) -> Optional[int]:
         """Extract episode number from torrent title"""
