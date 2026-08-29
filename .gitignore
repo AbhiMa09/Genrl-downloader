@@ -28,6 +28,7 @@ logs/
 # Environment / secrets
 .env
 config.ini
+config.json
 secrets.py
 
 # Build / dist

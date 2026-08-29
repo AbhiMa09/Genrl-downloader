@@ -61,9 +61,6 @@ query ($search: String) {
 DEVIANTART_API_URL = "https://www.deviantart.com/api/v1/oauth2/browse/popular"
 DEVIANTART_SEARCH_URL = "https://www.deviantart.com/api/v1/oauth2/browse/search"
 
-DEVIANTART_API_URL = "https://www.deviantart.com/api/v1/oauth2/browse/popular"
-DEVIANTART_SEARCH_URL = "https://www.deviantart.com/api/v1/oauth2/browse/search"
-
 # Try to import deviantart_auth
 try:
     from deviantart_auth import get_access_token
@@ -93,7 +90,7 @@ def search_deviantart_folder_icon(anime_name: str) -> Optional[str]:
     # Try search with "folder icon" first
     queries = [
         f"{anime_name} folder icon",
-        f"{anime_name} anime folder icon",
+        f"{anime_name} anime folder",
         f"{anime_name} folder",
     ]
     
