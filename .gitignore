@@ -41,8 +41,7 @@ dist/
 *.bak
 
 # Backup files
-*.backup
-*.backup2
+*.backup*
 
 # Debug files
 debug_*.py
