@@ -59,7 +59,6 @@ query ($search: String) {
 """
 
 DEVIANTART_API_URL = "https://www.deviantart.com/api/v1/oauth2/browse/popular"
-DEVIANTART_SEARCH_URL = "https://www.deviantart.com/api/v1/oauth2/browse/search"
 
 # Try to import deviantart_auth
 try:
@@ -77,11 +76,13 @@ def search_deviantart_folder_icon(anime_name: str) -> Optional[str]:
     """
     Search DeviantArt for 'anime name folder icon' and return best image URL.
     Returns None if DeviantArt auth fails or no suitable results.
-    NOTE: DeviantArt API v1 browse/search endpoints currently return 404 (deprecated/changed).
-    This function is kept for future use when API is restored.
+    NOTE: DeviantArt API v1 browse/search endpoints don't exist (404).
+    The gallery endpoint works but doesn't support search.
+    This function is kept for future use when search API is available.
     """
-    # DeviantArt API v1 browse/search endpoints currently return 404 (deprecated/changed).
-    # Keeping auth flow for future use when API is restored.
+    # DeviantArt API v1 browse/search endpoints don't exist (404).
+    # The gallery endpoint works but doesn't support search.
+    # Keeping auth flow for future use when search API is available.
     return None
     clean_name = re.sub(r'[\[\(].*?[\]\)]', '', folder_name).strip()
     clean_name = re.sub(r'\b(1080p|720p|480p|HEVC|x265|x264|BD|WEB|DUAL|AUDIO|SUB)\b', '', clean_name, flags=re.IGNORECASE).strip()
