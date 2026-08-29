@@ -95,7 +95,7 @@ class CallbackHandler(http.server.BaseHTTPRequestHandler):
                 <p><small>This window will close automatically in 5 seconds...</small></p>
                 <script>setTimeout(() => window.close(), 5000);</script>
             </body></html>
-            """.encode())
+            """)
         else:
             self.send_response(404)
             self.end_headers()

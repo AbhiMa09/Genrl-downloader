@@ -77,99 +77,11 @@ def search_deviantart_folder_icon(anime_name: str) -> Optional[str]:
     """
     Search DeviantArt for 'anime name folder icon' and return best image URL.
     Returns None if DeviantArt auth fails or no suitable results.
+    NOTE: DeviantArt API v1 browse/search endpoints currently return 404 (deprecated/changed).
+    This function is kept for future use when API is restored.
     """
-    if not DEVIANTART_AVAILABLE:
-        return None
-    
-    try:
-        token = get_access_token()
-    except Exception as e:
-        print(f"  DeviantArt auth failed: {e}")
-        return None
-    
-    # Try search with "folder icon" first
-    queries = [
-        f"{anime_name} folder icon",
-        f"{anime_name} anime folder",
-        f"{anime_name} folder",
-    ]
-    
-    for query in queries:
-        try:
-            print(f"  Searching DeviantArt: {query}")
-            params = {
-                'q': query,
-                'access_token': token,
-                'limit': 24,
-                'mature_content': 'false',
-            }
-            
-            resp = requests.get(DEVIANTART_SEARCH_URL, params=params, timeout=15)
-            
-            if resp.status_code == 429:
-                print(f"  DeviantArt rate limit hit (429). Backing off...")
-                time.sleep(2)
-                continue
-            
-            resp.raise_for_status()
-            data = resp.json()
-            
-            results = data.get('results', [])
-            if not results:
-                continue
-            
-            # Filter and rank results
-            candidates = []
-            for item in results:
-                # Check if it's an image
-                if item.get('content', {}).get('type') != 'image':
-                    continue
-                
-                content = item.get('content', {})
-                width = content.get('width', 0)
-                height = content.get('height', 0)
-                
-                # Skip non-square-ish images (banners, wallpapers)
-                if width > 0 and height > 0:
-                    ratio = width / height
-                    if ratio < 0.7 or ratio > 1.3:
-                        continue
-                
-                # Prefer higher resolution
-                resolution_score = min(width * height, 4000000) / 40000  # Normalize
-                
-                # Bonus for folder/icon related tags
-                tags = [t.get('label', '').lower() for t in item.get('tags', [])]
-                tag_bonus = 0
-                if any(kw in ' '.join(tags) for kw in ['folder', 'icon', 'cover', 'poster', 'keyart', 'key art', 'anime']):
-                    tag_bonus = 10
-                
-                # Bonus for favorites/views
-                stats = item.get('stats', {})
-                fav_bonus = min(stats.get('favourites', 0) / 100, 20)
-                view_bonus = min(stats.get('comments', 0) / 50, 10)
-                
-                total_score = resolution_score + tag_bonus + fav_bonus + view_bonus
-                
-                src = content.get('src')
-                if src:
-                    candidates.append((total_score, src, item.get('title', '')))
-            
-            if candidates:
-                candidates.sort(key=lambda x: x[0], reverse=True)
-                best = candidates[0]
-                print(f"  Found DeviantArt result: {best[2]} (score: {best[0]:.1f})")
-                return best[1]
-                
-        except requests.HTTPError as e:
-            if e.response is not None and e.response.status_code == 429:
-                print(f"  DeviantArt rate limit hit. Backing off...")
-                time.sleep(3)
-                continue
-            print(f"  DeviantArt search error: {e}")
-        except Exception as e:
-            print(f"  DeviantArt search error: {e}")
-    
+    # DeviantArt API v1 browse/search endpoints currently return 404 (deprecated/changed).
+    # Keeping auth flow for future use when API is restored.
     return None
     clean_name = re.sub(r'[\[\(].*?[\]\)]', '', folder_name).strip()
     clean_name = re.sub(r'\b(1080p|720p|480p|HEVC|x265|x264|BD|WEB|DUAL|AUDIO|SUB)\b', '', clean_name, flags=re.IGNORECASE).strip()
