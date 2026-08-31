@@ -27,6 +27,423 @@ from scheduler import scheduler, start_scheduler, stop_scheduler, schedule_daily
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# SweetAlert2-style notification system with smooth animations
+class SweetAlert:
+    """SweetAlert2-style notifications for PyQt6 using custom animated widgets"""
+    
+    _toasts = []  # Keep references to prevent garbage collection
+    
+    @staticmethod
+    def _create_alert_widget(icon_type: str, title: str, text: str, buttons: list = None, parent=None) -> 'AlertWidget':
+        """Create a custom animated alert widget"""
+        return AlertWidget(icon_type, title, text, buttons or ["OK"], parent)
+    
+    @staticmethod
+    def success(title: str, text: str, parent=None) -> int:
+        """Show success alert with animation"""
+        alert = SweetAlert._create_alert_widget("success", title, text, ["OK"], parent)
+        alert.show_animated()
+        return alert.exec_()
+    
+    @staticmethod
+    def error(title: str, text: str, parent=None) -> int:
+        """Show error alert with animation"""
+        alert = SweetAlert._create_alert_widget("error", title, text, ["OK"], parent)
+        alert.show_animated()
+        return alert.exec_()
+    
+    @staticmethod
+    def warning(title: str, text: str, parent=None) -> int:
+        """Show warning alert with animation"""
+        alert = SweetAlert._create_alert_widget("warning", title, text, ["OK"], parent)
+        alert.show_animated()
+        return alert.exec_()
+    
+    @staticmethod
+    def info(title: str, text: str, parent=None) -> int:
+        """Show info alert with animation"""
+        alert = SweetAlert._create_alert_widget("info", title, text, ["OK"], parent)
+        alert.show_animated()
+        return alert.exec_()
+    
+    @staticmethod
+    def confirm(title: str, text: str, parent=None) -> bool:
+        """Show confirmation dialog with animation"""
+        alert = SweetAlert._create_alert_widget("question", title, text, ["Yes", "No"], parent)
+        alert.show_animated()
+        return alert.exec_() == 1  # Yes = 1
+    
+    @staticmethod
+    def toast(title: str, text: str, parent=None, duration: int = 3000):
+        """Show a temporary toast notification (non-blocking, animated)"""
+        toast = ToastWidget(title, text, parent, duration)
+        SweetAlert._toasts.append(toast)  # Keep reference
+        toast.show_animated()
+        return toast
+
+
+class AlertWidget(QDialog):
+    """Custom animated alert dialog with SweetAlert2 styling"""
+    
+    def __init__(self, icon_type: str, title: str, text: str, buttons: list, parent=None):
+        super().__init__(parent)
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Dialog)
+        self.setModal(True)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.setFixedSize(420, 220)
+        
+        self.result_value = 0
+        self._animation = None
+        
+        # Main container with rounded corners
+        self.container = QWidget(self)
+        self.container.setFixedSize(400, 200)
+        self.container.setStyleSheet("""
+            QWidget {
+                background-color: #2d2d2d;
+                border-radius: 16px;
+                border: 1px solid #3d3d3d;
+            }
+        """)
+        
+        layout = QVBoxLayout(self.container)
+        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setSpacing(16)
+        
+        # Icon
+        icon_map = {
+            "success": ("✓", "#4CAF50"),
+            "error": ("✗", "#f44336"),
+            "warning": ("⚠", "#ff9800"),
+            "info": ("ℹ", "#2196f3"),
+            "question": ("?", "#2196f3"),
+        }
+        icon_char, icon_color = icon_map.get(icon_type, ("ℹ", "#2196f3"))
+        
+        icon_label = QLabel(icon_char)
+        icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        icon_label.setStyleSheet(f"""
+            QLabel {{
+                color: {icon_color};
+                font-size: 56px;
+                font-weight: bold;
+            }}
+        """)
+        layout.addWidget(icon_label)
+        
+        # Title
+        title_label = QLabel(title)
+        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title_label.setWordWrap(True)
+        title_label.setStyleSheet("""
+            QLabel {
+                color: #ffffff;
+                font-size: 18px;
+                font-weight: 600;
+            }
+        """)
+        layout.addWidget(title_label)
+        
+        # Text
+        text_label = QLabel(text)
+        text_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        text_label.setWordWrap(True)
+        text_label.setStyleSheet("""
+            QLabel {
+                color: #cccccc;
+                font-size: 14px;
+                line-height: 1.5;
+            }
+        """)
+        layout.addWidget(text_label)
+        
+        layout.addStretch()
+        
+        # Buttons
+        btn_layout = QHBoxLayout()
+        btn_layout.setSpacing(12)
+        btn_layout.addStretch()
+        
+        for i, btn_text in enumerate(buttons):
+            btn = QPushButton(btn_text)
+            btn.setFixedHeight(40)
+            btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            
+            if i == 0:  # Primary button
+                btn.setStyleSheet("""
+                    QPushButton {
+                        background-color: #3085d6;
+                        color: white;
+                        border: none;
+                        border-radius: 8px;
+                        padding: 10px 28px;
+                        font-size: 14px;
+                        font-weight: 600;
+                        min-width: 90px;
+                    }
+                    QPushButton:hover { background-color: #2a75c0; }
+                    QPushButton:pressed { background-color: #1e5fa0; }
+                """)
+            else:  # Secondary button
+                btn.setStyleSheet("""
+                    QPushButton {
+                        background-color: transparent;
+                        color: #cccccc;
+                        border: 1px solid #444;
+                        border-radius: 8px;
+                        padding: 10px 28px;
+                        font-size: 14px;
+                        font-weight: 500;
+                        min-width: 90px;
+                    }
+                    QPushButton:hover { background-color: #3a3a3a; border-color: #555; }
+                    QPushButton:pressed { background-color: #2a2a2a; }
+                """)
+            
+            btn.clicked.connect(lambda checked, r=i: self._on_button_clicked(r))
+            btn_layout.addWidget(btn)
+        
+        layout.addLayout(btn_layout)
+        
+        # Main layout for dialog
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(10, 10, 10, 10)
+        main_layout.addWidget(self.container, alignment=Qt.AlignmentFlag.AlignCenter)
+        
+        # Center on parent
+        if parent:
+            self.move(parent.geometry().center() - self.rect().center())
+    
+    def _on_button_clicked(self, index: int):
+        self.result_value = index
+        self.close_animated()
+    
+    def show_animated(self):
+        """Show with fade-in + scale animation"""
+        self.setWindowOpacity(0)
+        self.show()
+        
+        self._animation = QPropertyAnimation(self, b"windowOpacity")
+        self._animation.setDuration(200)
+        self._animation.setStartValue(0.0)
+        self._animation.setEndValue(1.0)
+        self._animation.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self._animation.start()
+    
+    def close_animated(self):
+        """Close with fade-out animation"""
+        if self._animation:
+            self._animation.stop()
+        
+        self._animation = QPropertyAnimation(self, b"windowOpacity")
+        self._animation.setDuration(150)
+        self._animation.setStartValue(self.windowOpacity())
+        self._animation.setEndValue(0.0)
+        self._animation.setEasingCurve(QEasingCurve.Type.InCubic)
+        self._animation.finished.connect(self.close)
+        self._animation.start()
+    
+    def exec_(self):
+        self.show_animated()
+        super().exec_()
+        return self.result_value
+
+
+class ToastWidget(QWidget):
+    """Animated toast notification (non-blocking)"""
+    
+    def __init__(self, title: str, text: str, parent=None, duration: int = 3000):
+        super().__init__(parent)
+        self.duration = duration
+        self.setWindowFlags(
+            Qt.WindowType.FramelessWindowHint | 
+            Qt.WindowType.ToolTip | 
+            Qt.WindowType.WindowStaysOnTopHint |
+            Qt.WindowType.NoDropShadowWindowHint
+        )
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
+        
+        self.setFixedWidth(340)
+        
+        # Container with border-radius and shadow
+        self.container = QWidget(self)
+        self.container.setStyleSheet("""
+            QWidget {
+                background-color: #2d2d2d;
+                border-radius: 12px;
+                border: 1px solid #3d3d3d;
+                border-left: 4px solid #3085d6;
+            }
+        """)
+        
+        layout = QVBoxLayout(self.container)
+        layout.setContentsMargins(16, 14, 16, 14)
+        layout.setSpacing(6)
+        
+        # Title
+        title_label = QLabel(f"<b>{title}</b>")
+        title_label.setStyleSheet("color: #ffffff; font-size: 14px; font-weight: 600;")
+        title_label.setWordWrap(True)
+        layout.addWidget(title_label)
+        
+        # Text
+        text_label = QLabel(text)
+        text_label.setWordWrap(True)
+        text_label.setStyleSheet("color: #cccccc; font-size: 13px; line-height: 1.4;")
+        layout.addWidget(text_label)
+        
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.addWidget(self.container)
+        
+        self.duration = duration
+        self._animation = None
+        
+        # Position at bottom-right of parent
+        if parent:
+            geo = parent.geometry()
+            self.move(geo.right() - 380, geo.bottom() - 80)
+        else:
+            screen = QApplication.primaryScreen().geometry()
+            self.move(screen.width() - 380, screen.height() - 100)
+    
+    def show_animated(self):
+        """Show with slide-up + fade-in animation"""
+        self.setWindowOpacity(0)
+        self.show()
+        
+        # Start slightly below target position
+        start_pos = self.pos() + QPoint(0, 30)
+        self.move(start_pos)
+        
+        # Opacity animation
+        self.opacity_anim = QPropertyAnimation(self, b"windowOpacity")
+        self.opacity_anim.setDuration(250)
+        self.opacity_anim.setStartValue(0.0)
+        self.opacity_anim.setEndValue(1.0)
+        self.opacity_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+        
+        # Position animation
+        self.pos_anim = QPropertyAnimation(self, b"pos")
+        self.pos_anim.setDuration(300)
+        self.pos_anim.setStartValue(start_pos)
+        self.pos_anim.setEndValue(start_pos - QPoint(0, 30))
+        self.pos_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+        
+        self.opacity_anim.start()
+        self.pos_anim.start()
+        
+        # Auto-close
+        QTimer.singleShot(self.duration, self.close_animated)
+    
+    def close_animated(self):
+        """Close with slide-down + fade-out animation"""
+        if hasattr(self, 'opacity_anim') and self.opacity_anim.state() == QPropertyAnimation.State.Running:
+            self.opacity_anim.stop()
+        if hasattr(self, 'pos_anim') and self.pos_anim.state() == QPropertyAnimation.State.Running:
+            self.pos_anim.stop()
+        
+        # Fade out
+        self.opacity_anim = QPropertyAnimation(self, b"windowOpacity")
+        self.opacity_anim.setDuration(200)
+        self.opacity_anim.setStartValue(self.windowOpacity())
+        self.opacity_anim.setEndValue(0.0)
+        self.opacity_anim.setEasingCurve(QEasingCurve.Type.InCubic)
+        
+        # Slide down
+        self.pos_anim = QPropertyAnimation(self, b"pos")
+        self.pos_anim.setDuration(200)
+        self.pos_anim.setStartValue(self.pos())
+        self.pos_anim.setEndValue(self.pos() + QPoint(0, 20))
+        self.pos_anim.setEasingCurve(QEasingCurve.Type.InCubic)
+        
+        self.opacity_anim.finished.connect(self.close)
+        self.opacity_anim.start()
+        self.pos_anim.start()
+
+
+class SweetProgressDialog(QDialog):
+    """SweetAlert2-style progress dialog with spinner"""
+    
+    def __init__(self, title: str, text: str, parent=None):
+        super().__init__(parent)
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Dialog)
+        self.setModal(True)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.setFixedSize(340, 180)
+        
+        self.container = QWidget(self)
+        self.container.setFixedSize(320, 160)
+        self.container.setStyleSheet("""
+            QWidget {
+                background-color: #2d2d2d;
+                border-radius: 16px;
+                border: 2px solid #3085d6;
+            }
+        """)
+        
+        layout = QVBoxLayout(self.container)
+        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setSpacing(16)
+        
+        # Spinner (animated)
+        self.spinner_label = QLabel("⏳")
+        self.spinner_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.spinner_label.setStyleSheet("font-size: 48px;")
+        layout.addWidget(self.spinner_label)
+        
+        # Title
+        self.title_label = QLabel(title)
+        self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.title_label.setStyleSheet("color: #ffffff; font-size: 18px; font-weight: 600;")
+        layout.addWidget(self.title_label)
+        
+        # Text
+        self.text_label = QLabel(text)
+        self.text_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.text_label.setWordWrap(True)
+        self.text_label.setStyleSheet("color: #cccccc; font-size: 14px;")
+        layout.addWidget(self.text_label)
+        
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(10, 10, 10, 10)
+        main_layout.addWidget(self.container, alignment=Qt.AlignmentFlag.AlignCenter)
+        
+        self._rotation = 0
+        self._spinner_timer = QTimer(self)
+        self._spinner_timer.timeout.connect(self._rotate_spinner)
+        self._spinner_timer.start(100)
+        
+        if parent:
+            self.move(parent.geometry().center() - self.rect().center())
+    
+    def _rotate_spinner(self):
+        self._rotation = (self._rotation + 30) % 360
+        self.spinner_label.setText(chr(0x23F3 + (self._rotation // 30) % 8))  # Spinner chars
+    
+    def show(self):
+        self.setWindowOpacity(0)
+        super().show()
+        self.opacity_anim = QPropertyAnimation(self, b"windowOpacity")
+        self.opacity_anim.setDuration(200)
+        self.opacity_anim.setStartValue(0.0)
+        self.opacity_anim.setEndValue(1.0)
+        self.opacity_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self.opacity_anim.start()
+    
+    def close(self):
+        self.opacity_anim = QPropertyAnimation(self, b"windowOpacity")
+        self.opacity_anim.setDuration(150)
+        self.opacity_anim.setStartValue(self.windowOpacity())
+        self.opacity_anim.setEndValue(0.0)
+        self.opacity_anim.setEasingCurve(QEasingCurve.Type.InCubic)
+        self.opacity_anim.finished.connect(super().close)
+        self.opacity_anim.start()
+    
+    def update_text(self, text: str):
+        self.findChild(QLabel, "text_label").setText(text)
+
 class TorrentDownloadThread(QThread):
     """Thread for handling torrent downloads without blocking GUI"""
     progress_update = pyqtSignal(str)
@@ -806,6 +1223,10 @@ class GeneralDownloaderMainWindow(QMainWindow):
                     self.last_detected_anime = tab.anime_name
                     if hasattr(self, 'smart_download_detected_btn'):
                         self.smart_download_detected_btn.setEnabled(True)
+                    # Show toast for detected anime
+                    SweetAlert.toast("Anime Tab Detected", 
+                        f"{tab.anime_name}\nEpisodes: {tab.total_episodes or '?'}\nSeasons: {tab.total_seasons or '?'}", 
+                        self, 6000)
 
             # Handle auto-search if enabled
             if hasattr(self, 'auto_search_checkbox') and self.auto_search_checkbox.isChecked():
@@ -863,6 +1284,7 @@ class GeneralDownloaderMainWindow(QMainWindow):
         self.auto_download_queue.append(anime_name)
         self.status_label.setText(f"Queued for download: {anime_name} (queue: {len(self.auto_download_queue)})")
         self.logger.info(f"Queued anime for download: {anime_name} (queue: {len(self.auto_download_queue)})")
+        SweetAlert.toast("Queued for Download", f"{anime_name}\nQueue position: {len(self.auto_download_queue)}", self, 5000)
 
         if not self.auto_download_processing:
             self._process_auto_download_queue()
@@ -892,6 +1314,11 @@ class GeneralDownloaderMainWindow(QMainWindow):
             self.active_threads.append(self.smart_download_thread)
             self.smart_download_thread.start()
 
+            # Show popup notification
+            SweetAlert.success("Auto Download Started", 
+                f"Started downloading all seasons for:\n{anime_name}\n\n"
+                f"Check the Torrents tab for progress.", self)
+
             self.search_status_label.setText(f"Smart downloading {anime_name} - all seasons...")
         except Exception as e:
             self.logger.error(f"Failed to start smart download thread for {anime_name}: {e}")
@@ -907,9 +1334,11 @@ class GeneralDownloaderMainWindow(QMainWindow):
             if success:
                 self.search_status_label.setText(f"✓ {message}")
                 self.logger.info(f"Smart download successful: {message}")
+                SweetAlert.toast("Download Complete", message, self, 5000)
             else:
                 self.search_status_label.setText(f"✗ {message}")
                 self.logger.warning(f"Smart download failed: {message}")
+                SweetAlert.toast("Download Failed", message, self, 5000)
 
             # Refresh torrents to show the new additions
             self.refresh_torrents()
@@ -921,6 +1350,7 @@ class GeneralDownloaderMainWindow(QMainWindow):
             else:
                 self.auto_download_processing = False
                 self.status_label.setText("Auto-download queue completed")
+                SweetAlert.toast("Queue Complete", "All auto-downloads finished", self, 4000)
         except Exception as e:
             self.logger.error(f"Error in _on_auto_download_complete: {e}")
             # Ensure we continue processing next item despite error
@@ -935,8 +1365,11 @@ class GeneralDownloaderMainWindow(QMainWindow):
         """Smart download for the last detected anime from browser monitor - uses queue"""
         if hasattr(self, 'last_detected_anime') and self.last_detected_anime:
             self.auto_download_anime(self.last_detected_anime)
+            SweetAlert.success("Smart Download Started", 
+                f"Started downloading all seasons for:\n{self.last_detected_anime}\n\n"
+                f"Check the Torrents tab for progress.", self)
         else:
-            QMessageBox.warning(self, "No Anime Selected", "No anime detected yet. Open a MyAnimeList page first.")
+            SweetAlert.warning("No Anime Selected", "No anime detected yet. Open a MyAnimeList page first.", self)
 
     def _on_anime_tab_detected_threaded(self, tab: AnimeTabInfo):
         """Thread-safe callback wrapper for browser monitor - emits signal for GUI thread"""
@@ -1145,6 +1578,7 @@ class GeneralDownloaderMainWindow(QMainWindow):
             self.results_table.setCellWidget(row, 5, download_btn)
 
         self.search_status_label.setText(f"Found {len(results)} results")
+        SweetAlert.toast("Search Complete", f"Found {len(results)} results for your search", self, 4000)
 
         # Handle auto-download if enabled and we have results
         if (hasattr(self, 'auto_download_checkbox') and self.auto_download_checkbox.isChecked()
@@ -1161,7 +1595,7 @@ class GeneralDownloaderMainWindow(QMainWindow):
         self.search_button.setEnabled(True)
         self.search_progress.setVisible(False)
         self.search_status_label.setText("Search failed")
-        QMessageBox.critical(self, "Search Error", f"Failed to search: {error}")
+        SweetAlert.error("Search Failed", f"Failed to search: {error}", self)
 
     def on_search_status(self, status: str):
         """Handle search status updates"""
@@ -1254,10 +1688,10 @@ Magnet: {torrent['magnet'][:100]}..."""
         self.download_button.setText("Download Selected Torrent")
 
         if success:
-            QMessageBox.information(self, "Download Started", message)
+            SweetAlert.success("Download Started", message, self)
             self.search_status_label.setText(message)
         else:
-            QMessageBox.warning(self, "Download Failed", message)
+            SweetAlert.error("Download Failed", message, self)
             self.search_status_label.setText("Download failed")
 
         # Refresh torrents to show the new addition
@@ -1270,10 +1704,10 @@ Magnet: {torrent['magnet'][:100]}..."""
     def on_smart_download_complete(self, success: bool, message: str):
         """Handle smart download completion"""
         if success:
-            QMessageBox.information(self, "Smart Download Complete", message)
+            SweetAlert.success("Smart Download Complete", message, self)
             self.search_status_label.setText(message)
         else:
-            QMessageBox.warning(self, "Smart Download Failed", message)
+            SweetAlert.error("Smart Download Failed", message, self)
             self.search_status_label.setText("Smart download failed")
 
         # Refresh torrents to show the new additions
@@ -1314,10 +1748,10 @@ Magnet: {torrent['magnet'][:100]}..."""
         self.add_manual_torrent_button.setText("Add Torrent")
 
         if success:
-            QMessageBox.information(self, "Torrent Added", message)
+            SweetAlert.success("Torrent Added", message, self)
             self.manual_magnet_input.clear()
         else:
-            QMessageBox.warning(self, "Failed to Add Torrent", message)
+            SweetAlert.error("Failed to Add Torrent", message, self)
 
         self.refresh_torrents()
 
@@ -1422,6 +1856,7 @@ Magnet: {torrent['magnet'][:100]}..."""
         self.stop_monitor_button.setEnabled(True)
         self.browser_status_label.setText("Browser monitor: Running")
         self.status_label.setText("Browser monitoring started")
+        SweetAlert.toast("Browser Monitor", "Started monitoring for MyAnimeList tabs", self, 4000)
 
     def stop_browser_monitoring(self):
         """Stop monitoring browser tabs"""
@@ -1430,6 +1865,7 @@ Magnet: {torrent['magnet'][:100]}..."""
         self.stop_monitor_button.setEnabled(False)
         self.browser_status_label.setText("Browser monitor: Stopped")
         self.status_label.setText("Browser monitoring stopped")
+        SweetAlert.toast("Browser Monitor", "Stopped monitoring", self, 3000)
 
     def test_qbittorrent_connection(self):
         """Test connection to qBittorrent"""
@@ -1442,11 +1878,11 @@ Magnet: {torrent['magnet'][:100]}..."""
         )
 
         if self.torrent_manager.is_connected():
-            QMessageBox.information(self, "Connection Test", "Successfully connected to qBittorrent!")
+            SweetAlert.success("Connection Test", "Successfully connected to qBittorrent!", self)
             self.qb_status_label.setText("qBittorrent: Connected")
             self.qb_status_label.setStyleSheet("color: green")
         else:
-            QMessageBox.warning(self, "Connection Test", "Failed to connect to qBittorrent. Please check your settings and make sure qBittorrent is running.")
+            SweetAlert.error("Connection Test", "Failed to connect to qBittorrent. Please check your settings and make sure qBittorrent is running.", self)
             self.qb_status_label.setText("qBittorrent: Disconnected")
             self.qb_status_label.setStyleSheet("color: red")
 
