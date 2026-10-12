@@ -1,51 +1,54 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.pyc
-*.pyo
+# --- Rust ---
+core/target/
+**/*.rs.bk
+*.pdb
 
-# Virtual environments
-venv/
-env/
-ENV/
-.venv/
+# --- Flutter / Dart ---
+app/.dart_tool/
+app/build/
+app/.flutter-plugins
+app/.flutter-plugins-dependencies
+app/.packages
+app/pubspec.lock.bak
+**/*.g.dart
+**/*.gr.dart'
+app/android/
+app/ios/
+app/linux/
+app/macos/
+app/windows/
+app/web/
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
+# --- Design assets ---
+# The source bundle for the already-extracted screen folders in assets/.
+assets/*.zip
 
-# OS
-.DS_Store
-Thumbs.db
-
-# Logs
+# --- Logs & local data ---
 *.log
 logs/
+data/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
 
-# Environment / secrets
+# --- Secrets (never commit) ---
 .env
 config.ini
 config.json
 secrets.py
+*.keyring
 
-# Build / dist
-build/
-dist/
-*.egg-info/
+# --- IDE / OS ---
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
 
-# Temporary
+# --- Backups / temp ---
 *.tmp
 *.temp
 *.bak
-
-# Backup files
 *.backup*
-
-# Debug files
-debug_*.py
-debug_*.html
-*_to_insert.txt
-test_*.txt
