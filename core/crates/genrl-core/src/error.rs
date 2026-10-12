@@ -54,6 +54,9 @@ pub enum Error {
     #[error("invalid url: {0}")]
     InvalidUrl(String),
 
+    #[error("{service} authentication failed: {message}")]
+    Auth { service: String, message: String },
+
     #[error("not found: {0}")]
     NotFound(String),
 
@@ -79,6 +82,17 @@ impl Error {
         match self {
             Error::Timeout { .. } => true,
             Error::Http(e) => e.is_timeout(),
+            _ => false,
+        }
+    }
+
+    /// True when the far end could not be reached at all — refused, no route,
+    /// DNS failure or timeout. The health check uses this to decide whether to
+    /// offer starting `qbittorrent-nox`.
+    pub fn is_connection_failure(&self) -> bool {
+        match self {
+            Error::Timeout { .. } => true,
+            Error::Http(e) => e.is_connect() || e.is_timeout(),
             _ => false,
         }
     }

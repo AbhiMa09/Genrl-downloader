@@ -48,6 +48,9 @@ pub struct Fetched {
     pub body: Vec<u8>,
     pub from_cache: bool,
     pub etag: Option<String>,
+    /// First `Set-Cookie` value, for services that hand out a session cookie
+    /// (qBittorrent's `SID`). Never present on a cached response.
+    pub set_cookie: Option<String>,
 }
 
 impl Fetched {
@@ -155,8 +158,6 @@ impl Gate {
     }
 
     /// GET with per-call overrides.
-    // `last_err` starts empty and is only read after an attempt has filled it.
-    #[allow(unused_assignments)]
     pub async fn get_with(
         &self,
         service: Service,
@@ -171,12 +172,6 @@ impl Gate {
         self.allow(service, &state)?;
 
         let ttl = opts.ttl.or(state.policy.cache_ttl);
-        let timeout = opts.timeout.unwrap_or(state.policy.timeout);
-        let retry = opts
-            .retry
-            .clone()
-            .unwrap_or_else(|| state.policy.retry.clone());
-        let cap = state.policy.max_body_bytes;
 
         // 2. Cache: fresh answers immediately, stale ETags revalidate.
         let mut if_none_match: Option<String> = None;
@@ -189,11 +184,58 @@ impl Gate {
                         body: entry.body,
                         from_cache: true,
                         etag: entry.etag,
+                        set_cookie: None,
                     });
                 }
                 if_none_match = entry.etag;
             }
         }
+
+        let wire = Wire::Get {
+            if_none_match: if_none_match.as_deref(),
+        };
+        self.dispatch(service, parsed, key, state, opts, wire, ttl)
+            .await
+    }
+
+    /// POST an `application/x-www-form-urlencoded` body through the gate.
+    ///
+    /// Commands (qBittorrent's WebUI is form POSTs) are never cached: the
+    /// breaker, the limiter and the backoff still apply, the cache does not.
+    pub async fn post_form(
+        &self,
+        service: Service,
+        url: &str,
+        form: &[(String, String)],
+        opts: &GetOptions,
+    ) -> Result<Fetched> {
+        let parsed = reqwest::Url::parse(url).map_err(|_| Error::InvalidUrl(url.to_string()))?;
+        let key = parsed.to_string();
+        let state = self.state(service);
+        self.allow(service, &state)?;
+        let wire = Wire::Form { fields: form };
+        self.dispatch(service, parsed, key, state, opts, wire, None)
+            .await
+    }
+
+    // `last_err` starts empty and is only read after an attempt has filled it.
+    #[allow(unused_assignments)]
+    async fn dispatch(
+        &self,
+        service: Service,
+        parsed: reqwest::Url,
+        key: String,
+        state: Arc<ServiceState>,
+        opts: &GetOptions,
+        wire: Wire<'_>,
+        ttl: Option<Duration>,
+    ) -> Result<Fetched> {
+        let timeout = opts.timeout.unwrap_or(state.policy.timeout);
+        let retry = opts
+            .retry
+            .clone()
+            .unwrap_or_else(|| state.policy.retry.clone());
+        let cap = state.policy.max_body_bytes;
 
         let started = Instant::now();
         let mut attempt: u32 = 0;
@@ -214,13 +256,14 @@ impl Gate {
             }
 
             let retry_after = match self
-                .send(&parsed, opts, if_none_match.as_deref(), timeout, cap)
+                .send(&parsed, &wire, opts, timeout, cap)
                 .await
             {
                 Ok(Outcome::Success {
                     status,
                     body,
                     etag,
+                    set_cookie,
                 }) => {
                     self.record_success(&state);
                     if status == 304 {
@@ -234,6 +277,7 @@ impl Gate {
                                     body: entry.body,
                                     from_cache: true,
                                     etag,
+                                    set_cookie: None,
                                 });
                             }
                         }
@@ -243,6 +287,7 @@ impl Gate {
                             body,
                             from_cache: false,
                             etag,
+                            set_cookie,
                         });
                     }
                     if let Some(ttl) = ttl {
@@ -261,6 +306,7 @@ impl Gate {
                         body,
                         from_cache: false,
                         etag,
+                        set_cookie,
                     });
                 }
                 Ok(Outcome::RateLimited { retry_after }) => {
@@ -363,17 +409,24 @@ impl Gate {
     async fn send(
         &self,
         url: &reqwest::Url,
+        wire: &Wire<'_>,
         opts: &GetOptions,
-        if_none_match: Option<&str>,
         timeout: Duration,
         cap: usize,
     ) -> std::result::Result<Outcome, Error> {
-        let mut req = self.client.get(url.clone()).timeout(timeout);
+        let mut req = match wire {
+            Wire::Get { if_none_match } => {
+                let mut req = self.client.get(url.clone());
+                if let Some(tag) = if_none_match {
+                    req = req.header(reqwest::header::IF_NONE_MATCH, *tag);
+                }
+                req
+            }
+            Wire::Form { fields } => self.client.post(url.clone()).form(*fields),
+        };
+        req = req.timeout(timeout);
         for (name, value) in &opts.headers {
             req = req.header(name.as_str(), value.as_str());
-        }
-        if let Some(tag) = if_none_match {
-            req = req.header(reqwest::header::IF_NONE_MATCH, tag);
         }
 
         let timeout_ms = timeout.as_millis() as u64;
@@ -397,16 +450,27 @@ impl Gate {
             .get(reqwest::header::ETAG)
             .and_then(|v| v.to_str().ok())
             .map(str::to_string);
+        let set_cookie = resp
+            .headers()
+            .get(reqwest::header::SET_COOKIE)
+            .and_then(|v| v.to_str().ok())
+            .map(str::to_string);
 
         match status {
             200..=299 => {
                 let body = read_body(resp, cap, url.as_str(), timeout).await?;
-                Ok(Outcome::Success { status, body, etag })
+                Ok(Outcome::Success {
+                    status,
+                    body,
+                    etag,
+                    set_cookie,
+                })
             }
             304 => Ok(Outcome::Success {
                 status,
                 body: Vec::new(),
                 etag,
+                set_cookie,
             }),
             429 => {
                 let header = resp
@@ -422,11 +486,22 @@ impl Gate {
     }
 }
 
+/// What one in-flight request actually does on the wire.
+enum Wire<'a> {
+    Get {
+        if_none_match: Option<&'a str>,
+    },
+    Form {
+        fields: &'a [(String, String)],
+    },
+}
+
 enum Outcome {
     Success {
         status: u16,
         body: Vec<u8>,
         etag: Option<String>,
+        set_cookie: Option<String>,
     },
     RateLimited {
         retry_after: Option<Duration>,

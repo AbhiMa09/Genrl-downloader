@@ -11,16 +11,25 @@
 //! * [`logging`] — optional debug logging that rotates by size.
 //! * [`http`] — the single shared client layer every external call goes through:
 //!   token-bucket limiter, response cache, retry with backoff, circuit breaker.
+//! * [`nyaa`], [`filename`], [`score`] — RSS search, release-name parsing,
+//!   torrent selection (phase 2).
+//! * [`qbit`] — the qBittorrent WebUI client (phase 2).
+//! * [`secrets`] — credentials, in the system keyring only.
 //!
 //! No other module talks to the network directly.
 
 pub mod db;
 pub mod error;
 pub mod events;
+pub mod filename;
 pub mod http;
 pub mod logging;
 pub mod models;
+pub mod nyaa;
+pub mod qbit;
 pub mod rules;
+pub mod score;
+pub mod secrets;
 pub mod settings;
 
 pub use db::Db;

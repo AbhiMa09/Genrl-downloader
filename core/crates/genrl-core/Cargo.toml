@@ -10,6 +10,8 @@ license.workspace = true
 tokio.workspace = true
 reqwest.workspace = true
 futures-util.workspace = true
+regex.workspace = true
+quick-xml.workspace = true
 rusqlite.workspace = true
 serde.workspace = true
 serde_json.workspace = true
@@ -19,6 +21,7 @@ tracing-subscriber.workspace = true
 rand.workspace = true
 url.workspace = true
 bytes.workspace = true
+keyring.workspace = true
 
 [dev-dependencies]
 wiremock.workspace = true

@@ -29,12 +29,17 @@ also what lets it keep working from the system tray while the window is closed.
 ```
 core/                    Rust workspace
   crates/genrl-core      the core library (this is where all state lives)
-    src/db.rs            SQLite, WAL mode, versioned migrations
+    src/db/              SQLite, WAL mode, versioned migrations
     src/settings.rs      every default number, exportable to JSON
     src/rules.rs         group priorities, resolution, seeds — global and per show
     src/events.rs        the Activity log
     src/logging.rs       optional debug log, rotates by size
     src/http/            the limit-proof client layer (see below)
+    src/nyaa.rs          RSS search across the mirrors
+    src/filename.rs      release-name parser (title, group, episode, resolution…)
+    src/score.rs         candidate scoring and the reject/accept decision
+    src/qbit.rs          qBittorrent WebUI client (4.x and 5.x)
+    src/secrets.rs       keyring-backed credentials (env override for scripts)
   crates/genrl-cli       `genrl` command-line companion
 app/                     Flutter UI (phase 7)
 assets/                  Stitch design screens + the Obsidian Violet design system
@@ -70,6 +75,23 @@ Data lives in `$XDG_DATA_HOME/genrl-downloader/` (`~/.local/share/…`), directo
 mode `0700`, database mode `0600`; the app refuses to start if either is
 group- or world-writable.
 
+The WebUI password lives in the system keyring (`genrl qbit password` stores
+it); `GENRL_QBIT_PASSWORD` overrides it for headless/scripted use.
+
+## The end-to-end check
+
+```bash
+genrl search "sousou no frieren 1080p"   # candidates from Nyaa, best seeded first
+genrl grab <magnet-or-torrent-link>      # health check → add → watch → done
+genrl torrents                           # what qBittorrent is working on
+genrl rm <info-hash> --delete-files      # remove it again
+genrl events                             # the whole lifecycle, logged
+```
+
+This is the roadmap's Phase 2 check running against real services: live Nyaa
+RSS through the mirror-failing-over search, and a real qBittorrent v5.2.4
+downloading to completion (a legal Debian ISO was used as the payload).
+
 ## Roadmap
 
 Each phase ends with a check that must pass before the next one starts.
@@ -77,8 +99,12 @@ Each phase ends with a check that must pass before the next one starts.
 - [x] **Foundation** — Rust workspace, SQLite schema and migrations, settings,
       logging, shared HTTP layer with limiter, cache and backoff.
       *Check: mock-server tests for 429 and timeout pass.* ✅ 56 tests green
-- [ ] **qBittorrent and Nyaa** — client for qBittorrent, RSS search, filename
-      parser, scorer. *Check: a CLI tool downloads one chosen episode end to end.*
+- [x] **qBittorrent and Nyaa** — client for qBittorrent, RSS search, filename
+      parser, scorer. *Check: a CLI tool downloads one chosen episode end to
+      end.* ✅ 107 tests green + live e2e: `genrl search` → `genrl grab` →
+      756 MB ISO complete on disk → `genrl rm`, against real Nyaa and
+      qBittorrent 5.2.4 (login covers both the 4.x `Ok.`/`SID` and the
+      5.2 `204`/`QBT_SID` auth dialects)
 - [ ] **Matching and seed logic** — name sets, scoring, thresholds, questions.
 - [ ] **Queue and workers** — job states, retries, stall handling, crash recovery.
 - [ ] **MAL sync** — OAuth, list diff, episode generation, first-sync preview.
