@@ -106,6 +106,9 @@ pub struct Settings {
     pub score_threshold: f64,
     /// …and only if it is at least this far ahead of the runner-up.
     pub score_margin: f64,
+    /// Plan to watch entries may queue on their own. Off by default — 73
+    /// planned shows must never queue at once; per-show rules still opt one in.
+    pub auto_plan_to_watch: bool,
     /// No progress for this long marks the torrent stalled and tries the next candidate.
     pub stall_timeout_min: u32,
     /// Ask the user after this many failed candidates.
@@ -181,6 +184,9 @@ impl Default for Settings {
             fuzzy_threshold: 0.92,
             score_threshold: 80.0,
             score_margin: 15.0,
+            // Plan to watch is manual by default: 73 planned shows must never
+            // queue at once. A per-show override still opts one in.
+            auto_plan_to_watch: false,
             stall_timeout_min: 20,
             max_failed_candidates: 3,
             question_expiry_hours: 72,

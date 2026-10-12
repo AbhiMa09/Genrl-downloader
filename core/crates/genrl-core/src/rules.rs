@@ -38,6 +38,8 @@ pub struct Rules {
     pub seed_ask_max: u32,
     /// Prefer a batch when the show has finished airing.
     pub prefer_batch_when_finished: bool,
+    /// Per-show override of the Plan to watch switch.
+    pub auto_plan_to_watch: Option<bool>,
 }
 
 impl Default for Rules {
@@ -55,6 +57,7 @@ impl Default for Rules {
             seed_ask_min: 1,
             seed_ask_max: 9,
             prefer_batch_when_finished: true,
+            auto_plan_to_watch: None,
         }
     }
 }
@@ -216,6 +219,7 @@ fn ensure_known_key(key: &str) -> Result<()> {
         "seed_ask_min",
         "seed_ask_max",
         "prefer_batch_when_finished",
+        "auto_plan_to_watch",
     ];
     if KEYS.contains(&key) {
         Ok(())

@@ -38,6 +38,10 @@ core/                    Rust workspace
     src/nyaa.rs          RSS search across the mirrors
     src/filename.rs      release-name parser (title, group, episode, resolution…)
     src/score.rs         candidate scoring and the reject/accept decision
+    src/matching.rs      the matching engine: name sets, search order, verdicts
+    src/names.rs         a show's name set, stored and searched in priority order
+    src/season.rs        season chain + the pure release decision function
+    src/questions.rs     the Inbox: question objects, payloads and answers
     src/qbit.rs          qBittorrent WebUI client (4.x and 5.x)
     src/secrets.rs       keyring-backed credentials (env override for scripts)
   crates/genrl-cli       `genrl` command-line companion
@@ -105,6 +109,15 @@ Each phase ends with a check that must pass before the next one starts.
       756 MB ISO complete on disk → `genrl rm`, against real Nyaa and
       qBittorrent 5.2.4 (login covers both the 4.x `Ok.`/`SID` and the
       5.2 `204`/`QBT_SID` auth dialects)
+- [x] **Matching and seed logic** — name sets, scoring, thresholds, question
+      objects, season and watch-status decision function. *Check: the fixture
+      suite resolves Kimi no Na wa, Kimi no Todoke and sequel cases correctly
+      or asks, and the season fixtures pass.* ✅ 143 tests green —
+      `names.rs`, `season.rs`, `matching.rs`, `questions.rs`; every fixture the
+      design lists has a test (S1 Completed + S2 Watching → S2 next; no marker
+      → active season; absolute `- 17` → S2E5; watched skipped; missing season
+      → not found, never substituted; PlanToWatch skipped by default), plus
+      Re:Zero vs Re:Creators and the accept/ask margin
 - [ ] **Matching and seed logic** — name sets, scoring, thresholds, questions.
 - [ ] **Queue and workers** — job states, retries, stall handling, crash recovery.
 - [ ] **MAL sync** — OAuth, list diff, episode generation, first-sync preview.

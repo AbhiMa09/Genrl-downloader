@@ -89,6 +89,17 @@ pub enum NameSource {
     User,
 }
 
+impl NameSource {
+    /// The `show_names.source` value (the column is CHECK-constrained).
+    pub fn as_str(self) -> &'static str {
+        match self {
+            NameSource::Mal => "mal",
+            NameSource::Jikan => "jikan",
+            NameSource::User => "user",
+        }
+    }
+}
+
 /// Your MAL list as last synced.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct MalEntry {
@@ -256,6 +267,33 @@ pub enum QuestionKind {
     AllFailed,
     /// MAL merged, split or renamed the entry.
     EntryChanged,
+}
+
+impl QuestionKind {
+    /// The `questions.kind` value.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            QuestionKind::MatchReview => "match_review",
+            QuestionKind::LowSeeds => "low_seeds",
+            QuestionKind::FileExists => "file_exists",
+            QuestionKind::BatchOnly => "batch_only",
+            QuestionKind::DiskSpace => "disk_space",
+            QuestionKind::AllFailed => "all_failed",
+            QuestionKind::EntryChanged => "entry_changed",
+        }
+    }
+
+    pub fn parse(s: &str) -> Self {
+        match s {
+            "low_seeds" => QuestionKind::LowSeeds,
+            "file_exists" => QuestionKind::FileExists,
+            "batch_only" => QuestionKind::BatchOnly,
+            "disk_space" => QuestionKind::DiskSpace,
+            "all_failed" => QuestionKind::AllFailed,
+            "entry_changed" => QuestionKind::EntryChanged,
+            _ => QuestionKind::MatchReview,
+        }
+    }
 }
 
 /// One line of the Activity log.

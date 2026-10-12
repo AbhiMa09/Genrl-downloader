@@ -43,9 +43,13 @@ pub fn seed_health(seeders: u32, rules: &Rules) -> SeedHealth {
 ///
 /// Fully owned: the parsed release is kept (cloned) alongside the feed facts,
 /// so callers never juggle self-referential lifetimes.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Candidate {
     pub release: Release,
+    /// Info hash, lower-case hex: the identity a question answer refers to.
+    pub info_hash: String,
+    /// Magnet link, ready for qBittorrent.
+    pub magnet: String,
     pub seeders: u32,
     pub leechers: u32,
     pub trusted: bool,
@@ -63,6 +67,8 @@ impl Candidate {
     pub fn from_item(release: &Release, item: &FeedItem) -> Self {
         Candidate {
             release: release.clone(),
+            info_hash: item.info_hash.trim().to_lowercase(),
+            magnet: item.magnet(),
             seeders: item.seeders,
             leechers: item.leechers,
             trusted: item.trusted,

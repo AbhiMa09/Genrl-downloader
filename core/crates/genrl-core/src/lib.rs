@@ -13,6 +13,12 @@
 //!   token-bucket limiter, response cache, retry with backoff, circuit breaker.
 //! * [`nyaa`], [`filename`], [`score`] — RSS search, release-name parsing,
 //!   torrent selection (phase 2).
+//! * [`matching`] — the title-matching engine: name sets, the search order,
+//!   the accept/ask decision (phase 3).
+//! * [`season`] — the season chain and the pure decision function that says
+//!   what a release is good for (phase 3).
+//! * [`names`] — a show's name set, stored and searched in priority order.
+//! * [`questions`] — the Inbox: question objects, payloads and answers.
 //! * [`qbit`] — the qBittorrent WebUI client (phase 2).
 //! * [`secrets`] — credentials, in the system keyring only.
 //!
@@ -24,11 +30,15 @@ pub mod events;
 pub mod filename;
 pub mod http;
 pub mod logging;
+pub mod matching;
 pub mod models;
+pub mod names;
 pub mod nyaa;
 pub mod qbit;
+pub mod questions;
 pub mod rules;
 pub mod score;
+pub mod season;
 pub mod secrets;
 pub mod settings;
 
