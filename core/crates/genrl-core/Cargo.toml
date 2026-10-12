@@ -1,0 +1,26 @@
+[package]
+name = "genrl-core"
+description = "Genrl Downloader core: database, settings, events, and the shared limit-proof HTTP layer"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+tokio.workspace = true
+reqwest.workspace = true
+futures-util.workspace = true
+rusqlite.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+rand.workspace = true
+url.workspace = true
+bytes.workspace = true
+
+[dev-dependencies]
+wiremock.workspace = true
+tempfile.workspace = true
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "test-util", "time"] }

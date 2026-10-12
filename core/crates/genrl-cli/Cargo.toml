@@ -1,0 +1,18 @@
+[package]
+name = "genrl-cli"
+description = "Command-line companion to Genrl Downloader: init, diagnostics, and the end-to-end checks each phase must pass"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "genrl"
+path = "src/main.rs"
+
+[dependencies]
+genrl-core = { path = "../genrl-core" }
+tokio.workspace = true
+anyhow.workspace = true
+serde_json.workspace = true
+clap = { version = "4", features = ["derive"] }

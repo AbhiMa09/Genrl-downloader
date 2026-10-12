@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_dashboard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "on-tertiary-fixed-variant": "#004c69", "surface-container-highest": "#31353c", "inverse-primary": "#6d3bd7", "outline": "#958ea0", "secondary-fixed": "#eaddff", "on-primary": "#3c0091", "on-tertiary-container": "#002d40", "error-container": "#93000a", "secondary-container": "#6001d1", "on-surface": "#dfe2eb", "on-error-container": "#ffdad6", "inverse-surface": "#dfe2eb", "on-secondary": "#3f008e", "inverse-on-surface": "#2d3137", "on-tertiary": "#00354a", "tertiary-fixed": "#c4e7ff", "primary-fixed": "#e9ddff", "primary-fixed-dim": "#d0bcff", "on-primary-fixed-variant": "#5516be", "surface": "#10141a", "outline-variant": "#494454", "primary": "#d0bcff", "background": "#10141a", "on-primary-fixed": "#23005c", "surface-container-high": "#262a31", "surface-tint": "#d0bcff", "tertiary-fixed-dim": "#7bd0ff", "error": "#ffb4ab", "on-secondary-fixed-variant": "#5a00c6", "on-background": "#dfe2eb", "on-primary-container": "#340080", "primary-container": "#a078ff", "tertiary": "#7bd0ff", "on-secondary-fixed": "#25005a", "on-secondary-container": "#c9aeff", "on-tertiary-fixed": "#001e2c", "on-error": "#690005", "secondary-fixed-dim": "#d2bbff", "surface-container-low": "#181c22", "tertiary-container": "#009bd1", "surface-bright": "#353940", "surface-variant": "#31353c", "on-surface-variant": "#cbc3d7", "surface-container-lowest": "#0a0e14", "surface-dim": "#10141a", "surface-container": "#1c2026", "secondary": "#d2bbff" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "space-sm": "0.5rem", "gutter": "0.75rem", "space-xs": "0.25rem", "space-md": "0.75rem", "space-xl": "1.5rem", "space-2xs": "0.125rem", "space-2xl": "2rem", "margin": "1rem", "space-lg": "1rem" }, "fontFamily": { "headline-xl": [ "Inter" ], "mono-code": [ "JetBrains Mono" ], "body-sm": [ "Inter" ], "headline-md": [ "Inter" ], "headline-lg": [ "Inter" ], "body-md": [ "Inter" ], "label-badge": [ "JetBrains Mono" ], "title-sm": [ "Inter" ], "mono-metric": [ "JetBrains Mono" ] }, "fontSize": { "headline-xl": [ "2rem", { "lineHeight": "2.5rem", "letterSpacing": "-0.02em", "fontWeight": "700" } ], "mono-code": [ "0.75rem", { "lineHeight": "1rem", "letterSpacing": "0", "fontWeight": "400" } ], "body-sm": [ "0.8125rem", { "lineHeight": "1.125rem", "letterSpacing": "0", "fontWeight": "400" } ], "headline-md": [ "1.25rem", { "lineHeight": "1.75rem", "letterSpacing": "-0.01em", "fontWeight": "600" } ], "headline-lg": [ "1.5rem", { "lineHeight": "2rem", "letterSpacing": "-0.015em", "fontWeight": "600" } ], "body-md": [ "0.875rem", { "lineHeight": "1.25rem", "letterSpacing": "0", "fontWeight": "400" } ], "label-badge": [ "0.6875rem", { "lineHeight": "0.875rem", "letterSpacing": "0.04em", "fontWeight": "600" } ], "title-sm": [ "0.9375rem", { "lineHeight": "1.375rem", "letterSpacing": "0", "fontWeight": "600" } ], "mono-metric": [ "0.8125rem", { "lineHeight": "1rem", "letterSpacing": "-0.02em", "fontWeight": "500" } ] } } } };</script></head><body class="bg-surface font-body-md text-on-surface min-h-screen selection:bg-primary-container selection:text-on-primary-container"><aside class="fixed left-0 top-0 bottom-8 w-52 bg-surface-container-low/90 backdrop-blur-xl z-40 flex flex-col justify-between select-none"><div class="flex flex-col"><div class="h-14 px-space-md flex items-center justify-between"><div class="flex items-center gap-space-sm overflow-hidden"><img alt="Genrl Downloader Logo" class="h-7 w-auto object-contain flex-shrink-0" src="https://lh3.googleusercontent.com/aida/AEtjO1UP3zGPx3B0JZLTVk2O6kS2U8gmaMrvMlvLJSGHABunb2-VtYg8i1PfXJk8FcmQ23WU3YeFWebAdJXjwljjdLE7wpVP3Oq75tQqQqxhX5QdwPlcqrazwNHm8iuPexu1CUqY6Ws7aBUdaW8laOxeZ5BmIG8kN44TgafyZAt5cQ03vcMHcMo_m0Dm87oZkYAntjP83GU5sFepQ_GO2x0YE-RBeQNKdNKPCz2LWp5U7Bt5Kj3tkBertimcS8c"/><div class="flex flex-col min-w-0"><span class="font-title-sm text-title-sm tracking-tight text-on-surface truncate">Genrl Downloader</span><span class="font-mono-code text-[0.625rem] text-outline leading-tight truncate">v2.4.1 Linux x86_64</span></div></div></div><nav class="flex flex-col gap-space-2xs px-space-sm py-space-sm" data-active-classes="bg-surface-container-high text-primary font-bold shadow-[0_0_0_1px_rgba(208,188,255,0.2)]"><a class="flex items-center justify-between px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="dashboard" href="#"><span class="font-body-sm text-body-sm">Dashboard</span></a><a class="flex items-center justify-between px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="inbox" href="#"><span class="font-body-sm text-body-sm">Inbox</span><span class="font-label-badge text-label-badge px-1.5 py-0.5 rounded bg-error/20 text-error border border-error/30">12</span></a><a class="flex items-center justify-between px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="queue" href="#"><span class="font-body-sm text-body-sm">Queue</span><span class="font-label-badge text-label-badge px-1.5 py-0.5 rounded bg-tertiary-container/30 text-tertiary border border-tertiary/30">3</span></a><a class="flex items-center justify-between px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="library" href="#"><span class="font-body-sm text-body-sm">Library</span></a><a class="flex items-center justify-between px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="search" href="#"><span class="font-body-sm text-body-sm">Search</span></a><a class="flex items-center justify-between px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="activity" href="#"><span class="font-body-sm text-body-sm">Activity</span></a><a class="flex items-center justify-between px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="rules" href="#"><span class="font-body-sm text-body-sm">Rules</span></a><a class="flex items-center justify-between px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="settings" href="#"><span class="font-body-sm text-body-sm">Settings</span></a></nav></div><div class="p-space-sm"><div class="p-space-sm rounded-lg bg-surface-container/60 flex items-center justify-between"><div class="flex items-center gap-space-xs"><span class="w-2 h-2 rounded-full bg-tertiary animate-pulse"></span><span class="font-mono-code text-mono-code text-outline">Daemon OK</span></div><span class="font-mono-code text-[0.625rem] text-outline">TCP:58846</span></div></div></aside><div class="pl-52 pb-8"><header class="fixed top-0 left-52 right-0 h-14 bg-surface/80 backdrop-blur-xl z-30 flex items-center justify-between px-space-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="flex items-center gap-space-sm"><img alt="Genrl Downloader Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1UP3zGPx3B0JZLTVk2O6kS2U8gmaMrvMlvLJSGHABunb2-VtYg8i1PfXJk8FcmQ23WU3YeFWebAdJXjwljjdLE7wpVP3Oq75tQqQqxhX5QdwPlcqrazwNHm8iuPexu1CUqY6Ws7aBUdaW8laOxeZ5BmIG8kN44TgafyZAt5cQ03vcMHcMo_m0Dm87oZkYAntjP83GU5sFepQ_GO2x0YE-RBeQNKdNKPCz2LWp5U7Bt5Kj3tkBertimcS8c"/><span class="font-title-sm text-title-sm text-on-surface">Anime Library Core</span><span class="font-mono-code text-mono-code px-1.5 py-0.5 rounded bg-surface-container-high text-outline">Arch Linux</span></div><nav class="hidden xl:flex items-center gap-space-lg" data-active-classes="text-primary font-bold"><a class="text-body-sm font-body-sm text-on-surface-variant hover:text-on-surface transition-colors" data-path="dashboard" href="#">Overview</a><a class="text-body-sm font-body-sm text-on-surface-variant hover:text-on-surface transition-colors" data-path="inbox" href="#">Inbox</a><a class="text-body-sm font-body-sm text-on-surface-variant hover:text-on-surface transition-colors" data-path="queue" href="#">Transfers</a><a class="text-body-sm font-body-sm text-on-surface-variant hover:text-on-surface transition-colors" data-path="library" href="#">Catalogs</a><a class="text-body-sm font-body-sm text-on-surface-variant hover:text-on-surface transition-colors" data-path="activity" href="#">Logs</a></nav><div class="flex items-center gap-space-md"><div class="relative flex items-center bg-surface-container-lowest/80 px-space-sm py-1 rounded-lg"><span class="material-symbols-outlined text-outline text-[1.125rem] mr-space-xs">search</span><span class="font-mono-code text-mono-code text-outline pr-space-md">Quick Jump...</span><kbd class="font-mono-code text-[0.625rem] bg-surface-container-highest px-1 py-0.5 rounded text-outline">Ctrl+K</kbd></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></header><main class="w-full pt-14 bg-surface min-h-[calc(100vh-2rem)]"><div class="flex flex-col w-full">
+<!-- Sub-header Telemetry Banner -->
+<div class="px-space-xl py-space-sm bg-surface-container-lowest flex flex-wrap items-center justify-between gap-space-md shadow-sm">
+<div class="flex items-center gap-space-md flex-wrap">
+<div class="flex items-center gap-space-xs font-mono-metric text-mono-metric text-on-surface">
+<span class="material-symbols-outlined text-primary text-[1rem]">folder_data</span>
+<span class="font-bold">18 Series</span>
+<span class="text-outline">/</span>
+<span class="text-on-surface-variant font-mono-code text-mono-code">14.2 TB on /mnt/anime/TV</span>
+</div>
+<div class="h-3 w-[1px] bg-surface-container-highest"></div>
+<div class="flex items-center gap-1.5 font-mono-code text-mono-code text-on-surface-variant">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+<span>All Folders Monitored</span>
+</div>
+<div class="h-3 w-[1px] bg-surface-container-highest"></div>
+<div class="flex items-center gap-1.5 font-mono-code text-mono-code text-outline">
+<span class="material-symbols-outlined text-tertiary text-[0.875rem]">sync_saved_locally</span>
+<span>Inotify Kernel Watcher Active</span>
+</div>
+</div>
+<div class="flex items-center gap-space-sm font-mono-code text-mono-code">
+<span class="px-2 py-0.5 rounded bg-surface-container-high text-outline">FS: Btrfs (compress=zstd:3)</span>
+<span class="px-2 py-0.5 rounded bg-surface-container-high text-tertiary-fixed-dim">qB: v4.6.3 headless</span>
+</div>
+</div>
+<!-- Primary Workspace Control Bar -->
+<div class="px-space-xl py-space-md bg-surface-container-low flex flex-col gap-space-sm shadow-md">
+<div class="flex flex-col xl:flex-row xl:items-center justify-between gap-space-md">
+<!-- Search Box & Filter Chips -->
+<div class="flex flex-wrap items-center gap-space-sm flex-1 min-w-0">
+<!-- Search Input -->
+<div class="relative flex items-center min-w-[260px] max-w-sm bg-surface-container-lowest rounded-lg px-space-sm py-1.5 shadow-sm group focus-within:bg-surface-container-lowest">
+<span class="material-symbols-outlined text-outline text-[1.125rem] mr-space-xs group-focus-within:text-primary transition-colors">filter_list</span>
+<input class="bg-transparent text-on-surface placeholder:text-outline font-body-sm text-body-sm outline-none w-full" id="filter-input" placeholder="Filter library... (Ctrl+F)" type="text"/>
+<kbd class="font-mono-code text-[0.625rem] bg-surface-container-highest text-on-surface-variant px-1.5 py-0.5 rounded">Ctrl+F</kbd>
+</div>
+<!-- Filter Chips -->
+<div class="flex items-center gap-1.5 flex-wrap" id="filter-chip-group">
+<button class="px-space-sm py-1 rounded bg-primary-container text-on-primary-container font-mono-code text-mono-code font-bold transition-all shadow-sm">
+            All <span class="opacity-80">18</span>
+</button>
+<button class="px-space-sm py-1 rounded bg-surface-container-high text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest font-mono-code text-mono-code transition-all">
+            Watching <span class="text-tertiary">6</span>
+</button>
+<button class="px-space-sm py-1 rounded bg-surface-container-high text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest font-mono-code text-mono-code transition-all">
+            Plan to watch <span class="opacity-70">5</span>
+</button>
+<button class="px-space-sm py-1 rounded bg-surface-container-high text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest font-mono-code text-mono-code transition-all">
+            Completed <span class="opacity-70">4</span>
+</button>
+<button class="px-space-sm py-1 rounded bg-surface-container-high text-error hover:bg-surface-container-highest font-mono-code text-mono-code transition-all">
+            Incomplete <span class="bg-error-container text-on-error-container px-1 rounded text-[0.625rem]">3</span>
+</button>
+</div>
+</div>
+<!-- Controls & Actions Section -->
+<div class="flex items-center gap-space-md flex-wrap justify-end">
+<!-- Sort Dropdown -->
+<div class="flex items-center gap-1.5 bg-surface-container px-space-sm py-1 rounded-lg">
+<span class="font-mono-code text-[0.6875rem] text-outline uppercase tracking-wider">Sort:</span>
+<select class="bg-transparent font-body-sm text-body-sm text-on-surface outline-none cursor-pointer">
+<option class="bg-surface-container-high text-on-surface" value="updated">Last Updated</option>
+<option class="bg-surface-container-high text-on-surface" value="title">Title (A-Z)</option>
+<option class="bg-surface-container-high text-on-surface" value="score">Community Score</option>
+<option class="bg-surface-container-high text-on-surface" value="progress">Completion Progress</option>
+</select>
+</div>
+<!-- Poster Size Toggle -->
+<div class="flex items-center bg-surface-container-lowest p-0.5 rounded-lg">
+<button class="px-2 py-1 rounded font-mono-code text-mono-code text-outline hover:text-on-surface transition-colors" data-density="compact" title="Compact size">Compact</button>
+<button class="px-2 py-1 rounded font-mono-code text-mono-code bg-surface-container-highest text-primary font-bold shadow-sm" data-density="normal" title="Normal size">Normal</button>
+<button class="px-2 py-1 rounded font-mono-code text-mono-code text-outline hover:text-on-surface transition-colors" data-density="large" title="Large size">Large</button>
+</div>
+<!-- Secondary Actions -->
+<div class="flex items-center gap-space-xs">
+<button class="flex items-center gap-1 px-space-sm py-1.5 rounded-lg bg-surface-container text-on-surface hover:bg-surface-container-high transition-colors font-body-sm text-body-sm shadow-sm" title="Trigger fast inotify re-index">
+<span class="material-symbols-outlined text-[1rem] text-tertiary">autorenew</span>
+<span>Rescan folders</span>
+</button>
+<button class="flex items-center gap-1 px-space-sm py-1.5 rounded-lg bg-primary text-on-primary hover:bg-primary-fixed-dim transition-colors font-title-sm text-title-sm font-semibold shadow-md" title="Add series via RSS or tracker search">
+<span class="material-symbols-outlined text-[1.125rem]">add</span>
+<span>Add Series</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Main Grid Area -->
+<div class="p-space-xl">
+<!-- Grid Canvas -->
+<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 2xl:grid-cols-9 gap-space-md" id="library-grid">
+<!-- Card 1: Sousou no Frieren -->
+<div class="group relative flex flex-col bg-surface-container-low rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:bg-surface-container transition-all duration-200">
+<div class="relative w-full aspect-[2/3] overflow-hidden bg-surface-container-lowest">
+<img class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" data-alt="Anime poster of Sousou no Frieren featuring an elven mage with white hair traveling through a peaceful fantasy meadow with ancient ruins under a twilight sky, painted in rich anime cinematic style with soft purple and golden lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDYNdzjwMsbpORMEiMqPcb6JMZM6RD-3l3RQ4XPF7Q7u7AFG5JqZRTLcOEVgvMNeWxx6HSIkpLDSRmyy-GuxUy-Bio1tzBDdxk2cHipQftgSz4SxhxkWCoAbIHAkB6RF4__I8H-zswUPekDkz-O3mvzgwaxJs4Ehc59ssNgYYthff9bt36J8jeQ56wAYVOef0bh-0LvKPnxnQkdTZ8M3Jry00fKHN5b0vN0T-Uf_Ici9NXz2Bkceef7"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-surface-container-lowest/20 to-transparent"></div>
+<!-- Overlay Top Badges -->
+<div class="absolute top-2 left-2 flex items-center gap-1">
+<span class="font-label-badge text-label-badge uppercase px-1.5 py-0.5 rounded bg-secondary-container/90 text-on-secondary-container backdrop-blur-sm">Auto</span>
+<span class="font-label-badge text-label-badge uppercase px-1.5 py-0.5 rounded bg-tertiary-container/80 text-on-tertiary backdrop-blur-sm">Airing</span>
+</div>
+<!-- Quick Action Hover Pill -->
+<div class="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-surface-container-highest/90 rounded-lg p-1 backdrop-blur-md">
+<button class="w-6 h-6 flex items-center justify-center rounded hover:bg-primary hover:text-on-primary text-on-surface-variant transition-colors" title="Open folder">
+<span class="material-symbols-outlined text-[14px]">folder_open</span>
+</button>
+<button class="w-6 h-6 flex items-center justify-center rounded hover:bg-primary hover:text-on-primary text-on-surface-variant transition-colors" title="Toggle Auto-Download">
+<span class="material-symbols-outlined text-[14px]">bolt</span>
+</button>
+</div>
+<div class="absolute bottom-2 left-2 right-2">
+<span class="font-mono-code text-[0.625rem] text-tertiary uppercase tracking-wider block">1080p HEVC · Erai</span>
+</div>
+</div>
+<div class="p-space-sm flex flex-col gap-1.5 flex-1 justify-between">
+<div>
+<h3 class="font-title-sm text-title-sm text-on-surface line-clamp-1 group-hover:text-primary transition-colors" title="Sousou no Frieren">Sousou no Frieren</h3>
+<span class="font-mono-code text-[0.6875rem] text-outline block">Fall 2023 · Madhouse</span>
+</div>
+<div>
+<div class="flex items-center justify-between font-mono-code text-[0.6875rem] mb-1">
+<span class="text-on-surface-variant">12 / 28 eps</span>
+<span class="text-tertiary font-bold">42%</span>
+</div>
+<div class="w-full h-1 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full" style="width: 42.8%;"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Card 2: Dungeon Meshi -->
+<div class="group relative flex flex-col bg-surface-container-low rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:bg-surface-container transition-all duration-200">
+<div class="relative w-full aspect-[2/3] overflow-hidden bg-surface-container-lowest">
+<img class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" data-alt="Anime artwork for Dungeon Meshi Delicious in Dungeon showcasing a group of adventurers cooking fantasy monster dishes around a warm campfire in a dark underground labyrinth dungeon, vivid fantasy color grading with warm highlights." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDDEwwQcsSEsprZo5Y1TRJzwcvD7Pno-3FmLsaiJswBQuH4clv-3WSl5UYTum-MwWO9P0IlPwd0opyAmhSIYWzRC88IROA5D5CShoXgkR2pLW54DJs2vn-Ab-Kcf9T0gP6ZrfkD3TrmcXxyDzsr_6VaI139SVjse8I1q17XZwbmT2LlBMVLD5Y9lizj-16Wn3nqQw6_KyCarFV1t-XJREVOgCiInf7YrWI-CdqltnXkMST7d9ggrjZw"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-surface-container-lowest/20 to-transparent"></div>
+<div class="absolute top-2 left-2 flex items-center gap-1">
+<span class="font-label-badge text-label-badge uppercase px-1.5 py-0.5 rounded bg-secondary-container/90 text-on-secondary-container backdrop-blur-sm">Auto</span>
+<span class="font-label-badge text-label-badge uppercase px-1.5 py-0.5 rounded bg-surface-container-highest text-on-surface-variant backdrop-blur-sm">Completed</span>
+</div>
+<div class="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-surface-container-highest/90 rounded-lg p-1 backdrop-blur-md">
+<button class="w-6 h-6 flex items-center justify-center rounded hover:bg-primary hover:text-on-primary text-on-surface-variant transition-colors" title="Open folder">
+<span class="material-symbols-outlined text-[14px]">folder_open</span>
+</button>
+<button class="w-6 h-6 flex items-center justify-center rounded hover:bg-primary hover:text-on-primary text-on-surface-variant transition-colors" title="Toggle Auto-Download">
+<span class="material-symbols-outlined text-[14px]">bolt</span>
+</button>
+</div>
+<div class="absolute bottom-2 left-2 right-2">
+<span class="font-mono-code text-[0.625rem] text-tertiary uppercase tracking-wider block">1080p AV1 · SubsPlease</span>
+</div>
+</div>
+<div class="p-space-sm flex flex-col gap-1.5 flex-1 justify-between">
+<div>
+<h3 class="font-title-sm text-title-sm text-on-surface line-clamp-1 group-hover:text-primary transition-colors" title="Dungeon Meshi">Dungeon Meshi</h3>
+<span class="font-mono-code text-[0.6875rem] text-outline block">Winter 2024 · Trigger</span>
+</div>
+<div>
+<div class="flex items-center justify-between font-mono-code text-[0.6875rem] mb-1">
+<span class="text-on-surface-variant">24 / 24 eps</span>
+<span class="text-tertiary-fixed font-bold">100%</span>
+</div>
+<div class="w-full h-1 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-tertiary rounded-full" style="width: 100%;"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Card 3: Solo Leveling S2 (Alert: EP 10 Missing) -->
+<div class="group relative flex flex-col bg-surface-container-low rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:bg-surface-container transition-all duration-200">
+<div class="relative w-full aspect-[2/3] overflow-hidden bg-surface-container-lowest">
+<img class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" data-alt="Anime illustration of Solo Leveling hunter Sung Jinwoo wielding glowing shadow daggers surrounded by dark purple shadow monarch soldiers with sharp azure blue eye glows, dark cybernetic mood." src="https://lh3.googleusercontent.com/aida-public/AB6AXuABY_26elR2ypom_ZoLd0VDU_1BrwRk3FXAzDNIvUCgbe5HPCvKz3MMoSLu-HH5kBGlgHYIWcV8vOwg3ZT8b18xde_zxo_tLv2m8A7QKNrhV94G9ERxwbJcNWSvP3mJ5BPVeCNt0QnIt5o0EBuXKBnIUl-GXxac0IBztB5VbNmboudEgtuF_VhVllxWkRd2jj3eLh8WEcwh90xjqgKEkAZqqRV580DsaDjTsG-GvwRA144TUTRgbC0j"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-surface-container-lowest/20 to-transparent"></div>
+<!-- Top Badges with Red Alert -->
+<div class="absolute top-2 left-2 flex items-center gap-1">
+<span class="font-label-badge text-label-badge uppercase px-1.5 py-0.5 rounded bg-secondary-container/90 text-on-secondary-container backdrop-blur-sm">Auto</span>
+<span class="font-label-badge text-label-badge uppercase px-1.5 py-0.5 rounded bg-tertiary-container/80 text-on-tertiary backdrop-blur-sm">Airing</span>
+<!-- Red alert missing dot -->
+<span class="flex h-2 w-2 relative" title="Alert: ep 10 missing/unmet">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-error opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-error"></span>
+</span>
+</div>
+<div class="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-surface-container-highest/90 rounded-lg p-1 backdrop-blur-md">
+<button class="w-6 h-6 flex items-center justify-center rounded hover:bg-primary hover:text-on-primary text-on-surface-variant transition-colors" title="Open folder">
+<span class="material-symbols-outlined text-[14px]">folder_open</span>
+</button>
+<button class="w-6 h-6 flex items-center justify-center rounded hover:bg-primary hover:text-on-primary text-on-surface-variant transition-colors" title="Toggle Auto-Download">
+<span class="material-symbols-outlined text-[14px]">bolt</span>
+</button>
+</div>
+<div class="absolute bottom-2 left-2 right-2">
+<span class="font-mono-code text-[0.625rem] text-error uppercase tracking-wider block">Missing EP 10</span>
+</div>
+</div>
+<div class="p-space-sm flex flex-col gap-1.5 flex-1 justify-between">
+<div>
+<h3 class="font-title-sm text-title-sm text-on-surface line-clamp-1 group-hover:text-primary transition-colors" title="Solo Leveling S2">Solo Leveling S2</h3>
+<span class="font-mono-code text-[0.6875rem] text-outline block">Winter 2025 · A-1 Pictures</span>
+</div>
+<div>
+<div class="flex items-center justify-between font-mono-code text-[0.6875rem] mb-1">
+<span class="text-on-surface-variant">9 / 12 eps</span>
+<span class="text-error font-bold">75%</span>
+</div>
+<div class="w-full h-1 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-error rounded-full" style="width: 75%;"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Card 4: Oshi no Ko S2 -->
+<div class="group relative flex flex-col bg-surface-container-low rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:bg-surface-container transition-all duration-200">
+<div class="relative w-full aspect-[2/3] overflow-hidden bg-surface-container-lowest">
+<img class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" data-alt="Anime key art of Oshi no Ko Season 2 with theatrical stage drama lights, twin idols with glowing star pupils, backstage theatre ambiance with neon magenta and deep midnight blue tones." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCB9RSnJzwTBJdz3yfjX5tJVgqUk9gjC8Z9KRLnXNSQ6EcGyvf-04Trrt-GAfbweMwtmig_TKV8JyEv99Ds2uWldndPQEkk4IrloTYOi0lFKCAMT4qOdIgLOkjhN6NQftmk1KwKCNi6c1UfbBx8QA8ZMbF8H7vuwMjvVWGQxQN4zFy0YZLoASMZip-33bO3Rh8QLdsaVi60J5pbW6dBtDegNfvSGTxX11gq3E4r6C2bqASJ1CobkqPv"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-surface-container-lowest/20 to-transparent"></div>
+<div class="absolute top-2 left-2 flex items-center gap-1">
+<span class="font-label-badge text-label-badge uppercase px-1.5 py-0.5 rounded bg-secondary-container/90 text-on-secondary-container backdrop-blur-sm">Auto</span>
+<span class="font-label-badge text-label-badge uppercase px-1.5 py-0.5 rounded bg-tertiary-container/80 text-on-tertiary backdrop-blur-sm">Airing</span>
+</div>
+<div class="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-surface-container-highest/90 rounded-lg p-1 backdrop-blur-md">
+<button class="w-6 h-6 flex items-center justify-center rounded hover:bg-primary hover:text-on-primary text-on-surface-variant transition-colors" title="Open folder">
+<span class="material-symbols-outlined text-[14px]">folder_open</span>
+</button>
+<button class="w-6 h-6 flex items-center justify-center rounded hover:bg-primary hover:text-on-primary text-on-surface-variant transition-colors" title="Toggle Auto-Download">
+<span class="material-symbols-outlined text-[14px]">bolt</span>
+</button>
+</div>
+<div class="absolute bottom-2 left-2 right-2">
+<span class="font-mono-code text-[0.625rem] text-tertiary uppercase tracking-wider block">1080p WEB-DL</span>
+</div>
+</div>
+<div class="p-space-sm flex flex-col gap-1.5 flex-1 justify-between">
+<div>
+<h3 class="font-title-sm text-title-sm text-on-surface line-clamp-1 group-hover:text-primary transition-colors" title="Oshi no Ko S2">Oshi no Ko S2</h3>
+<span class="font-mono-code text-[0.6875rem] text-outline block">Summer 2024 · Doga Kobo</span>
+</div>
+<div>
+<div class="flex items-center justify-between font-mono-code text-[0.6875rem] mb-1">
+<span class="text-on-surface-variant">4 / 13 eps</span>
+<span class="text-tertiary font-bold">30%</span>
+</div>
+<div class="w-full h-1 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full" style="width: 30.7%;"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Card 5: Kaiju No. 8 -->
+<div class="group relative flex flex-col bg-surface-container-low rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:bg-surface-container transition-all duration-200">
+<div class="relative w-full aspect-[2/3] overflow-hidden bg-surface-container-lowest">
+<img class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" data-alt="Anime poster of Kaiju No. 8 featuring an armored monstrous defense force fighter emitting cyan bioluminescent energy lines against a shattered Tokyo cityscape under overcast stormy sky." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBJBeBkC2SFu6afewTh0WfmHEGmI5h241D6_YzR-zrvV0nW2wrTqLQge-Wq5T_m2-11qRLDHhuNXkgn_aLQcoV8GCJh-ulfSDffonIp2KVLTqnTotukcb4cYvuiDb_kpWpzenbLamYBz2s-ILELq3aP9H-osjqNId1JZs6ir2ThIq7E-4-G0P4Fg3_p79fR32puapRRtGkvHGO4IKaaOfzXk76idjehndoBjott9SaoZMTOc7Nprh2w"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-surface-container-lowest/20 to-transparent"></div>
+<div class="absolute top-2 left-2 flex items-center gap-1">
+<span class="font-label-badge text-label-badge uppercase px-1.5 py-0.5 rounded bg-surface-container-highest text-on-surface-variant backdrop-blur-sm">Completed</span>
+</div>
+<div class="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-surface-container-highest/90 rounded-lg p-1 backdrop-blur-md">
+<button class="w-6 h-6 flex items-center justify-center rounded hover:bg-primary hover:text-on-primary text-on-surface-variant transition-colors" title="Open folder">
+<span class="material-symbols-outlined text-[14px]">folder_open</span>
+</button>
+<button class="w-6 h-6 flex items-center justify-center rounded hover:bg-primary hover:text-on-primary text-on-surface-variant transition-colors" title="Toggle Auto-Download">
+<span class="material-symbols-outlined text-[14px]">bolt</span>
+</button>
+</div>
+</div>
+<div class="p-space-sm flex flex-col gap-1.5 flex-1 justify-between">
+<div>
+<h3 class="font-title-sm text-title-sm text-on-surface line-clamp-1 group-hover:text-primary transition-colors" title="Kaiju No. 8">Kaiju No. 8</h3>
+<span class="font-mono-code text-[0.6875rem] text-outline block">Spring 2024 · Production I.G</span>
+</div>
+<div>
+<div class="flex items-center justify-between font-mono-code text-[0.6875rem] mb-1">
+<span class="text-on-surface-variant">12 / 12 eps</span>
+<span class="text-tertiary-fixed font-bold">100%</span>
+</div>
+<div class="w-full h-1 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-tertiary rounded-full" style="width: 100%;"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Card 6: Kimi no Na wa -->
+<div class="group relative flex flex-col bg-surface-container-low rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:bg-surface-container transition-all duration-200">
+<div class="relative w-full aspect-[2/3] overflow-hidden bg-surface-container-lowest">
+<img class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" data-alt="Anime movie poster of Kimi no Na wa Your Name displaying the twilight sky split by the bright Tiamat comet with shimmering teal and violet stellar trails over Lake Itomori." src="https://lh3.googleusercontent.com/aida-public/AB6AXuASr2LeskfwVW4-Cg4fuvS7ISaXsb6vsROHPSbvyR02h_kT7MEwywgjE7nto_2TjeMQJFCNECDt0szjcegQEZEa3LKDZ1JFO1N93MygKchGjikB6pTILeAgtlQOhSQ5Qj7TV6c089DtltKY00tsmEatc3M40KVnqMwIEKfvSZsJ85xvNhF7N8utIlwd_k4w-RTBqakWwlFb7_scu1X22eDnsWL0BVTPvUK9WIVBFcscwNRWkE-LChe2"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-surface-container-lowest/20 to-transparent"></div>
+<div class="absolute top-2 left-2 flex items-center gap-1">
+<span class="font-label-badge text-label-badge uppercase px-1.5 py-0.5 rounded bg-secondary-container/90 text-on-secondary-container backdrop-blur-sm">Auto</span>
+<span class="font-label-badge text-label-badge uppercase px-1.5 py-0.5 rounded bg-primary-container text-on-primary-container backdrop-blur-sm">Movie</span>
+</div>
+<div class="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-surface-container-highest/90 rounded-lg p-1 backdrop-blur-md">
+<button class="w-6 h-6 flex items-center justify-center rounded hover:bg-primary hover:text-on-primary text-on-surface-variant transition-colors" title="Open folder">
+<span class="material-symbols-outlined text-[14px]">folder_open</span>
+</button>
+<button class="w-6 h-6 flex items-center justify-center rounded hover:bg-primary hover:text-on-primary text-on-surface-variant transition-colors" title="Toggle Auto-Download">
+<span class="material-symbols-outlined text-[14px]">bolt</span>
+</button>
+</div>
+<div class="absolute bottom-2 left-2 right-2">
+<span class="font-mono-code text-[0.625rem] text-tertiary uppercase tracking-wider block">BDRemux 4K HDR</span>
+</div>
+</div>
+<div class="p-space-sm flex flex-col gap-1.5 flex-1 justify-between">
+<div>
+<h3 class="font-title-sm text-title-sm text-on-surface line-clamp-1 group-hover:text-primary transition-colors" title="Kimi no Na wa">Kimi no Na wa</h3>
+<span class="font-mono-code text-[0.6875rem] text-outline block">2016 · CoMix Wave Films</span>
+</div>
+<div>
+<div class="flex items-center justify-between font-mono-code text-[0.6875rem] mb-1">
+<span class="text-on-surface-variant">1 / 1 Movie</span>
+<span class="text-tertiary-fixed font-bold">100%</span>
+</div>
+<div class="w-full h-1 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-tertiary rounded-full" style="width: 100%;"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Card 7: Bleach: TYBW -->
+<div class="group relative flex flex-col bg-surface-container-low rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:bg-surface-container transition-all duration-200">
+<div class="relative w-full aspect-[2/3] overflow-hidden bg-surface-container-lowest">
+<img class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" data-alt="Anime artwork for Bleach Thousand-Year Blood War featuring Ichigo Kurosaki wielding dual black zanpakuto blades with blue getsuga reiatsu against dark Quincy silhouetted reishi cross arches." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAIKU1jbxCsv2qUy6nTylqbeog4reya3aT6BHBKAGSqDRD0kRY9QkOQpkSbR6E56Vmk_rtuoNhDbWxzSqv40cOzT-FAfM2sTuRjo4TffUL9KqWqevgR4NyP2d4XgIgWY5_QmACVG-iuLAeX94_m7sDjJIFPHSuPwTnVRbHOdxsPjHrhWHHaRivezm_62CkWtfgrg1eQFgnZVCGybH1SW5KbEssRJPbQ4bG7iS1w1GpvDrihOasvmqEw"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-surface-container-lowest/20 to-transparent"></div>
+<div class="absolute top-2 left-2 flex items-center gap-1">
+<span class="font-label-badge text-label-badge uppercase px-1.5 py-0.5 rounded bg-secondary-container/90 text-on-secondary-container backdrop-blur-sm">Auto</span>
+<span class="font-label-badge text-label-badge uppercase px-1.5 py-0.5 rounded bg-tertiary-container/80 text-on-tertiary backdrop-blur-sm">Airing</span>
+</div>
+<div class="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-surface-container-highest/90 rounded-lg p-1 backdrop-blur-md">
+<button class="w-6 h-6 flex items-center justify-center rounded hover:bg-primary hover:text-on-primary text-on-surface-variant transition-colors" title="Open folder">
+<span class="material-symbols-outlined text-[14px]">folder_open</span>
+</button>
+<button class="w-6 h-6 flex items-center justify-center rounded hover:bg-primary hover:text-on-primary text-on-surface-variant transition-colors" title="Toggle Auto-Download">
+<span class="material-symbols-outlined text-[14px]">bolt</span>
+</button>
+</div>
+</div>
+<div class="p-space-sm flex flex-col gap-1.5 flex-1 justify-between">
+<div>
+<h3 class="font-title-sm text-title-sm text-on-surface line-clamp-1 group-hover:text-primary transition-colors" title="Bleach: TYBW">Bleach: TYBW</h3>
+<span class="font-mono-code text-[0.6875rem] text-outline block">Fall 2024 · Pierrot Films</span>
+</div>
+<div>
+<div class="flex items-center justify-between font-mono-code text-[0.6875rem] mb-1">
+<span class="text-on-surface-variant">26 / 39 eps</span>
+<span class="text-tertiary font-bold">66%</span>
+</div>
+<div class="w-full h-1 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full" style="width: 66.6%;"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Card 8: Jujutsu Kaisen S2 -->
+<div class="group relative flex flex-col bg-surface-container-low rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:bg-surface-container transition-all duration-200">
+<div class="relative w-full aspect-[2/3] overflow-hidden bg-surface-container-lowest">
+<img class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" data-alt="Anime visual for Jujutsu Kaisen Shibuya Incident showing Satoru Gojo with blindfold removed revealing brilliant cerulean blue eyes amidst purple cursed energy distortions in subway tunnel." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB_EYF7oGkIE1LI05V17bN-yOgoQPjRz2BUYk3GEvs2gxoGVN6lgdtxSubF1zryhcStaiBKZyT5GcT73m3Wc5n4EezZJTY4UPt5PnkSmxilr_LfxH-wIHDy0Bc5Ni38nsG6QfGR0qbc0J8IKufwBetfHucbRivS6KGR_x0EOxirqOzxNXB9NO_PStDG-ScjDUyYGlNjtCQq0BBrGqcTgqF93MMrBXiJPIFqJFdqpIY5yja2qcEy3obl"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-surface-container-lowest/20 to-transparent"></div>
+<div class="absolute top-2 left-2 flex items-center gap-1">
+<span class="font-label-badge text-label-badge uppercase px-1.5 py-0.5 rounded bg-surface-container-highest text-on-surface-variant backdrop-blur-sm">Completed</span>
+</div>
+<div class="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-surface-container-highest/90 rounded-lg p-1 backdrop-blur-md">
+<button class="w-6 h-6 flex items-center justify-center rounded hover:bg-primary hover:text-on-primary text-on-surface-variant transition-colors" title="Open folder">
+<span class="material-symbols-outlined text-[14px]">folder_open</span>
+</button>
+<button class="w-6 h-6 flex items-center justify-center rounded hover:bg-primary hover:text-on-primary text-on-surface-variant transition-colors" title="Toggle Auto-Download">
+<span class="material-symbols-outlined text-[14px]">bolt</span>
+</button>
+</div>
+</div>
+<div class="p-space-sm flex flex-col gap-1.5 flex-1 justify-between">
+<div>
+<h3 class="font-title-sm text-title-sm text-on-surface line-clamp-1 group-hover:text-primary transition-colors" title="Jujutsu Kaisen S2">Jujutsu Kaisen S2</h3>
+<span class="font-mono-code text-[0.6875rem] text-outline block">Fall 2023 · MAPPA</span>
+</div>
+<div>
+<div class="flex items-center justify-between font-mono-code text-[0.6875rem] mb-1">
+<span class="text-on-surface-variant">23 / 23 eps</span>
+<span class="text-tertiary-fixed font-bold">100%</span>
+</div>
+<div class="w-full h-1 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-tertiary rounded-full" style="width: 100%;"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Card 9: Chainsaw Man -->
+<div class="group relative flex flex-col bg-surface-container-low rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:bg-surface-container transition-all duration-200">
+<div class="relative w-full aspect-[2/3] overflow-hidden bg-surface-container-lowest">
+<img class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" data-alt="Anime promotional artwork of Chainsaw Man standing over concrete urban debris with revving mechanical head blade and blood spatter, stylized hyper-detailed dark palette." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDZRR0m3JiGf78QUrmXk5cVHOZqU72ZT-5Tn__76MHmdtVPuBc5ed9oIh3dvL5tNyedUKBqk8lDFOa9W0yV61eqp2gR6x1y6gGCZwrzuCMsXaJYcByrJ4i8eRanMDwOeURVr-EdFQbL3PvMCdJI8dfV87GRyplI9dE0SxVwVFEljkANLc3kAW-T1XAwbBOYREiU5hLIJe3xQOkSU-XXgXiQMn9lqXVGq_xMVzzF4f4sxX_DboiMn8JP"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-surface-container-lowest/20 to-transparent"></div>
+<div class="absolute top-2 left-2 flex items-center gap-1">
+<span class="font-label-badge text-label-badge uppercase px-1.5 py-0.5 rounded bg-surface-container-highest text-on-surface-variant backdrop-blur-sm">Completed</span>
+</div>
+<div class="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-surface-container-highest/90 rounded-lg p-1 backdrop-blur-md">
+<button class="w-6 h-6 flex items-center justify-center rounded hover:bg-primary hover:text-on-primary text-on-surface-variant transition-colors" title="Open folder">
+<span class="material-symbols-outlined text-[14px]">folder_open</span>
+</button>
+<button class="w-6 h-6 flex items-center justify-center rounded hover:bg-primary hover:text-on-primary text-on-surface-variant transition-colors" title="Toggle Auto-Download">
+<span class="material-symbols-outlined text-[14px]">bolt</span>
+</button>
+</div>
+</div>
+<div class="p-space-sm flex flex-col gap-1.5 flex-1 justify-between">
+<div>
+<h3 class="font-title-sm text-title-sm text-on-surface line-clamp-1 group-hover:text-primary transition-colors" title="Chainsaw Man">Chainsaw Man</h3>
+<span class="font-mono-code text-[0.6875rem] text-outline block">Fall 2022 · MAPPA</span>
+</div>
+<div>
+<div class="flex items-center justify-between font-mono-code text-[0.6875rem] mb-1">
+<span class="text-on-surface-variant">12 / 12 eps</span>
+<span class="text-tertiary-fixed font-bold">100%</span>
+</div>
+<div class="w-full h-1 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-tertiary rounded-full" style="width: 100%;"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Card 10: Mushishi Zoku Shou (Alert: Seeders Low) -->
+<div class="group relative flex flex-col bg-surface-container-low rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:bg-surface-container transition-all duration-200">
+<div class="relative w-full aspect-[2/3] overflow-hidden bg-surface-container-lowest">
+<img class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" data-alt="Anime poster of Mushishi Zoku Shou featuring Ginko walking through a quiet mist-covered green moss forest with ethereal glowing green mushi spores floating softly in the air." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAxzVZRFhKP60NytY3_T1nZF2hpSTqtblNjah7iMiooSrnaDMzly6tyiezVJGy_ZCMy_DYuibie122uAXS-lIL-rjIsUE8WgZJfGuQXqGvnjlcbED6qtOtc0rnNum4zsaE_S1ZPLJ-hMiB0oPkPds5GFKpTK8VZoRiNZMblQuEzueUwfgVUmoqx32gSB-dhOfWhBdhcwaLQqhtTcwrxEPkL4HOIbhx4HCJ7NU92tKDlALUOD0KL2lV9"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-surface-container-lowest/20 to-transparent"></div>
+<div class="absolute top-2 left-2 flex items-center gap-1">
+<span class="font-label-badge text-label-badge uppercase px-1.5 py-0.5 rounded bg-secondary-container/90 text-on-secondary-container backdrop-blur-sm">Auto</span>
+<span class="flex h-2 w-2 relative" title="Alert: seeders low on torrent swarm">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-error opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-error"></span>
+</span>
+</div>
+<div class="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-surface-container-highest/90 rounded-lg p-1 backdrop-blur-md">
+<button class="w-6 h-6 flex items-center justify-center rounded hover:bg-primary hover:text-on-primary text-on-surface-variant transition-colors" title="Open folder">
+<span class="material-symbols-outlined text-[14px]">folder_open</span>
+</button>
+<button class="w-6 h-6 flex items-center justify-center rounded hover:bg-primary hover:text-on-primary text-on-surface-variant transition-colors" title="Toggle Auto-Download">
+<span class="material-symbols-outlined text-[14px]">bolt</span>
+</button>
+</div>
+<div class="absolute bottom-2 left-2 right-2">
+<span class="font-mono-code text-[0.625rem] text-error uppercase tracking-wider block">Seeders Low (1)</span>
+</div>
+</div>
+<div class="p-space-sm flex flex-col gap-1.5 flex-1 justify-between">
+<div>
+<h3 class="font-title-sm text-title-sm text-on-surface line-clamp-1 group-hover:text-primary transition-colors" title="Mushishi Zoku Shou">Mushishi Zoku Shou</h3>
+<span class="font-mono-code text-[0.6875rem] text-outline block">2014 · Artland</span>
+</div>
+<div>
+<div class="flex items-center justify-between font-mono-code text-[0.6875rem] mb-1">
+<span class="text-on-surface-variant">14 / 26 eps</span>
+<span class="text-error font-bold">53%</span>
+</div>
+<div class="w-full h-1 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-error rounded-full" style="width: 53.8%;"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Card 11: Vinland Saga S2 -->
+<div class="group relative flex flex-col bg-surface-container-low rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:bg-surface-container transition-all duration-200">
+<div class="relative w-full aspect-[2/3] overflow-hidden bg-surface-container-lowest">
+<img class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" data-alt="Anime artwork for Vinland Saga Season 2 featuring Thorfinn and Einar farming wheat under golden sunset rays on Ketil farm, rich agricultural realism and peaceful contemplative atmosphere." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBKGB5a4PO5DF6VaiTPxCUHKpAC053-XuW-7OXGSE3gWZrYNgDIUmguKAdA4HZzDyJLgv3NGtOdLaWOSuBKqVxXtOYNleS0gyCYJ_PNRk4_6zbS3XvHZvQC4iBehNCqXRoxoEy2lxvl6y0RoF2xL6BmBDT5dNtdnmQ2hgM4zjefoV7_CNId3H90QJlDPUjN81zxiCpiZbVMLr6C8TIYYfD5XvcxPlOENa2MsR_o508GyySM8KxjW1wc"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-surface-container-lowest/20 to-transparent"></div>
+<div class="absolute top-2 left-2 flex items-center gap-1">
+<span class="font-label-badge text-label-badge uppercase px-1.5 py-0.5 rounded bg-surface-container-highest text-on-surface-variant backdrop-blur-sm">Completed</span>
+</div>
+<div class="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-surface-container-highest/90 rounded-lg p-1 backdrop-blur-md">
+<button class="w-6 h-6 flex items-center justify-center rounded hover:bg-primary hover:text-on-primary text-on-surface-variant transition-colors" title="Open folder">
+<span class="material-symbols-outlined text-[14px]">folder_open</span>
+</button>
+<button class="w-6 h-6 flex items-center justify-center rounded hover:bg-primary hover:text-on-primary text-on-surface-variant transition-colors" title="Toggle Auto-Download">
+<span class="material-symbols-outlined text-[14px]">bolt</span>
+</button>
+</div>
+</div>
+<div class="p-space-sm flex flex-col gap-1.5 flex-1 justify-between">
+<div>
+<h3 class="font-title-sm text-title-sm text-on-surface line-clamp-1 group-hover:text-primary transition-colors" title="Vinland Saga S2">Vinland Saga S2</h3>
+<span class="font-mono-code text-[0.6875rem] text-outline block">Winter 2023 · MAPPA</span>
+</div>
+<div>
+<div class="flex items-center justify-between font-mono-code text-[0.6875rem] mb-1">
+<span class="text-on-surface-variant">24 / 24 eps</span>
+<span class="text-tertiary-fixed font-bold">100%</span>
+</div>
+<div class="w-full h-1 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-tertiary rounded-full" style="width: 100%;"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Card 12: Attack on Titan Final -->
+<div class="group relative flex flex-col bg-surface-container-low rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:bg-surface-container transition-all duration-200">
+<div class="relative w-full aspect-[2/3] overflow-hidden bg-surface-container-lowest">
+<img class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" data-alt="Anime poster of Attack on Titan The Final Season showing the massive skeletal Founding Titan towering over the clouds with the scout regiment maneuvering in the dusk sky." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCUU6ZItvVdnJi7OpqOV2vBEwwu-nvID1Qgs0cKU-lRepT5XHvy6b0UuVPszLvIxkRJQ4HG4Z0oo-ehopy9aTctpNJWrEZjwUD5v1mK9qIzdRBEL8FK9U70f90G1uBh-YhzV70biVx3-nknUZYQN4lGvCtfSBgdFlJ2wXm7feXDJsYBT3WrkXsjLzpryNPvz5L33rUBHZByttRCga4NRnmfn27QVFuE2lYGTRL4PkWmrK_ZCJWzgym1"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-surface-container-lowest/20 to-transparent"></div>
+<div class="absolute top-2 left-2 flex items-center gap-1">
+<span class="font-label-badge text-label-badge uppercase px-1.5 py-0.5 rounded bg-surface-container-highest text-on-surface-variant backdrop-blur-sm">Completed</span>
+</div>
+<div class="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-surface-container-highest/90 rounded-lg p-1 backdrop-blur-md">
+<button class="w-6 h-6 flex items-center justify-center rounded hover:bg-primary hover:text-on-primary text-on-surface-variant transition-colors" title="Open folder">
+<span class="material-symbols-outlined text-[14px]">folder_open</span>
+</button>
+<button class="w-6 h-6 flex items-center justify-center rounded hover:bg-primary hover:text-on-primary text-on-surface-variant transition-colors" title="Toggle Auto-Download">
+<span class="material-symbols-outlined text-[14px]">bolt</span>
+</button>
+</div>
+</div>
+<div class="p-space-sm flex flex-col gap-1.5 flex-1 justify-between">
+<div>
+<h3 class="font-title-sm text-title-sm text-on-surface line-clamp-1 group-hover:text-primary transition-colors" title="Attack on Titan Final">AoT: Final Season</h3>
+<span class="font-mono-code text-[0.6875rem] text-outline block">2023 · MAPPA</span>
+</div>
+<div>
+<div class="flex items-center justify-between font-mono-code text-[0.6875rem] mb-1">
+<span class="text-on-surface-variant">28 / 28 eps</span>
+<span class="text-tertiary-fixed font-bold">100%</span>
+</div>
+<div class="w-full h-1 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-tertiary rounded-full" style="width: 100%;"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Card 13: Demon Slayer: Hashira Arc -->
+<div class="group relative flex flex-col bg-surface-container-low rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:bg-surface-container transition-all duration-200">
+<div class="relative w-full aspect-[2/3] overflow-hidden bg-surface-container-lowest">
+<img class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" data-alt="Anime artwork for Demon Slayer Hashira Training Arc displaying the nine Demon Slayer Hashira standing together under moonlit cherry blossom tree with radiant katana effects." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDq2XtaQNKpzlWiwsaouQ4_vTkRunJa7k1jipQDESRqa79swUyXQDD9Io5VUgqesumamvtgpx_Twa_-U9nC1HVA_igIu-ydzoRiNxCg_OC-ah215BWiWLVE5iBNSKezRI_JyEzkE2QvLfCtExy5Bn-dN2HAfFHm5Vn_sU0-7yRpo3NJxMbDu2UPenNgMMi8rpllRvfpsvvnmcvCoXAOJh9m43nBwpSEnkro2p8jXlDEjDA9WCXtSwZu"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-surface-container-lowest/20 to-transparent"></div>
+<div class="absolute top-2 left-2 flex items-center gap-1">
+<span class="font-label-badge text-label-badge uppercase px-1.5 py-0.5 rounded bg-surface-container-highest text-on-surface-variant backdrop-blur-sm">Completed</span>
+</div>
+<div class="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-surface-container-highest/90 rounded-lg p-1 backdrop-blur-md">
+<button class="w-6 h-6 flex items-center justify-center rounded hover:bg-primary hover:text-on-primary text-on-surface-variant transition-colors" title="Open folder">
+<span class="material-symbols-outlined text-[14px]">folder_open</span>
+</button>
+<button class="w-6 h-6 flex items-center justify-center rounded hover:bg-primary hover:text-on-primary text-on-surface-variant transition-colors" title="Toggle Auto-Download">
+<span class="material-symbols-outlined text-[14px]">bolt</span>
+</button>
+</div>
+</div>
+<div class="p-space-sm flex flex-col gap-1.5 flex-1 justify-between">
+<div>
+<h3 class="font-title-sm text-title-sm text-on-surface line-clamp-1 group-hover:text-primary transition-colors" title="Demon Slayer: Hashira Arc">Demon Slayer: Hashira</h3>
+<span class="font-mono-code text-[0.6875rem] text-outline block">Spring 2024 · ufotable</span>
+</div>
+<div>
+<div class="flex items-center justify-between font-mono-code text-[0.6875rem] mb-1">
+<span class="text-on-surface-variant">8 / 8 eps</span>
+<span class="text-tertiary-fixed font-bold">100%</span>
+</div>
+<div class="w-full h-1 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-tertiary rounded-full" style="width: 100%;"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Card 14: Mob Psycho 100 III -->
+<div class="group relative flex flex-col bg-surface-container-low rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:bg-surface-container transition-all duration-200">
+<div class="relative w-full aspect-[2/3] overflow-hidden bg-surface-container-lowest">
+<img class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" data-alt="Anime poster of Mob Psycho 100 III featuring Mob with rainbow psychic aura bursts flying through an electric surreal city center alongside Reigen Arataka." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCQWOc72n_zYRBezUaSdmIW65QXfAR7se6w4Pu_toNxEmjHq-KITHIL-zI_QkPH0uET2EWsSfoNjR0Lg9URdCqaJXws8TQzwiJAqbcKx4PeZwvaGz8CB3BZ2pnmJE5-yWN--xRBdDpBlGPqtcWeKkyQHmxnsAPKN3hqKDzq3mNoC8S_x1oRG9dwBDRZJi-5dyv6mVr2lztuSHt__ig8II6kkhUscpZx5gz75MHX8oAoe5wPZCAjlY-F"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-surface-container-lowest/20 to-transparent"></div>
+<div class="absolute top-2 left-2 flex items-center gap-1">
+<span class="font-label-badge text-label-badge uppercase px-1.5 py-0.5 rounded bg-surface-container-highest text-on-surface-variant backdrop-blur-sm">Completed</span>
+</div>
+<div class="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-surface-container-highest/90 rounded-lg p-1 backdrop-blur-md">
+<button class="w-6 h-6 flex items-center justify-center rounded hover:bg-primary hover:text-on-primary text-on-surface-variant transition-colors" title="Open folder">
+<span class="material-symbols-outlined text-[14px]">folder_open</span>
+</button>
+<button class="w-6 h-6 flex items-center justify-center rounded hover:bg-primary hover:text-on-primary text-on-surface-variant transition-colors" title="Toggle Auto-Download">
+<span class="material-symbols-outlined text-[14px]">bolt</span>
+</button>
+</div>
+</div>
+<div class="p-space-sm flex flex-col gap-1.5 flex-1 justify-between">
+<div>
+<h3 class="font-title-sm text-title-sm text-on-surface line-clamp-1 group-hover:text-primary transition-colors" title="Mob Psycho 100 III">Mob Psycho 100 III</h3>
+<span class="font-mono-code text-[0.6875rem] text-outline block">Fall 2022 · Bones</span>
+</div>
+<div>
+<div class="flex items-center justify-between font-mono-code text-[0.6875rem] mb-1">
+<span class="text-on-surface-variant">12 / 12 eps</span>
+<span class="text-tertiary-fixed font-bold">100%</span>
+</div>
+<div class="w-full h-1 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-tertiary rounded-full" style="width: 100%;"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Card 15: Spy x Family S2 -->
+<div class="group relative flex flex-col bg-surface-container-low rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:bg-surface-container transition-all duration-200">
+<div class="relative w-full aspect-[2/3] overflow-hidden bg-surface-container-lowest">
+<img class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" data-alt="Anime visual of Spy x Family Season 2 showing Anya Forger, Loid Forger in stylish green suit, Yor in cocktail dress with peanut snacks in retro European Berlint espionage setting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA3HCPfYBmozzUr7oEU5pVtoyg7jRKW9O1KKg7mV_7faosKMOiX7yOXHeDz6xmxWsPyq_BtKwec3Q_zc28ftzzZNSSBYax01oxVwesDFe5yfTPKldUm0IYbma8TFWcYqnyHxZJCEdXRpoAICdrq0wv0zUh6va3pwYxzLHRVhTcUA1OJd61zSu2ZOG5JFe0XK4C-WimeAhGXDZayU4brHqz2G1VcvLjCA1pP8qtXcXAhmrxedLsfuVmi"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-surface-container-lowest/20 to-transparent"></div>
+<div class="absolute top-2 left-2 flex items-center gap-1">
+<span class="font-label-badge text-label-badge uppercase px-1.5 py-0.5 rounded bg-surface-container-highest text-on-surface-variant backdrop-blur-sm">Completed</span>
+</div>
+<div class="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-surface-container-highest/90 rounded-lg p-1 backdrop-blur-md">
+<button class="w-6 h-6 flex items-center justify-center rounded hover:bg-primary hover:text-on-primary text-on-surface-variant transition-colors" title="Open folder">
+<span class="material-symbols-outlined text-[14px]">folder_open</span>
+</button>
+<button class="w-6 h-6 flex items-center justify-center rounded hover:bg-primary hover:text-on-primary text-on-surface-variant transition-colors" title="Toggle Auto-Download">
+<span class="material-symbols-outlined text-[14px]">bolt</span>
+</button>
+</div>
+</div>
+<div class="p-space-sm flex flex-col gap-1.5 flex-1 justify-between">
+<div>
+<h3 class="font-title-sm text-title-sm text-on-surface line-clamp-1 group-hover:text-primary transition-colors" title="Spy x Family S2">Spy x Family S2</h3>
+<span class="font-mono-code text-[0.6875rem] text-outline block">Fall 2023 · Wit Studio</span>
+</div>
+<div>
+<div class="flex items-center justify-between font-mono-code text-[0.6875rem] mb-1">
+<span class="text-on-surface-variant">12 / 12 eps</span>
+<span class="text-tertiary-fixed font-bold">100%</span>
+</div>
+<div class="w-full h-1 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-tertiary rounded-full" style="width: 100%;"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Card 16: Bocchi the Rock! -->
+<div class="group relative flex flex-col bg-surface-container-low rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:bg-surface-container transition-all duration-200">
+<div class="relative w-full aspect-[2/3] overflow-hidden bg-surface-container-lowest">
+<img class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" data-alt="Anime poster of Bocchi the Rock showing Hitori Gotoh clutching her black Les Paul guitar in a cozy dimly lit indie music venue Starry surrounded by stage amps and cables." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCHGCNp3-yL8YG3fKiHkoebLauLBmMIEMAfhqLZILwJN8epsyA04pgMNLb8B3Ge38-Ur_3cO_GjRlLV78Qm8AcqclUIQgNycwqDYPNY0nXxsBIsYOgx9Sh1XP5RmKV6hROWFbPMRlJ9BW3ON6J2DVpq4aTdUYvTquW0GtGaFsBNCGL2HQT7X9qX-UCyALlZEHhbE0-W3IUXCMUZlpr8EtZQKmVCr5zQ1YRLolbvjceH2vx3qqrumDB0"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-surface-container-lowest/20 to-transparent"></div>
+<div class="absolute top-2 left-2 flex items-center gap-1">
+<span class="font-label-badge text-label-badge uppercase px-1.5 py-0.5 rounded bg-surface-container-highest text-on-surface-variant backdrop-blur-sm">Completed</span>
+</div>
+<div class="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-surface-container-highest/90 rounded-lg p-1 backdrop-blur-md">
+<button class="w-6 h-6 flex items-center justify-center rounded hover:bg-primary hover:text-on-primary text-on-surface-variant transition-colors" title="Open folder">
+<span class="material-symbols-outlined text-[14px]">folder_open</span>
+</button>
+<button class="w-6 h-6 flex items-center justify-center rounded hover:bg-primary hover:text-on-primary text-on-surface-variant transition-colors" title="Toggle Auto-Download">
+<span class="material-symbols-outlined text-[14px]">bolt</span>
+</button>
+</div>
+</div>
+<div class="p-space-sm flex flex-col gap-1.5 flex-1 justify-between">
+<div>
+<h3 class="font-title-sm text-title-sm text-on-surface line-clamp-1 group-hover:text-primary transition-colors" title="Bocchi the Rock!">Bocchi the Rock!</h3>
+<span class="font-mono-code text-[0.6875rem] text-outline block">Fall 2022 · CloverWorks</span>
+</div>
+<div>
+<div class="flex items-center justify-between font-mono-code text-[0.6875rem] mb-1">
+<span class="text-on-surface-variant">12 / 12 eps</span>
+<span class="text-tertiary-fixed font-bold">100%</span>
+</div>
+<div class="w-full h-1 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-tertiary rounded-full" style="width: 100%;"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Card 17: Cyberpunk: Edgerunners -->
+<div class="group relative flex flex-col bg-surface-container-low rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:bg-surface-container transition-all duration-200">
+<div class="relative w-full aspect-[2/3] overflow-hidden bg-surface-container-lowest">
+<img class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" data-alt="Anime poster of Cyberpunk Edgerunners with David Martinez and Lucy overlooking the neon bright Night City skyline under yellow-green cyberpunk smog, ultra-stylish neon high contrast." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAICGyWs8be61Alf43XiIhLp-4gT_LMO17ew3acDUImPyxTk-6RclekTGAmSPjjFAghzIBDf5KLMYkK0B6ao-ZjD8ZbTE8CFptMy2zwytLDZd9Pb0yA2dh1Sind-W2Zd5G2xhjBTg8xSfsrFl8E6Zq9Pa87Zxz6nItY9HI5wpJBtEAsfwmO0pmAoWbhFppqb-Axrqd4tOnzh4c9_LNpjCmkgesz6UeYdhV9sEqGc-ortmoEX6q6lh1z"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-surface-container-lowest/20 to-transparent"></div>
+<div class="absolute top-2 left-2 flex items-center gap-1">
+<span class="font-label-badge text-label-badge uppercase px-1.5 py-0.5 rounded bg-surface-container-highest text-on-surface-variant backdrop-blur-sm">Completed</span>
+</div>
+<div class="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-surface-container-highest/90 rounded-lg p-1 backdrop-blur-md">
+<button class="w-6 h-6 flex items-center justify-center rounded hover:bg-primary hover:text-on-primary text-on-surface-variant transition-colors" title="Open folder">
+<span class="material-symbols-outlined text-[14px]">folder_open</span>
+</button>
+<button class="w-6 h-6 flex items-center justify-center rounded hover:bg-primary hover:text-on-primary text-on-surface-variant transition-colors" title="Toggle Auto-Download">
+<span class="material-symbols-outlined text-[14px]">bolt</span>
+</button>
+</div>
+</div>
+<div class="p-space-sm flex flex-col gap-1.5 flex-1 justify-between">
+<div>
+<h3 class="font-title-sm text-title-sm text-on-surface line-clamp-1 group-hover:text-primary transition-colors" title="Cyberpunk: Edgerunners">Edgerunners</h3>
+<span class="font-mono-code text-[0.6875rem] text-outline block">2022 · Trigger</span>
+</div>
+<div>
+<div class="flex items-center justify-between font-mono-code text-[0.6875rem] mb-1">
+<span class="text-on-surface-variant">10 / 10 eps</span>
+<span class="text-tertiary-fixed font-bold">100%</span>
+</div>
+<div class="w-full h-1 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-tertiary rounded-full" style="width: 100%;"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Card 18: Steins;Gate -->
+<div class="group relative flex flex-col bg-surface-container-low rounded-xl overflow-hidden shadow-sm hover:shadow-md hover:bg-surface-container transition-all duration-200">
+<div class="relative w-full aspect-[2/3] overflow-hidden bg-surface-container-lowest">
+<img class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" data-alt="Anime poster of Steins Gate showing Rintaro Okabe in a white lab coat standing before the glowing Nixie tube Divergence Meter showing 1.048596 against vintage Akihabara lab background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCRfjt8Cp-aw1Aho-_FV2Aj9ehw4K8_UiRofzX0UWQGOoWq90BHRP70gTn7Ec0sTYAo0C5pRnhDMX7iw93pfqVAWSv3RG5LvwyWNYjmk1SngPr4oQCOf5lbXk_xL9lTgB6gLPpIngaebx3C0x5mAsE1rOGUb-e1vHuNWF6YxBzCwnOU2DUB-a0d9ReoMIn8RzoPn4xlVO3cc7-0Jy4i62n-U8s9nV_UeFCmnU0AL2KeKrH_fu5jL4Q2"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-surface-container-lowest/20 to-transparent"></div>
+<div class="absolute top-2 left-2 flex items-center gap-1">
+<span class="font-label-badge text-label-badge uppercase px-1.5 py-0.5 rounded bg-surface-container-highest text-on-surface-variant backdrop-blur-sm">Completed</span>
+</div>
+<div class="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-surface-container-highest/90 rounded-lg p-1 backdrop-blur-md">
+<button class="w-6 h-6 flex items-center justify-center rounded hover:bg-primary hover:text-on-primary text-on-surface-variant transition-colors" title="Open folder">
+<span class="material-symbols-outlined text-[14px]">folder_open</span>
+</button>
+<button class="w-6 h-6 flex items-center justify-center rounded hover:bg-primary hover:text-on-primary text-on-surface-variant transition-colors" title="Toggle Auto-Download">
+<span class="material-symbols-outlined text-[14px]">bolt</span>
+</button>
+</div>
+</div>
+<div class="p-space-sm flex flex-col gap-1.5 flex-1 justify-between">
+<div>
+<h3 class="font-title-sm text-title-sm text-on-surface line-clamp-1 group-hover:text-primary transition-colors" title="Steins;Gate">Steins;Gate</h3>
+<span class="font-mono-code text-[0.6875rem] text-outline block">2011 · White Fox</span>
+</div>
+<div>
+<div class="flex items-center justify-between font-mono-code text-[0.6875rem] mb-1">
+<span class="text-on-surface-variant">24 / 24 eps</span>
+<span class="text-tertiary-fixed font-bold">100%</span>
+</div>
+<div class="w-full h-1 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-tertiary rounded-full" style="width: 100%;"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Client-side Interactive Density and Filter Controller -->
+<script>
+    (function initLibraryControls() {
+      const grid = document.getElementById('library-grid');
+      const densityButtons = document.querySelectorAll('[data-density]');
+      const filterInput = document.getElementById('filter-input');
+      const cards = grid ? Array.from(grid.children) : [];
+
+      // Grid Density Handler
+      densityButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          densityButtons.forEach(b => {
+            b.classList.remove('bg-surface-container-highest', 'text-primary', 'font-bold');
+            b.classList.add('text-outline');
+          });
+          btn.classList.add('bg-surface-container-highest', 'text-primary', 'font-bold');
+          btn.classList.remove('text-outline');
+
+          const density = btn.getAttribute('data-density');
+          if (!grid) return;
+
+          // Clear responsive columns classes and apply tailored ones
+          grid.className = grid.className.replace(/grid-cols-\S+/g, '');
+          if (density === 'compact') {
+            grid.classList.add('grid-cols-3', 'sm:grid-cols-4', 'md:grid-cols-6', 'lg:grid-cols-8', '2xl:grid-cols-12');
+          } else if (density === 'large') {
+            grid.classList.add('grid-cols-1', 'sm:grid-cols-2', 'md:grid-cols-3', 'lg:grid-cols-4', '2xl:grid-cols-6');
+          } else {
+            // Normal
+            grid.classList.add('grid-cols-2', 'sm:grid-cols-3', 'md:grid-cols-4', 'lg:grid-cols-6', '2xl:grid-cols-9');
+          }
+        });
+      });
+
+      // Keyboard Shortcut Ctrl+F
+      window.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
+          e.preventDefault();
+          filterInput?.focus();
+          filterInput?.select();
+        }
+      });
+
+      // Realtime Client Filter
+      filterInput?.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase().trim();
+        cards.forEach(card => {
+          const text = card.textContent.toLowerCase();
+          if (!query || text.includes(query)) {
+            card.style.display = 'flex';
+          } else {
+            card.style.display = 'none';
+          }
+        });
+      });
+    })();
+  </script>
+</div></main></div><footer class="fixed bottom-0 left-0 right-0 h-8 z-50 bg-surface-container-lowest/95 backdrop-blur flex items-center justify-between px-space-lg font-mono-code text-mono-code text-outline shadow-[0_-1px_4px_rgba(0,0,0,0.2)]"><div class="flex items-center gap-space-md"><div class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse"></span><span class="text-on-surface">Daemon: Active</span></div><div class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-tertiary-fixed"></span><span>qBittorrent: Connected (8080)</span></div></div><div class="flex items-center gap-space-lg"><div class="flex items-center gap-1.5"><span class="text-primary">DL: 42.8 MB/s</span><span class="text-outline">|</span><span class="text-outline">UL: 3.1 MB/s</span></div><div class="flex items-center gap-1.5"><span>/mnt/anime: 3.42 TB / 8.00 TB (57% free)</span></div><div class="flex items-center gap-1.5"><span class="text-on-surface-variant">MAL Sync: 4m ago</span></div></div></footer></body></html>

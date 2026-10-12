@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_dashboard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "on-tertiary-fixed-variant": "#004c69", "surface-container-highest": "#31353c", "inverse-primary": "#6d3bd7", "outline": "#958ea0", "secondary-fixed": "#eaddff", "on-primary": "#3c0091", "on-tertiary-container": "#002d40", "error-container": "#93000a", "secondary-container": "#6001d1", "on-surface": "#dfe2eb", "on-error-container": "#ffdad6", "inverse-surface": "#dfe2eb", "on-secondary": "#3f008e", "inverse-on-surface": "#2d3137", "on-tertiary": "#00354a", "tertiary-fixed": "#c4e7ff", "primary-fixed": "#e9ddff", "primary-fixed-dim": "#d0bcff", "on-primary-fixed-variant": "#5516be", "surface": "#10141a", "outline-variant": "#494454", "primary": "#d0bcff", "background": "#10141a", "on-primary-fixed": "#23005c", "surface-container-high": "#262a31", "surface-tint": "#d0bcff", "tertiary-fixed-dim": "#7bd0ff", "error": "#ffb4ab", "on-secondary-fixed-variant": "#5a00c6", "on-background": "#dfe2eb", "on-primary-container": "#340080", "primary-container": "#a078ff", "tertiary": "#7bd0ff", "on-secondary-fixed": "#25005a", "on-secondary-container": "#c9aeff", "on-tertiary-fixed": "#001e2c", "on-error": "#690005", "secondary-fixed-dim": "#d2bbff", "surface-container-low": "#181c22", "tertiary-container": "#009bd1", "surface-bright": "#353940", "surface-variant": "#31353c", "on-surface-variant": "#cbc3d7", "surface-container-lowest": "#0a0e14", "surface-dim": "#10141a", "surface-container": "#1c2026", "secondary": "#d2bbff" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "space-sm": "0.5rem", "gutter": "0.75rem", "space-xs": "0.25rem", "space-md": "0.75rem", "space-xl": "1.5rem", "space-2xs": "0.125rem", "space-2xl": "2rem", "margin": "1rem", "space-lg": "1rem" }, "fontFamily": { "headline-xl": [ "Inter" ], "mono-code": [ "JetBrains Mono" ], "body-sm": [ "Inter" ], "headline-md": [ "Inter" ], "headline-lg": [ "Inter" ], "body-md": [ "Inter" ], "label-badge": [ "JetBrains Mono" ], "title-sm": [ "Inter" ], "mono-metric": [ "JetBrains Mono" ] }, "fontSize": { "headline-xl": [ "2rem", { "lineHeight": "2.5rem", "letterSpacing": "-0.02em", "fontWeight": "700" } ], "mono-code": [ "0.75rem", { "lineHeight": "1rem", "letterSpacing": "0", "fontWeight": "400" } ], "body-sm": [ "0.8125rem", { "lineHeight": "1.125rem", "letterSpacing": "0", "fontWeight": "400" } ], "headline-md": [ "1.25rem", { "lineHeight": "1.75rem", "letterSpacing": "-0.01em", "fontWeight": "600" } ], "headline-lg": [ "1.5rem", { "lineHeight": "2rem", "letterSpacing": "-0.015em", "fontWeight": "600" } ], "body-md": [ "0.875rem", { "lineHeight": "1.25rem", "letterSpacing": "0", "fontWeight": "400" } ], "label-badge": [ "0.6875rem", { "lineHeight": "0.875rem", "letterSpacing": "0.04em", "fontWeight": "600" } ], "title-sm": [ "0.9375rem", { "lineHeight": "1.375rem", "letterSpacing": "0", "fontWeight": "600" } ], "mono-metric": [ "0.8125rem", { "lineHeight": "1rem", "letterSpacing": "-0.02em", "fontWeight": "500" } ] } } } };</script></head><body class="bg-surface font-body-md text-on-surface min-h-screen selection:bg-primary-container selection:text-on-primary-container"><aside class="fixed left-0 top-0 bottom-8 w-52 bg-surface-container-low/90 backdrop-blur-xl z-40 flex flex-col justify-between select-none"><div class="flex flex-col"><div class="h-14 px-space-md flex items-center justify-between"><div class="flex items-center gap-space-sm overflow-hidden"><img alt="Genrl Downloader Logo" class="h-7 w-auto object-contain flex-shrink-0" src="https://lh3.googleusercontent.com/aida/AEtjO1UP3zGPx3B0JZLTVk2O6kS2U8gmaMrvMlvLJSGHABunb2-VtYg8i1PfXJk8FcmQ23WU3YeFWebAdJXjwljjdLE7wpVP3Oq75tQqQqxhX5QdwPlcqrazwNHm8iuPexu1CUqY6Ws7aBUdaW8laOxeZ5BmIG8kN44TgafyZAt5cQ03vcMHcMo_m0Dm87oZkYAntjP83GU5sFepQ_GO2x0YE-RBeQNKdNKPCz2LWp5U7Bt5Kj3tkBertimcS8c"/><div class="flex flex-col min-w-0"><span class="font-title-sm text-title-sm tracking-tight text-on-surface truncate">Genrl Downloader</span><span class="font-mono-code text-[0.625rem] text-outline leading-tight truncate">v2.4.1 Linux x86_64</span></div></div></div><nav class="flex flex-col gap-space-2xs px-space-sm py-space-sm" data-active-classes="bg-surface-container-high text-primary font-bold shadow-[0_0_0_1px_rgba(208,188,255,0.2)]"><a aria-current="page" class="flex items-center justify-between px-space-sm py-space-xs rounded-lg transition-colors bg-surface-container-high text-primary font-bold shadow-[0_0_0_1px_rgba(208,188,255,0.2)]" data-path="dashboard" href="#"><div class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-[1.125rem]">space_dashboard</span><span class="font-body-sm text-body-sm">Dashboard</span></div></a><a class="flex items-center justify-between px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="inbox" href="#"><div class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-[1.125rem]">inbox</span><span class="font-body-sm text-body-sm">Inbox</span></div><span class="font-label-badge text-label-badge px-1.5 py-0.5 rounded bg-error/20 text-error border border-error/30">12</span></a><a class="flex items-center justify-between px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="queue" href="#"><div class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-[1.125rem]">downloading</span><span class="font-body-sm text-body-sm">Queue</span></div><span class="font-label-badge text-label-badge px-1.5 py-0.5 rounded bg-tertiary-container/30 text-tertiary border border-tertiary/30">3</span></a><a class="flex items-center justify-between px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="library" href="#"><div class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-[1.125rem]">video_library</span><span class="font-body-sm text-body-sm">Library</span></div></a><a class="flex items-center justify-between px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="search" href="#"><div class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-[1.125rem]">search</span><span class="font-body-sm text-body-sm">Search</span></div></a><a class="flex items-center justify-between px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="activity" href="#"><div class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-[1.125rem]">pulse_alert</span><span class="font-body-sm text-body-sm">Activity</span></div></a><a class="flex items-center justify-between px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="rules" href="#"><div class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-[1.125rem]">rule</span><span class="font-body-sm text-body-sm">Rules</span></div></a><a class="flex items-center justify-between px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="settings" href="#"><div class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-[1.125rem]">settings</span><span class="font-body-sm text-body-sm">Settings</span></div></a></nav></div><div class="p-space-sm"><div class="p-space-sm rounded-lg bg-surface-container/60 flex items-center justify-between"><div class="flex items-center gap-space-xs"><span class="w-2 h-2 rounded-full bg-tertiary animate-pulse"></span><span class="font-mono-code text-mono-code text-outline">Daemon OK</span></div><span class="font-mono-code text-[0.625rem] text-outline">TCP:58846</span></div></div></aside><div class="pl-52 pb-8"><header class="fixed top-0 left-52 right-0 h-14 bg-surface/80 backdrop-blur-xl z-30 flex items-center justify-between px-space-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="flex items-center gap-space-sm"><img alt="Genrl Downloader Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1UP3zGPx3B0JZLTVk2O6kS2U8gmaMrvMlvLJSGHABunb2-VtYg8i1PfXJk8FcmQ23WU3YeFWebAdJXjwljjdLE7wpVP3Oq75tQqQqxhX5QdwPlcqrazwNHm8iuPexu1CUqY6Ws7aBUdaW8laOxeZ5BmIG8kN44TgafyZAt5cQ03vcMHcMo_m0Dm87oZkYAntjP83GU5sFepQ_GO2x0YE-RBeQNKdNKPCz2LWp5U7Bt5Kj3tkBertimcS8c"/><span class="font-title-sm text-title-sm text-on-surface">Anime Library Core</span><span class="font-mono-code text-mono-code px-1.5 py-0.5 rounded bg-surface-container-high text-outline">Arch Linux</span></div><nav class="hidden xl:flex items-center gap-space-lg" data-active-classes="text-primary font-bold"><a aria-current="page" class="transition-colors text-primary font-bold" data-path="dashboard" href="#">Overview</a><a class="text-body-sm font-body-sm text-on-surface-variant hover:text-on-surface transition-colors" data-path="queue" href="#">Transfers</a><a class="text-body-sm font-body-sm text-on-surface-variant hover:text-on-surface transition-colors" data-path="library" href="#">Catalogs</a><a class="text-body-sm font-body-sm text-on-surface-variant hover:text-on-surface transition-colors" data-path="activity" href="#">Logs</a></nav><div class="flex items-center gap-space-md"><div class="relative flex items-center bg-surface-container-lowest/80 px-space-sm py-1 rounded-lg"><span class="material-symbols-outlined text-outline text-[1.125rem] mr-space-xs">search</span><span class="font-mono-code text-mono-code text-outline pr-space-md">Quick Jump...</span><kbd class="font-mono-code text-[0.625rem] bg-surface-container-highest px-1 py-0.5 rounded text-outline">Ctrl+K</kbd></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></header><main class="w-full pt-14 bg-surface min-h-[calc(100vh-2rem)]"><div class="flex flex-col w-full px-space-lg py-space-md gap-space-lg select-none text-on-surface">
+<!-- Operational Command & Action Bar -->
+<section class="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-space-md bg-surface-container-low p-space-md rounded-xl shadow-sm">
+<div class="flex items-center gap-space-md flex-1">
+<div class="relative flex-1 max-w-xl flex items-center bg-surface-container-lowest px-space-md py-1.5 rounded-lg group focus-within:ring-1 focus-within:ring-primary">
+<span class="material-symbols-outlined text-outline text-[1.125rem] mr-space-xs group-focus-within:text-primary transition-colors">travel_explore</span>
+<input class="bg-transparent text-body-sm font-body-sm text-on-surface placeholder-outline focus:outline-none w-full" placeholder="Quick jump or filter anime... (Press / or Ctrl+K)" type="text"/>
+<kbd class="font-mono-code text-[0.625rem] bg-surface-container-highest px-1.5 py-0.5 rounded text-on-surface-variant ml-space-xs">Ctrl+K</kbd>
+</div>
+<div class="hidden md:flex items-center gap-space-xs bg-surface-container px-space-sm py-1 rounded-lg">
+<span class="w-2 h-2 rounded-full bg-tertiary animate-pulse"></span>
+<span class="font-mono-code text-mono-code text-on-surface-variant">qBittorrent v4.6.3 :: <span class="text-tertiary">IPC Linked</span></span>
+</div>
+</div>
+<div class="flex items-center gap-space-sm flex-wrap">
+<button class="flex items-center gap-space-xs px-space-md py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface text-body-sm font-body-sm transition-all active:scale-[0.98]">
+<span class="material-symbols-outlined text-[1rem] text-primary">sync</span>
+<span>Force Sync RSS</span>
+</button>
+<button class="flex items-center gap-space-xs px-space-md py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface text-body-sm font-body-sm transition-all active:scale-[0.98]">
+<span class="material-symbols-outlined text-[1rem] text-tertiary">folder_supervised</span>
+<span>Manual Disk Scan</span>
+</button>
+<button class="flex items-center gap-space-xs px-space-md py-1.5 rounded-lg bg-primary-container text-on-primary-container font-title-sm text-body-sm shadow-[0_0_16px_-2px_rgba(160,120,255,0.4)] hover:brightness-110 transition-all active:scale-[0.98]">
+<span class="material-symbols-outlined text-[1.125rem]">bolt</span>
+<span>Grab Next Available</span>
+</button>
+</div>
+</section>
+<!-- Health & State Pulse Bar -->
+<section class="flex flex-wrap items-center justify-between gap-space-sm px-space-sm py-space-xs bg-surface-container-lowest rounded-lg font-mono-code text-mono-code text-on-surface-variant">
+<div class="flex items-center gap-space-md flex-wrap">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[0.875rem] text-tertiary">download</span>
+<span class="text-on-surface font-mono-metric text-mono-metric">4 Active Torrents</span>
+</div>
+<span class="text-outline">/</span>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[0.875rem] text-primary">bookmark_added</span>
+<span>24 Monitored Airing Shows</span>
+</div>
+<span class="text-outline">/</span>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[0.875rem] text-secondary">update</span>
+<span class="text-primary-fixed">Next Release: <strong class="text-on-surface">Frieren #28</strong> (~38m)</span>
+</div>
+</div>
+<div class="flex items-center gap-space-sm text-[0.6875rem]">
+<span class="px-1.5 py-0.5 rounded bg-surface-container text-outline">CRON: ACTIVE</span>
+<span class="px-1.5 py-0.5 rounded bg-surface-container text-tertiary">PARSE: NYAA+AB</span>
+</div>
+</section>
+<!-- KPI Metric Strip (Tonal Stacking & Subtle Violet Luminescence) -->
+<section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-space-md">
+<!-- Active Pipeline Card -->
+<div class="relative overflow-hidden bg-surface-container-low p-space-md rounded-xl flex flex-col justify-between shadow-sm group hover:shadow-[0_0_0_1px_rgba(208,188,255,0.3)] transition-all">
+<div class="absolute -right-6 -bottom-6 w-28 h-28 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors"></div>
+<div class="flex items-center justify-between">
+<span class="font-mono-code text-mono-code text-on-surface-variant uppercase tracking-wider">Pipeline Flow</span>
+<span class="material-symbols-outlined text-primary text-[1.25rem]">cloud_download</span>
+</div>
+<div class="my-space-sm">
+<div class="flex items-baseline gap-space-xs">
+<span class="font-headline-xl text-headline-xl text-on-surface">4</span>
+<span class="font-title-sm text-title-sm text-tertiary font-medium">Torrents Active</span>
+</div>
+<div class="flex items-center gap-space-xs text-mono-code font-mono-code text-on-surface-variant mt-1">
+<span class="text-primary font-bold">42.8 MB/s</span>
+<span>•</span>
+<span>ETA ~14m 12s</span>
+</div>
+</div>
+<div class="w-full bg-surface-container-highest h-1 rounded-full overflow-hidden">
+<div class="bg-primary h-full rounded-full transition-all duration-500" style="width: 68%;"></div>
+</div>
+</div>
+<!-- Library Indexed Card -->
+<div class="relative overflow-hidden bg-surface-container-low p-space-md rounded-xl flex flex-col justify-between shadow-sm group hover:shadow-[0_0_0_1px_rgba(208,188,255,0.3)] transition-all">
+<div class="absolute -right-6 -bottom-6 w-28 h-28 bg-tertiary/5 rounded-full blur-2xl group-hover:bg-tertiary/10 transition-colors"></div>
+<div class="flex items-center justify-between">
+<span class="font-mono-code text-mono-code text-on-surface-variant uppercase tracking-wider">Library Index</span>
+<span class="material-symbols-outlined text-tertiary text-[1.25rem]">video_library</span>
+</div>
+<div class="my-space-sm">
+<div class="flex items-baseline gap-space-xs">
+<span class="font-headline-xl text-headline-xl text-on-surface">1,428</span>
+<span class="font-title-sm text-title-sm text-on-surface-variant">Series</span>
+</div>
+<div class="flex items-center gap-space-xs text-mono-code font-mono-code text-on-surface-variant mt-1">
+<span class="text-on-surface">38,912 Ep</span>
+<span>•</span>
+<span class="text-tertiary-fixed-dim">18.2 TB on /mnt/anime</span>
+</div>
+</div>
+<div class="w-full bg-surface-container-highest h-1 rounded-full overflow-hidden">
+<div class="bg-tertiary h-full rounded-full transition-all duration-500" style="width: 82%;"></div>
+</div>
+</div>
+<!-- Missing / RSS Gap Card -->
+<div class="relative overflow-hidden bg-surface-container-low p-space-md rounded-xl flex flex-col justify-between shadow-sm group hover:shadow-[0_0_0_1px_rgba(208,188,255,0.3)] transition-all">
+<div class="flex items-center justify-between">
+<span class="font-mono-code text-mono-code text-on-surface-variant uppercase tracking-wider">Missing Catalog</span>
+<span class="material-symbols-outlined text-secondary text-[1.25rem]">rule_folder</span>
+</div>
+<div class="my-space-sm">
+<div class="flex items-baseline gap-space-xs">
+<span class="font-headline-xl text-headline-xl text-on-surface">19</span>
+<span class="font-title-sm text-title-sm text-error">Episodes Unmet</span>
+</div>
+<div class="flex items-center gap-space-xs text-mono-code font-mono-code text-on-surface-variant mt-1">
+<span class="text-tertiary">7 Ready</span>
+<span>in monitored RSS index</span>
+</div>
+</div>
+<div class="w-full bg-surface-container-highest h-1 rounded-full overflow-hidden">
+<div class="bg-secondary-container h-full rounded-full transition-all duration-500" style="width: 38%;"></div>
+</div>
+</div>
+<!-- Season Airing Card -->
+<div class="relative overflow-hidden bg-surface-container-low p-space-md rounded-xl flex flex-col justify-between shadow-sm group hover:shadow-[0_0_0_1px_rgba(208,188,255,0.3)] transition-all">
+<div class="flex items-center justify-between">
+<span class="font-mono-code text-mono-code text-on-surface-variant uppercase tracking-wider">Current Cycle</span>
+<span class="material-symbols-outlined text-primary text-[1.25rem]">calendar_month</span>
+</div>
+<div class="my-space-sm">
+<div class="flex items-baseline gap-space-xs">
+<span class="font-headline-xl text-headline-xl text-on-surface">Spring 2025</span>
+</div>
+<div class="flex items-center gap-space-xs text-mono-code font-mono-code text-on-surface-variant mt-1">
+<span class="text-primary font-bold">16 Tracked</span>
+<span>•</span>
+<span>6 Airing in next 48h</span>
+</div>
+</div>
+<div class="w-full bg-surface-container-highest h-1 rounded-full overflow-hidden">
+<div class="bg-primary-container h-full rounded-full transition-all duration-500" style="width: 90%;"></div>
+</div>
+</div>
+</section>
+<!-- Mid-Section: Active Ingestion Pipeline Tracker -->
+<section class="bg-surface-container-low p-space-md rounded-xl shadow-sm flex flex-col gap-space-md">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary text-[1.25rem]">downloading</span>
+<h2 class="font-headline-md text-headline-md text-on-surface">Daemon Pipeline &amp; Active Ingestion</h2>
+<span class="font-label-badge text-label-badge px-2 py-0.5 rounded bg-surface-container-highest text-primary">3 Live Torrents</span>
+</div>
+<div class="flex items-center gap-space-xs">
+<button class="px-space-sm py-1 rounded bg-surface-container hover:bg-surface-container-high text-mono-code font-mono-code text-on-surface transition-colors flex items-center gap-1">
+<span class="material-symbols-outlined text-[0.875rem]">pause</span>
+<span>Pause All</span>
+</button>
+<button class="px-space-sm py-1 rounded bg-surface-container hover:bg-surface-container-high text-mono-code font-mono-code text-on-surface transition-colors flex items-center gap-1">
+<span class="material-symbols-outlined text-[0.875rem]">play_arrow</span>
+<span>Resume</span>
+</button>
+</div>
+</div>
+<!-- Dense Ingestion Table -->
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-lowest text-outline font-mono-code text-[0.6875rem] uppercase tracking-wider">
+<th class="py-2 px-3 rounded-l-lg">Payload / Series</th>
+<th class="py-2 px-3 w-56">Progress</th>
+<th class="py-2 px-3">Size</th>
+<th class="py-2 px-3">Throughput</th>
+<th class="py-2 px-3">Peers</th>
+<th class="py-2 px-3">ETA</th>
+<th class="py-2 px-3 text-right rounded-r-lg">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y-0 text-body-sm font-body-sm">
+<!-- Item 1 -->
+<tr class="bg-surface-container/40 hover:bg-surface-container-high/60 transition-colors group">
+<td class="py-2.5 px-3">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-tertiary text-[1.125rem]">sync_saved_locally</span>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-1.5 flex-wrap">
+<span class="font-mono-code text-[0.6875rem] px-1 rounded bg-surface-container-highest text-primary">SubsPlease</span>
+<span class="font-title-sm text-title-sm text-on-surface truncate font-medium">[SubsPlease] Frieren: Beyond Journey's End - 28 (1080p)</span>
+</div>
+<span class="font-mono-code text-[0.6875rem] text-outline">Target: /mnt/anime/TV/Sousou no Frieren/Season 01/</span>
+</div>
+</div>
+</td>
+<td class="py-2.5 px-3">
+<div class="flex flex-col gap-1">
+<div class="flex justify-between font-mono-metric text-mono-metric">
+<span class="text-tertiary">84.2%</span>
+<span class="text-outline">1.18 / 1.40 GB</span>
+</div>
+<div class="w-full bg-surface-container-highest h-1.5 rounded-full overflow-hidden">
+<div class="bg-tertiary h-full rounded-full transition-all" style="width: 84.2%;"></div>
+</div>
+</div>
+</td>
+<td class="py-2.5 px-3 font-mono-metric text-mono-metric text-on-surface-variant">1.40 GB</td>
+<td class="py-2.5 px-3 font-mono-metric text-mono-metric text-tertiary">18.4 MB/s</td>
+<td class="py-2.5 px-3 font-mono-metric text-mono-metric text-on-surface-variant">142 (91)</td>
+<td class="py-2.5 px-3 font-mono-metric text-mono-metric text-primary">3m 10s</td>
+<td class="py-2.5 px-3 text-right">
+<div class="inline-flex items-center gap-1 opacity-80 group-hover:opacity-100">
+<button class="p-1 rounded hover:bg-surface-container-highest text-outline hover:text-on-surface transition-colors" title="Force Check">
+<span class="material-symbols-outlined text-[1rem]">restart_alt</span>
+</button>
+<button class="p-1 rounded hover:bg-surface-container-highest text-outline hover:text-on-surface transition-colors" title="Pause">
+<span class="material-symbols-outlined text-[1rem]">pause</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Item 2 -->
+<tr class="bg-surface-container/20 hover:bg-surface-container-high/60 transition-colors group">
+<td class="py-2.5 px-3">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary text-[1.125rem]">download</span>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-1.5 flex-wrap">
+<span class="font-mono-code text-[0.6875rem] px-1 rounded bg-surface-container-highest text-primary">Erai-raws</span>
+<span class="font-title-sm text-title-sm text-on-surface truncate font-medium">[Erai-raws] Solo Leveling S02 - 09 (1080p) [HEVC]</span>
+</div>
+<span class="font-mono-code text-[0.6875rem] text-outline">Target: /mnt/anime/TV/Solo Leveling/Season 02/</span>
+</div>
+</div>
+</td>
+<td class="py-2.5 px-3">
+<div class="flex flex-col gap-1">
+<div class="flex justify-between font-mono-metric text-mono-metric">
+<span class="text-primary">42.0%</span>
+<span class="text-outline">588 MB / 1.40 GB</span>
+</div>
+<div class="w-full bg-surface-container-highest h-1.5 rounded-full overflow-hidden">
+<div class="bg-primary h-full rounded-full transition-all" style="width: 42%;"></div>
+</div>
+</div>
+</td>
+<td class="py-2.5 px-3 font-mono-metric text-mono-metric text-on-surface-variant">1.40 GB</td>
+<td class="py-2.5 px-3 font-mono-metric text-mono-metric text-primary">14.1 MB/s</td>
+<td class="py-2.5 px-3 font-mono-metric text-mono-metric text-on-surface-variant">98 (44)</td>
+<td class="py-2.5 px-3 font-mono-metric text-mono-metric text-primary">8m 22s</td>
+<td class="py-2.5 px-3 text-right">
+<div class="inline-flex items-center gap-1 opacity-80 group-hover:opacity-100">
+<button class="p-1 rounded hover:bg-surface-container-highest text-outline hover:text-on-surface transition-colors" title="Force Check">
+<span class="material-symbols-outlined text-[1rem]">restart_alt</span>
+</button>
+<button class="p-1 rounded hover:bg-surface-container-highest text-outline hover:text-on-surface transition-colors" title="Pause">
+<span class="material-symbols-outlined text-[1rem]">pause</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Item 3 -->
+<tr class="bg-surface-container/40 hover:bg-surface-container-high/60 transition-colors group">
+<td class="py-2.5 px-3">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-secondary text-[1.125rem]">download</span>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-1.5 flex-wrap">
+<span class="font-mono-code text-[0.6875rem] px-1 rounded bg-surface-container-highest text-primary">Judas</span>
+<span class="font-title-sm text-title-sm text-on-surface truncate font-medium">[Judas] Jujutsu Kaisen S02 Complete (BD 1080p)</span>
+</div>
+<span class="font-mono-code text-[0.6875rem] text-outline">Target: /mnt/anime/TV/Jujutsu Kaisen/Season 02/</span>
+</div>
+</div>
+</td>
+<td class="py-2.5 px-3">
+<div class="flex flex-col gap-1">
+<div class="flex justify-between font-mono-metric text-mono-metric">
+<span class="text-secondary">12.4%</span>
+<span class="text-outline">3.22 / 26.0 GB</span>
+</div>
+<div class="w-full bg-surface-container-highest h-1.5 rounded-full overflow-hidden">
+<div class="bg-secondary-container h-full rounded-full transition-all" style="width: 12.4%;"></div>
+</div>
+</div>
+</td>
+<td class="py-2.5 px-3 font-mono-metric text-mono-metric text-on-surface-variant">26.0 GB</td>
+<td class="py-2.5 px-3 font-mono-metric text-mono-metric text-primary">10.3 MB/s</td>
+<td class="py-2.5 px-3 font-mono-metric text-mono-metric text-on-surface-variant">412 (18)</td>
+<td class="py-2.5 px-3 font-mono-metric text-mono-metric text-outline">45m 01s</td>
+<td class="py-2.5 px-3 text-right">
+<div class="inline-flex items-center gap-1 opacity-80 group-hover:opacity-100">
+<button class="p-1 rounded hover:bg-surface-container-highest text-outline hover:text-on-surface transition-colors" title="Force Check">
+<span class="material-symbols-outlined text-[1rem]">restart_alt</span>
+</button>
+<button class="p-1 rounded hover:bg-surface-container-highest text-outline hover:text-on-surface transition-colors" title="Pause">
+<span class="material-symbols-outlined text-[1rem]">pause</span>
+</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<!-- Airing Today & Next Up: 2:3 Media Poster Grid -->
+<section class="flex flex-col gap-space-md">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary text-[1.25rem]">live_tv</span>
+<h2 class="font-headline-md text-headline-md text-on-surface">Airing Today &amp; Monitored Next Up</h2>
+</div>
+<div class="flex items-center gap-space-sm">
+<span class="font-mono-code text-mono-code text-on-surface-variant">Auto-snatch: <strong class="text-tertiary">ENABLED</strong></span>
+<button class="text-body-sm font-body-sm text-primary hover:underline flex items-center gap-0.5">
+<span>Full Calendar</span>
+<span class="material-symbols-outlined text-[1rem]">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- High-density 2:3 aspect ratio poster cards -->
+<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-gutter">
+<!-- Show Card 1: Frieren -->
+<div class="group relative rounded-xl overflow-hidden bg-surface-container-low transition-all duration-300 hover:shadow-[0_0_0_1px_rgba(208,188,255,0.6),0_4px_24px_rgba(160,120,255,0.25)] flex flex-col cursor-pointer">
+<div class="relative w-full aspect-[2/3] overflow-hidden bg-surface-container-highest">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="Anime poster of Sousou no Frieren, white-haired elf mage Frieren holding a magic staff against a mystical purple-lit ancient fantasy sky, highly detailed cinematic aesthetic with soft starlight glow." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCl9xROfVDzbF7jeGuAqsDBQ9vXC3VGJPapBO56E6Z029DJw2Y_IP-RAsqmiDbeFFwAAUcJBkHnY8WTrSrCzMtxyhxNQdZIcI7DNroKxGE8T4KRwFrdMie_94fw7ceRYbBgUiWko8GgEHYP058KcTOTPjbSVoHbxxKVWrPKJpYgaTBlw6dk8OOmFv4gb2JuGWz6S9t6_7qUgMJG080wSh8Dr3BKRfxqceOt1j_ZKn-QFuQZsWj-a2Ud"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-surface-container-lowest/30 to-transparent"></div>
+<!-- Top Badges -->
+<div class="absolute top-2 left-2 flex items-center gap-1">
+<span class="font-label-badge text-label-badge px-1.5 py-0.5 rounded bg-surface-container-lowest/80 backdrop-blur text-tertiary">1080p Remux</span>
+</div>
+<div class="absolute top-2 right-2">
+<span class="w-6 h-6 rounded bg-surface-container-lowest/80 backdrop-blur flex items-center justify-center text-primary" title="Monitored">
+<span class="material-symbols-outlined text-[1rem]">bookmark</span>
+</span>
+</div>
+<!-- Quick Action Micro-Dock -->
+<div class="absolute inset-x-2 top-12 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 bg-surface-container-lowest/90 backdrop-blur p-1.5 rounded-lg shadow-md">
+<button class="p-1 rounded hover:bg-surface-container-high text-on-surface" title="Interactive Search">
+<span class="material-symbols-outlined text-[1rem]">search</span>
+</button>
+<button class="p-1 rounded hover:bg-surface-container-high text-on-surface" title="Refresh Metadata">
+<span class="material-symbols-outlined text-[1rem]">refresh</span>
+</button>
+<button class="p-1 rounded hover:bg-surface-container-high text-on-surface" title="Open Folder">
+<span class="material-symbols-outlined text-[1rem]">folder</span>
+</button>
+</div>
+<!-- Bottom Poster Meta -->
+<div class="absolute bottom-2 inset-x-2 flex flex-col">
+<div class="flex items-center justify-between text-mono-code font-mono-code mb-0.5">
+<span class="text-tertiary">EP 28 (Finale)</span>
+<span class="text-primary font-bold">★ 9.34</span>
+</div>
+<h3 class="font-title-sm text-title-sm text-on-surface truncate">Sousou no Frieren</h3>
+<span class="font-mono-code text-[0.625rem] text-on-surface-variant">Airs Fri 23:00 JST</span>
+</div>
+</div>
+</div>
+<!-- Show Card 2: Dungeon Meshi -->
+<div class="group relative rounded-xl overflow-hidden bg-surface-container-low transition-all duration-300 hover:shadow-[0_0_0_1px_rgba(208,188,255,0.6),0_4px_24px_rgba(160,120,255,0.25)] flex flex-col cursor-pointer">
+<div class="relative w-full aspect-[2/3] overflow-hidden bg-surface-container-highest">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="Anime artwork of Dungeon Meshi Delicious in Dungeon, showing Laios and party cooking fantasy monster cuisine around a warm campfire inside an ancient gothic labyrinth, vibrant fantasy artstyle." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCYkBabptBCjBnhF9D7oxfX9TEEzYsnHboXGrFxA0dRKjT373wTw9OHUWwHotHYlF9V-uxbeVY4_f273JCb_kJxC5h8mw3x48-7Vto2Um8hulVA6xMNR9qYgx7zPHHz5AzjaaVUVibU0y81_cZgJ_Z5BAxnMFX_owq3jEjhJ84Vt6fo38YdfyclyTGn5vdnKfrCeuAXyV_i9JPveM3yceEa5boInamxoLCB1JENkq1EcKFEvUtzKNtx"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-surface-container-lowest/30 to-transparent"></div>
+<div class="absolute top-2 left-2 flex items-center gap-1">
+<span class="font-label-badge text-label-badge px-1.5 py-0.5 rounded bg-surface-container-lowest/80 backdrop-blur text-tertiary">WEB-DL</span>
+</div>
+<div class="absolute top-2 right-2">
+<span class="w-6 h-6 rounded bg-surface-container-lowest/80 backdrop-blur flex items-center justify-center text-primary" title="Monitored">
+<span class="material-symbols-outlined text-[1rem]">bookmark</span>
+</span>
+</div>
+<!-- Quick Action Micro-Dock -->
+<div class="absolute inset-x-2 top-12 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 bg-surface-container-lowest/90 backdrop-blur p-1.5 rounded-lg shadow-md">
+<button class="p-1 rounded hover:bg-surface-container-high text-on-surface" title="Interactive Search">
+<span class="material-symbols-outlined text-[1rem]">search</span>
+</button>
+<button class="p-1 rounded hover:bg-surface-container-high text-on-surface" title="Refresh Metadata">
+<span class="material-symbols-outlined text-[1rem]">refresh</span>
+</button>
+<button class="p-1 rounded hover:bg-surface-container-high text-on-surface" title="Open Folder">
+<span class="material-symbols-outlined text-[1rem]">folder</span>
+</button>
+</div>
+<div class="absolute bottom-2 inset-x-2 flex flex-col">
+<div class="flex items-center justify-between text-mono-code font-mono-code mb-0.5">
+<span class="text-on-surface-variant">EP 24 / 24</span>
+<span class="text-primary font-bold">★ 8.62</span>
+</div>
+<h3 class="font-title-sm text-title-sm text-on-surface truncate">Dungeon Meshi</h3>
+<span class="font-mono-code text-[0.625rem] text-tertiary">All grabbed :: Complete</span>
+</div>
+</div>
+</div>
+<!-- Show Card 3: Solo Leveling -->
+<div class="group relative rounded-xl overflow-hidden bg-surface-container-low transition-all duration-300 hover:shadow-[0_0_0_1px_rgba(208,188,255,0.6),0_4px_24px_rgba(160,120,255,0.25)] flex flex-col cursor-pointer">
+<div class="relative w-full aspect-[2/3] overflow-hidden bg-surface-container-highest">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="Solo Leveling anime poster featuring Sung Jin-woo holding dual violet glowing daggers, surrounded by shadowy necromancer blue-violet summon mist in a dark underground dungeon." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDMAGAzeMS7s6lGlSNJCxmBKnU5cJzKt53gk-O4gFHlPsRCaKj2E0SZPnQyp2r_logZlMI04Zlzd3lG0SaJEM857iRIf2iTXcUHrweIvkSxxuEF7D--o99Ba6DvlzlKDBb-TR5UcR9VFcUXrnAPEgu-RmDGetQ5YLlshAHdB1SC4XMSKmSh6WIO7x9Y5zkqWU6XbosIY4gcf-ApHcmckYn7f5KXwm7F8KwA3oAx1Lw2l4QbGjIKlviT"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-surface-container-lowest/30 to-transparent"></div>
+<div class="absolute top-2 left-2 flex items-center gap-1">
+<span class="font-label-badge text-label-badge px-1.5 py-0.5 rounded bg-primary-container text-on-primary-container">Snatching</span>
+</div>
+<div class="absolute top-2 right-2">
+<span class="w-6 h-6 rounded bg-surface-container-lowest/80 backdrop-blur flex items-center justify-center text-primary" title="Monitored">
+<span class="material-symbols-outlined text-[1rem]">bookmark</span>
+</span>
+</div>
+<!-- Quick Action Micro-Dock -->
+<div class="absolute inset-x-2 top-12 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 bg-surface-container-lowest/90 backdrop-blur p-1.5 rounded-lg shadow-md">
+<button class="p-1 rounded hover:bg-surface-container-high text-on-surface" title="Interactive Search">
+<span class="material-symbols-outlined text-[1rem]">search</span>
+</button>
+<button class="p-1 rounded hover:bg-surface-container-high text-on-surface" title="Refresh Metadata">
+<span class="material-symbols-outlined text-[1rem]">refresh</span>
+</button>
+<button class="p-1 rounded hover:bg-surface-container-high text-on-surface" title="Open Folder">
+<span class="material-symbols-outlined text-[1rem]">folder</span>
+</button>
+</div>
+<div class="absolute bottom-2 inset-x-2 flex flex-col">
+<div class="flex items-center justify-between text-mono-code font-mono-code mb-0.5">
+<span class="text-primary font-bold">EP 09 Grabbed</span>
+<span class="text-primary font-bold">★ 8.51</span>
+</div>
+<h3 class="font-title-sm text-title-sm text-on-surface truncate">Solo Leveling S2</h3>
+<span class="font-mono-code text-[0.625rem] text-on-surface-variant">Airing weekly</span>
+</div>
+</div>
+</div>
+<!-- Show Card 4: Oshi no Ko Season 2 -->
+<div class="group relative rounded-xl overflow-hidden bg-surface-container-low transition-all duration-300 hover:shadow-[0_0_0_1px_rgba(208,188,255,0.6),0_4px_24px_rgba(160,120,255,0.25)] flex flex-col cursor-pointer">
+<div class="relative w-full aspect-[2/3] overflow-hidden bg-surface-container-highest">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="Anime poster of Oshi no Ko Season 2, Aqua and Ruby Hoshino standing under vibrant concert stage spotlights with intense star pupils, theatrical dramatic mood." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDyZuFd3mVzDckHfshx7jP_rgI8lM2ugTfnR0gPj6rxAvQlZyW7OlNlxZc0KENuKSrPLnpiDAVq-_diGM9n83RJuIBfdvBQB_AEEv0bPlYjrtO-YRAMGJqjMCRWTKmRGBJxYBJFsPQte7tGQN4WbDe-gjopHgapniP8oP96eb8isQKDWwVZLuxNBbLsHbC4Nl9VNG3ENBOS_bCpMLEQ0kmzBic1AVdwK_U7SGLOOp79srWhyDiA6JnO"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-surface-container-lowest/30 to-transparent"></div>
+<div class="absolute top-2 left-2 flex items-center gap-1">
+<span class="font-label-badge text-label-badge px-1.5 py-0.5 rounded bg-surface-container-lowest/80 backdrop-blur text-outline">1080p</span>
+</div>
+<div class="absolute top-2 right-2">
+<span class="w-6 h-6 rounded bg-surface-container-lowest/80 backdrop-blur flex items-center justify-center text-primary" title="Monitored">
+<span class="material-symbols-outlined text-[1rem]">bookmark</span>
+</span>
+</div>
+<!-- Quick Action Micro-Dock -->
+<div class="absolute inset-x-2 top-12 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 bg-surface-container-lowest/90 backdrop-blur p-1.5 rounded-lg shadow-md">
+<button class="p-1 rounded hover:bg-surface-container-high text-on-surface" title="Interactive Search">
+<span class="material-symbols-outlined text-[1rem]">search</span>
+</button>
+<button class="p-1 rounded hover:bg-surface-container-high text-on-surface" title="Refresh Metadata">
+<span class="material-symbols-outlined text-[1rem]">refresh</span>
+</button>
+<button class="p-1 rounded hover:bg-surface-container-high text-on-surface" title="Open Folder">
+<span class="material-symbols-outlined text-[1rem]">folder</span>
+</button>
+</div>
+<div class="absolute bottom-2 inset-x-2 flex flex-col">
+<div class="flex items-center justify-between text-mono-code font-mono-code mb-0.5">
+<span class="text-on-surface-variant">EP 04 / 13</span>
+<span class="text-primary font-bold">★ 8.48</span>
+</div>
+<h3 class="font-title-sm text-title-sm text-on-surface truncate">Oshi no Ko Season 2</h3>
+<span class="font-mono-code text-[0.625rem] text-on-surface-variant">Next: In 3 days</span>
+</div>
+</div>
+</div>
+<!-- Show Card 5: Kaiju No. 8 -->
+<div class="group relative rounded-xl overflow-hidden bg-surface-container-low transition-all duration-300 hover:shadow-[0_0_0_1px_rgba(208,188,255,0.6),0_4px_24px_rgba(160,120,255,0.25)] flex flex-col cursor-pointer">
+<div class="relative w-full aspect-[2/3] overflow-hidden bg-surface-container-highest">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="Anime poster of Kaiju No. 8, Kafka Hibino in monstrous half-transformed kaiju state roaring amidst ruined Tokyo skyscrapers with glowing electric teal veins and smoke." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCZsBCViHSDprcJ-Yw-TWgjTmYW76SdtlK_-1OY-hV5YvgUR048PzHk_ruSlTgy8HdWt_GSz5AjxihUyZOBudQOE_BX_OZla3KpjS7dRE78kwnkrFdL4iHsZYrSc60-b4-in_Y2PYaVnSFrpM3_r75APZn6m4Op22PDYEstg0-KTvw0r6dlCGV4YyANccmVcRrXqkXspEku9DbswN8BWiYsNDMCF8aW5fD_QSEu9NX4EGemWHZ3X-M8"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-surface-container-lowest/30 to-transparent"></div>
+<div class="absolute top-2 left-2 flex items-center gap-1">
+<span class="font-label-badge text-label-badge px-1.5 py-0.5 rounded bg-surface-container-lowest/80 backdrop-blur text-tertiary">HEVC 10-bit</span>
+</div>
+<div class="absolute top-2 right-2">
+<span class="w-6 h-6 rounded bg-surface-container-lowest/80 backdrop-blur flex items-center justify-center text-primary" title="Monitored">
+<span class="material-symbols-outlined text-[1rem]">bookmark</span>
+</span>
+</div>
+<!-- Quick Action Micro-Dock -->
+<div class="absolute inset-x-2 top-12 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5 bg-surface-container-lowest/90 backdrop-blur p-1.5 rounded-lg shadow-md">
+<button class="p-1 rounded hover:bg-surface-container-high text-on-surface" title="Interactive Search">
+<span class="material-symbols-outlined text-[1rem]">search</span>
+</button>
+<button class="p-1 rounded hover:bg-surface-container-high text-on-surface" title="Refresh Metadata">
+<span class="material-symbols-outlined text-[1rem]">refresh</span>
+</button>
+<button class="p-1 rounded hover:bg-surface-container-high text-on-surface" title="Open Folder">
+<span class="material-symbols-outlined text-[1rem]">folder</span>
+</button>
+</div>
+<div class="absolute bottom-2 inset-x-2 flex flex-col">
+<div class="flex items-center justify-between text-mono-code font-mono-code mb-0.5">
+<span class="text-on-surface-variant">EP 12 / 12</span>
+<span class="text-primary font-bold">★ 8.25</span>
+</div>
+<h3 class="font-title-sm text-title-sm text-on-surface truncate">Kaiju No. 8</h3>
+<span class="font-mono-code text-[0.625rem] text-tertiary">Season Complete</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Bottom Split Grid: Recent Telemetry Log & Indexer Connectivity -->
+<section class="grid grid-cols-1 lg:grid-cols-3 gap-space-md">
+<!-- Left 2 Cols: Snagged & Auto-Imported Ledger -->
+<div class="lg:col-span-2 bg-surface-container-low p-space-md rounded-xl shadow-sm flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary text-[1.25rem]">assignment_turned_in</span>
+<h3 class="font-headline-md text-headline-md text-on-surface">Recent Library Ingestions &amp; Re-links</h3>
+</div>
+<span class="font-mono-code text-mono-code text-outline">Hardlink Mode: ON</span>
+</div>
+<!-- Feed Rows -->
+<div class="flex flex-col gap-1.5 font-body-sm text-body-sm mt-1">
+<!-- Event 1 -->
+<div class="flex items-center justify-between p-2 rounded-lg bg-surface-container/40 hover:bg-surface-container transition-colors">
+<div class="flex items-center gap-space-sm min-w-0">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-1.5 flex-wrap">
+<span class="text-on-surface font-title-sm text-title-sm truncate font-medium">Dungeon Meshi - 24 [1080p x265 Remux]</span>
+<span class="font-mono-code text-[0.625rem] px-1 py-0.2 rounded bg-surface-container-highest text-tertiary">Erai-raws</span>
+</div>
+<span class="font-mono-code text-mono-code text-outline truncate">Linked to /mnt/anime/TV/Dungeon Meshi/Season 01/Dungeon Meshi - S01E24.mkv</span>
+</div>
+</div>
+<span class="font-mono-code text-mono-code text-on-surface-variant flex-shrink-0 ml-2">12m ago</span>
+</div>
+<!-- Event 2 -->
+<div class="flex items-center justify-between p-2 rounded-lg bg-surface-container/40 hover:bg-surface-container transition-colors">
+<div class="flex items-center gap-space-sm min-w-0">
+<span class="w-1.5 h-1.5 rounded-full bg-primary"></span>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-1.5 flex-wrap">
+<span class="text-on-surface font-title-sm text-title-sm truncate font-medium">Wind Breaker - 08 [1080p Web-DL AAC]</span>
+<span class="font-mono-code text-[0.625rem] px-1 py-0.2 rounded bg-surface-container-highest text-primary">SubsPlease</span>
+</div>
+<span class="font-mono-code text-mono-code text-outline truncate">Linked to /mnt/anime/TV/Wind Breaker/Season 01/Wind Breaker - S01E08.mkv</span>
+</div>
+</div>
+<span class="font-mono-code text-mono-code text-on-surface-variant flex-shrink-0 ml-2">44m ago</span>
+</div>
+<!-- Event 3 -->
+<div class="flex items-center justify-between p-2 rounded-lg bg-surface-container/40 hover:bg-surface-container transition-colors">
+<div class="flex items-center gap-space-sm min-w-0">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary-fixed"></span>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-1.5 flex-wrap">
+<span class="text-on-surface font-title-sm text-title-sm truncate font-medium">Bleach: Thousand-Year Blood War - 26 [BD 1080p Remux]</span>
+<span class="font-mono-code text-[0.625rem] px-1 py-0.2 rounded bg-surface-container-highest text-secondary">Beatrice-Raws</span>
+</div>
+<span class="font-mono-code text-mono-code text-outline truncate">Upgraded cutoff unmet → High Quality Archival Tier</span>
+</div>
+</div>
+<span class="font-mono-code text-mono-code text-on-surface-variant flex-shrink-0 ml-2">2h 15m ago</span>
+</div>
+</div>
+</div>
+<!-- Right 1 Col: RSS Feeds & Indexer Health Matrix -->
+<div class="bg-surface-container-low p-space-md rounded-xl shadow-sm flex flex-col justify-between gap-space-md">
+<div>
+<div class="flex items-center justify-between mb-space-sm">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-tertiary text-[1.25rem]">sensors</span>
+<h3 class="font-headline-md text-headline-md text-on-surface">Tracker / RSS Matrix</h3>
+</div>
+<button class="p-1 rounded hover:bg-surface-container text-outline hover:text-on-surface transition-colors" title="Ping all">
+<span class="material-symbols-outlined text-[1rem]">refresh</span>
+</button>
+</div>
+<div class="flex flex-col gap-2 font-mono-code text-mono-code">
+<!-- Indexer 1: Nyaa -->
+<div class="flex items-center justify-between p-2 rounded-lg bg-surface-container-lowest">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span>
+<span class="text-on-surface font-medium">Nyaa.si (Prowlarr)</span>
+</div>
+<div class="flex items-center gap-space-sm">
+<span class="text-tertiary">42 ms</span>
+<span class="font-label-badge text-[0.625rem] px-1 py-0.5 rounded bg-surface-container text-on-surface-variant">HTTP 200</span>
+</div>
+</div>
+<!-- Indexer 2: AnimeBytes -->
+<div class="flex items-center justify-between p-2 rounded-lg bg-surface-container-lowest">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span>
+<span class="text-on-surface font-medium">AnimeBytes (Passkey)</span>
+</div>
+<div class="flex items-center gap-space-sm">
+<span class="text-tertiary">110 ms</span>
+<span class="font-label-badge text-[0.625rem] px-1 py-0.5 rounded bg-surface-container text-on-surface-variant">AUTH OK</span>
+</div>
+</div>
+<!-- Indexer 3: Tokyo Toshokan -->
+<div class="flex items-center justify-between p-2 rounded-lg bg-surface-container-lowest">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span>
+<span class="text-on-surface font-medium">Tokyo Toshokan</span>
+</div>
+<div class="flex items-center gap-space-sm">
+<span class="text-tertiary">85 ms</span>
+<span class="font-label-badge text-[0.625rem] px-1 py-0.5 rounded bg-surface-container text-on-surface-variant">HTTP 200</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Quick Indexer Telemetry Mini Sparkline Container -->
+<div class="p-space-sm rounded-lg bg-surface-container/60 flex items-center justify-between">
+<div class="flex flex-col font-mono-code text-[0.6875rem]">
+<span class="text-on-surface-variant">Poll Interval: 15 mins</span>
+<span class="text-outline">Sync Queue: 0 pending</span>
+</div>
+<div class="flex items-center gap-1 text-primary text-title-sm font-semibold">
+<span class="material-symbols-outlined text-[1.125rem]">shield</span>
+<span class="font-mono-code text-mono-code">100% SLA</span>
+</div>
+</div>
+</div>
+</section>
+</div>
+<script>
+  // Keyboard Shortcut Handler for Search
+  document.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      e.preventDefault();
+      const input = document.querySelector('input[type="text"]');
+      if (input) input.focus();
+    }
+  });
+</script></main></div><footer class="fixed bottom-0 left-0 right-0 h-8 z-50 bg-surface-container-lowest/95 backdrop-blur flex items-center justify-between px-space-lg font-mono-code text-mono-code text-outline shadow-[0_-1px_4px_rgba(0,0,0,0.2)]"><div class="flex items-center gap-space-md"><div class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse"></span><span class="text-on-surface">Daemon: Active</span></div><div class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-tertiary-fixed"></span><span>qBittorrent: Connected (8080)</span></div></div><div class="flex items-center gap-space-lg"><div class="flex items-center gap-1.5"><span class="text-primary">DL: 42.8 MB/s</span><span class="text-outline">|</span><span class="text-outline">UL: 3.1 MB/s</span></div><div class="flex items-center gap-1.5"><span>/mnt/anime: 3.42 TB / 8.00 TB (57% free)</span></div><div class="flex items-center gap-1.5"><span class="text-on-surface-variant">MAL Sync: 4m ago</span></div></div></footer></body></html>

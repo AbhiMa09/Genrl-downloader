@@ -1,126 +1,92 @@
-# General Downloader
+# Genrl Downloader
 
-An automated anime downloading and organization system that integrates with nyaa.si, qBittorrent, and provides automatic folder icon and synopsis generation.
+A Linux desktop app that reads your MAL list, finds the right torrent on Nyaa for
+each missing episode, downloads it through qBittorrent, and files it with a
+synopsis and a folder icon.
 
-## Features
+**Flutter UI · Rust core · SQLite.** The UI never touches the network or the
+disk: it sends commands to the Rust core and receives progress events. The core
+owns the database and every call to MAL, Jikan, Nyaa and qBittorrent, which is
+also what lets it keep working from the system tray while the window is closed.
 
-- **Nyaa.si Integration**: Search for anime torrents sorted by seeders
-- **qBittorrent Integration**: Add and manage torrents directly from the application
-- **Browser Tab Monitoring**: Detect anime tabs in Zen Browser (and other browsers)
-- **Automatic Processing**: Generate folder icons and synopsis files after downloads
-- **Scheduled Tasks**: Automated daily icon updates and periodic tab checking
-- **Tabbed Interface**: Easy navigation between different functionalities
-- **System Tray**: Run in background with easy access
+## Six rules the whole design follows
 
-## Requirements
+1. **Never guess silently.** Uncertain match or torrent choice becomes a question
+   in the Inbox instead of a wrong download.
+2. **Every external call is budgeted.** MAL, Jikan, Nyaa and qBittorrent each get
+   a rate limiter, a cache and a backoff, so the app cannot get you banned.
+3. **Everything survives a crash.** All state is in SQLite; on restart the app
+   resumes from the last known state and re-checks qBittorrent.
+4. **One source of truth per fact.** The MAL id is the identity of a show; names,
+   synonyms and folders hang off it.
+5. **Automation is optional and visible.** Every automatic action appears in the
+   activity log, and one switch pauses everything.
+6. **Degrade, don't die.** If MAL, Jikan or Nyaa is down, the app keeps using its
+   cache, keeps downloads going, and shows what is stale.
 
-- Windows 10/11
-- Python 3.8+
-- qBittorrent (running on localhost:8080 with default credentials)
-- Dependencies listed in `requirements.txt`
+## Repository layout
 
-## Installation
+```
+core/                    Rust workspace
+  crates/genrl-core      the core library (this is where all state lives)
+    src/db.rs            SQLite, WAL mode, versioned migrations
+    src/settings.rs      every default number, exportable to JSON
+    src/rules.rs         group priorities, resolution, seeds — global and per show
+    src/events.rs        the Activity log
+    src/logging.rs       optional debug log, rotates by size
+    src/http/            the limit-proof client layer (see below)
+  crates/genrl-cli       `genrl` command-line companion
+app/                     Flutter UI (phase 7)
+assets/                  Stitch design screens + the Obsidian Violet design system
+```
 
-1. Install Python 3.8+ from https://python.org
-2. Install qBittorrent from https://qbittorrent.org
-3. Make sure qBittorrent is running and accessible at http://localhost:8080
-   - Default username: admin
-   - Default password: adminadmin
-   - (Change these in Settings for security)
-4. Install dependencies:
-   ```
-   pip install -r requirements.txt
-   ```
-5. Run the application:
-   - Double-click `run.bat` OR
-   - Run `python launcher.py`
+## The limit-proof HTTP layer
 
-## Usage
+No module talks to the network directly; they ask a `Gate` for one of five
+`Service`s. Each request passes through:
 
-### Search & Download Tab
-1. Enter an anime name in the search box
-2. Click "Search" or press Enter
-3. Browse results sorted by seeders (highest first)
-4. Click "Download" on a result or select a row and click "Download Selected Torrent"
-5. Monitor progress in the Torrents tab
+1. **Circuit breaker** — five consecutive failures open the service for 15
+   minutes; jobs that need it wait in `blocked` instead of failing.
+2. **Response cache** — fresh answers come from SQLite; stale entries revalidate
+   with `If-None-Match`.
+3. **Token-bucket limiter** — Jikan 2/s + 60/min, Nyaa one request per 2 seconds
+   globally, MAL and qBittorrent gentler, all with jitter where it matters.
+4. **The request** — timeout, 5 MB body cap, TLS verified, redirects capped at 3.
+5. **Backoff** — 5 s, 30 s, 2 min, 10 min, 1 hour with random jitter, or the
+   server's `Retry-After` when it sends one.
 
-### Torrents Tab
-- View active torrents from qBittorrent
-- See download/upload speeds, progress, ETA
-- Refresh to update status
+## Building
 
-### Browser Monitor Tab
-- Start/stop monitoring for anime tabs in your browser
-- See detected anime tabs with confidence scores
-- Configure automatic actions (search/download)
+```bash
+# Rust toolchain (rustup)
+cd core
+cargo build --workspace
+cargo test  --workspace     # includes the mock-server 429/timeout suite
+./target/debug/genrl init   # create the data folder + database
+./target/debug/genrl doctor # check database, permissions, settings, breakers
+```
 
-### Settings Tab
-- Configure qBittorrent connection settings
-- Enable/disable scheduled tasks
-- Set folder paths for anime and icons
-- Apply settings
+Data lives in `$XDG_DATA_HOME/genrl-downloader/` (`~/.local/share/…`), directory
+mode `0700`, database mode `0600`; the app refuses to start if either is
+group- or world-writable.
 
-## How It Works
+## Roadmap
 
-1. **Search**: When you search for an anime, the application queries nyaa.si and returns torrents sorted by seeders
-2. **Download**: Selected torrents are added to qBittorrent via its API
-3. **Processing**: After downloads complete, run the icon manager to:
-   - Fetch anime information from AniList
-   - Download cover art and convert to ICO format
-   - Set folder icons using desktop.ini
-   - Generate synopsis.txt files with story details
-4. **Automation**: 
-   - Daily at 10 PM: Automatic icon/synopsis update
-   - Every 15 minutes: Browser tab checking for new anime
-   - Browser detection: When you visit nyaa.si or anime sites, get notified
+Each phase ends with a check that must pass before the next one starts.
 
-## Customization
-
-- Change qBittorrent host/port/credentials in Settings
-- Modify scheduled task times in the scheduler.py file
-- Adjust browser monitoring sensitivity in browser_monitor.py
-- Customize icon sizes or synopsis format in anime_icon_manager.py
-
-## Safety Features
-
-- Automatic downloads are DISABLED by default (enable in Browser Monitor tab)
-- Manual confirmation required for most actions
-- No automatic file deletion or modification without explicit user action
-- Credentials stored only in memory, not saved to disk
-
-## Troubleshooting
-
-### qBittorrent Connection Issues
-- Make sure qBittorrent is running
-- Check that Web API is enabled (Tools -> Options -> Web UI)
-- Verify host/port/credentials in Settings
-- Try accessing http://localhost:8080 in your browser
-
-### Browser Monitoring Not Working
-- Ensure pygetwindow and psutil are installed
-- Try running as administrator for better window access
-- Some browsers may require additional permissions
-
-### Icon Updates Failing
-- Icon updates require Administrator privileges
-- Run the application as Administrator or enable "Run as administrator" in properties
-- Make sure D:\icons folder exists and is writable
-
-## Files Overview
-
-- `launcher.py` - Main entry point
-- `main_window.py` - Primary GUI application
-- `nyaa_scraper.py` - Nyaa.si search functionality
-- `torrent_manager.py` - qBittorrent API integration
-- `browser_monitor.py` - Browser tab detection
-- `scheduler.py` - Automated task scheduling
-- `anime_icon_manager.py` - Existing icon/synopsis generator (provided separately)
-- `requirements.txt` - Python dependencies
+- [x] **Foundation** — Rust workspace, SQLite schema and migrations, settings,
+      logging, shared HTTP layer with limiter, cache and backoff.
+      *Check: mock-server tests for 429 and timeout pass.* ✅ 56 tests green
+- [ ] **qBittorrent and Nyaa** — client for qBittorrent, RSS search, filename
+      parser, scorer. *Check: a CLI tool downloads one chosen episode end to end.*
+- [ ] **Matching and seed logic** — name sets, scoring, thresholds, questions.
+- [ ] **Queue and workers** — job states, retries, stall handling, crash recovery.
+- [ ] **MAL sync** — OAuth, list diff, episode generation, first-sync preview.
+- [ ] **Library step** — rename/move, synopsis.txt, posters, folder icons.
+- [ ] **Flutter UI** — nine pages in order, styled from `assets/`.
+- [ ] **Polish and release** — tray, autostart, notifications, backup, AppImage.
 
 ## License
 
-This project is for personal use only. Please respect copyright laws and only download content you have the right to access.
-
-## Disclaimer
-
-This tool is provided as-is without any warranties. The developers are not responsible for any misuse or legal issues arising from the use of this software.
+For personal use only. Please respect copyright laws and only download content
+you have the right to access.

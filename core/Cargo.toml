@@ -1,0 +1,46 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/genrl-core",
+    "crates/genrl-cli",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.80"
+license = "MIT"
+repository = "https://github.com/genrl/Genrl-downloader"
+
+[workspace.dependencies]
+# Async runtime
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "sync", "fs", "signal"] }
+# HTTP (rustls only, no OpenSSL)
+reqwest = { version = "0.13", default-features = false, features = ["rustls", "webpki-roots", "json", "gzip", "stream"] }
+futures-util = "0.3"
+# Storage
+rusqlite = { version = "0.40", features = ["bundled"] }
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# Errors & logging
+thiserror = "2"
+anyhow = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+# Utilities
+rand = "0.8"
+url = "2"
+bytes = "1"
+# Dev / test
+wiremock = "0.6"
+tempfile = "3"
+
+[profile.dev]
+# Keep dev builds fast; profiling uses the release profile.
+debug = 1
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = "debuginfo"

@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+  <title>Genrl Downloader - Tray Menu & System Notifications</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            surface: "#10141a",
+            "surface-dim": "#10141a",
+            "surface-bright": "#353940",
+            "surface-container-lowest": "#0a0e14",
+            "surface-container-low": "#181c22",
+            "surface-container": "#1c2026",
+            "surface-container-high": "#262a31",
+            "surface-container-highest": "#31353c",
+            "on-surface": "#dfe2eb",
+            "on-surface-variant": "#cbc3d7",
+            outline: "#958ea0",
+            "outline-variant": "#494454",
+            primary: "#d0bcff",
+            "primary-container": "#a078ff",
+            "on-primary": "#3c0091",
+            "on-primary-container": "#340080",
+            secondary: "#d2bbff",
+            "secondary-container": "#6001d1",
+            "on-secondary-container": "#c9aeff",
+            tertiary: "#7bd0ff",
+            "tertiary-container": "#009bd1",
+            error: "#ffb4ab",
+            "error-container": "#93000a",
+            "on-error-container": "#ffdad6",
+            "success": "#6ee7b7",
+            "success-container": "#064e3b"
+          },
+          fontFamily: {
+            sans: ["Inter", "sans-serif"],
+            mono: ["JetBrains Mono", "monospace"]
+          },
+          boxShadow: {
+            "panel": "0 16px 40px -8px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.08)",
+            "toast": "0 12px 32px -4px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.09)",
+            "glow-violet": "0 0 16px rgba(160, 120, 255, 0.25)"
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+      background: radial-gradient(circle at 80% 20%, #171a24 0%, #0d1016 50%, #090c11 100%);
+      font-family: 'Inter', sans-serif;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #31353c;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="min-h-screen text-on-surface antialiased flex flex-col justify-between selection:bg-primary-container selection:text-on-primary-container relative">
+
+  <!-- Desktop Background Graphic Overlay (Linux GNOME/KDE Ambience) -->
+  <div class="fixed inset-0 pointer-events-none opacity-40">
+    <div class="absolute -top-32 right-10 w-96 h-96 rounded-full bg-primary/10 blur-[120px]"></div>
+    <div class="absolute top-1/2 left-20 w-80 h-80 rounded-full bg-tertiary/5 blur-[100px]"></div>
+    <div class="absolute bottom-10 right-1/4 w-[500px] h-64 rounded-full bg-secondary-container/10 blur-[130px]"></div>
+    <!-- Geometric subtle desktop wallpaper lines -->
+    <svg class="w-full h-full stroke-white/[0.03]" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
+          <path d="M 48 0 L 0 0 0 48" fill="none" stroke-width="1"/>
+        </pattern>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#grid)"/>
+    </svg>
+  </div>
+
+  <!-- Top System Bar / Desktop Shell Panel (e.g. Linux desktop status bar with active tray icon) -->
+  <header class="relative z-30 w-full h-10 bg-surface-container-lowest/90 backdrop-blur-md border-b border-white/[0.07] px-4 flex items-center justify-between text-xs select-none shadow-sm">
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2 text-on-surface-variant font-medium">
+        <span class="material-symbols-outlined text-sm text-primary">terminal</span>
+        <span>Activities</span>
+      </div>
+      <div class="hidden sm:flex items-center gap-3 text-outline text-[11px] font-mono">
+        <span class="text-on-surface/90">KDE Plasma 6.2</span>
+        <span>•</span>
+        <span>Linux 6.8.0-arch</span>
+      </div>
+    </div>
+
+    <!-- Center Clock -->
+    <div class="font-mono text-xs text-on-surface font-medium tracking-wide">
+      Sun Mar 30 &nbsp;16:42:10
+    </div>
+
+    <!-- Right System Tray Area -->
+    <div class="flex items-center gap-3 text-on-surface-variant">
+      <div class="flex items-center gap-2 px-2 py-1 rounded hover:bg-surface-container transition-colors">
+        <span class="material-symbols-outlined text-sm text-outline">wifi</span>
+        <span class="material-symbols-outlined text-sm text-outline">volume_up</span>
+        <span class="material-symbols-outlined text-sm text-outline">battery_full</span>
+      </div>
+
+      <!-- Genrl Downloader Active System Tray Anchor Icon -->
+      <div class="relative flex items-center">
+        <button id="tray-anchor-btn" class="flex items-center gap-1.5 px-2 py-1 rounded bg-surface-container-high border border-primary/40 shadow-sm text-primary transition-all">
+          <span class="relative flex h-2 w-2">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+          </span>
+          <img alt="Genrl Downloader Icon" class="h-4 w-4 object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1UP3zGPx3B0JZLTVk2O6kS2U8gmaMrvMlvLJSGHABunb2-VtYg8i1PfXJk8FcmQ23WU3YeFWebAdJXjwljjdLE7wpVP3Oq75tQqQqxhX5QdwPlcqrazwNHm8iuPexu1CUqY6Ws7aBUdaW8laOxeZ5BmIG8kN44TgafyZAt5cQ03vcMHcMo_m0Dm87oZkYAntjP83GU5sFepQ_GO2x0YE-RBeQNKdNKPCz2LWp5U7Bt5Kj3tkBertimcS8c"/>
+          <span class="material-symbols-outlined text-[13px] text-primary">expand_more</span>
+        </button>
+      </div>
+
+      <div class="w-6 h-6 rounded-full bg-surface-container-highest flex items-center justify-between p-1">
+        <span class="material-symbols-outlined text-xs text-outline">power_settings_new</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Canvas Area: Showcasing System Tray Menu & Desktop Notification Toasts -->
+  <main class="relative z-20 flex-1 px-6 py-6 max-w-7xl mx-auto w-full flex flex-col justify-between">
+
+    <!-- Top Row: Component Labels & Spatial Arrangement -->
+    <div class="flex flex-col md:flex-row items-start justify-between gap-6 mb-6">
+      <div>
+        <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-secondary-container/30 border border-secondary/20 text-secondary font-mono text-[11px] mb-2">
+          <span class="material-symbols-outlined text-[14px]">desktop_windows</span>
+          <span>LINUX DESKTOP INTEGRATION</span>
+        </div>
+        <h1 class="text-2xl font-bold tracking-tight text-on-surface">System Tray Menu & Notification Toasts</h1>
+        <p class="text-sm text-on-surface-variant max-w-xl mt-1">
+          Dark theme desktop components designed for the Obsidian Violet media suite, adhering to native Freedesktop / DBus notifications and status notifier specifications.
+        </p>
+      </div>
+
+      <!-- Quick Interactive Switcher Info -->
+      <div class="bg-surface-container-low/80 backdrop-blur border border-white/[0.06] rounded-xl px-4 py-3 flex items-center gap-4 text-xs">
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-success"></span>
+          <span class="font-mono text-on-surface">Daemon v2.4.1</span>
+        </div>
+        <div class="h-4 w-px bg-outline-variant"></div>
+        <div class="text-outline font-mono">DBus org.freedesktop.Notifications</div>
+      </div>
+    </div>
+
+    <!-- Presentation Grid: Two Distinct Side-by-Side Sections -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start my-auto">
+
+      <!-- LEFT COLUMN: SYSTEM TRAY POPUP MENU (Span 5) -->
+      <div class="lg:col-span-5 flex flex-col items-center lg:items-start">
+        <div class="flex items-center gap-2 text-xs font-mono text-outline uppercase tracking-wider mb-3">
+          <span class="material-symbols-outlined text-sm text-primary">menu_open</span>
+          <span>1. System Tray Popup Menu</span>
+        </div>
+
+        <!-- The Tray Popup Menu Card Container -->
+        <div class="w-full max-w-[340px] bg-surface-container-low/95 backdrop-blur-2xl rounded-2xl shadow-panel border border-white/[0.09] overflow-hidden transition-all duration-200">
+          
+          <!-- Header Branding / Status Indicator -->
+          <div class="px-4 py-3 bg-surface-container-lowest/80 border-b border-white/[0.06] flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+              <img alt="Genrl Downloader" class="h-5 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1UP3zGPx3B0JZLTVk2O6kS2U8gmaMrvMlvLJSGHABunb2-VtYg8i1PfXJk8FcmQ23WU3YeFWebAdJXjwljjdLE7wpVP3Oq75tQqQqxhX5QdwPlcqrazwNHm8iuPexu1CUqY6Ws7aBUdaW8laOxeZ5BmIG8kN44TgafyZAt5cQ03vcMHcMo_m0Dm87oZkYAntjP83GU5sFepQ_GO2x0YE-RBeQNKdNKPCz2LWp5U7Bt5Kj3tkBertimcS8c"/>
+              <div class="flex flex-col">
+                <span class="text-xs font-semibold tracking-tight text-on-surface">Genrl Downloader</span>
+                <span class="text-[10px] font-mono text-outline">Background Engine</span>
+              </div>
+            </div>
+            <span class="flex items-center gap-1 font-mono text-[10px] text-tertiary bg-tertiary/10 border border-tertiary/30 px-2 py-0.5 rounded-full">
+              <span class="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse"></span>
+              Active
+            </span>
+          </div>
+
+          <!-- Highlighted Status Metric Pill Row: "2 downloading, 3 need input" -->
+          <div class="px-3.5 pt-3 pb-2">
+            <div class="bg-surface-container-high/90 rounded-xl p-2.5 border border-white/[0.05] flex items-center justify-between gap-2 shadow-inner">
+              <div class="flex items-center gap-2 min-w-0">
+                <div class="w-7 h-7 rounded-lg bg-tertiary-container/30 border border-tertiary/30 flex items-center justify-center flex-shrink-0 text-tertiary">
+                  <span class="material-symbols-outlined text-[16px] animate-spin">sync</span>
+                </div>
+                <div class="flex flex-col min-w-0">
+                  <span class="text-xs font-medium text-on-surface tracking-tight truncate">
+                    <strong class="text-tertiary font-semibold">2 downloading</strong>, <strong class="text-secondary font-semibold">3 need input</strong>
+                  </span>
+                  <span class="text-[10px] font-mono text-outline truncate">DL: 42.8 MB/s • UL: 3.1 MB/s</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-1 flex-shrink-0">
+                <span class="w-5 h-5 rounded-md bg-error/20 text-error border border-error/30 text-[10px] font-mono font-bold flex items-center justify-center" title="3 alerts pending in Inbox">3</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tray Menu Action Items List -->
+          <nav class="p-2 space-y-1">
+            <!-- 1. Open Genrl Downloader (Primary Action) -->
+            <button class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-left bg-primary/10 hover:bg-primary/20 text-primary font-medium text-xs transition-colors group">
+              <div class="flex items-center gap-2.5">
+                <span class="material-symbols-outlined text-[18px] text-primary">open_in_new</span>
+                <span>Open Genrl Downloader</span>
+              </div>
+              <kbd class="font-mono text-[10px] text-primary/70 bg-primary/10 px-1.5 py-0.5 rounded border border-primary/20">Super+G</kbd>
+            </button>
+
+            <!-- 2. Pause All -->
+            <button class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-left hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface text-xs transition-colors group">
+              <div class="flex items-center gap-2.5">
+                <span class="material-symbols-outlined text-[18px] text-outline group-hover:text-on-surface transition-colors">pause_circle</span>
+                <span>Pause all</span>
+              </div>
+              <span class="font-mono text-[10px] text-outline group-hover:text-on-surface-variant">Hold transfers</span>
+            </button>
+
+            <!-- 3. Resume -->
+            <button class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-left hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface text-xs transition-colors group">
+              <div class="flex items-center gap-2.5">
+                <span class="material-symbols-outlined text-[18px] text-outline group-hover:text-on-surface transition-colors">play_circle</span>
+                <span>Resume</span>
+              </div>
+              <span class="font-mono text-[10px] text-outline group-hover:text-on-surface-variant">Active (2 running)</span>
+            </button>
+
+            <!-- 4. Sync Now -->
+            <button class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-left hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface text-xs transition-colors group">
+              <div class="flex items-center gap-2.5">
+                <span class="material-symbols-outlined text-[18px] text-outline group-hover:text-on-surface transition-colors">sync</span>
+                <span>Sync now</span>
+              </div>
+              <span class="font-mono text-[10px] text-tertiary">MAL • Tokyo Toshokan</span>
+            </button>
+
+            <!-- Subtle Divider -->
+            <div class="my-1.5 border-t border-white/[0.06]"></div>
+
+            <!-- 5. Preferences & Sub-links Quick Jump -->
+            <div class="flex items-center justify-between px-3 py-1.5 text-[11px] text-outline font-mono">
+              <span class="hover:text-on-surface cursor-pointer transition-colors flex items-center gap-1">
+                <span class="material-symbols-outlined text-[13px]">tune</span> Settings
+              </span>
+              <span class="hover:text-on-surface cursor-pointer transition-colors flex items-center gap-1">
+                <span class="material-symbols-outlined text-[13px]">inbox</span> Inbox (3)
+              </span>
+            </div>
+
+            <div class="my-1.5 border-t border-white/[0.06]"></div>
+
+            <!-- 6. Quit -->
+            <button class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-left hover:bg-error/15 text-error/90 hover:text-error text-xs transition-colors group">
+              <div class="flex items-center gap-2.5">
+                <span class="material-symbols-outlined text-[18px] text-error/80 group-hover:text-error transition-colors">power_settings_new</span>
+                <span>Quit</span>
+              </div>
+              <kbd class="font-mono text-[10px] text-error/60 bg-error/10 px-1.5 py-0.5 rounded border border-error/20">Ctrl+Q</kbd>
+            </button>
+          </nav>
+
+          <!-- Footer Monospace Subtext Note -->
+          <div class="px-4 py-2 bg-surface-container-lowest/90 border-t border-white/[0.05] flex items-center justify-between text-[10px] font-mono text-outline">
+            <span>Daemon: Unix Socket OK</span>
+            <span>RAM: 38.4 MB</span>
+          </div>
+        </div>
+
+        <span class="text-xs text-outline mt-3 font-mono text-center lg:text-left">
+          Rendered via SNI / StatusNotifierItem on desktop tray click
+        </span>
+      </div>
+
+      <!-- RIGHT COLUMN: THREE DESKTOP NOTIFICATION TOASTS (Span 7) -->
+      <div class="lg:col-span-7 flex flex-col items-center lg:items-end space-y-4">
+        <div class="w-full max-w-md flex items-center justify-between text-xs font-mono text-outline uppercase tracking-wider mb-1">
+          <span class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-sm text-secondary">notifications_active</span>
+            <span>2. Desktop Notification Toasts (3)</span>
+          </span>
+          <span class="text-[11px] text-outline normal-case font-mono">Top-Right Stack</span>
+        </div>
+
+        <!-- NOTIFICATION 1: "Episode 7 of Show Title finished" -->
+        <div class="w-full max-w-md bg-surface-container-low/95 backdrop-blur-2xl rounded-2xl shadow-toast border border-white/[0.08] p-4 relative overflow-hidden transition-all hover:border-white/[0.15]">
+          <!-- Left Status Color Edge Accent: Success Teal/Cyan -->
+          <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-tertiary to-success"></div>
+
+          <div class="flex items-start gap-3.5 pl-1.5">
+            <!-- App / Status Icon Badge -->
+            <div class="w-10 h-10 rounded-xl bg-tertiary/15 border border-tertiary/30 flex items-center justify-center flex-shrink-0 text-tertiary shadow-sm">
+              <span class="material-symbols-outlined text-[22px]">download_done</span>
+            </div>
+
+            <!-- Content Area -->
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between gap-2 mb-0.5">
+                <div class="flex items-center gap-1.5">
+                  <span class="font-mono text-[10px] uppercase tracking-wider text-outline">Genrl Downloader</span>
+                  <span class="w-1 h-1 rounded-full bg-outline"></span>
+                  <span class="font-mono text-[10px] text-tertiary">Just now</span>
+                </div>
+                <button class="text-outline hover:text-on-surface transition-colors p-0.5 rounded hover:bg-surface-container-highest" title="Dismiss">
+                  <span class="material-symbols-outlined text-[16px]">close</span>
+                </button>
+              </div>
+
+              <!-- Main Title & Body -->
+              <h2 class="text-sm font-semibold text-on-surface tracking-tight leading-snug">
+                Episode 7 of Show Title finished
+              </h2>
+              <p class="text-xs text-on-surface-variant mt-0.5 leading-relaxed">
+                Downloaded <span class="font-mono text-on-surface">[SubsPlease] 1080p (1.24 GB)</span>. Hardlinked &amp; moved to <span class="font-mono text-outline">/mnt/anime/Show Title/</span>.
+              </p>
+
+              <!-- Quick Action Buttons -->
+              <div class="flex items-center gap-2 mt-3 pt-2.5 border-t border-white/[0.05]">
+                <button class="px-2.5 py-1 rounded-lg bg-surface-container-high hover:bg-surface-container-highest text-on-surface font-medium text-xs transition-colors flex items-center gap-1.5">
+                  <span class="material-symbols-outlined text-[15px] text-tertiary">play_arrow</span>
+                  <span>Play file</span>
+                </button>
+                <button class="px-2.5 py-1 rounded-lg hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface text-xs transition-colors flex items-center gap-1.5">
+                  <span class="material-symbols-outlined text-[15px] text-outline">folder_open</span>
+                  <span>Show in folder</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- NOTIFICATION 2: "3 questions need your input" -->
+        <div class="w-full max-w-md bg-surface-container-low/95 backdrop-blur-2xl rounded-2xl shadow-toast border border-white/[0.08] p-4 relative overflow-hidden transition-all hover:border-white/[0.15]">
+          <!-- Left Status Color Edge Accent: Attention Violet/Amber -->
+          <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-primary to-secondary"></div>
+
+          <div class="flex items-start gap-3.5 pl-1.5">
+            <!-- App / Status Icon Badge -->
+            <div class="w-10 h-10 rounded-xl bg-secondary-container/40 border border-secondary/30 flex items-center justify-center flex-shrink-0 text-primary shadow-sm">
+              <span class="material-symbols-outlined text-[22px]">help_center</span>
+            </div>
+
+            <!-- Content Area -->
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between gap-2 mb-0.5">
+                <div class="flex items-center gap-1.5">
+                  <span class="font-mono text-[10px] uppercase tracking-wider text-outline">Inbox Triage</span>
+                  <span class="w-1 h-1 rounded-full bg-outline"></span>
+                  <span class="font-mono text-[10px] text-secondary">2m ago</span>
+                </div>
+                <button class="text-outline hover:text-on-surface transition-colors p-0.5 rounded hover:bg-surface-container-highest" title="Dismiss">
+                  <span class="material-symbols-outlined text-[16px]">close</span>
+                </button>
+              </div>
+
+              <!-- Main Title & Body -->
+              <h2 class="text-sm font-semibold text-on-surface tracking-tight leading-snug flex items-center gap-1.5">
+                <span>3 questions need your input</span>
+                <span class="font-mono text-[10px] bg-secondary-container/50 text-secondary border border-secondary/30 px-1.5 py-0.2 rounded-full font-bold">3</span>
+              </h2>
+              <p class="text-xs text-on-surface-variant mt-0.5 leading-relaxed">
+                Swarm ties detected between <span class="text-on-surface font-medium">[Erai-raws]</span> and <span class="text-on-surface font-medium">[Judas]</span> for 2 backlog series, plus 1 ambiguous CRC32 hash match.
+              </p>
+
+              <!-- Quick Action Buttons -->
+              <div class="flex items-center gap-2 mt-3 pt-2.5 border-t border-white/[0.05]">
+                <button class="px-3 py-1 rounded-lg bg-primary hover:bg-primary-fixed-dim text-on-primary font-semibold text-xs transition-colors flex items-center gap-1.5 shadow-sm">
+                  <span class="material-symbols-outlined text-[15px]">inbox</span>
+                  <span>Open Inbox</span>
+                </button>
+                <button class="px-2.5 py-1 rounded-lg hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface text-xs transition-colors">
+                  <span>Auto-resolve with rules</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- NOTIFICATION 3: "qBittorrent is not reachable" with a Retry action -->
+        <div class="w-full max-w-md bg-surface-container-low/95 backdrop-blur-2xl rounded-2xl shadow-toast border border-error/30 p-4 relative overflow-hidden transition-all hover:border-error/50">
+          <!-- Left Status Color Edge Accent: Error Rose/Red -->
+          <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-error to-error-container"></div>
+
+          <div class="flex items-start gap-3.5 pl-1.5">
+            <!-- App / Status Icon Badge -->
+            <div class="w-10 h-10 rounded-xl bg-error-container/40 border border-error/40 flex items-center justify-center flex-shrink-0 text-error shadow-sm">
+              <span class="material-symbols-outlined text-[22px]">cloud_off</span>
+            </div>
+
+            <!-- Content Area -->
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between gap-2 mb-0.5">
+                <div class="flex items-center gap-1.5">
+                  <span class="font-mono text-[10px] uppercase tracking-wider text-error font-medium">RPC Bridge Failure</span>
+                  <span class="w-1 h-1 rounded-full bg-outline"></span>
+                  <span class="font-mono text-[10px] text-outline">Urgent</span>
+                </div>
+                <button class="text-outline hover:text-on-surface transition-colors p-0.5 rounded hover:bg-surface-container-highest" title="Dismiss">
+                  <span class="material-symbols-outlined text-[16px]">close</span>
+                </button>
+              </div>
+
+              <!-- Main Title & Body -->
+              <h2 class="text-sm font-semibold text-error tracking-tight leading-snug">
+                qBittorrent is not reachable
+              </h2>
+              <p class="text-xs text-on-surface-variant mt-0.5 leading-relaxed">
+                Connection refused at <span class="font-mono text-outline">http://127.0.0.1:8080</span>. Torrent downloads and magnet handoffs are temporarily queued locally.
+              </p>
+
+              <!-- Quick Action Buttons with Prominent Retry -->
+              <div class="flex items-center gap-2 mt-3 pt-2.5 border-t border-white/[0.05]">
+                <button id="retry-btn" class="px-3 py-1 rounded-lg bg-error-container hover:bg-error/30 text-on-error-container border border-error/40 font-semibold text-xs transition-all flex items-center gap-1.5 shadow-sm">
+                  <span id="retry-icon" class="material-symbols-outlined text-[15px]">refresh</span>
+                  <span id="retry-label">Retry</span>
+                </button>
+                <button class="px-2.5 py-1 rounded-lg hover:bg-surface-container-high text-on-surface-variant hover:text-on-surface text-xs transition-colors flex items-center gap-1.5">
+                  <span class="material-symbols-outlined text-[15px] text-outline">settings</span>
+                  <span>Check settings</span>
+                </button>
+                <button class="px-2.5 py-1 rounded-lg hover:bg-surface-container-high text-outline hover:text-on-surface text-xs transition-colors ml-auto">
+                  <span>Start daemon</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Bottom Desktop Dock / Taskbar Simulator -->
+    <div class="mt-8 pt-4 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between text-xs text-outline font-mono gap-3">
+      <div class="flex items-center gap-3">
+        <span class="flex items-center gap-1.5 text-on-surface">
+          <span class="w-2 h-2 rounded-full bg-success"></span>
+          <span>Genrl Downloader Integration</span>
+        </span>
+        <span>•</span>
+        <span>Obsidian Violet Media Core</span>
+      </div>
+      <div class="flex items-center gap-4">
+        <span>XDG Desktop Portal: v1.18</span>
+        <span>libnotify / SNI compliant</span>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    // Interactive Retry button demo
+    const retryBtn = document.getElementById('retry-btn');
+    const retryIcon = document.getElementById('retry-icon');
+    const retryLabel = document.getElementById('retry-label');
+
+    if (retryBtn) {
+      retryBtn.addEventListener('click', function () {
+        retryIcon.classList.add('animate-spin');
+        retryLabel.textContent = 'Reconnecting...';
+        retryBtn.classList.add('opacity-75');
+
+        setTimeout(() => {
+          retryIcon.classList.remove('animate-spin');
+          retryIcon.textContent = 'check';
+          retryLabel.textContent = 'Connected (8080)';
+          retryBtn.className = 'px-3 py-1 rounded-lg bg-success-container/60 text-success border border-success/40 font-semibold text-xs transition-all flex items-center gap-1.5';
+        }, 1200);
+      });
+    }
+
+    // Dismiss button behavior
+    document.querySelectorAll('[title="Dismiss"]').forEach(btn => {
+      btn.addEventListener('click', function () {
+        const toast = this.closest('.shadow-toast');
+        if (toast) {
+          toast.style.opacity = '0';
+          toast.style.transform = 'translateX(20px)';
+          toast.style.transition = 'all 0.25s ease';
+          setTimeout(() => toast.remove(), 260);
+        }
+      });
+    });
+  </script>
+</body>
+</html>

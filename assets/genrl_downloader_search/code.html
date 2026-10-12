@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_dashboard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: "class", theme: { extend: { "colors": { "on-tertiary-fixed-variant": "#004c69", "surface-container-highest": "#31353c", "inverse-primary": "#6d3bd7", "outline": "#958ea0", "secondary-fixed": "#eaddff", "on-primary": "#3c0091", "on-tertiary-container": "#002d40", "error-container": "#93000a", "secondary-container": "#6001d1", "on-surface": "#dfe2eb", "on-error-container": "#ffdad6", "inverse-surface": "#dfe2eb", "on-secondary": "#3f008e", "inverse-on-surface": "#2d3137", "on-tertiary": "#00354a", "tertiary-fixed": "#c4e7ff", "primary-fixed": "#e9ddff", "primary-fixed-dim": "#d0bcff", "on-primary-fixed-variant": "#5516be", "surface": "#10141a", "outline-variant": "#494454", "primary": "#d0bcff", "background": "#10141a", "on-primary-fixed": "#23005c", "surface-container-high": "#262a31", "surface-tint": "#d0bcff", "tertiary-fixed-dim": "#7bd0ff", "error": "#ffb4ab", "on-secondary-fixed-variant": "#5a00c6", "on-background": "#dfe2eb", "on-primary-container": "#340080", "primary-container": "#a078ff", "tertiary": "#7bd0ff", "on-secondary-fixed": "#25005a", "on-secondary-container": "#c9aeff", "on-tertiary-fixed": "#001e2c", "on-error": "#690005", "secondary-fixed-dim": "#d2bbff", "surface-container-low": "#181c22", "tertiary-container": "#009bd1", "surface-bright": "#353940", "surface-variant": "#31353c", "on-surface-variant": "#cbc3d7", "surface-container-lowest": "#0a0e14", "surface-dim": "#10141a", "surface-container": "#1c2026", "secondary": "#d2bbff" }, "borderRadius": { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" }, "spacing": { "space-sm": "0.5rem", "gutter": "0.75rem", "space-xs": "0.25rem", "space-md": "0.75rem", "space-xl": "1.5rem", "space-2xs": "0.125rem", "space-2xl": "2rem", "margin": "1rem", "space-lg": "1rem" }, "fontFamily": { "headline-xl": [ "Inter" ], "mono-code": [ "JetBrains Mono" ], "body-sm": [ "Inter" ], "headline-md": [ "Inter" ], "headline-lg": [ "Inter" ], "body-md": [ "Inter" ], "label-badge": [ "JetBrains Mono" ], "title-sm": [ "Inter" ], "mono-metric": [ "JetBrains Mono" ] }, "fontSize": { "headline-xl": [ "2rem", { "lineHeight": "2.5rem", "letterSpacing": "-0.02em", "fontWeight": "700" } ], "mono-code": [ "0.75rem", { "lineHeight": "1rem", "letterSpacing": "0", "fontWeight": "400" } ], "body-sm": [ "0.8125rem", { "lineHeight": "1.125rem", "letterSpacing": "0", "fontWeight": "400" } ], "headline-md": [ "1.25rem", { "lineHeight": "1.75rem", "letterSpacing": "-0.01em", "fontWeight": "600" } ], "headline-lg": [ "1.5rem", { "lineHeight": "2rem", "letterSpacing": "-0.015em", "fontWeight": "600" } ], "body-md": [ "0.875rem", { "lineHeight": "1.25rem", "letterSpacing": "0", "fontWeight": "400" } ], "label-badge": [ "0.6875rem", { "lineHeight": "0.875rem", "letterSpacing": "0.04em", "fontWeight": "600" } ], "title-sm": [ "0.9375rem", { "lineHeight": "1.375rem", "letterSpacing": "0", "fontWeight": "600" } ], "mono-metric": [ "0.8125rem", { "lineHeight": "1rem", "letterSpacing": "-0.02em", "fontWeight": "500" } ] } } } };</script></head><body class="bg-surface font-body-md text-on-surface min-h-screen selection:bg-primary-container selection:text-on-primary-container"><aside class="fixed left-0 top-0 bottom-8 w-52 bg-surface-container-low/90 backdrop-blur-xl z-40 flex flex-col justify-between select-none"><div class="flex flex-col"><div class="h-14 px-space-md flex items-center justify-between"><div class="flex items-center gap-space-sm overflow-hidden"><img alt="Genrl Downloader Logo" class="h-7 w-auto object-contain flex-shrink-0" src="https://lh3.googleusercontent.com/aida/AEtjO1UP3zGPx3B0JZLTVk2O6kS2U8gmaMrvMlvLJSGHABunb2-VtYg8i1PfXJk8FcmQ23WU3YeFWebAdJXjwljjdLE7wpVP3Oq75tQqQqxhX5QdwPlcqrazwNHm8iuPexu1CUqY6Ws7aBUdaW8laOxeZ5BmIG8kN44TgafyZAt5cQ03vcMHcMo_m0Dm87oZkYAntjP83GU5sFepQ_GO2x0YE-RBeQNKdNKPCz2LWp5U7Bt5Kj3tkBertimcS8c"/><div class="flex flex-col min-w-0"><span class="font-title-sm text-title-sm tracking-tight text-on-surface truncate">Genrl Downloader</span><span class="font-mono-code text-[0.625rem] text-outline leading-tight truncate">v2.4.1 Linux x86_64</span></div></div></div><nav class="flex flex-col gap-space-2xs px-space-sm py-space-sm" data-active-classes="bg-surface-container-high text-primary font-bold shadow-[0_0_0_1px_rgba(208,188,255,0.2)]"><a class="flex items-center justify-between px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="dashboard" href="#"><div class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-[1.125rem]">space_dashboard</span><span class="font-body-sm text-body-sm">Dashboard</span></div></a><a class="flex items-center justify-between px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="inbox" href="#"><div class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-[1.125rem]">inbox</span><span class="font-body-sm text-body-sm">Inbox</span></div><span class="font-label-badge text-label-badge px-1.5 py-0.5 rounded bg-error/20 text-error border border-error/30">12</span></a><a class="flex items-center justify-between px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="queue" href="#"><div class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-[1.125rem]">downloading</span><span class="font-body-sm text-body-sm">Queue</span></div><span class="font-label-badge text-label-badge px-1.5 py-0.5 rounded bg-tertiary-container/30 text-tertiary border border-tertiary/30">3</span></a><a class="flex items-center justify-between px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="library" href="#"><div class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-[1.125rem]">video_library</span><span class="font-body-sm text-body-sm">Library</span></div></a><a class="flex items-center justify-between px-space-sm py-space-xs rounded-lg bg-surface-container-high text-primary font-bold shadow-[0_0_0_1px_rgba(208,188,255,0.2)] transition-colors" data-path="search" href="#"><div class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-[1.125rem] text-primary">search</span><span class="font-body-sm text-body-sm">Search</span></div></a><a class="flex items-center justify-between px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="activity" href="#"><div class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-[1.125rem]">pulse_alert</span><span class="font-body-sm text-body-sm">Activity</span></div></a><a class="flex items-center justify-between px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="rules" href="#"><div class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-[1.125rem]">rule</span><span class="font-body-sm text-body-sm">Rules</span></div></a><a class="flex items-center justify-between px-space-sm py-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="settings" href="#"><div class="flex items-center gap-space-sm"><span class="material-symbols-outlined text-[1.125rem]">settings</span><span class="font-body-sm text-body-sm">Settings</span></div></a></nav></div><div class="p-space-sm"><div class="p-space-sm rounded-lg bg-surface-container/60 flex items-center justify-between"><div class="flex items-center gap-space-xs"><span class="w-2 h-2 rounded-full bg-tertiary animate-pulse"></span><span class="font-mono-code text-mono-code text-outline">Daemon OK</span></div><span class="font-mono-code text-[0.625rem] text-outline">TCP:58846</span></div></div></aside><div class="pl-52 pb-8"><header class="fixed top-0 left-52 right-0 h-14 bg-surface/80 backdrop-blur-xl z-30 flex items-center justify-between px-space-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="flex items-center gap-space-sm"><img alt="Genrl Downloader Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1UP3zGPx3B0JZLTVk2O6kS2U8gmaMrvMlvLJSGHABunb2-VtYg8i1PfXJk8FcmQ23WU3YeFWebAdJXjwljjdLE7wpVP3Oq75tQqQqxhX5QdwPlcqrazwNHm8iuPexu1CUqY6Ws7aBUdaW8laOxeZ5BmIG8kN44TgafyZAt5cQ03vcMHcMo_m0Dm87oZkYAntjP83GU5sFepQ_GO2x0YE-RBeQNKdNKPCz2LWp5U7Bt5Kj3tkBertimcS8c"/><span class="font-title-sm text-title-sm text-on-surface">Anime Library Core</span><span class="font-mono-code text-mono-code px-1.5 py-0.5 rounded bg-surface-container-high text-outline">Arch Linux</span></div><nav class="hidden xl:flex items-center gap-space-lg" data-active-classes="text-primary font-bold"><a class="text-body-sm font-body-sm text-on-surface-variant hover:text-on-surface transition-colors" data-path="dashboard" href="#">Overview</a><a class="text-body-sm font-body-sm text-on-surface-variant hover:text-on-surface transition-colors" data-path="queue" href="#">Transfers</a><a class="text-body-sm font-body-sm text-on-surface-variant hover:text-on-surface transition-colors" data-path="library" href="#">Catalogs</a><a class="text-body-sm font-body-sm text-on-surface-variant hover:text-on-surface transition-colors" data-path="activity" href="#">Logs</a></nav><div class="flex items-center gap-space-md"><div class="relative flex items-center bg-surface-container-lowest/80 px-space-sm py-1 rounded-lg"><span class="material-symbols-outlined text-outline text-[1.125rem] mr-space-xs">search</span><span class="font-mono-code text-mono-code text-outline pr-space-md">Quick Jump...</span><kbd class="font-mono-code text-[0.625rem] bg-surface-container-highest px-1 py-0.5 rounded text-outline">Ctrl+K</kbd></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></header><main class="w-full pt-14 bg-surface min-h-[calc(100vh-2rem)]"><div class="flex flex-col w-full">
+<div class="px-space-xl py-space-lg flex flex-col gap-space-lg">
+<!-- Header Section -->
+<div class="flex flex-col xl:flex-row xl:items-center justify-between gap-space-md">
+<div class="flex flex-col">
+<div class="flex items-center gap-space-sm mb-1">
+<span class="font-headline-lg text-headline-lg tracking-tight text-on-surface">Manual Indexer Search</span>
+<span class="font-label-badge text-label-badge px-2 py-0.5 rounded bg-primary/10 text-primary uppercase">v2.4 Core</span>
+</div>
+<p class="font-body-sm text-body-sm text-outline">Direct query via Prowlarr / Nyaa.si API with automatic rule scoring and hash inspection</p>
+</div>
+<!-- Indexer Status Chips -->
+<div class="flex items-center gap-space-sm flex-wrap">
+<div class="flex items-center gap-2 px-space-md py-1.5 rounded-lg bg-surface-container-low shadow-sm">
+<span class="w-2 h-2 rounded-full bg-tertiary animate-pulse"></span>
+<span class="font-mono-code text-mono-code text-on-surface">Nyaa.si</span>
+<span class="font-mono-code text-mono-code text-tertiary">Online • 42ms</span>
+</div>
+<div class="flex items-center gap-2 px-space-md py-1.5 rounded-lg bg-surface-container-low shadow-sm">
+<span class="w-2 h-2 rounded-full bg-outline"></span>
+<span class="font-mono-code text-mono-code text-on-surface">Tokyo Toshokan</span>
+<span class="font-mono-code text-mono-code text-outline">Idle</span>
+</div>
+<div class="flex items-center gap-2 px-space-md py-1.5 rounded-lg bg-surface-container-low shadow-sm">
+<span class="material-symbols-outlined text-[1rem] text-primary">dns</span>
+<span class="font-mono-code text-mono-code text-on-surface">Prowlarr Bridge</span>
+<span class="font-mono-code text-mono-code text-primary">Connected</span>
+</div>
+</div>
+</div>
+<!-- Quick Preset Queries -->
+<div class="flex items-center gap-space-sm overflow-x-auto pb-1 select-none">
+<span class="font-label-badge text-label-badge text-outline uppercase tracking-wider flex items-center gap-1 flex-shrink-0">
+<span class="material-symbols-outlined text-[0.875rem]">history</span> Presets:
+      </span>
+<button class="px-space-sm py-1 rounded bg-surface-container-high hover:bg-primary/20 text-on-surface hover:text-primary font-mono-code text-mono-code transition-all flex-shrink-0">
+        Frieren S01
+      </button>
+<button class="px-space-sm py-1 rounded bg-surface-container-high hover:bg-primary/20 text-on-surface hover:text-primary font-mono-code text-mono-code transition-all flex-shrink-0">
+        Dungeon Meshi Complete
+      </button>
+<button class="px-space-sm py-1 rounded bg-surface-container-high hover:bg-primary/20 text-on-surface hover:text-primary font-mono-code text-mono-code transition-all flex-shrink-0">
+        Oshi no Ko S2 1080p
+      </button>
+<button class="px-space-sm py-1 rounded bg-surface-container-high hover:bg-primary/20 text-on-surface hover:text-primary font-mono-code text-mono-code transition-all flex-shrink-0">
+        Kimi no Na wa Remux
+      </button>
+<button class="px-space-sm py-1 rounded bg-surface-container-high hover:bg-primary/20 text-on-surface hover:text-primary font-mono-code text-mono-code transition-all flex-shrink-0">
+        Bleach TYBW Ep 21
+      </button>
+</div>
+<!-- Search Bar & Target Assignment (Top Card) -->
+<div class="bg-surface-container-low rounded-xl p-space-lg shadow-md flex flex-col gap-space-md">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-space-md items-center">
+<!-- Main Search Input -->
+<div class="lg:col-span-8 flex flex-col gap-1.5">
+<label class="font-label-badge text-label-badge uppercase tracking-wider text-outline flex items-center justify-between">
+<span>Query String / Torznab Query</span>
+<span class="font-mono-code text-mono-code text-outline-variant">Auto-Sanitizing CRC32 hashes</span>
+</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3 text-outline text-[1.25rem]">search</span>
+<input class="w-full bg-surface-container-lowest text-on-surface font-mono-code text-body-sm pl-10 pr-24 py-2.5 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary shadow-inner" id="mainSearchInput" type="text" value="[SubsPlease] Sousou no Frieren - 28 (1080p) [F028E44A].mkv"/>
+<div class="absolute right-2.5 flex items-center gap-1.5">
+<button class="w-6 h-6 rounded flex items-center justify-center text-outline hover:text-on-surface bg-surface-container hover:bg-surface-container-high transition-colors" title="Clear query">
+<span class="material-symbols-outlined text-[0.875rem]">close</span>
+</button>
+<kbd class="font-mono-code text-[0.625rem] bg-surface-container-highest px-1.5 py-0.5 rounded text-outline uppercase font-semibold">↵ ENTER</kbd>
+</div>
+</div>
+</div>
+<!-- Target Assignment Dropdown -->
+<div class="lg:col-span-4 flex flex-col gap-1.5">
+<label class="font-label-badge text-label-badge uppercase tracking-wider text-outline flex items-center justify-between">
+<span>Library Target Binding</span>
+<span class="text-tertiary font-mono-code text-[0.6875rem]">Linked</span>
+</label>
+<div class="bg-surface-container-lowest p-1.5 rounded-lg flex items-center justify-between gap-space-sm cursor-pointer hover:bg-surface-container transition-colors shadow-inner">
+<div class="flex items-center gap-space-sm min-w-0">
+<div class="w-10 h-10 rounded bg-surface-container-high flex-shrink-0 overflow-hidden relative">
+<img class="w-full h-full object-cover" data-alt="High fantasy anime poster of elf mage Frieren standing on a tranquil grassy hill with subtle magic particles, cinematic anime style in violet and cyan tone" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAKzV9MMS2DJX3OgCBE1oPqhWIAMWE6-Fm9pnLMIKd_5_wqwdrcA0-DUSProqWtFR0VNsO61oOZIhCBX_GmQ5RBj1HvnUqIJI6QsUigPySzD05a-lMLM-A3Oc2KEth61Z1XoBlGI0GQBio1F0CLIksNucDHyxFbGC3MjUAJVxAhcUHxJBDJEhZdARefLtQEWq3kB_IrM-GjMDkUUb-Rp6o7MjNATsoHSZgn08D1cS-d3imiTYe2P-67"/>
+</div>
+<div class="flex flex-col min-w-0">
+<span class="font-title-sm text-title-sm text-on-surface truncate">Sousou no Frieren</span>
+<span class="font-mono-code text-mono-code text-outline truncate">S01E28 • Final Arc</span>
+</div>
+</div>
+<div class="flex items-center gap-1 pr-1 flex-shrink-0">
+<span class="material-symbols-outlined text-[1rem] text-outline">unfold_more</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Action Button Strip -->
+<div class="flex flex-col sm:flex-row items-center justify-between gap-space-md pt-space-xs">
+<div class="flex items-center gap-space-md w-full sm:w-auto">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+<span class="font-mono-code text-mono-code text-outline">Auto-categorized as: <strong class="text-on-surface font-semibold">Anime / 1080p Web-DL</strong></span>
+</div>
+</div>
+<div class="flex items-center gap-space-sm w-full sm:w-auto justify-end">
+<button class="px-space-md py-2 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-body-sm text-body-sm transition-colors flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[1rem]">restart_alt</span>
+<span>Reset Query</span>
+</button>
+<button class="px-space-lg py-2 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-title-sm text-title-sm transition-all shadow-md flex items-center gap-2" id="searchButton">
+<span class="material-symbols-outlined text-[1.125rem]" id="searchIcon">travel_explore</span>
+<span>Search Indexers</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Granular Filter Toolbar -->
+<div class="bg-surface-container-low rounded-xl p-space-md shadow-sm flex flex-col gap-space-md">
+<div class="flex flex-wrap items-center justify-between gap-space-md">
+<!-- Resolution Filter Pills -->
+<div class="flex items-center gap-1.5 flex-wrap">
+<span class="font-label-badge text-label-badge text-outline uppercase mr-1">Res:</span>
+<button class="px-2.5 py-1 rounded bg-surface-container text-outline hover:text-on-surface font-mono-code text-mono-code transition-colors">All</button>
+<button class="px-2.5 py-1 rounded bg-surface-container text-outline hover:text-on-surface font-mono-code text-mono-code transition-colors">4K UHD</button>
+<button class="px-2.5 py-1 rounded bg-primary text-on-primary font-mono-code text-mono-code shadow-sm font-semibold">1080p</button>
+<button class="px-2.5 py-1 rounded bg-surface-container text-outline hover:text-on-surface font-mono-code text-mono-code transition-colors">720p</button>
+<button class="px-2.5 py-1 rounded bg-surface-container text-outline hover:text-on-surface font-mono-code text-mono-code transition-colors">SD</button>
+</div>
+<!-- Release Group Dropdown -->
+<div class="flex items-center gap-1.5">
+<span class="font-label-badge text-label-badge text-outline uppercase">Group:</span>
+<div class="bg-surface-container px-space-sm py-1 rounded flex items-center gap-2 cursor-pointer hover:bg-surface-container-high">
+<span class="font-mono-code text-mono-code text-primary font-medium">SubsPlease (Preferred)</span>
+<span class="material-symbols-outlined text-[0.875rem] text-outline">expand_more</span>
+</div>
+</div>
+<!-- Min Seeders -->
+<div class="flex items-center gap-1.5">
+<span class="font-label-badge text-label-badge text-outline uppercase">Swarm:</span>
+<div class="bg-surface-container px-space-sm py-1 rounded flex items-center gap-2 cursor-pointer hover:bg-surface-container-high">
+<span class="font-mono-code text-mono-code text-tertiary">Seeds ≥ 10</span>
+<span class="material-symbols-outlined text-[0.875rem] text-outline">tune</span>
+</div>
+</div>
+<!-- Size Range Filter -->
+<div class="flex items-center gap-1.5">
+<span class="font-label-badge text-label-badge text-outline uppercase">Size:</span>
+<div class="bg-surface-container px-space-sm py-1 rounded font-mono-code text-mono-code text-on-surface">
+            800 MB — 2.5 GB
+          </div>
+</div>
+<!-- Category -->
+<div class="flex items-center gap-1.5">
+<span class="font-label-badge text-label-badge text-outline uppercase">Category:</span>
+<div class="bg-surface-container px-space-sm py-1 rounded font-mono-code text-mono-code text-outline-variant">
+            Anime - English-translated
+          </div>
+</div>
+<!-- Trusted Toggle -->
+<label class="flex items-center gap-2 cursor-pointer select-none">
+<input checked="" class="w-4 h-4 rounded bg-surface-container-lowest text-primary accent-primary focus:ring-0 cursor-pointer" type="checkbox"/>
+<span class="font-body-sm text-body-sm text-on-surface">Trusted / VIP Only</span>
+</label>
+</div>
+</div>
+<!-- View Mode Switcher & Results Summary -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-sm select-none">
+<div class="flex items-center gap-space-md">
+<span class="font-title-sm text-title-sm text-on-surface flex items-center gap-2">
+<span>Found 14 releases across 2 indexers</span>
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+</span>
+</div>
+<!-- State Simulator Tabs & Sort -->
+<div class="flex items-center gap-space-sm flex-wrap">
+<div class="flex items-center bg-surface-container p-0.5 rounded-lg">
+<button class="px-2.5 py-1 rounded font-mono-code text-mono-code bg-surface-container-high text-primary shadow-sm font-semibold transition-all" id="tabResults" onclick="switchTab('results')">
+            Results (14)
+          </button>
+<button class="px-2.5 py-1 rounded font-mono-code text-mono-code text-outline hover:text-on-surface transition-all" id="tabSkeleton" onclick="switchTab('skeleton')">
+            Skeleton View
+          </button>
+<button class="px-2.5 py-1 rounded font-mono-code text-mono-code text-outline hover:text-on-surface transition-all" id="tabZero" onclick="switchTab('zero')">
+            Zero State View
+          </button>
+</div>
+<!-- Sort dropdown -->
+<div class="flex items-center bg-surface-container-low px-space-sm py-1 rounded-lg gap-2 cursor-pointer">
+<span class="font-label-badge text-label-badge text-outline uppercase">Sort:</span>
+<span class="font-mono-code text-mono-code text-on-surface">Match Score (Highest)</span>
+<span class="material-symbols-outlined text-[1rem] text-outline">arrow_drop_down</span>
+</div>
+</div>
+</div>
+<!-- MAIN SECTION: Results Table View -->
+<div class="flex flex-col gap-space-md" id="viewResults">
+<!-- Compact Dense Results Table -->
+<div class="bg-surface-container-low rounded-xl overflow-hidden shadow-md">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-high text-outline font-label-badge text-label-badge uppercase tracking-wider">
+<th class="py-2.5 px-space-md font-semibold">Torrent / Release Specification</th>
+<th class="py-2.5 px-space-sm font-semibold">Group</th>
+<th class="py-2.5 px-space-sm font-semibold">Format</th>
+<th class="py-2.5 px-space-sm font-semibold text-right">Size</th>
+<th class="py-2.5 px-space-sm font-semibold text-center">Swarm (S/L)</th>
+<th class="py-2.5 px-space-sm font-semibold">Age</th>
+<th class="py-2.5 px-space-sm font-semibold">Score</th>
+<th class="py-2.5 px-space-md font-semibold text-right">Action</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-container">
+<!-- ROW 1: #1 BEST MATCH -->
+<tr class="bg-surface-container hover:bg-surface-container-high/80 transition-colors shadow-[inset_0_0_0_1px_rgba(208,188,255,0.4)]">
+<td class="py-space-sm px-space-md">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-space-sm">
+<span class="px-1.5 py-0.5 rounded bg-primary text-on-primary font-label-badge text-label-badge flex items-center gap-1 shadow-sm font-semibold">
+<span class="material-symbols-outlined text-[0.75rem]">star</span> Best Rule Match
+                      </span>
+<span class="font-mono-code text-mono-code text-on-surface font-semibold truncate max-w-xl" title="[SubsPlease] Sousou no Frieren - 28 (1080p) [F028E44A].mkv">
+                        [SubsPlease] Sousou no Frieren - 28 (1080p) [F028E44A].mkv
+                      </span>
+</div>
+<div class="flex items-center gap-space-md font-mono-code text-[0.6875rem] text-outline">
+<span class="flex items-center gap-1 text-primary">
+<span class="material-symbols-outlined text-[0.875rem]">fingerprint</span> F028E44A
+                      </span>
+<span class="text-tertiary font-medium">+30 Tier 1 Group</span>
+<span class="text-tertiary font-medium">+20 1080p Match</span>
+<span class="text-tertiary font-medium">+15 Swarm Peak</span>
+<span>Nyaa.si #1823901</span>
+</div>
+</div>
+</td>
+<td class="py-space-sm px-space-sm">
+<span class="px-2 py-0.5 rounded bg-surface-container-highest text-primary font-mono-code text-mono-code font-medium">
+                    SubsPlease
+                  </span>
+</td>
+<td class="py-space-sm px-space-sm">
+<div class="flex flex-col">
+<span class="font-mono-code text-mono-code text-on-surface font-semibold">1080p</span>
+<span class="font-mono-code text-[0.625rem] text-outline">x264 • AAC</span>
+</div>
+</td>
+<td class="py-space-sm px-space-sm text-right">
+<span class="font-mono-metric text-mono-metric text-on-surface">1.42 GB</span>
+</td>
+<td class="py-space-sm px-space-sm text-center">
+<div class="inline-flex items-center gap-1 font-mono-code text-mono-code">
+<span class="text-tertiary font-bold">142</span>
+<span class="text-outline">/</span>
+<span class="text-outline">18</span>
+</div>
+</td>
+<td class="py-space-sm px-space-sm">
+<span class="font-mono-code text-mono-code text-outline">2h ago</span>
+</td>
+<td class="py-space-sm px-space-sm">
+<div class="flex flex-col">
+<span class="font-label-badge text-label-badge text-primary font-bold">98% Match</span>
+<span class="font-mono-code text-[0.625rem] text-outline uppercase">Tier 1 Target</span>
+</div>
+</td>
+<td class="py-space-sm px-space-md text-right">
+<button class="px-space-md py-1.5 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-title-sm text-title-sm transition-all shadow-sm flex items-center gap-1 ml-auto">
+<span class="material-symbols-outlined text-[1rem]">download</span>
+<span>Grab</span>
+</button>
+</td>
+</tr>
+<!-- ROW 2: Erai-raws HEVC -->
+<tr class="hover:bg-surface-container transition-colors">
+<td class="py-space-sm px-space-md">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-space-sm">
+<span class="px-1.5 py-0.5 rounded bg-surface-container text-outline font-label-badge text-label-badge">Multi-Sub</span>
+<span class="font-mono-code text-mono-code text-on-surface truncate max-w-xl">
+                        [Erai-raws] Sousou no Frieren - 28 [1080p][HEVC][Multiple Subtitle].mkv
+                      </span>
+</div>
+<div class="flex items-center gap-space-md font-mono-code text-[0.6875rem] text-outline">
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[0.875rem]">fingerprint</span> 8CA109BD
+                      </span>
+<span>+20 HEVC Tag</span>
+<span>+10 Preferred Track</span>
+<span>Nyaa.si #1823904</span>
+</div>
+</div>
+</td>
+<td class="py-space-sm px-space-sm">
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface font-mono-code text-mono-code">
+                    Erai-raws
+                  </span>
+</td>
+<td class="py-space-sm px-space-sm">
+<div class="flex flex-col">
+<span class="font-mono-code text-mono-code text-on-surface">1080p</span>
+<span class="font-mono-code text-[0.625rem] text-outline">x265 • Opus</span>
+</div>
+</td>
+<td class="py-space-sm px-space-sm text-right">
+<span class="font-mono-metric text-mono-metric text-on-surface">892 MB</span>
+</td>
+<td class="py-space-sm px-space-sm text-center">
+<div class="inline-flex items-center gap-1 font-mono-code text-mono-code">
+<span class="text-tertiary font-semibold">89</span>
+<span class="text-outline">/</span>
+<span class="text-outline">12</span>
+</div>
+</td>
+<td class="py-space-sm px-space-sm">
+<span class="font-mono-code text-mono-code text-outline">3h ago</span>
+</td>
+<td class="py-space-sm px-space-sm">
+<div class="flex flex-col">
+<span class="font-label-badge text-label-badge text-on-surface font-semibold">92% Match</span>
+<span class="font-mono-code text-[0.625rem] text-outline">Tier 2 Valid</span>
+</div>
+</td>
+<td class="py-space-sm px-space-md text-right">
+<button class="px-space-md py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-body-sm text-body-sm transition-colors flex items-center gap-1 ml-auto">
+<span class="material-symbols-outlined text-[1rem]">add</span>
+<span>Queue</span>
+</button>
+</td>
+</tr>
+<!-- ROW 3: Judas 1080p x265 -->
+<tr class="hover:bg-surface-container transition-colors">
+<td class="py-space-sm px-space-md">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-space-sm">
+<span class="px-1.5 py-0.5 rounded bg-surface-container text-outline font-label-badge text-label-badge">Small Size</span>
+<span class="font-mono-code text-mono-code text-on-surface truncate max-w-xl">
+                        [Judas] Sousou no Frieren - 28 [1080p][HEVC x265 10bit][Dual-Audio].mkv
+                      </span>
+</div>
+<div class="flex items-center gap-space-md font-mono-code text-[0.6875rem] text-outline">
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[0.875rem]">fingerprint</span> 44AB21C0
+                      </span>
+<span>+10 Dual Audio</span>
+<span>-5 Secondary Release</span>
+<span>Nyaa.si #1823922</span>
+</div>
+</div>
+</td>
+<td class="py-space-sm px-space-sm">
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface font-mono-code text-mono-code">
+                    Judas
+                  </span>
+</td>
+<td class="py-space-sm px-space-sm">
+<div class="flex flex-col">
+<span class="font-mono-code text-mono-code text-on-surface">1080p</span>
+<span class="font-mono-code text-[0.625rem] text-outline">HEVC 10b</span>
+</div>
+</td>
+<td class="py-space-sm px-space-sm text-right">
+<span class="font-mono-metric text-mono-metric text-on-surface">540 MB</span>
+</td>
+<td class="py-space-sm px-space-sm text-center">
+<div class="inline-flex items-center gap-1 font-mono-code text-mono-code">
+<span class="text-secondary font-semibold">28</span>
+<span class="text-outline">/</span>
+<span class="text-outline">5</span>
+</div>
+</td>
+<td class="py-space-sm px-space-sm">
+<span class="font-mono-code text-mono-code text-outline">5h ago</span>
+</td>
+<td class="py-space-sm px-space-sm">
+<div class="flex flex-col">
+<span class="font-label-badge text-label-badge text-on-surface font-semibold">84% Match</span>
+<span class="font-mono-code text-[0.625rem] text-outline">Micro encode</span>
+</div>
+</td>
+<td class="py-space-sm px-space-md text-right">
+<button class="px-space-md py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-body-sm text-body-sm transition-colors flex items-center gap-1 ml-auto">
+<span class="material-symbols-outlined text-[1rem]">add</span>
+<span>Queue</span>
+</button>
+</td>
+</tr>
+<!-- ROW 4: Beatrice-Raws BD Remux 14GB -->
+<tr class="hover:bg-surface-container transition-colors">
+<td class="py-space-sm px-space-md">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-space-sm">
+<span class="px-1.5 py-0.5 rounded bg-surface-container-highest text-tertiary font-label-badge text-label-badge">BDRemux</span>
+<span class="font-mono-code text-mono-code text-on-surface truncate max-w-xl">
+                        [Beatrice-Raws] Sousou no Frieren 28 [BDRip 1920x1080 HEVC TrueHD].mkv
+                      </span>
+</div>
+<div class="flex items-center gap-space-md font-mono-code text-[0.6875rem] text-outline">
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[0.875rem]">fingerprint</span> E9110A74
+                      </span>
+<span>Size exceed policy &gt; 10 GB</span>
+<span>Prowlarr Torznab</span>
+</div>
+</div>
+</td>
+<td class="py-space-sm px-space-sm">
+<span class="px-2 py-0.5 rounded bg-surface-container text-on-surface font-mono-code text-mono-code">
+                    Beatrice-Raws
+                  </span>
+</td>
+<td class="py-space-sm px-space-sm">
+<div class="flex flex-col">
+<span class="font-mono-code text-mono-code text-tertiary font-semibold">1080p BD</span>
+<span class="font-mono-code text-[0.625rem] text-outline">Lossless FLAC</span>
+</div>
+</td>
+<td class="py-space-sm px-space-sm text-right">
+<span class="font-mono-metric text-mono-metric text-on-surface">14.2 GB</span>
+</td>
+<td class="py-space-sm px-space-sm text-center">
+<div class="inline-flex items-center gap-1 font-mono-code text-mono-code">
+<span class="text-secondary font-semibold">19</span>
+<span class="text-outline">/</span>
+<span class="text-outline">8</span>
+</div>
+</td>
+<td class="py-space-sm px-space-sm">
+<span class="font-mono-code text-mono-code text-outline">1d ago</span>
+</td>
+<td class="py-space-sm px-space-sm">
+<div class="flex flex-col">
+<span class="font-label-badge text-label-badge text-outline font-semibold">74% Match</span>
+<span class="font-mono-code text-[0.625rem] text-outline">Size penalty</span>
+</div>
+</td>
+<td class="py-space-sm px-space-md text-right">
+<button class="px-space-md py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-body-sm text-body-sm transition-colors flex items-center gap-1 ml-auto">
+<span class="material-symbols-outlined text-[1rem]">add</span>
+<span>Queue</span>
+</button>
+</td>
+</tr>
+<!-- ROW 5: HorribleSubs Legacy Archive -->
+<tr class="hover:bg-surface-container transition-colors">
+<td class="py-space-sm px-space-md">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-space-sm">
+<span class="px-1.5 py-0.5 rounded bg-surface-container text-outline font-label-badge text-label-badge">Legacy</span>
+<span class="font-mono-code text-mono-code text-on-surface truncate max-w-xl">
+                        [HorribleSubs] Sousou no Frieren - 28 [720p].mkv
+                      </span>
+</div>
+<div class="flex items-center gap-space-md font-mono-code text-[0.6875rem] text-outline">
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[0.875rem]">fingerprint</span> A012497F
+                      </span>
+<span>Sub-optimal 720p resolution</span>
+<span>Tokyo Toshokan</span>
+</div>
+</div>
+</td>
+<td class="py-space-sm px-space-sm">
+<span class="px-2 py-0.5 rounded bg-surface-container text-outline font-mono-code text-mono-code">
+                    HorribleSubs
+                  </span>
+</td>
+<td class="py-space-sm px-space-sm">
+<div class="flex flex-col">
+<span class="font-mono-code text-mono-code text-outline">720p</span>
+<span class="font-mono-code text-[0.625rem] text-outline">x264 • AAC</span>
+</div>
+</td>
+<td class="py-space-sm px-space-sm text-right">
+<span class="font-mono-metric text-mono-metric text-on-surface">650 MB</span>
+</td>
+<td class="py-space-sm px-space-sm text-center">
+<div class="inline-flex items-center gap-1 font-mono-code text-mono-code">
+<span class="text-secondary font-semibold">11</span>
+<span class="text-outline">/</span>
+<span class="text-outline">2</span>
+</div>
+</td>
+<td class="py-space-sm px-space-sm">
+<span class="font-mono-code text-mono-code text-outline">3d ago</span>
+</td>
+<td class="py-space-sm px-space-sm">
+<div class="flex flex-col">
+<span class="font-label-badge text-label-badge text-outline font-semibold">61% Match</span>
+<span class="font-mono-code text-[0.625rem] text-outline">Res cutoff unmet</span>
+</div>
+</td>
+<td class="py-space-sm px-space-md text-right">
+<button class="px-space-md py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-body-sm text-body-sm transition-colors flex items-center gap-1 ml-auto">
+<span class="material-symbols-outlined text-[1rem]">add</span>
+<span>Queue</span>
+</button>
+</td>
+</tr>
+<!-- ROW 6: Low-seed warning row -->
+<tr class="hover:bg-surface-container transition-colors">
+<td class="py-space-sm px-space-md">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-space-sm">
+<span class="px-1.5 py-0.5 rounded bg-error-container/30 text-error font-label-badge text-label-badge flex items-center gap-1">
+<span class="material-symbols-outlined text-[0.75rem]">warning</span> Swarm Dying
+                      </span>
+<span class="font-mono-code text-mono-code text-on-surface truncate max-w-xl">
+                        [Anonymous-Encoder] Frieren 28 1080p repack softsub v2.mkv
+                      </span>
+</div>
+<div class="flex items-center gap-space-md font-mono-code text-[0.6875rem] text-outline">
+<span class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[0.875rem]">fingerprint</span> 09C7FA11
+                      </span>
+<span>Unknown Group / Untrusted Uploader</span>
+<span>Nyaa.si #1823880</span>
+</div>
+</div>
+</td>
+<td class="py-space-sm px-space-sm">
+<span class="px-2 py-0.5 rounded bg-surface-container text-error font-mono-code text-mono-code">
+                    Unknown
+                  </span>
+</td>
+<td class="py-space-sm px-space-sm">
+<div class="flex flex-col">
+<span class="font-mono-code text-mono-code text-outline">1080p</span>
+<span class="font-mono-code text-[0.625rem] text-outline">x264</span>
+</div>
+</td>
+<td class="py-space-sm px-space-sm text-right">
+<span class="font-mono-metric text-mono-metric text-on-surface">1.20 GB</span>
+</td>
+<td class="py-space-sm px-space-sm text-center">
+<div class="inline-flex items-center gap-1 font-mono-code text-mono-code">
+<span class="text-error font-bold">3</span>
+<span class="text-outline">/</span>
+<span class="text-outline">22</span>
+</div>
+</td>
+<td class="py-space-sm px-space-sm">
+<span class="font-mono-code text-mono-code text-outline">4d ago</span>
+</td>
+<td class="py-space-sm px-space-sm">
+<div class="flex flex-col">
+<span class="font-label-badge text-label-badge text-error font-semibold">32% Score</span>
+<span class="font-mono-code text-[0.625rem] text-error">Unverified hash</span>
+</div>
+</td>
+<td class="py-space-sm px-space-md text-right">
+<button class="px-space-md py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-outline hover:text-on-surface font-body-sm text-body-sm transition-colors flex items-center gap-1 ml-auto">
+<span class="material-symbols-outlined text-[1rem]">file_download_off</span>
+<span>Inspect</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Quick Telemetry & Scoring Rules Legend -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-space-md">
+<div class="bg-surface-container-low rounded-xl p-space-md shadow-sm flex items-start gap-space-md">
+<div class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-primary flex-shrink-0">
+<span class="material-symbols-outlined text-[1.25rem]">balance</span>
+</div>
+<div class="flex flex-col">
+<span class="font-title-sm text-title-sm text-on-surface">Scoring Algorithm</span>
+<p class="font-mono-code text-[0.6875rem] text-outline mt-0.5">Prioritizes SubsPlease &gt; Erai-raws &gt; Judas for simulcasts. Automatic -40 penalty on untrusted uploaders.</p>
+</div>
+</div>
+<div class="bg-surface-container-low rounded-xl p-space-md shadow-sm flex items-start gap-space-md">
+<div class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-tertiary flex-shrink-0">
+<span class="material-symbols-outlined text-[1.25rem]">sync_saved_locally</span>
+</div>
+<div class="flex flex-col">
+<span class="font-title-sm text-title-sm text-on-surface">Auto Hash Extraction</span>
+<p class="font-mono-code text-[0.6875rem] text-outline mt-0.5">CRC32 hashes checked against AniDB records. Matches trigger automatic queue priority advancement.</p>
+</div>
+</div>
+<div class="bg-surface-container-low rounded-xl p-space-md shadow-sm flex items-start gap-space-md">
+<div class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-secondary flex-shrink-0">
+<span class="material-symbols-outlined text-[1.25rem]">alt_route</span>
+</div>
+<div class="flex flex-col">
+<span class="font-title-sm text-title-sm text-on-surface">Torrent Client Handshake</span>
+<p class="font-mono-code text-[0.6875rem] text-outline mt-0.5">qBittorrent bound to tag <code class="text-primary font-mono-code">sonarr-anime</code> with destination <code class="text-on-surface font-mono-code">/mnt/anime/active</code></p>
+</div>
+</div>
+</div>
+</div>
+<!-- SKELETON STATE PREVIEW (Hidden by default, toggled via tabs) -->
+<div class="hidden flex-col gap-space-md" id="viewSkeleton">
+<div class="bg-surface-container-low rounded-xl p-space-lg shadow-md flex flex-col gap-space-lg animate-pulse">
+<div class="flex items-center justify-between">
+<div class="h-4 bg-surface-container-highest rounded w-64"></div>
+<div class="h-4 bg-surface-container-highest rounded w-32"></div>
+</div>
+<div class="flex flex-col gap-3">
+<!-- Skeleton Row 1 -->
+<div class="h-14 bg-surface-container rounded-lg flex items-center px-space-md justify-between gap-4">
+<div class="flex items-center gap-3 w-1/2">
+<div class="w-20 h-5 bg-surface-container-highest rounded"></div>
+<div class="w-64 h-4 bg-surface-container-highest rounded"></div>
+</div>
+<div class="w-16 h-4 bg-surface-container-highest rounded"></div>
+<div class="w-12 h-4 bg-surface-container-highest rounded"></div>
+<div class="w-16 h-4 bg-surface-container-highest rounded"></div>
+<div class="w-20 h-7 bg-surface-container-highest rounded-lg"></div>
+</div>
+<!-- Skeleton Row 2 -->
+<div class="h-14 bg-surface-container rounded-lg flex items-center px-space-md justify-between gap-4">
+<div class="flex items-center gap-3 w-1/2">
+<div class="w-16 h-5 bg-surface-container-highest rounded"></div>
+<div class="w-80 h-4 bg-surface-container-highest rounded"></div>
+</div>
+<div class="w-16 h-4 bg-surface-container-highest rounded"></div>
+<div class="w-12 h-4 bg-surface-container-highest rounded"></div>
+<div class="w-16 h-4 bg-surface-container-highest rounded"></div>
+<div class="w-20 h-7 bg-surface-container-highest rounded-lg"></div>
+</div>
+<!-- Skeleton Row 3 -->
+<div class="h-14 bg-surface-container rounded-lg flex items-center px-space-md justify-between gap-4">
+<div class="flex items-center gap-3 w-1/2">
+<div class="w-24 h-5 bg-surface-container-highest rounded"></div>
+<div class="w-72 h-4 bg-surface-container-highest rounded"></div>
+</div>
+<div class="w-16 h-4 bg-surface-container-highest rounded"></div>
+<div class="w-12 h-4 bg-surface-container-highest rounded"></div>
+<div class="w-16 h-4 bg-surface-container-highest rounded"></div>
+<div class="w-20 h-7 bg-surface-container-highest rounded-lg"></div>
+</div>
+<!-- Skeleton Row 4 -->
+<div class="h-14 bg-surface-container rounded-lg flex items-center px-space-md justify-between gap-4">
+<div class="flex items-center gap-3 w-1/2">
+<div class="w-16 h-5 bg-surface-container-highest rounded"></div>
+<div class="w-56 h-4 bg-surface-container-highest rounded"></div>
+</div>
+<div class="w-16 h-4 bg-surface-container-highest rounded"></div>
+<div class="w-12 h-4 bg-surface-container-highest rounded"></div>
+<div class="w-16 h-4 bg-surface-container-highest rounded"></div>
+<div class="w-20 h-7 bg-surface-container-highest rounded-lg"></div>
+</div>
+</div>
+<div class="flex items-center justify-center gap-2 pt-space-md text-outline font-mono-code text-mono-code">
+<span class="w-2 h-2 rounded-full bg-primary animate-ping"></span>
+<span>Querying Prowlarr torznab endpoints &amp; Nyaa.si mirrors...</span>
+</div>
+</div>
+</div>
+<!-- ZERO RESULTS / EMPTY STATE PREVIEW (Hidden by default, toggled via tabs) -->
+<div class="hidden flex-col gap-space-md" id="viewZero">
+<div class="bg-surface-container-low rounded-xl p-space-2xl shadow-md flex flex-col items-center justify-center text-center">
+<!-- Indexer antenna graphic -->
+<div class="w-16 h-16 rounded-2xl bg-surface-container flex items-center justify-center text-outline mb-space-md">
+<span class="material-symbols-outlined text-[2.25rem] text-primary">radar</span>
+</div>
+<span class="font-headline-md text-headline-md text-on-surface mb-1">No releases found on Nyaa.si</span>
+<p class="font-body-sm text-body-sm text-outline max-w-md mb-space-lg">
+          The query returned 0 matches across active indexers with the current filter constraints.
+        </p>
+<!-- Troubleshooting Cards -->
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-space-md text-left w-full max-w-2xl mb-space-xl">
+<div class="bg-surface-container p-space-md rounded-lg flex flex-col gap-1">
+<span class="font-title-sm text-title-sm text-on-surface flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[1rem] text-primary">spellcheck</span> Title Syntax
+            </span>
+<span class="font-mono-code text-[0.6875rem] text-outline">Try the Romaji name (e.g. <em>Sousou no Frieren</em> instead of <em>Frieren: Beyond Journey's End</em>).</span>
+</div>
+<div class="bg-surface-container p-space-md rounded-lg flex flex-col gap-1">
+<span class="font-title-sm text-title-sm text-on-surface flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[1rem] text-tertiary">filter_alt_off</span> Relax Filters
+            </span>
+<span class="font-mono-code text-[0.6875rem] text-outline">Switch resolution filter to <strong>All</strong> or uncheck <strong>Trusted Only</strong>.</span>
+</div>
+<div class="bg-surface-container p-space-md rounded-lg flex flex-col gap-1">
+<span class="font-title-sm text-title-sm text-on-surface flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[1rem] text-secondary">inventory_2</span> Batch Lookup
+            </span>
+<span class="font-mono-code text-[0.6875rem] text-outline">Omit episode numbers to discover complete seasonal packs or BD batches.</span>
+</div>
+</div>
+<!-- Action CTAs -->
+<div class="flex items-center gap-space-sm flex-wrap justify-center">
+<button class="px-space-md py-2 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-body-sm text-body-sm transition-colors flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[1rem]">tune</span>
+<span>Reset Active Filters</span>
+</button>
+<button class="px-space-lg py-2 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-title-sm text-title-sm transition-all shadow-md flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[1rem]">travel_explore</span>
+<span>Query All 6 Prowlarr Fallbacks</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script>
+  function switchTab(mode) {
+    const viewResults = document.getElementById('viewResults');
+    const viewSkeleton = document.getElementById('viewSkeleton');
+    const viewZero = document.getElementById('viewZero');
+
+    const tabResults = document.getElementById('tabResults');
+    const tabSkeleton = document.getElementById('tabSkeleton');
+    const tabZero = document.getElementById('tabZero');
+
+    // Reset visibility
+    viewResults.classList.add('hidden');
+    viewResults.classList.remove('flex');
+    viewSkeleton.classList.add('hidden');
+    viewSkeleton.classList.remove('flex');
+    viewZero.classList.add('hidden');
+    viewZero.classList.remove('flex');
+
+    // Reset tab button states
+    [tabResults, tabSkeleton, tabZero].forEach(tab => {
+      tab.classList.remove('bg-surface-container-high', 'text-primary', 'font-semibold', 'shadow-sm');
+      tab.classList.add('text-outline');
+    });
+
+    if (mode === 'results') {
+      viewResults.classList.remove('hidden');
+      viewResults.classList.add('flex');
+      tabResults.classList.add('bg-surface-container-high', 'text-primary', 'font-semibold', 'shadow-sm');
+      tabResults.classList.remove('text-outline');
+    } else if (mode === 'skeleton') {
+      viewSkeleton.classList.remove('hidden');
+      viewSkeleton.classList.add('flex');
+      tabSkeleton.classList.add('bg-surface-container-high', 'text-primary', 'font-semibold', 'shadow-sm');
+      tabSkeleton.classList.remove('text-outline');
+    } else if (mode === 'zero') {
+      viewZero.classList.remove('hidden');
+      viewZero.classList.add('flex');
+      tabZero.classList.add('bg-surface-container-high', 'text-primary', 'font-semibold', 'shadow-sm');
+      tabZero.classList.remove('text-outline');
+    }
+  }
+
+  // Interactive micro-interaction for Search Button
+  const searchBtn = document.getElementById('searchButton');
+  const searchIcon = document.getElementById('searchIcon');
+  if (searchBtn) {
+    searchBtn.addEventListener('click', () => {
+      switchTab('skeleton');
+      setTimeout(() => {
+        switchTab('results');
+      }, 700);
+    });
+  }
+</script></main></div><footer class="fixed bottom-0 left-0 right-0 h-8 z-50 bg-surface-container-lowest/95 backdrop-blur flex items-center justify-between px-space-lg font-mono-code text-mono-code text-outline shadow-[0_-1px_4px_rgba(0,0,0,0.2)]"><div class="flex items-center gap-space-md"><div class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse"></span><span class="text-on-surface">Daemon: Active</span></div><div class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-tertiary-fixed"></span><span>qBittorrent: Connected (8080)</span></div></div><div class="flex items-center gap-space-lg"><div class="flex items-center gap-1.5"><span class="text-primary">DL: 42.8 MB/s</span><span class="text-outline">|</span><span class="text-outline">UL: 3.1 MB/s</span></div><div class="flex items-center gap-1.5"><span>/mnt/anime: 3.42 TB / 8.00 TB (57% free)</span></div><div class="flex items-center gap-1.5"><span class="text-on-surface-variant">MAL Sync: 4m ago</span></div></div></footer></body></html>
