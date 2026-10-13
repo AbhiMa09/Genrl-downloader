@@ -369,11 +369,31 @@ class CoreBridge {
     return res.exitCode == 0;
   }
 
+  String _formatStatus(String? raw) {
+    if (raw == null) return 'Plan to Watch';
+    final lower = raw.toLowerCase().replaceAll('_', ' ').replaceAll('-', ' ').trim();
+    switch (lower) {
+      case 'watching':
+        return 'Watching';
+      case 'completed':
+        return 'Completed';
+      case 'on hold':
+      case 'onhold':
+        return 'On Hold';
+      case 'dropped':
+        return 'Dropped';
+      case 'plan to watch':
+      case 'plantowatch':
+      default:
+        return 'Plan to Watch';
+    }
+  }
+
   /// Get shows list from core database
   Future<List<LibraryShow>> getShows({String? status}) async {
     final args = ['shows', '--json'];
     if (status != null && status.isNotEmpty && status.toLowerCase() != 'all') {
-      args.addAll(['--status', status.toLowerCase()]);
+      args.addAll(['--status', status.toLowerCase().replaceAll(' ', '_')]);
     }
     final res = await execute(args);
     if (res.exitCode == 0) {
@@ -390,7 +410,7 @@ class CoreBridge {
             downloadedEpisodes: (m['downloaded_episodes'] as num?)?.toInt() ?? 0,
             watchedEpisodes: (m['watched_episodes'] as num?)?.toInt() ?? 0,
             score: (m['score'] as num?)?.toDouble() ?? 0.0,
-            status: m['status']?.toString() ?? 'Plan to Watch',
+            status: _formatStatus(m['status']?.toString()),
             airingStatus: m['airing_status']?.toString() ?? 'Finished',
             genres: const [],
             synopsis: m['synopsis']?.toString() ?? '',
@@ -431,7 +451,7 @@ class CoreBridge {
           downloadedEpisodes: (m['downloaded_episodes'] as num?)?.toInt() ?? 0,
           watchedEpisodes: (m['watched_episodes'] as num?)?.toInt() ?? 0,
           score: (m['score'] as num?)?.toDouble() ?? 0.0,
-          status: m['status']?.toString() ?? 'Plan to Watch',
+          status: _formatStatus(m['status']?.toString()),
           airingStatus: m['airing_status']?.toString() ?? 'Finished',
           genres: const [],
           synopsis: m['synopsis']?.toString() ?? '',

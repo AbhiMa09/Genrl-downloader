@@ -33,13 +33,9 @@ class _LibraryPageState extends State<LibraryPage> {
     // Filter shows by status tab and search query
     final filteredShows = state.shows.where((show) {
       if (_selectedStatus != 'All') {
-        final norm = _selectedStatus.toLowerCase();
-        final showNorm = show.status.toLowerCase();
-        if (norm == 'watching' && showNorm != 'watching') return false;
-        if (norm == 'plan to watch' && showNorm != 'plan to watch' && showNorm != 'plantowatch') return false;
-        if (norm == 'on hold' && showNorm != 'on hold' && showNorm != 'onhold') return false;
-        if (norm == 'completed' && showNorm != 'completed') return false;
-        if (norm == 'dropped' && showNorm != 'dropped') return false;
+        final norm = _selectedStatus.toLowerCase().replaceAll('_', ' ').replaceAll('-', ' ').trim();
+        final showNorm = show.status.toLowerCase().replaceAll('_', ' ').replaceAll('-', ' ').trim();
+        if (norm != showNorm) return false;
       }
 
       final query = _searchController.text.trim().toLowerCase();
@@ -228,8 +224,8 @@ class _LibraryPageState extends State<LibraryPage> {
   }
 
   int _countStatus(List<LibraryShow> shows, String status) {
-    final s = status.toLowerCase();
-    return shows.where((show) => show.status.toLowerCase() == s).length;
+    final s = status.toLowerCase().replaceAll('_', ' ').replaceAll('-', ' ').trim();
+    return shows.where((show) => show.status.toLowerCase().replaceAll('_', ' ').replaceAll('-', ' ').trim() == s).length;
   }
 
   Widget _buildNotConnectedState(StateProvider state) {
