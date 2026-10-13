@@ -57,6 +57,7 @@ pub const TRANSITIONS: &[(JobState, JobState)] = &[
     (JobState::Monitor, JobState::NeedsInput),
     (JobState::Monitor, JobState::Blocked),
     (JobState::Monitor, JobState::Failed),
+    (JobState::Finalize, JobState::NeedsInput),
     (JobState::Finalize, JobState::Blocked),
     (JobState::Finalize, JobState::Failed),
     // Side states hand back.
@@ -64,6 +65,7 @@ pub const TRANSITIONS: &[(JobState, JobState)] = &[
     (JobState::NeedsInput, JobState::Choose),
     (JobState::NeedsInput, JobState::Add),
     (JobState::NeedsInput, JobState::Monitor),
+    (JobState::NeedsInput, JobState::Finalize),
     (JobState::NeedsInput, JobState::Failed),
     (JobState::NeedsInput, JobState::Done),
     (JobState::Blocked, JobState::Search),

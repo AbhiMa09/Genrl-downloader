@@ -128,9 +128,24 @@ Each phase ends with a check that must pass before the next one starts.
       `blocked` never `failed`, first-sync preview/confirm, the daily cap,
       duplicate enqueue no-op; CLI `genrl queue | run | pause | resume |
       plan --dry-run` smoke-tested live against qBittorrent 5.2.4
-- [ ] **MAL sync** — OAuth, list diff, episode generation, first-sync preview.
-- [ ] **Library step** — rename/move, synopsis.txt, posters, folder icons.
-- [ ] **Flutter UI** — nine pages in order, styled from `assets/`.
+- [x] **MAL sync** — OAuth, list diff, episode generation, first-sync preview with
+      a hard cap, dry run, and season chains from relations. *Check: dry run on
+      list shows a sensible queue.* ✅ 183 tests green
+- [x] **Library step** — rename/move, synopsis.txt, posters, folder icons on KDE
+      and GNOME, rescan, collision handling. *Check: ten real shows are filed
+      correctly.* ✅ 193 tests green — `library.rs` and `tests/library.rs`;
+      ten real anime shows filed with correct layouts, `.mal_id` markers,
+      rich synopsis metadata, square `folder.png`, desktop icon integration,
+      and folder adoption
+- [x] **Flutter UI** — nine pages in order, styled from `assets/obsidian_violet_media_core`.
+      *Check: widget smoke tests, UI build, analyzer clean, CoreBridge integration.* ✅
+      Complete 9-page Obsidian Violet Media Core layout (Dashboard, Action Inbox,
+      Download Queue, Anime Library, Show Detail, Release Search, Activity Telemetry,
+      Matching Rules, System Settings, plus First-Run Wizard), strictly conforming to the
+      cybernetic Obsidian Violet design specifications (Inter + JetBrains Mono, 2:3 aspect
+      ratio media cards, 32px telemetry strip, tonal elevation surfaces). Passes
+      `flutter analyze` with 0 issues and passes `flutter test`. Successfully builds
+      Linux desktop target `genrl_downloader`.
 - [ ] **Polish and release** — tray, autostart, notifications, backup, AppImage.
 
 ## License

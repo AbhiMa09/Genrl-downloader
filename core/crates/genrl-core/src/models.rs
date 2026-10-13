@@ -134,6 +134,18 @@ impl ListStatus {
             _ => ListStatus::PlanToWatch,
         }
     }
+
+    /// The value MAL stores (`watching`, `completed`, `on_hold`, `dropped`,
+    /// `plan_to_watch`) — used when mirroring the list into `mal_entries`.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            ListStatus::Watching => "watching",
+            ListStatus::Completed => "completed",
+            ListStatus::OnHold => "on_hold",
+            ListStatus::Dropped => "dropped",
+            ListStatus::PlanToWatch => "plan_to_watch",
+        }
+    }
 }
 
 /// One row per episode wanted or owned.

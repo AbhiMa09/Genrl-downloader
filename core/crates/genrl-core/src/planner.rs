@@ -77,11 +77,11 @@ impl ListEntry {
 
 /// A list as the planner sees it.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-pub struct FakeMalList {
+pub struct MalList {
     pub entries: Vec<ListEntry>,
 }
 
-impl FakeMalList {
+impl MalList {
     /// Read a list from disk.
     pub fn load(path: impl AsRef<Path>) -> Result<Self> {
         let text = std::fs::read_to_string(path.as_ref())?;
@@ -201,7 +201,7 @@ pub enum PlanOutcome {
 pub fn plan(
     db: &Db,
     clock: &dyn Clock,
-    list: &FakeMalList,
+    list: &MalList,
     force: bool,
 ) -> Result<PlanOutcome> {
     let settings = Settings::load(db)?;
@@ -255,13 +255,13 @@ pub fn plan(
 
 /// What `plan` would queue right now, without touching the database
 /// (`genrl plan --dry-run`): the same walk, applied to nothing.
-pub fn preview(db: &Db, list: &FakeMalList) -> Result<PlanPreview> {
+pub fn preview(db: &Db, list: &MalList) -> Result<PlanPreview> {
     let settings = Settings::load(db)?;
     Ok(build_preview(db, list, &settings)?.0)
 }
 
 /// Apply the stored first-sync preview, capped at the (tighter) first-sync cap.
-pub fn confirm(db: &Db, clock: &dyn Clock, list: &FakeMalList) -> Result<usize> {
+pub fn confirm(db: &Db, clock: &dyn Clock, list: &MalList) -> Result<usize> {
     let pending: Option<PlanPreview> = db.with(|c| {
         Ok(c
             .query_row(
@@ -317,7 +317,7 @@ pub fn discard_preview(db: &Db) -> Result<()> {
 /// Walk every chain and decide, without touching the database.
 fn build_preview(
     db: &Db,
-    list: &FakeMalList,
+    list: &MalList,
     settings: &Settings,
 ) -> Result<(PlanPreview, Vec<PlannedEpisode>)> {
     let mut episodes = Vec::new();
@@ -382,7 +382,7 @@ fn build_preview(
 fn apply_preview(
     db: &Db,
     clock: &dyn Clock,
-    list: &FakeMalList,
+    list: &MalList,
     preview: &PlanPreview,
 ) -> Result<usize> {
     let settings = Settings::load(db)?;
@@ -392,7 +392,7 @@ fn apply_preview(
 fn apply_preview_capped(
     db: &Db,
     clock: &dyn Clock,
-    list: &FakeMalList,
+    list: &MalList,
     preview: &PlanPreview,
     cap: usize,
 ) -> Result<usize> {
@@ -550,8 +550,8 @@ mod tests {
     }
 
     /// S1 finished, S2 four episodes in: the design's fixture chain.
-    fn list() -> FakeMalList {
-        FakeMalList {
+    fn list() -> MalList {
+        MalList {
             entries: vec![
                 ListEntry {
                     mal_id: 100,
@@ -722,7 +722,7 @@ mod tests {
         Settings::save(&settings, &db).unwrap();
 
         // Five shows each wanting one episode.
-        let many = FakeMalList {
+        let many = MalList {
             entries: (1..=5)
                 .map(|i| ListEntry {
                     mal_id: i * 10,
@@ -752,7 +752,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("list.json");
         std::fs::write(&path, serde_json::to_string_pretty(&list()).unwrap()).unwrap();
-        let loaded = FakeMalList::load(&path).unwrap();
+        let loaded = MalList::load(&path).unwrap();
         assert_eq!(loaded.chains().len(), 1);
         assert_eq!(loaded.chains()[0].len(), 2);
         let entries = &loaded.chains()[0].entries;

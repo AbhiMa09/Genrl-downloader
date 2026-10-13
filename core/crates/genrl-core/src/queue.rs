@@ -212,6 +212,34 @@ impl Scheduler {
         let mut last_resource: Option<String> = None;
         loop {
             let _ = sweep(self.engine.db(), self.engine.clock());
+            // MAL sync rides the same loop: at most every `mal_sync_interval_min`,
+            // only when a refresh token is stored, and a failure never stops the
+            // workers. The weekly planner takes over afterwards.
+            if let Some(report) = crate::mal::sync_if_due(
+                self.engine.db(),
+                self.engine.gate(),
+                self.engine.clock(),
+                &crate::mal::KeyringStore,
+            )
+            .await
+            {
+                let log = EventLog::new(self.engine.db().clone());
+                let _ = log.info(None, None, report.summary());
+                let list = crate::planner::MalList {
+                    entries: report.entries,
+                };
+                if let Ok(crate::planner::PlanOutcome::Applied { queued, .. }) =
+                    crate::planner::plan(self.engine.db(), self.engine.clock(), &list, false)
+                {
+                    if queued > 0 {
+                        let _ = log.info(
+                            None,
+                            None,
+                            format!("planned {queued} new episode(s) from the MAL list"),
+                        );
+                    }
+                }
+            }
             let report = self.tick().await?;
             self.settle().await;
 

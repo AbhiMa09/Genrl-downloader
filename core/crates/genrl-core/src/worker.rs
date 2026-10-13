@@ -91,13 +91,30 @@ impl DiskProbe for FakeDiskProbe {
     }
 }
 
+use std::future::Future;
+use std::pin::Pin;
+
 /// What the library step does with a finished download.
 ///
 /// Phase 6 implements this (rename/move, synopsis, poster, folder icon). Until
 /// then [`NoopFinalizer`] leaves the file where qBittorrent saved it, and the
 /// queue stops at "completed, file verified".
+#[derive(Debug, Clone, PartialEq)]
+pub struct FinalizeSuccess {
+    pub destination_path: String,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum FinalizeOutcome {
+    Done(FinalizeSuccess),
+    NeedsInput { question_id: i64 },
+}
+
 pub trait Finalizer: Send + Sync {
-    fn finalize(&self, context: &FinalizeContext<'_>) -> Result<()>;
+    fn finalize<'a>(
+        &'a self,
+        context: &'a FinalizeContext<'_>,
+    ) -> Pin<Box<dyn Future<Output = Result<FinalizeOutcome>> + Send + 'a>>;
 }
 
 /// Everything the library step needs, owned by the caller.
@@ -115,8 +132,16 @@ pub struct FinalizeContext<'a> {
 pub struct NoopFinalizer;
 
 impl Finalizer for NoopFinalizer {
-    fn finalize(&self, _context: &FinalizeContext<'_>) -> Result<()> {
-        Ok(())
+    fn finalize<'a>(
+        &'a self,
+        context: &'a FinalizeContext<'_>,
+    ) -> Pin<Box<dyn Future<Output = Result<FinalizeOutcome>> + Send + 'a>> {
+        let dest = context.content_path.to_string();
+        Box::pin(async move {
+            Ok(FinalizeOutcome::Done(FinalizeSuccess {
+                destination_path: dest,
+            }))
+        })
     }
 }
 
@@ -198,7 +223,7 @@ impl Engine {
             return Err(Error::Other(format!("no job with id {job_id}")));
         };
         let from = job.state;
-        let to = match from {
+        let _ = match from {
             JobState::Search => self.search_step(&job).await?,
             JobState::Choose => self.choose_step(&job).await?,
             JobState::Add => self.add_step(&job).await?,
@@ -210,6 +235,9 @@ impl Engine {
                 )))
             }
         };
+        let to = jobs::get(&self.db, job_id)?
+            .map(|j| j.state)
+            .unwrap_or(from);
         Ok(StepOutcome { job_id, from, to })
     }
 
@@ -690,20 +718,37 @@ impl Engine {
                 mal_id: context.mal_id,
                 content_path: &content_path,
                 size_bytes,
-            });
-        match outcome {
-            Ok(()) => {}
+            })
+            .await;
+        let dest_path = match outcome {
+            Ok(FinalizeOutcome::Done(success)) => success.destination_path,
+            Ok(FinalizeOutcome::NeedsInput { .. }) => {
+                return jobs::transition(
+                    &self.db,
+                    self.clock.as_ref(),
+                    job.id,
+                    JobState::NeedsInput,
+                    "destination file exists; waiting for user choice",
+                    &MoveOptions::default(),
+                );
+            }
             Err(err) if err.is_transient() || matches!(err, Error::Io(_)) => {
                 return self.block(job, &format!("library step could not file it: {err}"));
             }
             Err(err) => return self.fail_or_reschedule(job, &format!("finalize failed: {err}")),
+        };
+
+        planner::mark_done(&self.db, job.episode_id, &dest_path, size_bytes)?;
+
+        if settings.remove_when_finished {
+            let client = qbit::Qbit::from_settings(&settings)?;
+            let _ = client.remove(&self.gate, &torrent.info_hash, false).await;
         }
 
-        planner::mark_done(&self.db, job.episode_id, &content_path, size_bytes)?;
         crate::events::EventLog::new(self.db.clone()).info(
             Some(job.id),
             Some(context.mal_id),
-            format!("verified {} and filed it", content_path),
+            format!("verified {} and filed it to {}", content_path, dest_path),
         )?;
 
         jobs::transition(
@@ -993,7 +1038,13 @@ pub fn apply_answer(
             planner::mark_done(db, episode_id, path.as_deref().unwrap_or(""), size)?;
             Some(JobState::Done)
         }
-        Choice::Replace | Choice::KeepBoth => Some(JobState::Add),
+        Choice::Replace | Choice::KeepBoth => {
+            if jobs::is_allowed(job.state, JobState::Finalize) {
+                Some(JobState::Finalize)
+            } else {
+                Some(JobState::Add)
+            }
+        }
         Choice::Batch => Some(JobState::Add),
         Choice::WaitForSingles => Some(JobState::Search),
         Choice::Pause => {

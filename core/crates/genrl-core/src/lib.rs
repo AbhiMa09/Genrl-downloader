@@ -23,6 +23,8 @@
 //!   that runs it, and the crash-recovery reconcile step (phase 4).
 //! * [`planner`] — turning the MAL list into episode rows and jobs, with the
 //!   first-sync preview and the daily cap.
+//! * [`mal`] — the real MAL sync (phase 5): OAuth with PKCE, the list and its
+//!   diff, and the season chain from MAL's sequel/prequel relations.
 //! * [`qbit`] — the qBittorrent WebUI client (phase 2).
 //! * [`secrets`] — credentials, in the system keyring only.
 //!
@@ -35,7 +37,9 @@ pub mod events;
 pub mod filename;
 pub mod http;
 pub mod jobs;
+pub mod library;
 pub mod logging;
+pub mod mal;
 pub mod matching;
 pub mod models;
 pub mod names;
@@ -55,6 +59,7 @@ pub use db::Db;
 pub use error::{Error, Result};
 pub use events::{EventLog, Level};
 pub use http::{Gate, Service};
+pub use library::{LibraryFinalizer, RescanReport, rescan_library};
 pub use rules::Rules;
 pub use settings::Settings;
 

@@ -24,7 +24,7 @@ use wiremock::{Mock, MockServer, Request, Respond, ResponseTemplate};
 use genrl_core::clock::{Clock, FakeClock};
 use genrl_core::http::{policy::RateSpec, RetryPolicy, ServicePolicy};
 use genrl_core::models::{JobKind, JobState, ListStatus, QuestionKind};
-use genrl_core::planner::{self, FakeMalList, ListEntry, PlanOutcome};
+use genrl_core::planner::{self, MalList, ListEntry, PlanOutcome};
 use genrl_core::qbit::magnet_info_hash;
 use genrl_core::questions::{Answer, Choice, Payload, QuestionStore};
 use genrl_core::queue::Scheduler;
@@ -479,8 +479,8 @@ fn entry(mal_id: i64, title: &str, franchise: i64, season: i64) -> ListEntry {
     }
 }
 
-fn list_of(entries: Vec<ListEntry>) -> FakeMalList {
-    FakeMalList { entries }
+fn list_of(entries: Vec<ListEntry>) -> MalList {
+    MalList { entries }
 }
 
 /// Plan the single fixture show and hand back its job id.

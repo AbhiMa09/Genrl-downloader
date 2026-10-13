@@ -32,6 +32,8 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 # Utilities
 rand = "0.8"
+# PKCE (S256) needs SHA-256; nothing else here does.
+sha2 = "0.11"
 url = "2"
 bytes = "1"
 regex = "1"

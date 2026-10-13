@@ -16,12 +16,13 @@ use genrl_core::clock::{Clock, SystemClock};
 use genrl_core::http::{is_acceptable_link, Gate, Service};
 use genrl_core::models::JobState;
 use genrl_core::nyaa::SearchQuery;
-use genrl_core::planner::{FakeMalList, PlanOutcome, PlanPreview};
+use genrl_core::planner::{MalList, PlanOutcome, PlanPreview};
 use genrl_core::questions::QuestionStore;
-use genrl_core::worker::{Engine, FsDiskProbe, NoopFinalizer};
+use genrl_core::worker::{Engine, FsDiskProbe};
 use genrl_core::{
     filename, jobs, nyaa, planner, qbit, queue, secrets, settings, Db, EventLog, Settings,
 };
+use genrl_core::mal::{self, KeyringStore, MalClient, TokenStore};
 
 #[derive(Parser, Debug)]
 #[command(
@@ -151,12 +152,25 @@ enum Command {
         /// JSON file with the fake MAL list (default: <data dir>/mal_list.json).
         #[arg(long)]
         file: Option<PathBuf>,
+        /// Pull the list from MyAnimeList instead of a file.
+        #[arg(long)]
+        from_mal: bool,
         /// Show what would be queued; touches nothing.
         #[arg(long)]
         dry_run: bool,
         /// Accept the first-sync preview and queue it.
         #[arg(long)]
         confirm: bool,
+    },
+    /// MyAnimeList: OAuth, status, list sync.
+    Mal {
+        #[command(subcommand)]
+        command: MalCommand,
+    },
+    /// Library management: folder rescan.
+    Library {
+        #[command(subcommand)]
+        command: LibraryCommand,
     },
 }
 
@@ -170,6 +184,26 @@ enum SettingsCommand {
     Import { path: PathBuf },
 }
 
+#[derive(Subcommand, Debug)]
+enum MalCommand {
+    /// Connect to MyAnimeList via OAuth (PKCE) and store the refresh token.
+    Login {
+        /// Don't try to open a browser tab automatically.
+        #[arg(long)]
+        no_open: bool,
+    },
+    /// Show whether we are connected, the account, the last sync and the list size.
+    Status,
+    /// Fetch the list, diff it against the database, store added/changed/removed
+    /// shows (no downloads).
+    Sync,
+}
+
+#[derive(Subcommand, Debug)]
+enum LibraryCommand {
+    /// Rescan the library folder for existing shows and episodes.
+    Rescan,
+}
 #[derive(Subcommand, Debug)]
 enum QbitCommand {
     /// Log in, read the version, show transfer speeds.
@@ -230,7 +264,16 @@ async fn main() -> Result<()> {
             file,
             dry_run,
             confirm,
-        } => plan_cmd(&data_dir, file.as_deref(), dry_run, confirm),
+            from_mal,
+        } => plan_cmd(&data_dir, file.as_deref(), dry_run, confirm, from_mal).await,
+        Command::Mal { command } => match command {
+            MalCommand::Login { no_open } => mal_login_cmd(&data_dir, no_open).await,
+            MalCommand::Status => mal_status_cmd(&data_dir),
+            MalCommand::Sync => mal_sync_cmd(&data_dir).await,
+        },
+        Command::Library { command } => match command {
+            LibraryCommand::Rescan => library_rescan_cmd(&data_dir),
+        },
     }
 }
 
@@ -376,11 +419,18 @@ fn queue_cmd(data_dir: &std::path::Path) -> Result<()> {
 async fn run_cmd(data_dir: &std::path::Path) -> Result<()> {
     let db = open_db(data_dir)?;
     let settings = Settings::load(&db)?;
+    let gate = Arc::new(Gate::new(db.clone())?);
+    let finalizer = Arc::new(genrl_core::library::LibraryFinalizer::new(
+        db.clone(),
+        gate.clone(),
+        Arc::new(SystemClock),
+        data_dir.to_path_buf(),
+    ));
     let engine = Arc::new(Engine::new(
         db.clone(),
-        Arc::new(Gate::new(db)?),
+        gate,
         Arc::new(SystemClock),
-        Arc::new(NoopFinalizer),
+        finalizer,
         Arc::new(FsDiskProbe),
     ));
     let report = queue::reconcile(&engine).await?;
@@ -394,6 +444,26 @@ async fn run_cmd(data_dir: &std::path::Path) -> Result<()> {
     }
     println!("workers running; Ctrl-C stops them — downloads keep going");
     queue::Scheduler::new(engine).run().await?;
+    Ok(())
+}
+
+fn library_rescan_cmd(data_dir: &std::path::Path) -> Result<()> {
+    let db = open_db(data_dir)?;
+    let settings = Settings::load(&db)?;
+    if settings.library_folder.is_empty() {
+        bail!("no library folder configured; set library_folder in settings first");
+    }
+    let p = std::path::Path::new(&settings.library_folder);
+    if !p.exists() {
+        bail!("configured library folder '{}' does not exist", settings.library_folder);
+    }
+    let report = genrl_core::library::rescan_library(&db, p)?;
+    println!(
+        "rescanned '{}': {} show(s) adopted, {} episode(s) indexed",
+        p.display(),
+        report.shows_adopted,
+        report.episodes_found
+    );
     Ok(())
 }
 
@@ -414,18 +484,120 @@ fn automation_cmd(data_dir: &std::path::Path, on: bool) -> Result<()> {
 }
 
 /// Plan episodes from a fake MAL list file.
-fn plan_cmd(
+async fn mal_login_cmd(data_dir: &std::path::Path, no_open: bool) -> Result<()> {
+    let db = open_db(data_dir)?;
+    let settings = Settings::load(&db)?;
+    if settings.mal_client_id.trim().is_empty() {
+        bail!("set settings.mal_client_id first (myanimelist.net/apiconfig)");
+    }
+    let gate = Gate::new(db.clone())?;
+    let store = KeyringStore;
+    let clock = SystemClock;
+    let account_name_on_disk: Option<String> = settings::read_state(&db, "mal_account").ok().flatten();
+    let _ = account_name_on_disk;
+    let login = mal::start_login(&settings).await?;
+    println!("Open this URL in a browser and approve access:\n\n  {}", login.url());
+    if !no_open {
+        let _ = std::process::Command::new("xdg-open").arg(login.url()).spawn();
+    }
+    println!("waiting for the redirect on 127.0.0.1 (up to 5 minutes)...");
+    let client = MalClient::new(&gate, settings, &store, &clock);
+    login.finish(&client, std::time::Duration::from_secs(300)).await?;
+    let account = client.account().await?;
+    settings::write_state(&db, "mal_account", &account.name)?;
+    println!("connected as {} (id {})", account.name, account.id);
+    Ok(())
+}
+
+fn mal_status_cmd(data_dir: &std::path::Path) -> Result<()> {
+    let db = open_db(data_dir)?;
+    let settings = Settings::load(&db)?;
+    let store = KeyringStore;
+    let connected = store.refresh_token().ok().flatten().is_some();
+    println!(
+        "connected   : {}",
+        if connected {
+            "yes"
+        } else {
+            "no - run `genrl mal login`"
+        }
+    );
+    let client_id = settings.mal_client_id.trim();
+    println!(
+        "client id   : {}",
+        if client_id.is_empty() { "(unset)" } else { client_id }
+    );
+    if let Ok(Some(name)) = settings::read_state(&db, "mal_account") {
+        println!("account     : {name}");
+    }
+    let count: i64 = db.with(|c| {
+        let n = c.query_row("SELECT COUNT(*) FROM mal_entries", [], |r| {
+            r.get::<_, i64>(0)
+        });
+        Ok(n.unwrap_or(0))
+    })?;
+    println!("list size   : {count}");
+    if let Some(ts) = settings::read_state_time(&db, "last_mal_sync_at")? {
+        let clock = SystemClock;
+        println!("last sync   : {} seconds ago", clock.now() - ts);
+    } else {
+        println!("last sync   : never");
+    }
+    Ok(())
+}
+
+async fn mal_sync_cmd(data_dir: &std::path::Path) -> Result<()> {
+    let db = open_db(data_dir)?;
+    let settings = Settings::load(&db)?;
+    if settings.mal_client_id.trim().is_empty() {
+        bail!("set settings.mal_client_id first (myanimelist.net/apiconfig)");
+    }
+    let gate = Gate::new(db.clone())?;
+    let store = KeyringStore;
+    let clock = SystemClock;
+    let client = MalClient::new(&gate, settings, &store, &clock);
+    let report = mal::sync(&client).await?;
+    println!("{}", report.summary());
+    Ok(())
+}
+
+
+async fn plan_cmd(
     data_dir: &std::path::Path,
     file: Option<&std::path::Path>,
     dry_run: bool,
     confirm: bool,
+    from_mal: bool,
 ) -> Result<()> {
     let db = open_db(data_dir)?;
     let clock = SystemClock;
-    let fallback = data_dir.join("mal_list.json");
-    let path = file.unwrap_or(&fallback);
-    let list = FakeMalList::load(path)
-        .with_context(|| format!("reading the MAL list from {}", path.display()))?;
+
+    let list = if from_mal {
+        let settings = Settings::load(&db)?;
+        if settings.mal_client_id.trim().is_empty() {
+            bail!("run `genrl mal login` after setting settings.mal_client_id");
+        }
+        let gate = Gate::new(db.clone())?;
+        let store = KeyringStore;
+        let client = MalClient::new(&gate, settings, &store, &clock);
+        if dry_run {
+            let fetched = client.fetch().await?;
+            MalList {
+                entries: fetched.entries.into_iter().map(|m| m.entry).collect(),
+            }
+        } else {
+            let report = mal::sync(&client).await?;
+            println!("{}", report.summary());
+            MalList {
+                entries: report.entries,
+            }
+        }
+    } else {
+        let fallback = data_dir.join("mal_list.json");
+        let path = file.unwrap_or(&fallback);
+        MalList::load(path)
+            .with_context(|| format!("reading the MAL list from {}", path.display()))?
+    };
 
     if dry_run {
         print_preview(&planner::preview(&db, &list)?);
@@ -904,9 +1076,25 @@ fn doctor(data_dir: &std::path::Path) -> Result<()> {
         );
     }
 
-    let log = EventLog::new(db.clone());
-    println!("  events     : {} stored", log.count()?);
-
+    // --- MAL ---
+    let mal_id = settings.mal_client_id.trim();
+    if mal_id.is_empty() {
+        println!("  MAL        : client id not set (Settings → mal_client_id)");
+    } else {
+        println!("  MAL        : client id set ({:.8}…)", mal_id);
+    }
+    let mal_connected = genrl_core::secrets::get(genrl_core::secrets::Secret::MalRefreshToken)
+        .ok()
+        .flatten()
+        .is_some();
+    println!(
+        "  MAL auth   : {}",
+        if mal_connected {
+            "connected (refresh token in keyring)"
+        } else {
+            "not connected — run `genrl mal login`"
+        }
+    );
     let last_sync = settings::read_state_time(&db, "last_mal_sync_at")?;
     println!(
         "  last sync  : {}",
@@ -914,6 +1102,9 @@ fn doctor(data_dir: &std::path::Path) -> Result<()> {
             .map(chrono_lite)
             .unwrap_or_else(|| "never".to_string())
     );
+
+    let log = EventLog::new(db.clone());
+    println!("  events     : {} stored", log.count()?);
 
     println!("  automation  : {}", if settings.automation_on { "ON" } else { "off" });
     Ok(())
