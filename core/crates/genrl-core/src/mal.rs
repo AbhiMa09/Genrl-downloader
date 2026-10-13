@@ -59,7 +59,7 @@ pub const SYNC_STATE_KEY: &str = "last_mal_sync_at";
 
 /// Fields asked for on the list endpoint: the raw status plus the node fields
 /// the planner needs (`num_episodes` 0 means "unknown", so it maps to `None`).
-const LIST_FIELDS: &str = "list_status{status,score,num_episodes_watched,updated_at},num_episodes,start_season,media_type,status,main_title,alternative_titles{synonyms,en,ja}";
+const LIST_FIELDS: &str = "list_status{status,score,num_episodes_watched,updated_at},num_episodes,start_season,media_type,status,main_title,alternative_titles{synonyms,en,ja},main_picture";
 const PAGE_SIZE: usize = 1000;
 const MAX_PAGES: usize = 20;
 
@@ -375,13 +375,18 @@ impl<'a> MalClient<'a> {
         let body_result = self.gate.post_form(Service::Mal, url, form, &GetOptions::default()).await;
         let fetched = match body_result {
             Ok(fetched) => fetched,
-            Err(Error::Status { status, url, .. }) => {
-                // The MAL error body ("invalid_client" / "redirect_uri mismatch" / ...)
-                // carries the actual reason; the gate would otherwise only say
-                // "http {status} from {url}" and drop it.
+            Err(Error::Status { status, url, body, .. }) => {
+                let reason = body.unwrap_or_default();
+                let detail = if reason.is_empty() {
+                    format!("token endpoint returned HTTP {status} for {url}")
+                } else {
+                    format!("token endpoint returned HTTP {status}: {reason}")
+                };
                 return Err(Error::Auth {
                     service: "mal".to_string(),
-                    message: format!("token endpoint returned HTTP {status} for {url}; MAL's response body holds the reason (client id / redirect_uri / code mismatch)"),
+                    message: format!(
+                        "{detail}\nChecklist:\n1. Verify client_id in Settings.\n2. Ensure redirect URI registered in MAL API config matches http://localhost:<port>/callback exactly."
+                    ),
                 });
             }
             Err(err) => return Err(err),
@@ -517,12 +522,25 @@ pub struct Login {
     verifier: String,
     state: String,
     url: String,
+    port: u16,
 }
 
 impl Login {
     /// The URL to hand to the browser.
     pub fn url(&self) -> &str {
         &self.url
+    }
+
+    pub fn redirect_uri(&self) -> &str {
+        &self.redirect_uri
+    }
+
+    pub fn state(&self) -> &str {
+        &self.state
+    }
+
+    pub fn port(&self) -> u16 {
+        self.port
     }
 
     /// Wait for the redirect (one request only), swap the code for tokens and
@@ -540,6 +558,11 @@ impl Login {
 /// `state`, PKCE, and the listener closes after one request — the design's
 /// "OAuth redirect hijack" mitigation.
 pub async fn start_login(settings: &Settings) -> Result<Login> {
+    start_login_with_port(settings, None).await
+}
+
+/// Start login with an optional explicit port override.
+pub async fn start_login_with_port(settings: &Settings, override_port: Option<u16>) -> Result<Login> {
     let client_id = settings
         .mal_client_id
         .trim()
@@ -553,12 +576,13 @@ pub async fn start_login(settings: &Settings) -> Result<Login> {
     }
     // A fixed loopback port keeps the redirect URI byte-stable across runs
     // (MAL requires the redirect_uri to *exactly match* what was registered in
-    // the app form).  Override with GENRL_MAL_REDIRECT_PORT if the default
-    // port is already taken.
-    let port: u16 = std::env::var("GENRL_MAL_REDIRECT_PORT")
-        .ok()
-        .and_then(|v| v.trim().parse().ok())
-        .unwrap_or(21445);
+    // the app form). Override with GENRL_MAL_REDIRECT_PORT or explicit override.
+    let port: u16 = override_port.unwrap_or_else(|| {
+        std::env::var("GENRL_MAL_REDIRECT_PORT")
+            .ok()
+            .and_then(|v| v.trim().parse().ok())
+            .unwrap_or(21445)
+    });
     let listener = tokio::net::TcpListener::bind(("127.0.0.1", port)).await?;
     let redirect_uri = std::env::var("GENRL_MAL_REDIRECT_URI")
         .ok()
@@ -572,6 +596,7 @@ pub async fn start_login(settings: &Settings) -> Result<Login> {
         verifier,
         state,
         url,
+        port,
     })
 }
 
@@ -709,6 +734,16 @@ pub struct Node {
     media_type: Option<String>,
     #[serde(default)]
     status: Option<String>,
+    #[serde(default)]
+    main_picture: Option<MainPicture>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct MainPicture {
+    #[serde(default)]
+    medium: Option<String>,
+    #[serde(default)]
+    large: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -760,6 +795,8 @@ pub struct MalEntry {
     pub updated_at: Option<String>,
     pub media_type: Option<String>,
     pub airing_status: Option<String>,
+    pub source: String,
+    pub poster_url: Option<String>,
 }
 
 impl MalEntry {
@@ -821,12 +858,19 @@ fn to_mal_entry(item: &ListItem) -> MalEntry {
         season: 1,
     };
 
+    let poster_url = node
+        .main_picture
+        .as_ref()
+        .and_then(|p| p.large.clone().or_else(|| p.medium.clone()));
+
     MalEntry {
         entry,
         score: item.list_status.score,
         updated_at: item.list_status.updated_at.clone(),
         media_type: node.media_type.clone(),
         airing_status: node.status.clone(),
+        source: "mal".to_string(),
+        poster_url,
     }
 }
 
@@ -1003,6 +1047,7 @@ struct StoredEntry {
     watched: i64,
     score: Option<i64>,
     updated_at: Option<String>,
+    source: String,
 }
 
 impl StoredEntry {
@@ -1011,6 +1056,7 @@ impl StoredEntry {
             || self.watched != m.entry.watched_count
             || self.score != m.score
             || self.updated_at.as_deref() != m.updated_at.as_deref()
+            || self.source != m.source
     }
 }
 
@@ -1151,7 +1197,7 @@ fn raise_entry_changed(
 fn load_mal_entry(db: &Db, mal_id: i64) -> Result<Option<StoredEntry>> {
     db.with(|c| {
         Ok(c.query_row(
-            "SELECT list_status, watched_count, score, updated_at
+            "SELECT list_status, watched_count, score, updated_at, source
              FROM mal_entries WHERE mal_id = ?1",
             [mal_id],
             |r| {
@@ -1160,6 +1206,7 @@ fn load_mal_entry(db: &Db, mal_id: i64) -> Result<Option<StoredEntry>> {
                     watched: r.get(1)?,
                     score: r.get(2)?,
                     updated_at: r.get(3)?,
+                    source: r.get(4)?,
                 })
             },
         )
@@ -1170,19 +1217,21 @@ fn load_mal_entry(db: &Db, mal_id: i64) -> Result<Option<StoredEntry>> {
 fn save_mal_entry(db: &Db, m: &MalEntry) -> Result<()> {
     db.with(|c| {
         c.execute(
-            "INSERT INTO mal_entries (mal_id, list_status, watched_count, score, updated_at)
-             VALUES (?1, ?2, ?3, ?4, ?5)
+            "INSERT INTO mal_entries (mal_id, list_status, watched_count, score, updated_at, source)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)
              ON CONFLICT (mal_id) DO UPDATE SET
                 list_status = excluded.list_status,
                 watched_count = excluded.watched_count,
                 score = excluded.score,
-                updated_at = excluded.updated_at",
+                updated_at = excluded.updated_at,
+                source = excluded.source",
             rusqlite::params![
                 m.mal_id(),
                 m.entry.list_status.as_str(),
                 m.entry.watched_count,
                 m.score,
                 m.updated_at,
+                m.source,
             ],
         )?;
         Ok(())
@@ -1199,8 +1248,8 @@ fn upsert_show_full(db: &Db, m: &MalEntry) -> Result<()> {
     db.with(|c| {
         c.execute(
             "INSERT INTO shows (mal_id, title, english_title, type, status, total_episodes,
-                                start_year, auto, episode_offset, season)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)
+                                start_year, auto, episode_offset, season, poster_path)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
              ON CONFLICT (mal_id) DO UPDATE SET
                 title = excluded.title,
                 english_title = COALESCE(excluded.english_title, shows.english_title),
@@ -1210,7 +1259,8 @@ fn upsert_show_full(db: &Db, m: &MalEntry) -> Result<()> {
                 start_year = COALESCE(excluded.start_year, shows.start_year),
                 auto = excluded.auto,
                 episode_offset = excluded.episode_offset,
-                season = excluded.season",
+                season = excluded.season,
+                poster_path = COALESCE(excluded.poster_path, shows.poster_path)",
             rusqlite::params![
                 e.mal_id,
                 e.title,
@@ -1222,6 +1272,7 @@ fn upsert_show_full(db: &Db, m: &MalEntry) -> Result<()> {
                 e.auto as i64,
                 e.episode_offset,
                 e.season,
+                m.poster_url,
             ],
         )?;
         Ok(())
@@ -1275,5 +1326,710 @@ pub async fn sync_if_due(
             let _ = EventLog::new(db.clone()).warn(None, None, format!("MAL sync failed: {err}"));
             None
         }
+    }
+}
+
+
+// ---------------------------------------------------------------------------
+// Jikan Public Profile Fallback & Relations
+// ---------------------------------------------------------------------------
+
+pub const JIKAN_USER_STATE_KEY: &str = "mal_public_username";
+pub const ACCOUNT_SOURCE_STATE_KEY: &str = "mal_account_source";
+
+#[derive(Debug, Deserialize)]
+struct JikanUserAnimelistResponse {
+    data: Vec<JikanUserAnimelistEntry>,
+    #[serde(default)]
+    pagination: Option<JikanPagination>,
+}
+
+#[derive(Debug, Deserialize)]
+struct JikanPagination {
+    #[serde(default)]
+    has_next_page: bool,
+}
+
+#[derive(Debug, Deserialize)]
+struct JikanUserAnimelistEntry {
+    entry: JikanEntryNode,
+    #[serde(default)]
+    score: Option<i64>,
+    #[serde(default)]
+    status: Option<String>,
+    #[serde(default)]
+    episodes_seen: Option<i64>,
+    #[serde(default)]
+    updated_at: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct JikanEntryNode {
+    mal_id: i64,
+    title: String,
+    #[serde(default)]
+    #[allow(dead_code)]
+    images: Option<JikanImages>,
+}
+
+#[derive(Debug, Deserialize)]
+#[allow(dead_code)]
+struct JikanImages {
+    #[serde(default)]
+    jpg: Option<JikanImageJpg>,
+}
+
+#[derive(Debug, Deserialize)]
+#[allow(dead_code)]
+struct JikanImageJpg {
+    #[serde(default)]
+    image_url: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct JikanAnimeDetailResponse {
+    data: JikanAnimeDetailData,
+}
+
+#[derive(Debug, Deserialize)]
+struct JikanAnimeDetailData {
+    #[allow(dead_code)]
+    mal_id: i64,
+    title: String,
+    #[serde(default)]
+    title_english: Option<String>,
+    #[serde(default)]
+    title_japanese: Option<String>,
+    #[serde(default)]
+    titles: Option<Vec<JikanTitleItem>>,
+    #[serde(rename = "type", default)]
+    media_type: Option<String>,
+    #[serde(default)]
+    status: Option<String>,
+    #[serde(default)]
+    episodes: Option<i64>,
+    #[serde(default)]
+    year: Option<i64>,
+    #[serde(default)]
+    relations: Option<Vec<JikanRelationItem>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct JikanTitleItem {
+    #[serde(rename = "type", default)]
+    #[allow(dead_code)]
+    title_type: String,
+    title: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct JikanRelationItem {
+    relation: String,
+    #[serde(default)]
+    entry: Vec<JikanRelationSubEntry>,
+}
+
+#[derive(Debug, Deserialize)]
+struct JikanRelationSubEntry {
+    mal_id: i64,
+    #[serde(rename = "type", default)]
+    entry_type: String,
+    name: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct MalLoadJsonItem {
+    status: i32,
+    #[serde(default)]
+    score: Option<i64>,
+    #[serde(default)]
+    num_watched_episodes: Option<i64>,
+    #[serde(default)]
+    updated_at: Option<serde_json::Value>,
+    anime_title: serde_json::Value,
+    #[serde(default)]
+    anime_title_eng: Option<serde_json::Value>,
+    #[serde(default)]
+    anime_num_episodes: Option<i64>,
+    #[serde(default)]
+    anime_airing_status: Option<i32>,
+    anime_id: i64,
+    #[serde(default)]
+    anime_media_type_string: Option<String>,
+    #[serde(default)]
+    anime_image_path: Option<String>,
+    #[serde(default)]
+    anime_start_date_string: Option<String>,
+}
+
+fn value_to_string(v: &serde_json::Value) -> Option<String> {
+    match v {
+        serde_json::Value::String(s) => {
+            let trimmed = s.trim();
+            if trimmed.is_empty() {
+                None
+            } else {
+                Some(trimmed.to_string())
+            }
+        }
+        serde_json::Value::Number(n) => Some(n.to_string()),
+        _ => None,
+    }
+}
+
+fn parse_start_year(s: &str) -> Option<i64> {
+    let parts: Vec<&str> = s.split(|c: char| c == '-' || c == '/' || c == '.').collect();
+    for p in &parts {
+        if p.len() == 4 {
+            if let Ok(y) = p.parse::<i64>() {
+                if (1950..=2050).contains(&y) {
+                    return Some(y);
+                }
+            }
+        }
+    }
+    let last = parts.last()?;
+    if last.len() == 2 {
+        if let Ok(yy) = last.parse::<i64>() {
+            let y = if yy <= 50 { 2000 + yy } else { 1900 + yy };
+            return Some(y);
+        }
+    }
+    None
+}
+
+/// Fetch a user's anime list directly from MAL's public load.json endpoint.
+pub async fn fetch_mal_public_load_json(gate: &Gate, username: &str) -> Result<Vec<MalEntry>> {
+    let mut out = Vec::new();
+    let mut offset = 0usize;
+    loop {
+        let url = format!("https://myanimelist.net/animelist/{username}/load.json?offset={offset}&status=7");
+        let fetched = gate.get_with(Service::Mal, &url, &GetOptions::default()).await?;
+        let items: Vec<MalLoadJsonItem> = fetched.json()?;
+        if items.is_empty() {
+            break;
+        }
+        let count = items.len();
+        for item in items {
+            let list_status = match item.status {
+                1 => ListStatus::Watching,
+                2 => ListStatus::Completed,
+                3 => ListStatus::OnHold,
+                4 => ListStatus::Dropped,
+                6 => ListStatus::PlanToWatch,
+                _ => ListStatus::PlanToWatch,
+            };
+            let title = value_to_string(&item.anime_title)
+                .unwrap_or_else(|| format!("MAL #{}", item.anime_id));
+            let mut names = vec![title.clone()];
+            let eng = item.anime_title_eng.as_ref().and_then(value_to_string);
+            if let Some(ref e) = eng {
+                if !names.contains(e) {
+                    names.push(e.clone());
+                }
+            }
+            let airing = match item.anime_airing_status {
+                Some(1) => Some("currently_airing".to_string()),
+                Some(2) => Some("finished_airing".to_string()),
+                Some(3) => Some("not_yet_aired".to_string()),
+                _ => None,
+            };
+            let start_year = item.anime_start_date_string.as_deref().and_then(parse_start_year);
+            let updated_at = item.updated_at.as_ref().and_then(value_to_string);
+
+            let entry = ListEntry {
+                mal_id: item.anime_id,
+                title: title.clone(),
+                english_title: eng,
+                list_status,
+                watched_count: item.num_watched_episodes.unwrap_or(0).max(0),
+                total_episodes: item.anime_num_episodes.filter(|n| *n > 0),
+                start_year,
+                auto: matches!(list_status, ListStatus::Watching),
+                episode_offset: 0,
+                names,
+                franchise: item.anime_id,
+                season: 1,
+            };
+
+            out.push(MalEntry {
+                entry,
+                score: item.score,
+                updated_at,
+                media_type: item.anime_media_type_string.clone(),
+                airing_status: airing,
+                source: "jikan".to_string(),
+                poster_url: item.anime_image_path.clone(),
+            });
+        }
+        offset += count;
+        if count < 300 || offset >= 10000 {
+            break;
+        }
+    }
+    Ok(out)
+}
+
+/// Fetch a user's anime list from Jikan (`/v4/users/{username}/animelist`) through Gate.
+pub async fn fetch_jikan_list(gate: &Gate, settings: &Settings, username: &str) -> Result<Vec<MalEntry>> {
+    let mut out = Vec::new();
+    let raw_base = settings.jikan_base_url.trim_end_matches('/');
+    let base = if raw_base.ends_with("/v4") {
+        raw_base.to_string()
+    } else {
+        format!("{raw_base}/v4")
+    };
+    let mut page = 1;
+
+    loop {
+        let url = format!("{base}/users/{username}/animelist?page={page}");
+        let fetched = gate.get_with(Service::Jikan, &url, &GetOptions::default()).await?;
+        let res: JikanUserAnimelistResponse = fetched.json()?;
+
+        for item in &res.data {
+            let status_str = item.status.as_deref().unwrap_or("plan_to_watch");
+            let list_status = ListStatus::parse(status_str);
+            let title = item.entry.title.clone();
+            let mal_id = item.entry.mal_id;
+
+            let entry = ListEntry {
+                mal_id,
+                title: title.clone(),
+                english_title: None,
+                list_status,
+                watched_count: item.episodes_seen.unwrap_or(0).max(0),
+                total_episodes: None,
+                start_year: None,
+                auto: matches!(list_status, ListStatus::Watching),
+                episode_offset: 0,
+                names: vec![title],
+                franchise: mal_id,
+                season: 1,
+            };
+
+            out.push(MalEntry {
+                entry,
+                score: item.score,
+                updated_at: item.updated_at.clone(),
+                media_type: None,
+                airing_status: None,
+                source: "jikan".to_string(),
+                poster_url: None,
+            });
+        }
+
+        let has_next = res.pagination.as_ref().map(|p| p.has_next_page).unwrap_or(false);
+        if !has_next || res.data.is_empty() || page >= 20 {
+            break;
+        }
+        page += 1;
+    }
+
+    Ok(out)
+}
+
+/// Parse Jikan animelist from JSON body text.
+pub fn parse_jikan_animelist(text: &str) -> Result<Vec<MalEntry>> {
+    let res: JikanUserAnimelistResponse = serde_json::from_str(text)?;
+    let mut out = Vec::new();
+    for item in &res.data {
+        let status_str = item.status.as_deref().unwrap_or("plan_to_watch");
+        let list_status = ListStatus::parse(status_str);
+        let title = item.entry.title.clone();
+        let mal_id = item.entry.mal_id;
+
+        let entry = ListEntry {
+            mal_id,
+            title: title.clone(),
+            english_title: None,
+            list_status,
+            watched_count: item.episodes_seen.unwrap_or(0).max(0),
+            total_episodes: None,
+            start_year: None,
+            auto: matches!(list_status, ListStatus::Watching),
+            episode_offset: 0,
+            names: vec![title],
+            franchise: mal_id,
+            season: 1,
+        };
+
+        out.push(MalEntry {
+            entry,
+            score: item.score,
+            updated_at: item.updated_at.clone(),
+            media_type: None,
+            airing_status: None,
+            source: "jikan".to_string(),
+            poster_url: None,
+        });
+    }
+    Ok(out)
+}
+
+/// Sync anime list using public Jikan profile.
+pub async fn sync_jikan(
+    db: &Db,
+    gate: &Gate,
+    settings: &Settings,
+    clock: &dyn Clock,
+    username: &str,
+) -> Result<SyncReport> {
+    let now = clock.now();
+    let log = EventLog::new(db.clone());
+
+    let entries_res = fetch_mal_public_load_json(gate, username).await;
+    let (mut entries, is_load_json) = match entries_res {
+        Ok(list) if !list.is_empty() => (list, true),
+        Ok(_) => {
+            (fetch_jikan_list(gate, settings, username).await?, false)
+        }
+        Err(e) => {
+            tracing::warn!("MAL load.json public profile fetch failed ({e}); trying Jikan fallback");
+            (fetch_jikan_list(gate, settings, username).await?, false)
+        }
+    };
+
+    let mut report = SyncReport {
+        total: entries.len(),
+        ..Default::default()
+    };
+
+    let mut relations: HashMap<i64, Vec<Relation>> = HashMap::new();
+    let mut relations_failed = 0usize;
+
+    if !is_load_json {
+        let raw_base = settings.jikan_base_url.trim_end_matches('/');
+        let base = if raw_base.ends_with("/v4") {
+            raw_base.to_string()
+        } else {
+            format!("{raw_base}/v4")
+        };
+
+        for m in &mut entries {
+            let id = m.mal_id();
+            let detail_url = format!("{base}/anime/{id}/full");
+            match gate.get_with(Service::Jikan, &detail_url, &GetOptions::default()).await {
+                Ok(fetched) => {
+                    if let Ok(detail) = fetched.json::<JikanAnimeDetailResponse>() {
+                        let d = detail.data;
+                        m.entry.english_title = d.title_english.clone();
+                        m.entry.total_episodes = d.episodes.filter(|n| *n > 0);
+                        m.entry.start_year = d.year;
+                        m.media_type = d.media_type.clone();
+                        m.airing_status = d.status.clone();
+
+                        let mut names = vec![d.title.clone()];
+                        if let Some(en) = d.title_english {
+                            if !names.contains(&en) {
+                                names.push(en);
+                            }
+                        }
+                        if let Some(ja) = d.title_japanese {
+                            if !names.contains(&ja) {
+                                names.push(ja);
+                            }
+                        }
+                        if let Some(titles) = d.titles {
+                            for t in titles {
+                                if !names.contains(&t.title) {
+                                    names.push(t.title);
+                                }
+                            }
+                        }
+                        m.entry.names = names;
+
+                        let mut rels = Vec::new();
+                        if let Some(r_list) = d.relations {
+                            for r in r_list {
+                                let rel_type = r.relation.to_lowercase();
+                                for sub in r.entry {
+                                    if sub.entry_type == "anime" {
+                                        rels.push(Relation {
+                                            node: Node {
+                                                id: sub.mal_id,
+                                                title: Some(sub.name.clone()),
+                                                main_title: Some(sub.name),
+                                                alternative_titles: None,
+                                                num_episodes: None,
+                                                start_season: None,
+                                                media_type: None,
+                                                status: None,
+                                                main_picture: None,
+                                            },
+                                            relation_type: rel_type.clone(),
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                        relations.insert(id, rels);
+                    }
+                }
+                Err(_) => {
+                    relations_failed += 1;
+                }
+            }
+        }
+    }
+
+    report.relations_failed = relations_failed;
+    build_chains(&mut entries, &relations);
+
+    let mut fetched_ids = Vec::with_capacity(entries.len());
+    for m in &entries {
+        let id = m.mal_id();
+        fetched_ids.push(id);
+
+        upsert_show_full(db, m)?;
+        crate::planner::upsert_names(db, &m.entry)?;
+
+        let prev_title: Option<String> = db.with(|c| {
+            Ok(c.query_row(
+                "SELECT title FROM shows WHERE mal_id = ?1",
+                [id],
+                |r| r.get::<_, String>(0),
+            )
+            .ok())
+        })?;
+
+        match load_mal_entry(db, id)? {
+            None => {
+                save_mal_entry(db, m)?;
+                report.added += 1;
+                let _ = log.info(None, Some(id), format!("Jikan sync: added \"{}\"", m.entry.title));
+            }
+            Some(stored) => {
+                if let Some(old) = prev_title {
+                    if old != m.entry.title {
+                        report.renamed.push(m.entry.title.clone());
+                    }
+                }
+                if stored.changed(m) {
+                    save_mal_entry(db, m)?;
+                    report.updated += 1;
+                } else {
+                    report.unchanged += 1;
+                }
+            }
+        }
+    }
+
+    let known: Vec<i64> = db.with(|c| {
+        let mut stmt = c.prepare("SELECT mal_id FROM mal_entries WHERE source = 'jikan'")?;
+        let rows = stmt.query_map([], |r| r.get::<_, i64>(0))?;
+        Ok(rows.filter_map(std::result::Result::ok).collect::<Vec<_>>())
+    })?;
+    for id in known {
+        if !fetched_ids.contains(&id) {
+            db.with(|c| {
+                c.execute("DELETE FROM mal_entries WHERE mal_id = ?1", [id])?;
+                Ok(())
+            })?;
+            db.with(|c| {
+                c.execute("UPDATE shows SET auto = 0 WHERE mal_id = ?1", [id])?;
+                Ok(())
+            })?;
+            report.removed += 1;
+            let _ = log.info(None, Some(id), "Jikan sync: no longer on public list");
+        }
+    }
+
+    settings::write_state(db, SYNC_STATE_KEY, &now.to_string())?;
+    report.entries = entries.into_iter().map(|m| m.entry).collect();
+    let _ = log.info(
+        None,
+        None,
+        format!(
+            "Jikan sync: {} new, {} updated, {} unchanged, {} removed",
+            report.added, report.updated, report.unchanged, report.removed
+        ),
+    );
+    Ok(report)
+}
+
+// ---------------------------------------------------------------------------
+// High-Level Core Commands
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct MalConnectStartResult {
+    pub authorize_url: String,
+    pub state: String,
+    pub port: u16,
+    pub redirect_uri: String,
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct MalStatusResult {
+    pub status: String, // "connected" | "public_profile" | "token_expired" | "not_connected"
+    pub username: Option<String>,
+    pub source: Option<String>, // "mal" | "jikan"
+    pub avatar_url: Option<String>,
+    pub last_sync_at: Option<i64>,
+    pub counts: StatusCounts,
+    pub client_id: Option<String>,
+}
+
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
+pub struct StatusCounts {
+    pub watching: usize,
+    pub completed: usize,
+    pub on_hold: usize,
+    pub dropped: usize,
+    pub plan_to_watch: usize,
+    pub total: usize,
+}
+
+pub async fn mal_connect_start(
+    settings: &Settings,
+    redirect_port: Option<u16>,
+) -> Result<Login> {
+    start_login_with_port(settings, redirect_port).await
+}
+
+pub async fn mal_status(
+    db: &Db,
+    gate: &Gate,
+    settings: &Settings,
+    store: &dyn TokenStore,
+    clock: &dyn Clock,
+) -> Result<MalStatusResult> {
+    let last_sync = settings::read_state_time(db, SYNC_STATE_KEY)?;
+    let public_user = settings::read_state(db, JIKAN_USER_STATE_KEY)?;
+    let client_id = if settings.mal_client_id.trim().is_empty() {
+        None
+    } else {
+        Some(settings.mal_client_id.trim().to_string())
+    };
+
+    // Status counts from mal_entries
+    let mut counts = StatusCounts::default();
+    db.with(|c| {
+        let mut stmt = c.prepare("SELECT list_status, COUNT(*) FROM mal_entries GROUP BY list_status")?;
+        let rows = stmt.query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, i64>(1)? as usize)))?;
+        for row in rows {
+            let (status, count) = row?;
+            match status.as_str() {
+                "watching" => counts.watching = count,
+                "completed" => counts.completed = count,
+                "on_hold" => counts.on_hold = count,
+                "dropped" => counts.dropped = count,
+                "plan_to_watch" => counts.plan_to_watch = count,
+                _ => {}
+            }
+            counts.total += count;
+        }
+        Ok(())
+    })?;
+
+    // Check OAuth first
+    if store.refresh_token().ok().flatten().is_some() {
+        let client = MalClient::new(gate, settings.clone(), store, clock);
+        match client.account().await {
+            Ok(acc) => {
+                return Ok(MalStatusResult {
+                    status: "connected".to_string(),
+                    username: Some(acc.name),
+                    source: Some("mal".to_string()),
+                    avatar_url: None,
+                    last_sync_at: last_sync,
+                    counts,
+                    client_id,
+                });
+            }
+            Err(Error::Auth { .. }) => {
+                return Ok(MalStatusResult {
+                    status: "token_expired".to_string(),
+                    username: None,
+                    source: Some("mal".to_string()),
+                    avatar_url: None,
+                    last_sync_at: last_sync,
+                    counts,
+                    client_id,
+                });
+            }
+            Err(_) => {
+                return Ok(MalStatusResult {
+                    status: "connected".to_string(),
+                    username: None,
+                    source: Some("mal".to_string()),
+                    avatar_url: None,
+                    last_sync_at: last_sync,
+                    counts,
+                    client_id,
+                });
+            }
+        }
+    }
+
+    // Fallback: public profile
+    if let Some(user) = public_user {
+        if !user.trim().is_empty() {
+            return Ok(MalStatusResult {
+                status: "public_profile".to_string(),
+                username: Some(user),
+                source: Some("jikan".to_string()),
+                avatar_url: None,
+                last_sync_at: last_sync,
+                counts,
+                client_id,
+            });
+        }
+    }
+
+    Ok(MalStatusResult {
+        status: "not_connected".to_string(),
+        username: None,
+        source: None,
+        avatar_url: None,
+        last_sync_at: last_sync,
+        counts,
+        client_id,
+    })
+}
+
+pub fn mal_disconnect(db: &Db, store: &dyn TokenStore) -> Result<()> {
+    store.set_refresh_token(None)?;
+    settings::write_state(db, JIKAN_USER_STATE_KEY, "")?;
+    settings::write_state(db, ACCOUNT_SOURCE_STATE_KEY, "")?;
+    let _ = EventLog::new(db.clone()).info(None, None, "MAL disconnected; refresh token and profile cleared");
+    Ok(())
+}
+
+pub fn mal_set_public_profile(db: &Db, username: &str) -> Result<()> {
+    settings::write_state(db, JIKAN_USER_STATE_KEY, username.trim())?;
+    settings::write_state(db, ACCOUNT_SOURCE_STATE_KEY, "jikan")?;
+    let _ = EventLog::new(db.clone()).info(
+        None,
+        None,
+        format!("Public MAL profile set to \"{}\"", username.trim()),
+    );
+    Ok(())
+}
+
+pub async fn mal_sync(
+    db: &Db,
+    gate: &Gate,
+    settings: &Settings,
+    store: &dyn TokenStore,
+    clock: &dyn Clock,
+) -> Result<SyncReport> {
+    if store.refresh_token().ok().flatten().is_some() {
+        let client = MalClient::new(gate, settings.clone(), store, clock);
+        sync(&client).await
+    } else if let Some(user) = settings::read_state(db, JIKAN_USER_STATE_KEY)? {
+        if !user.trim().is_empty() {
+            sync_jikan(db, gate, settings, clock, &user).await
+        } else {
+            Err(Error::Auth {
+                service: "mal".to_string(),
+                message: "neither MAL account nor public profile username is set".to_string(),
+            })
+        }
+    } else {
+        Err(Error::Auth {
+            service: "mal".to_string(),
+            message: "neither MAL account nor public profile username is set".to_string(),
+        })
     }
 }

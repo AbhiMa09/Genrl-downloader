@@ -21,4 +21,8 @@ pub const MIGRATIONS: &[Migration] = &[
         version: 3,
         sql: include_str!("migrations/003_queue_bookkeeping.sql"),
     },
+    Migration {
+        version: 4,
+        sql: include_str!("migrations/004_mal_entries_source.sql"),
+    },
 ];

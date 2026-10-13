@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../services/state_provider.dart';
 import '../theme/colors.dart';
 import '../theme/typography.dart';
+import 'cyber_logo.dart';
 
 class NavRail extends StatelessWidget {
   const NavRail({super.key});
@@ -29,25 +30,9 @@ class NavRail extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: Row(
               children: [
-                Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: ObsidianColors.primaryContainer,
-                    borderRadius: BorderRadius.circular(6),
-                    boxShadow: [
-                      BoxShadow(
-                        color: ObsidianColors.primary.withOpacity(0.3),
-                        blurRadius: 8,
-                        spreadRadius: 1,
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.bolt_rounded,
-                    size: 18,
-                    color: ObsidianColors.onPrimaryContainer,
-                  ),
+                CyberLogo(
+                  size: 28,
+                  speedBytes: state.status.downloadSpeedBytes,
                 ),
                 const SizedBox(width: 10),
                 Expanded(

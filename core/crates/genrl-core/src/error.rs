@@ -31,6 +31,8 @@ pub enum Error {
         url: String,
         /// Value of `Retry-After`, if the server sent one.
         retry_after: Option<std::time::Duration>,
+        /// Response body, if read.
+        body: Option<String>,
     },
 
     #[error("rate limited by {service} (429); retry after {retry_after:?}")]

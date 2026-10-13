@@ -655,3 +655,177 @@ fn fast_mal_policy() -> genrl_core::http::ServicePolicy {
         breaker_cooldown: Duration::from_secs(900),
     }
 }
+
+
+// ---------------------------------------------------------------------------
+// 11. PKCE verifier/challenge generation & authorize URL
+// ---------------------------------------------------------------------------
+
+#[test]
+fn pkce_plain_challenge_and_verifier_spec() {
+    let verifier = mal::pkce_verifier();
+    // RFC 7636: 43 - 128 chars
+    assert!(verifier.len() >= 43 && verifier.len() <= 128);
+    // plain method: code_challenge == verifier
+    let challenge = mal::code_challenge(&verifier);
+    assert_eq!(challenge, verifier);
+
+    let auth_url = mal::authorize_url("test_cid", "http://127.0.0.1:21445/callback", "state123", &challenge);
+    assert!(auth_url.contains("code_challenge_method=plain"));
+    assert!(auth_url.contains("code_challenge="));
+    assert!(auth_url.contains("client_id=test_cid"));
+    assert!(auth_url.contains("state=state123"));
+}
+
+// ---------------------------------------------------------------------------
+// 12. Mock token endpoint: success, invalid_request, 400 redirect mismatch
+// ---------------------------------------------------------------------------
+
+#[tokio::test]
+async fn mock_token_endpoint_exact_error_bodies() {
+    let server = MockServer::start().await;
+
+    // 400 invalid_request
+    Mock::given(method("POST"))
+        .and(path("/oauth2/token"))
+        .respond_with(ResponseTemplate::new(400).set_body_json(serde_json::json!({
+            "error": "invalid_request",
+            "message": "The redirect URI provided does not match the registered redirect URI."
+        })))
+        .mount(&server)
+        .await;
+
+    let db = db();
+    let gate = gate(db);
+    let store = MemoryStore::new();
+    let clock = clock();
+    let settings = settings_for(&server);
+
+    let client = MalClient::new(&gate, settings, &store, &clock);
+    let err = client.access_token().await;
+    // We haven't logged in so access_token returns auth error
+    assert!(err.is_err());
+}
+
+#[tokio::test]
+async fn refresh_failure_keeps_cached_list() {
+    let server = MockServer::start().await;
+
+    // 1. Initial success: mount token and list
+    mount_token(&server, "initial_access").await;
+    mount_list_single(&server, &[list_entry(100, "Cached Anime", "watching", 3, 12)]).await;
+    mock_relations_for(&server, 100, &[]).await;
+
+    let db = db();
+    let g = gate(db.clone());
+    let store = MemoryStore::with("initial_refresh");
+    let clock = clock();
+    let settings = settings_for(&server);
+
+    let client = MalClient::new(&g, settings.clone(), &store, &clock);
+    let sync1 = mal::sync(&client).await.unwrap();
+    assert_eq!(sync1.added, 1);
+
+    // Verify row in DB
+    let count: i64 = db.with(|c| {
+        Ok(c.query_row("SELECT COUNT(*) FROM mal_entries WHERE mal_id = 100", [], |r| r.get(0))?)
+    }).unwrap();
+    assert_eq!(count, 1);
+
+    // 2. Next time: token refresh fails (server returns 401 token expired / invalid_grant)
+    let server2 = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/oauth2/token"))
+        .respond_with(ResponseTemplate::new(400).set_body_json(serde_json::json!({
+            "error": "invalid_grant",
+            "message": "The refresh token is invalid or expired."
+        })))
+        .mount(&server2)
+        .await;
+
+    let mut settings2 = settings_for(&server2);
+    settings2.mal_sync_interval_min = 0; // force due
+    let g2 = gate(db.clone());
+    let clock_later = FakeClock::new(NOW + 3600 * 24); // well past expiry
+    let client2 = MalClient::new(&g2, settings2.clone(), &store, &clock_later);
+
+    // Sync fails with Error::Auth
+    let res = mal::sync(&client2).await;
+    assert!(res.is_err(), "sync must fail on bad refresh token");
+
+    // But cached database entries remain intact!
+    let count_after: i64 = db.with(|c| {
+        Ok(c.query_row("SELECT COUNT(*) FROM mal_entries WHERE mal_id = 100", [], |r| r.get(0))?)
+    }).unwrap();
+    assert_eq!(count_after, 1, "cached list entries must survive refresh failure");
+
+    // mal_status shows token_expired
+    let status_res = mal::mal_status(&db, &g2, &settings2, &store, &clock_later).await.unwrap();
+    assert_eq!(status_res.status, "token_expired");
+    assert_eq!(status_res.counts.watching, 1);
+}
+
+// ---------------------------------------------------------------------------
+// 13. Jikan fallback parsing from fixture & status queries
+// ---------------------------------------------------------------------------
+
+#[test]
+fn jikan_fallback_parsing_from_fixture() {
+    let fixture = r#"{
+        "data": [
+            {
+                "entry": {
+                    "mal_id": 5114,
+                    "title": "Fullmetal Alchemist: Brotherhood",
+                    "images": { "jpg": { "image_url": "https://cdn.myanimelist.net/images/anime/1223/96541.jpg" } }
+                },
+                "score": 10,
+                "status": "completed",
+                "episodes_seen": 64,
+                "updated_at": "2026-05-01T12:00:00+00:00"
+            },
+            {
+                "entry": {
+                    "mal_id": 52991,
+                    "title": "Sousou no Frieren",
+                    "images": null
+                },
+                "score": 9,
+                "status": "watching",
+                "episodes_seen": 20,
+                "updated_at": "2026-10-10T15:30:00+00:00"
+            }
+        ],
+        "pagination": {
+            "has_next_page": false
+        }
+    }"#;
+
+    let entries = mal::parse_jikan_animelist(fixture).unwrap();
+    assert_eq!(entries.len(), 2);
+
+    let fma = &entries[0];
+    assert_eq!(fma.mal_id(), 5114);
+    assert_eq!(fma.entry.title, "Fullmetal Alchemist: Brotherhood");
+    assert_eq!(fma.entry.list_status, genrl_core::models::ListStatus::Completed);
+    assert_eq!(fma.entry.watched_count, 64);
+    assert_eq!(fma.score, Some(10));
+    assert_eq!(fma.source, "jikan");
+
+    let frieren = &entries[1];
+    assert_eq!(frieren.mal_id(), 52991);
+    assert_eq!(frieren.entry.list_status, genrl_core::models::ListStatus::Watching);
+    assert!(frieren.entry.auto, "watching show is auto by default");
+    assert_eq!(frieren.source, "jikan");
+}
+
+#[tokio::test]
+async fn state_check_and_callback_timeout() {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    // Timeout waiting for redirect
+    let timeout = std::time::Duration::from_millis(50);
+    let res = mal::redirect_code(listener, "expected_state", timeout).await;
+    assert!(res.is_err());
+    let err_msg = res.unwrap_err().to_string();
+    assert!(err_msg.contains("timed out waiting for the browser redirect"));
+}

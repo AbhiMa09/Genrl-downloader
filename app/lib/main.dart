@@ -23,13 +23,14 @@ void main() {
 }
 
 class GenrlApp extends StatelessWidget {
-  const GenrlApp({super.key});
+  final StateProvider? stateProvider;
+  const GenrlApp({super.key, this.stateProvider});
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => StateProvider()),
+        ChangeNotifierProvider(create: (_) => stateProvider ?? StateProvider()),
       ],
       child: MaterialApp(
         title: 'Genrl Downloader',
@@ -48,10 +49,7 @@ class MainShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final state = context.watch<StateProvider>();
 
-    // Show Detail View overrides main page when an anime is opened
-    if (state.selectedShow != null) {
-      return ShowDetailPage(show: state.selectedShow!);
-    }
+    final isDetailOpen = state.selectedShow != null;
 
     final pages = <Widget>[
       const DashboardPage(),
@@ -78,8 +76,12 @@ class MainShell extends StatelessWidget {
     ];
 
     final activeIndex = state.selectedPageIndex.clamp(0, pages.length - 1);
-    final currentPage = pages[activeIndex];
-    final currentTitle = titles[activeIndex];
+    final currentPage = isDetailOpen
+        ? ShowDetailPage(show: state.selectedShow!)
+        : pages[activeIndex];
+    final currentTitle = isDetailOpen
+        ? 'Anime Detail: ${state.selectedShow!.title}'
+        : titles[activeIndex];
 
     return Scaffold(
       body: Row(

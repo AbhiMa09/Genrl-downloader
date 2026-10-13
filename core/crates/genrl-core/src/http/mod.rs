@@ -326,16 +326,17 @@ impl Gate {
                     });
                     self.record_failure(&state);
                     retry_after
-                }                Ok(Outcome::ServerError { status }) => {
+                }                Ok(Outcome::ServerError { status, body }) => {
                     last_err = Some(Error::Status {
                         status,
                         url: key.clone(),
                         retry_after: None,
+                        body,
                     });
                     self.record_failure(&state);
                     None
                 }
-                Ok(Outcome::ClientError { status }) => {
+                Ok(Outcome::ClientError { status, body }) => {
                     // 4xx is our problem, not the service being down: no retry,
                     // no breaker. (qBittorrent 403 triggers a re-login upstream.)
                     self.record_success(&state);
@@ -343,6 +344,7 @@ impl Gate {
                         status,
                         url: key.clone(),
                         retry_after: None,
+                        body,
                     });
                 }
                 Err(err) => {
@@ -490,8 +492,16 @@ impl Gate {
                 let retry_after = backoff::parse_retry_after(header);
                 Ok(Outcome::RateLimited { retry_after })
             }
-            408 | 425 | 500..=599 => Ok(Outcome::ServerError { status }),
-            _ => Ok(Outcome::ClientError { status }),
+            408 | 425 | 500..=599 => {
+                let body = read_body(resp, cap, url.as_str(), timeout).await.ok();
+                let body_str = body.and_then(|b| String::from_utf8(b).ok());
+                Ok(Outcome::ServerError { status, body: body_str })
+            }
+            _ => {
+                let body = read_body(resp, cap, url.as_str(), timeout).await.ok();
+                let body_str = body.and_then(|b| String::from_utf8(b).ok());
+                Ok(Outcome::ClientError { status, body: body_str })
+            }
         }
     }
 }
@@ -518,9 +528,11 @@ enum Outcome {
     },
     ServerError {
         status: u16,
+        body: Option<String>,
     },
     ClientError {
         status: u16,
+        body: Option<String>,
     },
 }
 

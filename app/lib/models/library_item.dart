@@ -31,6 +31,7 @@ class LibraryShow {
   final String synopsis;
   final String? posterUrl;
   final String? folderPath;
+  final bool auto;
   final List<EpisodeItem> episodes;
 
   const LibraryShow({
@@ -48,8 +49,33 @@ class LibraryShow {
     required this.synopsis,
     this.posterUrl,
     this.folderPath,
+    this.auto = true,
     this.episodes = const [],
   });
+
+  LibraryShow copyWith({
+    bool? auto,
+    String? folderPath,
+  }) {
+    return LibraryShow(
+      malId: malId,
+      title: title,
+      englishTitle: englishTitle,
+      startYear: startYear,
+      totalEpisodes: totalEpisodes,
+      downloadedEpisodes: downloadedEpisodes,
+      watchedEpisodes: watchedEpisodes,
+      score: score,
+      status: status,
+      airingStatus: airingStatus,
+      genres: genres,
+      synopsis: synopsis,
+      posterUrl: posterUrl,
+      folderPath: folderPath ?? this.folderPath,
+      auto: auto ?? this.auto,
+      episodes: episodes,
+    );
+  }
 
   double get downloadPercentage =>
       totalEpisodes > 0 ? (downloadedEpisodes / totalEpisodes).clamp(0.0, 1.0) : 0.0;

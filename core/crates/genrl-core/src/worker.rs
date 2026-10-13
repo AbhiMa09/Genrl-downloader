@@ -247,12 +247,14 @@ impl Engine {
     /// folder is missing; qBittorrent being unreachable is per-job (blocked),
     /// because a running download is not ours to stop.
     pub fn blocking_reason(&self, settings: &Settings) -> Option<String> {
-        let folder = &settings.download_folder;
-        if folder.is_empty() {
-            return Some("no download folder is configured".to_string());
-        }
-        match self.disk.free_bytes(Path::new(folder)) {
-            None => Some(format!("download folder {folder} is missing")),
+        let folder = if settings.download_folder.trim().is_empty() {
+            crate::locations::default_download_dir().display().to_string()
+        } else {
+            settings.download_folder.clone()
+        };
+        let resolved = crate::locations::resolve_home_dir(&folder);
+        match self.disk.free_bytes(&resolved) {
+            None => Some(format!("download folder {} is missing", resolved.display())),
             Some(free) => {
                 let floor = settings.disk_floor_gb.saturating_mul(1024 * 1024 * 1024);
                 if free < floor {
@@ -527,12 +529,42 @@ impl Engine {
             );
         };
 
+        let dl_str = if settings.download_folder.trim().is_empty() {
+            crate::locations::default_download_dir().display().to_string()
+        } else {
+            settings.download_folder.clone()
+        };
+        let download_path = crate::locations::resolve_home_dir(&dl_str);
+        if !download_path.exists() {
+            return self.block(job, &format!("download folder '{}' is missing", download_path.display()));
+        }
+        let check = crate::locations::check_directory(&download_path.to_string_lossy(), false);
+        if !check.writable {
+            return self.block(job, &format!("download folder '{}' is not writable", download_path.display()));
+        }
+        let floor_bytes = settings.disk_floor_gb.saturating_mul(1024 * 1024 * 1024);
+        let torrent_bytes = torrent.size_bytes.max(0) as u64;
+        let required_bytes = torrent_bytes.saturating_add(floor_bytes);
+        if let Some(free) = self.disk.free_bytes(&download_path) {
+            if free < required_bytes {
+                return self.block(job, &format!(
+                    "download folder '{}' has insufficient space: need {} bytes (torrent {} + floor {}), free {} bytes",
+                    download_path.display(),
+                    required_bytes,
+                    torrent_bytes,
+                    floor_bytes,
+                    free
+                ));
+            }
+        }
+
+        let dl_save_path = download_path.display().to_string();
         let client = qbit::Qbit::from_settings(&settings)?;
         match client
             .add(
                 &self.gate,
                 &[torrent.magnet.clone()],
-                Some(&settings.download_folder),
+                Some(&dl_save_path),
                 Some(CATEGORY),
             )
             .await
@@ -708,6 +740,48 @@ impl Engine {
                 job,
                 &format!("{content_path} does not verify against the torrent"),
             );
+        }
+
+        let lib_root = if settings.library_folder.trim().is_empty() {
+            crate::locations::default_library_dir()
+        } else {
+            crate::locations::resolve_home_dir(&settings.library_folder)
+        };
+        let (title, start_year) = self.db.with(|c| {
+            Ok(c.query_row(
+                "SELECT title, start_year FROM shows WHERE mal_id = ?1",
+                [context.mal_id],
+                |r| Ok((r.get::<_, String>(0)?, r.get::<_, Option<i64>>(1)?)),
+            )?)
+        })?;
+        let dest_show_dir = crate::library::resolve_show_folder(
+            &self.db,
+            &lib_root,
+            context.mal_id,
+            &title,
+            start_year,
+        )?;
+
+        if !dest_show_dir.exists() {
+            if let Err(e) = std::fs::create_dir_all(&dest_show_dir) {
+                return self.block(job, &format!("destination folder '{}' could not be created: {e}", dest_show_dir.display()));
+            }
+        }
+        let check = crate::locations::check_directory(&dest_show_dir.to_string_lossy(), false);
+        if !check.writable {
+            return self.block(job, &format!("destination folder '{}' is not writable", dest_show_dir.display()));
+        }
+        let floor_bytes = settings.disk_floor_gb.saturating_mul(1024 * 1024 * 1024);
+        let required_bytes = (size_bytes.max(0) as u64).saturating_add(floor_bytes);
+        if let Some(free) = self.disk.free_bytes(&dest_show_dir) {
+            if free < required_bytes {
+                return self.block(job, &format!(
+                    "destination folder '{}' has insufficient space: need {} bytes, free {} bytes",
+                    dest_show_dir.display(),
+                    required_bytes,
+                    free
+                ));
+            }
         }
 
         let outcome = self
@@ -897,13 +971,14 @@ impl Engine {
         self.db.with(|c| {
             Ok(c
                 .query_row(
-                    "SELECT info_hash, name, magnet FROM torrents WHERE id = ?1",
+                    "SELECT info_hash, name, magnet, size FROM torrents WHERE id = ?1",
                     [torrent_id],
                     |r| {
                         Ok(ChosenTorrent {
                             info_hash: r.get(0)?,
                             name: r.get(1)?,
                             magnet: r.get(2)?,
+                            size_bytes: r.get::<_, i64>(3).unwrap_or(0),
                         })
                     },
                 )
@@ -952,6 +1027,7 @@ struct ChosenTorrent {
     info_hash: String,
     name: String,
     magnet: String,
+    size_bytes: i64,
 }
 
 /// Apply an Inbox answer to the job that asked.

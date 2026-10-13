@@ -868,6 +868,7 @@ dependencies = [
  "clap",
  "genrl-core",
  "rpassword",
+ "rusqlite",
  "serde_json",
  "tokio",
 ]

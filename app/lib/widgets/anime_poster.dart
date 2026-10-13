@@ -25,12 +25,16 @@ class AnimePoster extends StatelessWidget {
         content = Image.network(
           target,
           fit: BoxFit.cover,
+          cacheWidth: 320,
+          cacheHeight: 480,
           errorBuilder: (_, __, ___) => _placeholder(),
         );
       } else {
         content = Image.file(
           File(target),
           fit: BoxFit.cover,
+          cacheWidth: 320,
+          cacheHeight: 480,
           errorBuilder: (_, __, ___) => _placeholder(),
         );
       }

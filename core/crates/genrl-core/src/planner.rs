@@ -88,6 +88,72 @@ impl MalList {
         Ok(serde_json::from_str(&text)?)
     }
 
+    /// Read entries directly from the database's `shows` and `mal_entries` tables.
+    pub fn load_from_db(db: &Db) -> Result<Self> {
+        db.with(|c| {
+            let mut stmt = c.prepare(
+                "SELECT s.mal_id, s.title, s.english_title, m.list_status, m.watched_count,
+                        s.total_episodes, s.start_year, s.auto, s.season, s.episode_offset
+                 FROM shows s
+                 JOIN mal_entries m ON s.mal_id = m.mal_id
+                 ORDER BY s.title ASC"
+            )?;
+            let rows = stmt.query_map([], |r| {
+                let mal_id = r.get::<_, i64>(0)?;
+                let title = r.get::<_, String>(1)?;
+                let english_title = r.get::<_, Option<String>>(2)?;
+                let status_str = r.get::<_, String>(3)?;
+                let watched_count = r.get::<_, i64>(4)?;
+                let total_episodes = r.get::<_, Option<i64>>(5)?;
+                let start_year = r.get::<_, Option<i64>>(6)?;
+                let auto = r.get::<_, i64>(7)? != 0;
+                let season = r.get::<_, Option<i64>>(8)?.unwrap_or(1);
+                let episode_offset = r.get::<_, Option<i64>>(9)?.unwrap_or(0);
+
+                let list_status = match status_str.as_str() {
+                    "watching" => ListStatus::Watching,
+                    "completed" => ListStatus::Completed,
+                    "on_hold" => ListStatus::OnHold,
+                    "dropped" => ListStatus::Dropped,
+                    _ => ListStatus::PlanToWatch,
+                };
+
+                Ok(ListEntry {
+                    mal_id,
+                    title: title.clone(),
+                    english_title,
+                    list_status,
+                    watched_count,
+                    total_episodes,
+                    start_year,
+                    auto,
+                    episode_offset,
+                    names: vec![title],
+                    franchise: mal_id,
+                    season,
+                })
+            })?;
+            let mut entries = Vec::new();
+            for r in rows {
+                entries.push(r?);
+            }
+
+            for entry in &mut entries {
+                if let Ok(mut nstmt) = c.prepare("SELECT name FROM show_names WHERE mal_id = ?1") {
+                    if let Ok(names) = nstmt.query_map([entry.mal_id], |nr| nr.get::<_, String>(0)) {
+                        for name in names.flatten() {
+                            if !entry.names.contains(&name) {
+                                entry.names.push(name);
+                            }
+                        }
+                    }
+                }
+            }
+
+            Ok(MalList { entries })
+        })
+    }
+
     /// Group the entries into season chains, ordered by season.
     pub fn chains(&self) -> Vec<SeasonChain> {
         let mut franchises: Vec<i64> = self.entries.iter().map(|e| e.franchise).collect();
@@ -289,6 +355,78 @@ pub fn confirm(db: &Db, clock: &dyn Clock, list: &MalList) -> Result<usize> {
         )?;
         Ok(())
     })?;
+    Ok(queued)
+}
+
+/// Plan and queue an episode or entire season for a specific show directly.
+pub fn plan_single(
+    db: &Db,
+    clock: &dyn Clock,
+    mal_id: i64,
+    target_episode: Option<f64>,
+) -> Result<usize> {
+    let entry = db.with(|c| {
+        let entry = c.query_row(
+            "SELECT s.mal_id, s.title, s.english_title, s.start_year, s.total_episodes, s.season, s.episode_offset
+             FROM shows s WHERE s.mal_id = ?1",
+            [mal_id],
+            |r| {
+                let id = r.get::<_, i64>(0)?;
+                let title = r.get::<_, String>(1)?;
+                let english = r.get::<_, Option<String>>(2)?;
+                let year = r.get::<_, Option<i64>>(3)?;
+                let total = r.get::<_, Option<i64>>(4)?;
+                let season = r.get::<_, Option<i64>>(5)?.unwrap_or(1);
+                let offset = r.get::<_, Option<i64>>(6)?.unwrap_or(0);
+                Ok(ListEntry {
+                    mal_id,
+                    title: title.clone(),
+                    english_title: english,
+                    list_status: ListStatus::Watching,
+                    watched_count: 0,
+                    total_episodes: total,
+                    start_year: year,
+                    auto: true,
+                    episode_offset: offset,
+                    names: vec![title],
+                    franchise: id,
+                    season,
+                })
+            },
+        )?;
+        Ok(entry)
+    })?;
+
+    upsert_show(db, &entry)?;
+    upsert_names(db, &entry)?;
+
+    let eps_to_queue: Vec<f64> = if let Some(ep) = target_episode {
+        vec![ep]
+    } else {
+        let total = entry.total_episodes.unwrap_or(1);
+        let mut list = Vec::new();
+        for i in 1..=total {
+            let already: i64 = db.with(|c| {
+                Ok(c.query_row(
+                    "SELECT COUNT(*) FROM episodes WHERE mal_id = ?1 AND number = ?2 AND state = 'done'",
+                    rusqlite::params![mal_id, i as f64],
+                    |r| r.get(0),
+                ).unwrap_or(0))
+            })?;
+            if already == 0 {
+                list.push(i as f64);
+            }
+        }
+        list
+    };
+
+    let mut queued = 0;
+    for ep in eps_to_queue {
+        let episode_id = ensure_episode(db, clock, mal_id, ep)?;
+        crate::jobs::enqueue_search(db, clock, episode_id)?;
+        queued += 1;
+    }
+
     Ok(queued)
 }
 

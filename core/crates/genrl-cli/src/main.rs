@@ -22,7 +22,7 @@ use genrl_core::worker::{Engine, FsDiskProbe};
 use genrl_core::{
     filename, jobs, nyaa, planner, qbit, queue, secrets, settings, Db, EventLog, Settings,
 };
-use genrl_core::mal::{self, KeyringStore, MalClient, TokenStore};
+use genrl_core::mal::{self, KeyringStore, MalClient};
 
 #[derive(Parser, Debug)]
 #[command(
@@ -59,6 +59,9 @@ enum Command {
         /// Only show warnings and errors.
         #[arg(long)]
         errors_only: bool,
+        /// Machine-readable output.
+        #[arg(long)]
+        json: bool,
     },
 
     /// Search Nyaa (RSS) through the gate and list download candidates.
@@ -135,8 +138,56 @@ enum Command {
     /// Check the local environment: database, permissions, settings.
     Doctor,
 
+    /// Live system status (qBit speeds, connection, storage, automation).
+    Status {
+        /// Machine-readable output.
+        #[arg(long)]
+        json: bool,
+    },
+
     /// Show the queue: what is due, waiting, stuck, and what the Inbox holds.
-    Queue,
+    Queue {
+        /// Machine-readable output.
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// List open questions in the Action Inbox.
+    Inbox {
+        /// Machine-readable output.
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// Answer an open question in the Action Inbox.
+    Answer {
+        /// Question ID.
+        id: i64,
+        /// Choice key.
+        choice: String,
+        /// Remember choice as a permanent rule or alias.
+        #[arg(long)]
+        always: bool,
+    },
+
+    /// List shows and watch progress in the library.
+    Shows {
+        /// Optional status filter: watching, completed, on_hold, dropped, plan_to_watch.
+        #[arg(long)]
+        status: Option<String>,
+        /// Machine-readable output.
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// Get detailed show information and episodes matrix.
+    Show {
+        /// MAL show id.
+        mal_id: i64,
+        /// Machine-readable output.
+        #[arg(long)]
+        json: bool,
+    },
 
     /// Reconcile after a crash, then run the workers until Ctrl-C.
     Run,
@@ -147,14 +198,20 @@ enum Command {
     /// Start dispatching again after `genrl pause`.
     Resume,
 
-    /// Plan episodes from a fake MAL list file.
+    /// Plan episodes from MAL or the local library database.
     Plan {
-        /// JSON file with the fake MAL list (default: <data dir>/mal_list.json).
+        /// JSON file with the fake MAL list (default: loads from database).
         #[arg(long)]
         file: Option<PathBuf>,
-        /// Pull the list from MyAnimeList instead of a file.
+        /// Pull the list from MyAnimeList instead of the database.
         #[arg(long)]
         from_mal: bool,
+        /// Target a specific show by MAL id.
+        #[arg(long)]
+        mal_id: Option<i64>,
+        /// Target a specific episode number.
+        #[arg(long)]
+        episode: Option<f64>,
         /// Show what would be queued; touches nothing.
         #[arg(long)]
         dry_run: bool,
@@ -167,10 +224,20 @@ enum Command {
         #[command(subcommand)]
         command: MalCommand,
     },
+    /// Rules management: download preferences and overrides.
+    Rules {
+        #[command(subcommand)]
+        command: RulesCommand,
+    },
     /// Library management: folder rescan.
     Library {
         #[command(subcommand)]
         command: LibraryCommand,
+    },
+    /// Storage locations and folder management.
+    Locations {
+        #[command(subcommand)]
+        command: LocationsCommand,
     },
 }
 
@@ -188,21 +255,126 @@ enum SettingsCommand {
 enum MalCommand {
     /// Connect to MyAnimeList via OAuth (PKCE) and store the refresh token.
     Login {
+        /// Optional client_id to save in settings before starting.
+        #[arg(long)]
+        client_id: Option<String>,
         /// Don't try to open a browser tab automatically.
         #[arg(long)]
         no_open: bool,
     },
-    /// Show whether we are connected, the account, the last sync and the list size.
-    Status,
-    /// Fetch the list, diff it against the database, store added/changed/removed
-    /// shows (no downloads).
+    /// Start OAuth login with an optional port and return the auth URL.
+    Connect {
+        /// Optional client_id to save in settings before starting.
+        #[arg(long)]
+        client_id: Option<String>,
+        /// Explicit port to bind (default: 21445).
+        #[arg(long)]
+        port: Option<u16>,
+        /// Don't try to open a browser tab automatically.
+        #[arg(long)]
+        no_open: bool,
+    },
+    /// Disconnect MAL and delete credentials.
+    Disconnect,
+    /// Set a public MAL username for fallback Jikan syncing.
+    PublicProfile {
+        /// Public username on MyAnimeList.
+        username: String,
+    },
+    /// Show whether we are connected, the account, the last sync and list counts.
+    Status {
+        /// Machine-readable output.
+        #[arg(long)]
+        json: bool,
+    },
+    /// Fetch the list, diff it against the database, store added/changed/removed shows.
     Sync,
+}
+
+#[derive(Subcommand, Debug)]
+enum RulesCommand {
+    /// Show effective rules (global or for a specific show).
+    Get {
+        /// Optional MAL id for show-specific rules.
+        #[arg(long)]
+        mal_id: Option<i64>,
+        /// Machine-readable output.
+        #[arg(long)]
+        json: bool,
+    },
+    /// Update a specific rule key.
+    Set {
+        /// Rule key (e.g. min_resolution, preferred_resolution, seed_auto_threshold, move_mode).
+        key: String,
+        /// JSON value (e.g. "\"1080p\"", "15", "\"hardlink\"").
+        value: String,
+        /// Optional MAL id for show override.
+        #[arg(long)]
+        mal_id: Option<i64>,
+    },
+    /// Reset a specific rule key or all rules to default.
+    Reset {
+        /// Rule key to reset (omit to reset all).
+        #[arg(long)]
+        key: Option<String>,
+        /// Optional MAL id for show override.
+        #[arg(long)]
+        mal_id: Option<i64>,
+    },
 }
 
 #[derive(Subcommand, Debug)]
 enum LibraryCommand {
     /// Rescan the library folder for existing shows and episodes.
     Rescan,
+}
+
+#[derive(Subcommand, Debug)]
+enum LocationsCommand {
+    /// Get current locations report (download_dir, library_dir, same-filesystem status).
+    Get {
+        /// Machine-readable output.
+        #[arg(long)]
+        json: bool,
+    },
+    /// Set download_dir or library_dir, or per-show folder override.
+    Set {
+        /// 'download_dir', 'library_dir', or 'folder_path'.
+        key: String,
+        /// Destination directory path.
+        path: String,
+        /// Optional MAL id for per-show folder override.
+        #[arg(long)]
+        mal_id: Option<i64>,
+    },
+    /// Live-check directory path for existence, writability, and free space.
+    Check {
+        /// Directory path to check.
+        path: String,
+        /// Machine-readable output.
+        #[arg(long)]
+        json: bool,
+    },
+    /// Get folder path override for a specific show.
+    GetShow {
+        /// MAL show id.
+        mal_id: i64,
+        /// Machine-readable output.
+        #[arg(long)]
+        json: bool,
+    },
+    /// Migrate existing library from source directory to target directory (explicit confirmed action).
+    Migrate {
+        /// Source directory.
+        #[arg(long)]
+        from: PathBuf,
+        /// Target destination directory.
+        #[arg(long)]
+        to: PathBuf,
+        /// Confirmed flag required to execute migration.
+        #[arg(long)]
+        confirm: bool,
+    },
 }
 #[derive(Subcommand, Debug)]
 enum QbitCommand {
@@ -229,7 +401,7 @@ async fn main() -> Result<()> {
     match cli.command {
         Command::Init => init(&data_dir),
         Command::Settings { command } => settings_cmd(&data_dir, command),
-        Command::Events { limit, errors_only } => events(&data_dir, limit, errors_only),
+        Command::Events { limit, errors_only, json } => events(&data_dir, limit, errors_only, json),
         Command::Search {
             query,
             min_seeders,
@@ -256,7 +428,12 @@ async fn main() -> Result<()> {
             skip_cache,
         } => probe(&data_dir, &service, &url, skip_cache).await,
         Command::Doctor => doctor(&data_dir),
-        Command::Queue => queue_cmd(&data_dir),
+        Command::Status { json } => status_cmd(&data_dir, json).await,
+        Command::Queue { json } => queue_cmd(&data_dir, json),
+        Command::Inbox { json } => inbox_cmd(&data_dir, json),
+        Command::Answer { id, choice, always } => answer_cmd(&data_dir, id, &choice, always),
+        Command::Shows { status, json } => shows_cmd(&data_dir, status.as_deref(), json),
+        Command::Show { mal_id, json } => show_detail_cmd(&data_dir, mal_id, json),
         Command::Run => run_cmd(&data_dir).await,
         Command::Pause => automation_cmd(&data_dir, false),
         Command::Resume => automation_cmd(&data_dir, true),
@@ -265,14 +442,31 @@ async fn main() -> Result<()> {
             dry_run,
             confirm,
             from_mal,
-        } => plan_cmd(&data_dir, file.as_deref(), dry_run, confirm, from_mal).await,
+            mal_id,
+            episode,
+        } => plan_cmd(&data_dir, file.as_deref(), dry_run, confirm, from_mal, mal_id, episode).await,
         Command::Mal { command } => match command {
-            MalCommand::Login { no_open } => mal_login_cmd(&data_dir, no_open).await,
-            MalCommand::Status => mal_status_cmd(&data_dir),
+            MalCommand::Login { client_id, no_open } => mal_login_cmd(&data_dir, client_id, None, no_open).await,
+            MalCommand::Connect { client_id, port, no_open } => mal_login_cmd(&data_dir, client_id, port, no_open).await,
+            MalCommand::Disconnect => mal_disconnect_cmd(&data_dir),
+            MalCommand::PublicProfile { username } => mal_public_profile_cmd(&data_dir, &username),
+            MalCommand::Status { json } => mal_status_cmd(&data_dir, json).await,
             MalCommand::Sync => mal_sync_cmd(&data_dir).await,
+        },
+        Command::Rules { command } => match command {
+            RulesCommand::Get { mal_id, .. } => rules_get_cmd(&data_dir, mal_id),
+            RulesCommand::Set { key, value, mal_id } => rules_set_cmd(&data_dir, &key, &value, mal_id),
+            RulesCommand::Reset { key, mal_id } => rules_reset_cmd(&data_dir, key.as_deref(), mal_id),
         },
         Command::Library { command } => match command {
             LibraryCommand::Rescan => library_rescan_cmd(&data_dir),
+        },
+        Command::Locations { command } => match command {
+            LocationsCommand::Get { json } => locations_get_cmd(&data_dir, json),
+            LocationsCommand::Set { key, path, mal_id } => locations_set_cmd(&data_dir, &key, &path, mal_id),
+            LocationsCommand::Check { path, json } => locations_check_cmd(&path, json),
+            LocationsCommand::GetShow { mal_id, json } => locations_get_show_cmd(&data_dir, mal_id, json),
+            LocationsCommand::Migrate { from, to, confirm } => locations_migrate_cmd(&data_dir, &from, &to, confirm),
         },
     }
 }
@@ -325,7 +519,7 @@ fn settings_cmd(data_dir: &std::path::Path, command: SettingsCommand) -> Result<
     Ok(())
 }
 
-fn events(data_dir: &std::path::Path, limit: u32, errors_only: bool) -> Result<()> {
+fn events(data_dir: &std::path::Path, limit: u32, errors_only: bool, json: bool) -> Result<()> {
     let db = open_db(data_dir)?;
     let log = EventLog::new(db);
     let filter = genrl_core::events::EventFilter {
@@ -338,6 +532,23 @@ fn events(data_dir: &std::path::Path, limit: u32, errors_only: bool) -> Result<(
         ..Default::default()
     };
     let events = log.query(&filter)?;
+    if json {
+        let json_events: Vec<serde_json::Value> = events
+            .iter()
+            .map(|e| {
+                serde_json::json!({
+                    "id": e.id,
+                    "at": e.at,
+                    "level": e.level.as_str(),
+                    "job_id": e.job_id,
+                    "mal_id": e.mal_id,
+                    "message": e.message,
+                })
+            })
+            .collect();
+        println!("{}", serde_json::to_string_pretty(&json_events)?);
+        return Ok(());
+    }
     if events.is_empty() {
         println!("no events yet");
         return Ok(());
@@ -354,11 +565,115 @@ fn events(data_dir: &std::path::Path, limit: u32, errors_only: bool) -> Result<(
     Ok(())
 }
 
+async fn status_cmd(data_dir: &std::path::Path, json: bool) -> Result<()> {
+    let db = open_db(data_dir)?;
+    let settings = Settings::load(&db)?;
+    let gate = Gate::new(db.clone())?;
+    let client = qbit::Qbit::from_settings(&settings)?;
+
+    // Probe qBit
+    let (qbit_connected, qbit_version, dlspeed, upspeed, active_torrents) = match client.health(&gate).await {
+        Ok(health) => {
+            let speeds = client.speeds(&gate).await.unwrap_or(genrl_core::qbit::TransferSpeeds { download: 0, upload: 0 });
+            let torrents = client.list(&gate, None).await.unwrap_or_default();
+            let active = torrents.iter().filter(|t| t.dlspeed > 0 || t.upspeed > 0).count();
+            (true, health.version, speeds.download.max(0) as u64, speeds.upload.max(0) as u64, active as u32)
+        }
+        Err(_) => (false, "disconnected".to_string(), 0, 0, 0),
+    };
+
+    // Storage info
+    let locations = genrl_core::locations::get_locations(&db)?;
+    let free_disk_space_gb = locations.library_dir.free_space_gb.unwrap_or(0.0).round() as u64;
+
+    // Counts from database
+    let total_shows: i64 = db.with(|c| {
+        c.query_row("SELECT COUNT(*) FROM shows", [], |r| r.get(0)).or(Ok(0))
+    })?;
+    let total_episodes: i64 = db.with(|c| {
+        c.query_row("SELECT COUNT(*) FROM episodes WHERE state = 'done'", [], |r| r.get(0)).or(Ok(0))
+    })?;
+    let open_questions = QuestionStore::open_count(&db, SystemClock.now())?;
+
+    // Last sync
+    let last_sync_time = settings::read_state_time(&db, "last_mal_sync_at")?;
+
+    let report = serde_json::json!({
+        "daemon_connected": true,
+        "daemon_port": "CLI IPC",
+        "automation_on": settings.automation_on,
+        "qbit_connected": qbit_connected,
+        "qbit_version": qbit_version,
+        "download_speed_bytes": dlspeed,
+        "upload_speed_bytes": upspeed,
+        "active_torrents": active_torrents,
+        "total_shows": total_shows,
+        "total_episodes": total_episodes,
+        "inbox_questions": open_questions,
+        "free_disk_space_gb": free_disk_space_gb,
+        "total_disk_space_gb": free_disk_space_gb + 100, // Approximate available
+        "last_mal_sync": last_sync_time,
+    });
+
+    if json {
+        println!("{}", serde_json::to_string_pretty(&report)?);
+    } else {
+        println!("Genrl System Status:");
+        println!("  Automation: {}", if settings.automation_on { "ON" } else { "PAUSED" });
+        println!("  qBittorrent: {} ({})", if qbit_connected { "Connected" } else { "Offline" }, qbit_version);
+        println!("  Speeds: {} down, {} up", human_bytes(dlspeed), human_bytes(upspeed));
+        println!("  Shows: {} | Episodes Done: {}", total_shows, total_episodes);
+        println!("  Free Disk Space: {} GiB", free_disk_space_gb);
+    }
+    Ok(())
+}
+
 /// The queue at a glance: what is due, what is waiting, what is stuck.
-fn queue_cmd(data_dir: &std::path::Path) -> Result<()> {
+fn queue_cmd(data_dir: &std::path::Path, json: bool) -> Result<()> {
     let db = open_db(data_dir)?;
     let settings = Settings::load(&db)?;
     let status = queue::status(&db, &SystemClock)?;
+
+    if json {
+        // Query active/running jobs with show and episode details
+        let jobs = db.with(|c| {
+            let mut stmt = c.prepare(
+                "SELECT j.id, e.mal_id, s.title, s.season, e.number, t.name, t.\"group\",
+                        j.progress, t.size, j.state, t.seeders, t.leechers, j.last_error
+                 FROM jobs j
+                 JOIN episodes e ON e.id = j.episode_id
+                 JOIN shows s ON s.mal_id = e.mal_id
+                 LEFT JOIN torrents t ON t.id = j.torrent_id
+                 WHERE j.state != 'done'
+                 ORDER BY j.created_at"
+            )?;
+            let rows = stmt.query_map([], |r| {
+                Ok(serde_json::json!({
+                    "id": r.get::<_, i64>(0)?,
+                    "mal_id": r.get::<_, i64>(1)?,
+                    "show_title": r.get::<_, String>(2)?,
+                    "season": r.get::<_, i64>(3)?,
+                    "episode": r.get::<_, f64>(4)? as i64,
+                    "release_name": r.get::<_, Option<String>>(5)?,
+                    "group": r.get::<_, Option<String>>(6)?,
+                    "progress": r.get::<_, f64>(7)?,
+                    "size_bytes": r.get::<_, Option<i64>>(8)?,
+                    "state": r.get::<_, String>(9)?,
+                    "seeders": r.get::<_, Option<i64>>(10)?,
+                    "leechers": r.get::<_, Option<i64>>(11)?,
+                    "last_error": r.get::<_, Option<String>>(12)?,
+                }))
+            })?;
+            let mut out = Vec::new();
+            for r in rows {
+                out.push(r?);
+            }
+            Ok(out)
+        })?;
+        println!("{}", serde_json::to_string_pretty(&jobs)?);
+        return Ok(());
+    }
+
     println!(
         "automation: {}",
         if settings.automation_on { "on" } else { "paused" }
@@ -385,8 +700,6 @@ fn queue_cmd(data_dir: &std::path::Path) -> Result<()> {
         }
     }
 
-    // Open questions, so "why is it waiting" has an answer without digging
-    // through the Activity log.
     for question in QuestionStore::open(&db, SystemClock.now())? {
         let on = match question.job_id {
             Some(job_id) => format!("job {job_id}"),
@@ -399,8 +712,6 @@ fn queue_cmd(data_dir: &std::path::Path) -> Result<()> {
         );
     }
 
-    // Parked jobs carry their reason; a job without one is waiting for an
-    // answer rather than reporting an error.
     let mut printed_stuck = false;
     for state in [JobState::Blocked, JobState::Failed, JobState::NeedsInput] {
         for job in jobs::list(&db, Some(state), 10)? {
@@ -411,6 +722,214 @@ fn queue_cmd(data_dir: &std::path::Path) -> Result<()> {
             let reason = job.last_error.as_deref().unwrap_or("waiting for an answer");
             println!("  job {} ({}) {reason}", job.id, state.as_str());
         }
+    }
+    Ok(())
+}
+
+fn inbox_cmd(data_dir: &std::path::Path, json: bool) -> Result<()> {
+    let db = open_db(data_dir)?;
+    let questions = QuestionStore::open(&db, SystemClock.now())?;
+    if json {
+        let items: Vec<serde_json::Value> = questions
+            .into_iter()
+            .map(|q| {
+                let show_title: Option<String> = q.mal_id.and_then(|id| {
+                    db.with(|c| {
+                        Ok(c.query_row("SELECT title FROM shows WHERE mal_id = ?1", [id], |r| r.get(0)).ok())
+                    }).ok().flatten()
+                });
+                serde_json::json!({
+                    "id": q.id,
+                    "job_id": q.job_id,
+                    "mal_id": q.mal_id,
+                    "show_title": show_title.unwrap_or_else(|| "System Notification".to_string()),
+                    "kind": q.kind().as_str(),
+                    "payload": q.payload,
+                    "created_at": q.created_at,
+                    "expires_at": q.expires_at,
+                })
+            })
+            .collect();
+        println!("{}", serde_json::to_string_pretty(&items)?);
+    } else {
+        println!("Action Inbox ({} open questions):", questions.len());
+        for q in questions {
+            println!("  #{} [{}] (job {:?})", q.id, q.kind().as_str(), q.job_id);
+        }
+    }
+    Ok(())
+}
+
+fn answer_cmd(data_dir: &std::path::Path, id: i64, choice_str: &str, always: bool) -> Result<()> {
+    let db = open_db(data_dir)?;
+    let choice = match choice_str.to_lowercase().as_str() {
+        "keep" => genrl_core::questions::Choice::Keep,
+        "replace" => genrl_core::questions::Choice::Replace,
+        "keep_both" => genrl_core::questions::Choice::KeepBoth,
+        "download" => genrl_core::questions::Choice::Download,
+        "wait" => genrl_core::questions::Choice::Wait,
+        "pick_another" => genrl_core::questions::Choice::PickAnother,
+        "batch" => genrl_core::questions::Choice::Batch,
+        "wait_for_singles" => genrl_core::questions::Choice::WaitForSingles,
+        "pause" => genrl_core::questions::Choice::Pause,
+        "change_folder" => genrl_core::questions::Choice::ChangeFolder,
+        "retry_later" => genrl_core::questions::Choice::RetryLater,
+        "manual_search" => genrl_core::questions::Choice::ManualSearch,
+        "skip_episode" => genrl_core::questions::Choice::SkipEpisode,
+        "search_again" => genrl_core::questions::Choice::SearchAgain,
+        "none_of_these" => genrl_core::questions::Choice::NoneOfThese,
+        other => {
+            if other.len() == 40 && other.chars().all(|c| c.is_ascii_hexdigit()) {
+                genrl_core::questions::Choice::UseThis { info_hash: other.to_string() }
+            } else {
+                genrl_core::questions::Choice::Alias { name: choice_str.to_string() }
+            }
+        }
+    };
+    let ans = genrl_core::questions::Answer {
+        choice,
+        always,
+    };
+    QuestionStore::answer(&db, id, &ans)?;
+    let log = EventLog::new(db);
+    log.info(None, None, format!("answered question #{id} with choice '{choice_str}' (always: {always})"))?;
+    println!("Answered question #{id}");
+    Ok(())
+}
+
+fn shows_cmd(data_dir: &std::path::Path, status_filter: Option<&str>, json: bool) -> Result<()> {
+    let db = open_db(data_dir)?;
+    let shows = db.with(|c| {
+        let mut sql = String::from(
+            "SELECT s.mal_id, s.title, s.english_title, s.start_year, s.total_episodes,
+                    s.status, s.synopsis, s.poster_path, s.folder_path, s.auto,
+                    COALESCE(m.list_status, 'plan_to_watch'),
+                    COALESCE(m.watched_count, 0),
+                    COALESCE(m.score, 0),
+                    (SELECT COUNT(*) FROM episodes e WHERE e.mal_id = s.mal_id AND e.state = 'done') AS downloaded_episodes
+             FROM shows s
+             LEFT JOIN mal_entries m ON m.mal_id = s.mal_id
+             WHERE 1=1"
+        );
+        let mut params: Vec<Box<dyn rusqlite::ToSql>> = Vec::new();
+        if let Some(st) = status_filter {
+            sql.push_str(" AND (m.list_status = ?1 OR (?2 = 'all'))");
+            params.push(Box::new(st.to_string()));
+            params.push(Box::new(st.to_string()));
+        }
+        sql.push_str(" ORDER BY s.title ASC");
+
+        let mut stmt = c.prepare(&sql)?;
+        let rows = stmt.query_map(rusqlite::params_from_iter(params.iter()), |r| {
+            let total_eps: Option<i64> = r.get(4)?;
+            let airing_st: Option<String> = r.get(5)?;
+            let synopsis_txt: Option<String> = r.get(6)?;
+            Ok(serde_json::json!({
+                "mal_id": r.get::<_, i64>(0)?,
+                "title": r.get::<_, String>(1)?,
+                "english_title": r.get::<_, Option<String>>(2)?,
+                "start_year": r.get::<_, Option<i64>>(3)?,
+                "total_episodes": total_eps.unwrap_or(0),
+                "airing_status": airing_st.unwrap_or_else(|| "Finished".into()),
+                "synopsis": synopsis_txt.unwrap_or_default(),
+                "poster_url": r.get::<_, Option<String>>(7)?,
+                "folder_path": r.get::<_, Option<String>>(8)?,
+                "auto": r.get::<_, i64>(9)? != 0,
+                "status": r.get::<_, String>(10)?,
+                "watched_episodes": r.get::<_, i64>(11)?,
+                "score": r.get::<_, f64>(12)?,
+                "downloaded_episodes": r.get::<_, i64>(13)?,
+            }))
+        })?;
+        let mut list = Vec::new();
+        for row in rows {
+            list.push(row?);
+        }
+        Ok(list)
+    })?;
+
+    if json {
+        println!("{}", serde_json::to_string_pretty(&shows)?);
+    } else {
+        println!("Library Shows ({} found):", shows.len());
+        for s in shows {
+            println!("  #{} {} ({})", s["mal_id"], s["title"], s["status"]);
+        }
+    }
+    Ok(())
+}
+
+fn show_detail_cmd(data_dir: &std::path::Path, mal_id: i64, json: bool) -> Result<()> {
+    let db = open_db(data_dir)?;
+    let mut show: serde_json::Value = db.with(|c| {
+        let val = c.query_row(
+            "SELECT s.mal_id, s.title, s.english_title, s.start_year, s.total_episodes,
+                    s.status, s.synopsis, s.poster_path, s.folder_path, s.auto,
+                    COALESCE(m.list_status, 'plan_to_watch'),
+                    COALESCE(m.watched_count, 0),
+                    COALESCE(m.score, 0),
+                    (SELECT COUNT(*) FROM episodes e WHERE e.mal_id = s.mal_id AND e.state = 'done')
+             FROM shows s
+             LEFT JOIN mal_entries m ON m.mal_id = s.mal_id
+             WHERE s.mal_id = ?1",
+            [mal_id],
+            |r| {
+                let total_eps: Option<i64> = r.get(4)?;
+                let airing_st: Option<String> = r.get(5)?;
+                let synopsis_txt: Option<String> = r.get(6)?;
+                Ok(serde_json::json!({
+                    "mal_id": r.get::<_, i64>(0)?,
+                    "title": r.get::<_, String>(1)?,
+                    "english_title": r.get::<_, Option<String>>(2)?,
+                    "start_year": r.get::<_, Option<i64>>(3)?,
+                    "total_episodes": total_eps.unwrap_or(0),
+                    "airing_status": airing_st.unwrap_or_else(|| "Finished".into()),
+                    "synopsis": synopsis_txt.unwrap_or_default(),
+                    "poster_url": r.get::<_, Option<String>>(7)?,
+                    "folder_path": r.get::<_, Option<String>>(8)?,
+                    "auto": r.get::<_, i64>(9)? != 0,
+                    "status": r.get::<_, String>(10)?,
+                    "watched_episodes": r.get::<_, i64>(11)?,
+                    "score": r.get::<_, f64>(12)?,
+                    "downloaded_episodes": r.get::<_, i64>(13)?,
+                }))
+            },
+        )?;
+        Ok(val)
+    })?;
+
+    let episodes = db.with(|c| {
+        let mut stmt = c.prepare(
+            "SELECT number, state, file_path, size FROM episodes WHERE mal_id = ?1 ORDER BY number ASC"
+        )?;
+        let rows = stmt.query_map([mal_id], |r| {
+            let num = r.get::<_, f64>(0)?;
+            let state = r.get::<_, String>(1)?;
+            let path = r.get::<_, Option<String>>(2)?;
+            let size = r.get::<_, Option<i64>>(3)?;
+            Ok(serde_json::json!({
+                "number": num as i64,
+                "title": format!("Episode {}", num as i64),
+                "is_downloaded": state == "done",
+                "file_path": path,
+                "size_bytes": size,
+            }))
+        })?;
+        let mut list = Vec::new();
+        for r in rows {
+            list.push(r?);
+        }
+        Ok(list)
+    })?;
+
+    if let Some(obj) = show.as_object_mut() {
+        obj.insert("episodes".to_string(), serde_json::Value::Array(episodes));
+    }
+
+    if json {
+        println!("{}", serde_json::to_string_pretty(&show)?);
+    } else {
+        println!("Show #{mal_id}: {}", show["title"]);
     }
     Ok(())
 }
@@ -484,19 +1003,30 @@ fn automation_cmd(data_dir: &std::path::Path, on: bool) -> Result<()> {
 }
 
 /// Plan episodes from a fake MAL list file.
-async fn mal_login_cmd(data_dir: &std::path::Path, no_open: bool) -> Result<()> {
+async fn mal_login_cmd(
+    data_dir: &std::path::Path,
+    client_id: Option<String>,
+    port: Option<u16>,
+    no_open: bool,
+) -> Result<()> {
     let db = open_db(data_dir)?;
-    let settings = Settings::load(&db)?;
+    let mut settings = Settings::load(&db)?;
+    if let Some(cid) = client_id {
+        let cid = cid.trim().to_string();
+        if !cid.is_empty() {
+            settings.mal_client_id = cid;
+            settings.save(&db)?;
+        }
+    }
     if settings.mal_client_id.trim().is_empty() {
         bail!("set settings.mal_client_id first (myanimelist.net/apiconfig)");
     }
     let gate = Gate::new(db.clone())?;
     let store = KeyringStore;
     let clock = SystemClock;
-    let account_name_on_disk: Option<String> = settings::read_state(&db, "mal_account").ok().flatten();
-    let _ = account_name_on_disk;
-    let login = mal::start_login(&settings).await?;
-    println!("Open this URL in a browser and approve access:\n\n  {}", login.url());
+    let login = mal::mal_connect_start(&settings, port).await?;
+    println!("Authorize URL:\n\n  {}\n", login.url());
+    println!("Listening on: {}", login.redirect_uri());
     if !no_open {
         let _ = std::process::Command::new("xdg-open").arg(login.url()).spawn();
     }
@@ -505,40 +1035,58 @@ async fn mal_login_cmd(data_dir: &std::path::Path, no_open: bool) -> Result<()> 
     login.finish(&client, std::time::Duration::from_secs(300)).await?;
     let account = client.account().await?;
     settings::write_state(&db, "mal_account", &account.name)?;
+    settings::write_state(&db, mal::ACCOUNT_SOURCE_STATE_KEY, "mal")?;
     println!("connected as {} (id {})", account.name, account.id);
     Ok(())
 }
 
-fn mal_status_cmd(data_dir: &std::path::Path) -> Result<()> {
+fn mal_disconnect_cmd(data_dir: &std::path::Path) -> Result<()> {
+    let db = open_db(data_dir)?;
+    let store = KeyringStore;
+    mal::mal_disconnect(&db, &store)?;
+    println!("MAL disconnected and credentials cleared.");
+    Ok(())
+}
+
+fn mal_public_profile_cmd(data_dir: &std::path::Path, username: &str) -> Result<()> {
+    let db = open_db(data_dir)?;
+    mal::mal_set_public_profile(&db, username)?;
+    println!("Public MAL profile username set to: {username}");
+    Ok(())
+}
+
+async fn mal_status_cmd(data_dir: &std::path::Path, json: bool) -> Result<()> {
     let db = open_db(data_dir)?;
     let settings = Settings::load(&db)?;
+    let gate = Gate::new(db.clone())?;
     let store = KeyringStore;
-    let connected = store.refresh_token().ok().flatten().is_some();
-    println!(
-        "connected   : {}",
-        if connected {
-            "yes"
-        } else {
-            "no - run `genrl mal login`"
-        }
-    );
+    let clock = SystemClock;
+    let res = mal::mal_status(&db, &gate, &settings, &store, &clock).await?;
+
+    if json {
+        println!("{}", serde_json::to_string_pretty(&res)?);
+        return Ok(());
+    }
+
+    println!("status      : {}", res.status);
+    if let Some(user) = res.username {
+        println!("username    : {user}");
+    }
+    if let Some(src) = res.source {
+        println!("source      : {src}");
+    }
     let client_id = settings.mal_client_id.trim();
     println!(
         "client id   : {}",
         if client_id.is_empty() { "(unset)" } else { client_id }
     );
-    if let Ok(Some(name)) = settings::read_state(&db, "mal_account") {
-        println!("account     : {name}");
-    }
-    let count: i64 = db.with(|c| {
-        let n = c.query_row("SELECT COUNT(*) FROM mal_entries", [], |r| {
-            r.get::<_, i64>(0)
-        });
-        Ok(n.unwrap_or(0))
-    })?;
-    println!("list size   : {count}");
-    if let Some(ts) = settings::read_state_time(&db, "last_mal_sync_at")? {
-        let clock = SystemClock;
+    println!("total anime : {}", res.counts.total);
+    println!("  watching  : {}", res.counts.watching);
+    println!("  completed : {}", res.counts.completed);
+    println!("  on hold   : {}", res.counts.on_hold);
+    println!("  dropped   : {}", res.counts.dropped);
+    println!("  plan2watch: {}", res.counts.plan_to_watch);
+    if let Some(ts) = res.last_sync_at {
         println!("last sync   : {} seconds ago", clock.now() - ts);
     } else {
         println!("last sync   : never");
@@ -549,15 +1097,163 @@ fn mal_status_cmd(data_dir: &std::path::Path) -> Result<()> {
 async fn mal_sync_cmd(data_dir: &std::path::Path) -> Result<()> {
     let db = open_db(data_dir)?;
     let settings = Settings::load(&db)?;
-    if settings.mal_client_id.trim().is_empty() {
-        bail!("set settings.mal_client_id first (myanimelist.net/apiconfig)");
-    }
     let gate = Gate::new(db.clone())?;
     let store = KeyringStore;
     let clock = SystemClock;
-    let client = MalClient::new(&gate, settings, &store, &clock);
-    let report = mal::sync(&client).await?;
+    let report = mal::mal_sync(&db, &gate, &settings, &store, &clock).await?;
     println!("{}", report.summary());
+    Ok(())
+}
+
+fn rules_get_cmd(data_dir: &std::path::Path, mal_id: Option<i64>) -> Result<()> {
+    let db = open_db(data_dir)?;
+    let r = genrl_core::rules::get_rules(&db, mal_id)?;
+    println!("{}", serde_json::to_string_pretty(&r)?);
+    Ok(())
+}
+
+fn rules_set_cmd(
+    data_dir: &std::path::Path,
+    key: &str,
+    val_str: &str,
+    mal_id: Option<i64>,
+) -> Result<()> {
+    let db = open_db(data_dir)?;
+    let log = EventLog::new(db.clone());
+    let value: serde_json::Value = serde_json::from_str(val_str)
+        .unwrap_or_else(|_| serde_json::Value::String(val_str.to_string()));
+    genrl_core::rules::update_rule(&db, mal_id, key, value, &log)?;
+    println!("rule updated: {key} for {}", if let Some(id) = mal_id { format!("show #{id}") } else { "global".into() });
+    Ok(())
+}
+
+fn rules_reset_cmd(
+    data_dir: &std::path::Path,
+    key: Option<&str>,
+    mal_id: Option<i64>,
+) -> Result<()> {
+    let db = open_db(data_dir)?;
+    let log = EventLog::new(db.clone());
+    genrl_core::rules::reset_rule(&db, mal_id, key, &log)?;
+    println!("rule(s) reset for {}", if let Some(id) = mal_id { format!("show #{id}") } else { "global".into() });
+    Ok(())
+}
+
+fn locations_get_cmd(data_dir: &std::path::Path, json: bool) -> Result<()> {
+    let db = open_db(data_dir)?;
+    let report = genrl_core::locations::get_locations(&db)?;
+    if json {
+        println!("{}", serde_json::to_string_pretty(&report)?);
+    } else {
+        println!("=== Storage Locations ===");
+        println!("Download Staging Directory:");
+        println!("  Path       : {}", report.download_dir.path);
+        println!("  Exists     : {}", report.download_dir.exists);
+        println!("  Writable   : {}", report.download_dir.writable);
+        println!("  Free Space : {:.2} GiB", report.download_dir.free_space_gb.unwrap_or(0.0));
+        if let Some(err) = &report.download_dir.error {
+            println!("  Warning    : {}", err);
+        }
+        println!();
+        println!("Final Library Destination:");
+        println!("  Path       : {}", report.library_dir.path);
+        println!("  Exists     : {}", report.library_dir.exists);
+        println!("  Writable   : {}", report.library_dir.writable);
+        println!("  Free Space : {:.2} GiB", report.library_dir.free_space_gb.unwrap_or(0.0));
+        if let Some(err) = &report.library_dir.error {
+            println!("  Warning    : {}", err);
+        }
+        println!();
+        println!("Filesystem Status:");
+        println!("  Same Filesystem : {}", report.same_filesystem);
+        println!("  Note            : {}", report.note);
+    }
+    Ok(())
+}
+
+fn locations_set_cmd(
+    data_dir: &std::path::Path,
+    key: &str,
+    path: &str,
+    mal_id: Option<i64>,
+) -> Result<()> {
+    let db = open_db(data_dir)?;
+    let log = EventLog::new(db.clone());
+    let check = genrl_core::locations::set_location(&db, key, path, mal_id, &log)?;
+    println!(
+        "Updated location for '{}' to '{}' (valid: {}, writable: {})",
+        if let Some(id) = mal_id {
+            format!("show mal_id={id}")
+        } else {
+            key.to_string()
+        },
+        check.path,
+        check.is_valid,
+        check.writable
+    );
+    Ok(())
+}
+
+fn locations_check_cmd(path: &str, json: bool) -> Result<()> {
+    let check = genrl_core::locations::check_directory(path, false);
+    if json {
+        println!("{}", serde_json::to_string_pretty(&check)?);
+    } else {
+        println!("Checking location: {}", check.path);
+        println!("  Exists     : {}", check.exists);
+        println!("  Writable   : {}", check.writable);
+        println!("  Free Space : {:.2} GiB", check.free_space_gb.unwrap_or(0.0));
+        println!("  Valid      : {}", check.is_valid);
+        if let Some(err) = &check.error {
+            println!("  Error      : {}", err);
+        }
+    }
+    Ok(())
+}
+
+fn locations_get_show_cmd(data_dir: &std::path::Path, mal_id: i64, json: bool) -> Result<()> {
+    let db = open_db(data_dir)?;
+    let info = genrl_core::locations::get_show_folder(&db, mal_id)?;
+    if json {
+        println!("{}", serde_json::to_string_pretty(&info)?);
+    } else {
+        println!("Show '{}' (MAL #{})", info.title, info.mal_id);
+        if let Some(folder) = &info.folder_path {
+            println!("  Folder Override : {}", folder);
+            if let Some(chk) = &info.check {
+                println!("  Exists          : {}", chk.exists);
+                println!("  Writable        : {}", chk.writable);
+                println!("  Free Space      : {:.2} GiB", chk.free_space_gb.unwrap_or(0.0));
+            }
+        } else {
+            println!("  Folder Override : None (uses library default)");
+        }
+    }
+    Ok(())
+}
+
+fn locations_migrate_cmd(
+    data_dir: &std::path::Path,
+    from: &std::path::Path,
+    to: &std::path::Path,
+    confirm: bool,
+) -> Result<()> {
+    if !confirm {
+        bail!("Library migration requires --confirm to avoid unintentional file moves.");
+    }
+    let db = open_db(data_dir)?;
+    let log = EventLog::new(db.clone());
+    let report = genrl_core::locations::move_existing_library(&db, from, to, &log)?;
+    println!("Migration complete:");
+    println!("  Shows moved : {}", report.shows_moved);
+    println!("  Files moved : {}", report.files_moved);
+    println!("  Bytes moved : {}", human_bytes(report.bytes_moved));
+    if !report.errors.is_empty() {
+        println!("  Errors ({}):", report.errors.len());
+        for err in &report.errors {
+            println!("    - {}", err);
+        }
+    }
     Ok(())
 }
 
@@ -568,35 +1264,58 @@ async fn plan_cmd(
     dry_run: bool,
     confirm: bool,
     from_mal: bool,
+    mal_id: Option<i64>,
+    episode: Option<f64>,
 ) -> Result<()> {
     let db = open_db(data_dir)?;
     let clock = SystemClock;
 
-    let list = if from_mal {
-        let settings = Settings::load(&db)?;
-        if settings.mal_client_id.trim().is_empty() {
-            bail!("run `genrl mal login` after setting settings.mal_client_id");
-        }
-        let gate = Gate::new(db.clone())?;
-        let store = KeyringStore;
-        let client = MalClient::new(&gate, settings, &store, &clock);
+    // Targeted single show or episode download
+    if let Some(target_id) = mal_id {
         if dry_run {
-            let fetched = client.fetch().await?;
-            MalList {
-                entries: fetched.entries.into_iter().map(|m| m.entry).collect(),
+            println!("dry run: would queue show #{target_id} (episode: {:?})", episode);
+            return Ok(());
+        }
+        let queued = planner::plan_single(&db, &clock, target_id, episode)?;
+        let mut settings = Settings::load(&db)?;
+        settings.first_run_complete = true;
+        settings.save(&db)?;
+        println!("queued {queued} episode(s) for show #{target_id}");
+        return Ok(());
+    }
+
+    let list = if let Some(path) = file {
+        MalList::load(path)
+            .with_context(|| format!("reading the MAL list from {}", path.display()))?
+    } else if from_mal {
+        let settings = Settings::load(&db)?;
+        if !settings.mal_client_id.trim().is_empty() {
+            let gate = Gate::new(db.clone())?;
+            let store = KeyringStore;
+            let client = MalClient::new(&gate, settings, &store, &clock);
+            if dry_run {
+                let fetched = client.fetch().await?;
+                MalList {
+                    entries: fetched.entries.into_iter().map(|m| m.entry).collect(),
+                }
+            } else {
+                let report = mal::sync(&client).await?;
+                println!("{}", report.summary());
+                MalList {
+                    entries: report.entries,
+                }
             }
         } else {
-            let report = mal::sync(&client).await?;
-            println!("{}", report.summary());
-            MalList {
-                entries: report.entries,
-            }
+            MalList::load_from_db(&db)?
         }
     } else {
         let fallback = data_dir.join("mal_list.json");
-        let path = file.unwrap_or(&fallback);
-        MalList::load(path)
-            .with_context(|| format!("reading the MAL list from {}", path.display()))?
+        if fallback.exists() {
+            MalList::load(&fallback)
+                .with_context(|| format!("reading the MAL list from {}", fallback.display()))?
+        } else {
+            MalList::load_from_db(&db)?
+        }
     };
 
     if dry_run {

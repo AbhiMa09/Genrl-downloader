@@ -6,6 +6,7 @@ import '../theme/colors.dart';
 import '../theme/typography.dart';
 import '../widgets/metric_card.dart';
 import '../widgets/anime_poster.dart';
+import '../widgets/state_views.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
@@ -15,11 +16,24 @@ class DashboardPage extends StatelessWidget {
     final state = context.watch<StateProvider>();
     final status = state.status;
 
+    if (state.isLoadingStatus && state.queue.isEmpty && state.shows.isEmpty && state.coreError == null) {
+      return const Center(
+        child: LoadingStateView(message: 'Querying system telemetry from genrl core...'),
+      );
+    }
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (state.coreError != null)
+            ErrorStateView(
+              title: 'Core Engine Unreachable',
+              message: state.coreError!,
+              onRetry: () => state.refreshAll(),
+              retryLabel: 'Retry Connection',
+            ),
           // 1. Action & Command Bar
           Container(
             padding: const EdgeInsets.all(14),
@@ -140,7 +154,7 @@ class DashboardPage extends StatelessWidget {
                             size: 15, color: ObsidianColors.primary),
                         const SizedBox(width: 6),
                         Text(
-                          '24 Monitored Shows',
+                          '${status.totalShows} Monitored Shows',
                           style: ObsidianTypography.monoCode(
                             color: ObsidianColors.onSurfaceVariant,
                           ),
@@ -155,7 +169,9 @@ class DashboardPage extends StatelessWidget {
                             size: 15, color: ObsidianColors.secondary),
                         const SizedBox(width: 6),
                         Text(
-                          'Next Release: Sousou no Frieren Ep 28',
+                          state.shows.isNotEmpty
+                              ? 'Latest: ${state.shows.first.title}'
+                              : 'No shows indexed yet',
                           style: ObsidianTypography.monoCode(
                             color: ObsidianColors.primaryFixed,
                           ),
@@ -319,43 +335,55 @@ class DashboardPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 14),
 
-                Row(
-                  children: state.shows.take(5).map((show) {
-                    return Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 6),
-                        child: InkWell(
-                          onTap: () => state.openShowDetail(show),
-                          borderRadius: BorderRadius.circular(8),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Anime Poster Thumbnail (2:3 aspect ratio)
-                              AnimePoster(
-                                urlOrPath: show.posterUrl,
-                                aspectRatio: 2 / 3,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                show.title,
-                                style: ObsidianTypography.bodySm(
-                                    color: ObsidianColors.onSurface),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              Text(
-                                '${show.downloadedEpisodes}/${show.totalEpisodes} Ep • ${show.startYear}',
-                                style: ObsidianTypography.monoCode(
-                                    color: ObsidianColors.outline),
-                              ),
-                            ],
+                if (state.shows.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Center(
+                      child: Text(
+                        'No organized shows discovered yet. Run a disk scan or connect MAL to populate.',
+                        style: ObsidianTypography.bodyMd(
+                            color: ObsidianColors.outline),
+                      ),
+                    ),
+                  )
+                else
+                  Row(
+                    children: state.shows.take(5).map((show) {
+                      return Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                          child: InkWell(
+                            onTap: () => state.openShowDetail(show),
+                            borderRadius: BorderRadius.circular(8),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Anime Poster Thumbnail (2:3 aspect ratio)
+                                AnimePoster(
+                                  urlOrPath: show.posterUrl,
+                                  aspectRatio: 2 / 3,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  show.title,
+                                  style: ObsidianTypography.bodySm(
+                                      color: ObsidianColors.onSurface),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                Text(
+                                  '${show.downloadedEpisodes}/${show.totalEpisodes} Ep • ${show.startYear}',
+                                  style: ObsidianTypography.monoCode(
+                                      color: ObsidianColors.outline),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    );
-                  }).toList(),
-                ),
+                      );
+                    }).toList(),
+                  ),
               ],
             ),
           ),

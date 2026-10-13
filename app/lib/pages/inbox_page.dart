@@ -4,6 +4,7 @@ import '../models/inbox_item.dart';
 import '../services/state_provider.dart';
 import '../theme/colors.dart';
 import '../theme/typography.dart';
+import '../widgets/state_views.dart';
 
 class InboxPage extends StatelessWidget {
   const InboxPage({super.key});
@@ -33,27 +34,20 @@ class InboxPage extends StatelessWidget {
           ),
           const SizedBox(height: 20),
 
-          if (state.inbox.isEmpty)
-            Container(
-              padding: const EdgeInsets.all(48),
-              decoration: BoxDecoration(
-                color: ObsidianColors.surfaceContainerLow,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: ObsidianColors.border),
-              ),
-              child: Center(
-                child: Column(
-                  children: [
-                    const Icon(Icons.check_circle_outline_rounded,
-                        size: 48, color: ObsidianColors.success),
-                    const SizedBox(height: 12),
-                    Text(
-                      'All caught up! No pending questions in your Inbox.',
-                      style: ObsidianTypography.bodyMd(),
-                    ),
-                  ],
-                ),
-              ),
+          if (state.inboxError != null)
+            ErrorStateView(
+              title: 'Inbox Query Error',
+              message: state.inboxError!,
+              onRetry: () => state.refreshInbox(),
+              retryLabel: 'Retry Inbox',
+            )
+          else if (state.isLoadingInbox && state.inbox.isEmpty)
+            const LoadingStateView(message: 'Querying pending questions from core engine...')
+          else if (state.inbox.isEmpty)
+            const EmptyStateView(
+              icon: Icons.check_circle_outline_rounded,
+              title: 'All Caught Up!',
+              description: 'No pending questions in your Inbox. Automation proceeds autonomously without blocking.',
             )
           else
             ...state.inbox.map((question) {

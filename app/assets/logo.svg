@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#141822"/>
+      <stop offset="50%" stop-color="#0f1219"/>
+      <stop offset="100%" stop-color="#090b10"/>
+    </linearGradient>
+
+    <!-- Border Glow Gradient -->
+    <linearGradient id="borderGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.8"/>
+      <stop offset="50%" stop-color="#6366f1" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#06b6d4" stop-opacity="0.6"/>
+    </linearGradient>
+
+    <!-- Core Emblem Gradient (Obsidian Violet to Cyan) -->
+    <linearGradient id="coreViolet" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%" stop-color="#c4b5fd"/>
+      <stop offset="35%" stop-color="#8b5cf6"/>
+      <stop offset="80%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#06b6d4"/>
+    </linearGradient>
+
+    <!-- Inner Core Gradient -->
+    <linearGradient id="glowLinear" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#a78bfa"/>
+    </linearGradient>
+
+    <!-- Ambient Glow Filter -->
+    <filter id="violetGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="16" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="softShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.6"/>
+    </filter>
+  </defs>
+
+  <!-- Base Icon Container (Linux App Icon Standard Rounded Squircle) -->
+  <rect x="24" y="24" width="464" height="464" rx="104" fill="url(#bgGradient)" stroke="url(#borderGradient)" stroke-width="4" filter="url(#softShadow)"/>
+
+  <!-- Subtle Internal Grid / Tech Rings -->
+  <circle cx="256" cy="256" r="176" fill="none" stroke="#8b5cf6" stroke-opacity="0.08" stroke-width="2" stroke-dasharray="8 8"/>
+  <circle cx="256" cy="256" r="132" fill="none" stroke="#06b6d4" stroke-opacity="0.12" stroke-width="1.5"/>
+
+  <!-- High-Energy Ambient Core Glow -->
+  <circle cx="256" cy="256" r="88" fill="#8b5cf6" opacity="0.18" filter="url(#violetGlow)"/>
+
+  <!-- Telemetry Bracket / Satellite Dots -->
+  <circle cx="118" cy="118" r="4.5" fill="#a78bfa" opacity="0.7"/>
+  <circle cx="394" cy="118" r="4.5" fill="#06b6d4" opacity="0.7"/>
+  <circle cx="118" cy="394" r="3" fill="#6366f1" opacity="0.4"/>
+  <circle cx="394" cy="394" r="3" fill="#a78bfa" opacity="0.4"/>
+
+  <!-- Left Speed Arc (Swarm Ingestion Flow) -->
+  <path d="M 172 176 C 140 216 140 280 174 322" fill="none" stroke="url(#coreViolet)" stroke-width="8" stroke-linecap="round" opacity="0.6"/>
+  <circle cx="174" cy="176" r="5" fill="#c4b5fd"/>
+
+  <!-- Right Speed Arc (Buffer & Torrent Swarm Scrape) -->
+  <path d="M 340 176 C 372 216 372 280 338 322" fill="none" stroke="url(#coreViolet)" stroke-width="8" stroke-linecap="round" opacity="0.6"/>
+  <circle cx="338" cy="322" r="5" fill="#06b6d4"/>
+
+  <!-- Central "G" Monogram + Downloader Arrow Emblem -->
+  <!-- Outer Stylized "G" Loop & Orbit -->
+  <path d="M 296 148 
+           C 220 144, 168 196, 168 256 
+           C 168 316, 216 368, 288 368 
+           C 344 368, 368 332, 368 296 
+           L 368 284" 
+        fill="none" 
+        stroke="url(#coreViolet)" 
+        stroke-width="18" 
+        stroke-linecap="round" 
+        stroke-linejoin="round"
+        filter="url(#violetGlow)"/>
+
+  <!-- Central Downloader Arrow (Integrated Precision Chevron) -->
+  <g filter="url(#softShadow)">
+    <!-- Vertical Ingestion Beam -->
+    <path d="M 256 188 L 256 294" 
+          stroke="url(#glowLinear)" 
+          stroke-width="14" 
+          stroke-linecap="round"/>
+    
+    <!-- Dynamic Downward Arrowhead -->
+    <path d="M 224 266 L 256 298 L 288 266" 
+          fill="none" 
+          stroke="url(#glowLinear)" 
+          stroke-width="14" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"/>
+  </g>
+
+  <!-- Bottom Receiving Platform (Anime Media Disk / Hardlink Target) -->
+  <path d="M 218 334 L 294 334" 
+        stroke="#06b6d4" 
+        stroke-width="8" 
+        stroke-linecap="round" 
+        opacity="0.9"/>
+  <circle cx="256" cy="334" r="3" fill="#ffffff"/>
+
+  <!-- Upper Anime Sparkle Diamond (Top-Right Accent) -->
+  <path d="M 348 144 L 354 158 L 368 164 L 354 170 L 348 184 L 342 170 L 328 164 L 342 158 Z" 
+        fill="#06b6d4" 
+        opacity="0.85"/>
+</svg>

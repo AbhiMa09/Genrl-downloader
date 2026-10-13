@@ -40,6 +40,10 @@ pub struct Rules {
     pub prefer_batch_when_finished: bool,
     /// Per-show override of the Plan to watch switch.
     pub auto_plan_to_watch: Option<bool>,
+    /// How finished files get into the library (hardlink vs move vs copy).
+    pub move_mode: Option<crate::settings::MoveMode>,
+    /// Keep the torrent until it reaches this ratio.
+    pub seed_ratio_target: Option<f64>,
 }
 
 impl Default for Rules {
@@ -58,6 +62,8 @@ impl Default for Rules {
             seed_ask_max: 9,
             prefer_batch_when_finished: true,
             auto_plan_to_watch: None,
+            move_mode: None,
+            seed_ratio_target: None,
         }
     }
 }
@@ -201,11 +207,18 @@ impl Rules {
                 "min_size_mb must be smaller than max_size_mb".into(),
             ));
         }
+        if let Some(ratio) = self.seed_ratio_target {
+            if ratio < 0.0 {
+                return Err(crate::Error::Other(
+                    "seed_ratio_target must be non-negative".into(),
+                ));
+            }
+        }
         Ok(())
     }
 }
 
-fn ensure_known_key(key: &str) -> Result<()> {
+pub fn ensure_known_key(key: &str) -> Result<()> {
     const KEYS: &[&str] = &[
         "groups",
         "preferred_resolution",
@@ -220,12 +233,106 @@ fn ensure_known_key(key: &str) -> Result<()> {
         "seed_ask_max",
         "prefer_batch_when_finished",
         "auto_plan_to_watch",
+        "move_mode",
+        "seed_ratio_target",
     ];
     if KEYS.contains(&key) {
         Ok(())
     } else {
         Err(crate::Error::Other(format!("unknown rule key: {key}")))
     }
+}
+
+/// Retrieve rules for global (`mal_id: None`) or specific show (`mal_id: Some(id)`).
+pub fn get_rules(db: &Db, mal_id: Option<i64>) -> Result<Rules> {
+    match mal_id {
+        Some(id) => Rules::for_show(db, id),
+        None => Rules::global(db),
+    }
+}
+
+/// Update a single rule key and value, validating against full effective rules,
+/// and logging the event in the activity log.
+pub fn update_rule(
+    db: &Db,
+    mal_id: Option<i64>,
+    key: &str,
+    value: serde_json::Value,
+    log: &crate::events::EventLog,
+) -> Result<()> {
+    ensure_known_key(key)?;
+    let current = get_rules(db, mal_id)?;
+    let mut obj = serde_json::to_value(&current)?;
+    if let Some(map) = obj.as_object_mut() {
+        map.insert(key.to_string(), value.clone());
+    }
+    let updated: Rules = serde_json::from_value(obj)?;
+    updated.validate()?;
+
+    let val_str = serde_json::to_string(&value)?;
+    db.with(|c| {
+        c.execute(
+            "INSERT INTO rules (mal_id, key, value) VALUES (?1, ?2, ?3)
+             ON CONFLICT DO UPDATE SET value = excluded.value",
+            rusqlite::params![mal_id, key, val_str],
+        )?;
+        Ok(())
+    })?;
+
+    let target_desc = match mal_id {
+        Some(id) => format!("show #{id}"),
+        None => "global".to_string(),
+    };
+    let _ = log.info(
+        None,
+        mal_id,
+        format!("Rule updated for {target_desc}: {key} = {val_str}"),
+    );
+    Ok(())
+}
+
+/// Reset a rule key (or all rules if `key: None`), logging the event.
+pub fn reset_rule(
+    db: &Db,
+    mal_id: Option<i64>,
+    key: Option<&str>,
+    log: &crate::events::EventLog,
+) -> Result<()> {
+    if let Some(k) = key {
+        ensure_known_key(k)?;
+    }
+    db.with(|c| {
+        match (mal_id, key) {
+            (Some(id), Some(k)) => {
+                c.execute(
+                    "DELETE FROM rules WHERE mal_id = ?1 AND key = ?2",
+                    rusqlite::params![id, k],
+                )?;
+            }
+            (Some(id), None) => {
+                c.execute("DELETE FROM rules WHERE mal_id = ?1", [id])?;
+            }
+            (None, Some(k)) => {
+                c.execute("DELETE FROM rules WHERE mal_id IS NULL AND key = ?1", [k])?;
+            }
+            (None, None) => {
+                c.execute("DELETE FROM rules WHERE mal_id IS NULL", [])?;
+            }
+        }
+        Ok(())
+    })?;
+
+    let target_desc = match mal_id {
+        Some(id) => format!("show #{id}"),
+        None => "global".to_string(),
+    };
+    let key_desc = key.unwrap_or("all rules");
+    let _ = log.info(
+        None,
+        mal_id,
+        format!("Rule reset for {target_desc}: {key_desc} restored to default"),
+    );
+    Ok(())
 }
 
 #[cfg(test)]
@@ -309,5 +416,47 @@ mod tests {
         r.seed_ask_min = 20;
         r.seed_ask_max = 5;
         assert!(r.validate().is_err());
+    }
+
+    #[test]
+    fn editable_rules_commands_work_and_log_events() {
+        let db = Db::open_in_memory().unwrap();
+        let log = crate::events::EventLog::new(db.clone());
+        insert_show(&db, 999, "Frieren");
+
+        // Initial default
+        let r = get_rules(&db, None).unwrap();
+        assert_eq!(r.preferred_resolution, "1080p");
+
+        // Update global rule
+        update_rule(&db, None, "preferred_resolution", serde_json::json!("720p"), &log).unwrap();
+        update_rule(&db, None, "seed_ratio_target", serde_json::json!(2.5), &log).unwrap();
+        let updated = get_rules(&db, None).unwrap();
+        assert_eq!(updated.preferred_resolution, "720p");
+        assert_eq!(updated.seed_ratio_target, Some(2.5));
+
+        // Invalid update fails validation
+        let invalid = update_rule(&db, None, "seed_ask_min", serde_json::json!(50), &log);
+        assert!(invalid.is_err(), "must reject invalid seed ask min > max");
+
+        // Override on show
+        update_rule(&db, Some(999), "preferred_resolution", serde_json::json!("2160p"), &log).unwrap();
+        let show_rules = get_rules(&db, Some(999)).unwrap();
+        assert_eq!(show_rules.preferred_resolution, "2160p");
+        assert_eq!(show_rules.seed_ratio_target, Some(2.5), "inherits global ratio target");
+
+        // Reset show override
+        reset_rule(&db, Some(999), Some("preferred_resolution"), &log).unwrap();
+        let show_rules_after = get_rules(&db, Some(999)).unwrap();
+        assert_eq!(show_rules_after.preferred_resolution, "720p");
+
+        // Reset global
+        reset_rule(&db, None, None, &log).unwrap();
+        let default_rules = get_rules(&db, None).unwrap();
+        assert_eq!(default_rules.preferred_resolution, "1080p");
+        assert_eq!(default_rules.seed_ratio_target, None);
+
+        // Events logged
+        assert!(log.count().unwrap() >= 5);
     }
 }

@@ -15,5 +15,6 @@ genrl-core = { path = "../genrl-core" }
 tokio.workspace = true
 anyhow.workspace = true
 serde_json.workspace = true
+rusqlite.workspace = true
 clap = { version = "4", features = ["derive"] }
 rpassword = "7"

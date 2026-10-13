@@ -4,6 +4,7 @@ import '../models/queue_item.dart';
 import '../services/state_provider.dart';
 import '../theme/colors.dart';
 import '../theme/typography.dart';
+import '../widgets/state_views.dart';
 
 class QueuePage extends StatefulWidget {
   const QueuePage({super.key});
@@ -117,22 +118,21 @@ class _QueuePageState extends State<QueuePage> {
           ),
           const SizedBox(height: 20),
 
-          // Transfers List
-          if (filteredItems.isEmpty)
-            Container(
-              padding: const EdgeInsets.all(48),
-              decoration: BoxDecoration(
-                color: ObsidianColors.surfaceContainerLow,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: ObsidianColors.border),
-              ),
-              child: Center(
-                child: Text(
-                  'No torrent transfers in this view category.',
-                  style: ObsidianTypography.bodyMd(
-                      color: ObsidianColors.outline),
-                ),
-              ),
+          // Error, Loading, or Empty Transfers List
+          if (state.queueError != null)
+            ErrorStateView(
+              title: 'Queue Query Error',
+              message: state.queueError!,
+              onRetry: () => state.refreshQueue(),
+              retryLabel: 'Retry Queue',
+            )
+          else if (state.isLoadingQueue && state.queue.isEmpty)
+            const LoadingStateView(message: 'Querying queue and active jobs from core...')
+          else if (filteredItems.isEmpty)
+            const EmptyStateView(
+              icon: Icons.download_done_rounded,
+              title: 'No Transfers In Queue',
+              description: 'No torrent transfers in this view category. Active downloads and jobs will appear here live.',
             )
           else
             ...filteredItems.map(

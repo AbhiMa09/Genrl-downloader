@@ -577,7 +577,7 @@ pub fn resolve_show_folder(
     })?
     .flatten();
 
-    if let Some(path_str) = existing_path {
+    if let Some(path_str) = &existing_path {
         let p = PathBuf::from(path_str);
         if p.exists() {
             let marker = p.join(MARKER_FILE);
@@ -588,7 +588,7 @@ pub fn resolve_show_folder(
         }
     }
 
-    // 2. Scan immediate subdirectories for .mal_id marker
+    // 2. Scan immediate subdirectories for .mal_id marker (detect folder rename)
     if library_folder.exists() {
         if let Ok(entries) = fs::read_dir(library_folder) {
             for entry in entries.flatten() {
@@ -614,6 +614,17 @@ pub fn resolve_show_folder(
                 }
             }
         }
+    }
+
+    // 2b. If existing_path was set and not found in library_folder, it is an explicit override that must be created
+    if let Some(path_str) = existing_path {
+        let p = PathBuf::from(&path_str);
+        fs::create_dir_all(&p)?;
+        let marker = p.join(MARKER_FILE);
+        if !marker.exists() {
+            let _ = fs::write(&marker, format!("{mal_id}\n"));
+        }
+        return Ok(p);
     }
 
     // 3. Create a new show folder
@@ -846,12 +857,13 @@ impl Finalizer for LibraryFinalizer {
                 )));
             }
 
-            let library_root = Path::new(&settings.library_folder);
-            if settings.library_folder.is_empty() || !library_root.exists() {
-                return Err(Error::Other(format!(
-                    "library folder '{}' is not configured or does not exist",
-                    settings.library_folder
-                )));
+            let library_root = if settings.library_folder.trim().is_empty() {
+                crate::locations::default_library_dir()
+            } else {
+                crate::locations::resolve_home_dir(&settings.library_folder)
+            };
+            if !library_root.exists() {
+                let _ = fs::create_dir_all(&library_root);
             }
 
             // Load show information from database
@@ -875,7 +887,7 @@ impl Finalizer for LibraryFinalizer {
             // 1. Resolve Show Folder
             let show_dir = resolve_show_folder(
                 &self.db,
-                library_root,
+                &library_root,
                 context.mal_id,
                 &title,
                 start_year,
