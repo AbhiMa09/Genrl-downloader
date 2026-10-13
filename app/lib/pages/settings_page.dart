@@ -332,15 +332,16 @@ class _SettingsPageState extends State<SettingsPage> {
       icon: Icons.person_outline_rounded,
       children: [
         _TextFieldRow(
-          label: 'MAL Client ID (from myanimelist.net/apiconfig)',
+          label: 'MAL Client ID (Masked / Encrypted)',
           controller: _malClientIdController,
-          hintText: 'Enter your 32-character Client ID',
+          hintText: '••••••••••••••••••••••••••••••••',
+          obscureText: true,
         ),
         const SizedBox(height: 12),
         _TextFieldRow(
-          label: 'MAL Client Secret (Required if App Type is "Web")',
+          label: 'MAL Client Secret (Masked / Encrypted)',
           controller: _malClientSecretController,
-          hintText: 'Enter Client Secret if registered as Web (leave empty for Other)',
+          hintText: '••••••••••••••••••••••••••••••••',
           obscureText: true,
         ),
         const SizedBox(height: 12),

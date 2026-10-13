@@ -323,10 +323,19 @@ pub fn evaluate(
         }
     }
 
-    // A batch only counts once the show has finished airing.
+    // A batch / season release prioritization.
+    // When looking for a wanted episode in a finished show and prefer_batch_when_finished is enabled,
+    // healthy season batches are prioritized (+35) over single episodes (+30).
+    // If the batch has 0 seeders, it is rejected by the zero-seeder check and healthy
+    // single episodes are selected instead.
     if candidate.release.is_batch && target.fully_aired {
-        signal += 15.0;
-        notes.push("batch for a show that has finished airing".into());
+        if target.wanted_episode.is_some() && rules.prefer_batch_when_finished {
+            signal += 35.0;
+            notes.push("season batch prioritized over single episodes (+35)".into());
+        } else {
+            signal += 15.0;
+            notes.push("batch for a show that has finished airing".into());
+        }
     } else if candidate.release.is_batch {
         notes.push("batch, but the show is still airing".into());
     }

@@ -641,17 +641,25 @@ impl Engine {
         if !moved {
             let since = job.last_progress_at.unwrap_or(job.updated_at);
             let stalled_for = self.now() - since;
-            if stalled_for >= i64::from(settings.stall_timeout_min) * 60 {
+            let timeout = if info.num_seeds == 0 {
+                // Torrent has 0 seeders: fail over quickly (2 mins) to single episodes or next candidate
+                120
+            } else {
+                i64::from(settings.stall_timeout_min) * 60
+            };
+            if stalled_for >= timeout {
                 // Remove it, mark the candidate tried, and look for the next.
                 let _ = client.remove(&self.gate, &torrent.info_hash, false).await;
                 jobs::reject_candidate(&self.db, &torrent.info_hash)?;
+                let reason = if info.num_seeds == 0 {
+                    format!("0 seeders detected for {}; switched to next candidate/single episodes", info.name)
+                } else {
+                    format!("no progress for {} minutes; removed {} and trying the next candidate", settings.stall_timeout_min, info.name)
+                };
                 return self.next_candidate(
                     job,
                     context.mal_id,
-                    &format!(
-                        "no progress for {} minutes; removed {} and trying the next candidate",
-                        settings.stall_timeout_min, info.name
-                    ),
+                    &reason,
                 );
             }
         }
