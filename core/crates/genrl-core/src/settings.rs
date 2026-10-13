@@ -85,6 +85,8 @@ pub struct Settings {
     pub search_concurrency: u32,
     /// A daily cap on new torrents added; stops a bad sync queueing hundreds.
     pub daily_torrent_cap: u32,
+    /// The first sync is capped tighter: the rest wait for batch approval.
+    pub first_sync_cap: u32,
     /// Pause the queue below this much free space.
     pub disk_floor_gb: u64,
 
@@ -171,6 +173,7 @@ impl Default for Settings {
             active_downloads: 2,
             search_concurrency: 2,
             daily_torrent_cap: 30,
+            first_sync_cap: 25,
             disk_floor_gb: 20,
 
             mal_sync_interval_min: 30,

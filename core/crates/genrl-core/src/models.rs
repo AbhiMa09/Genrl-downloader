@@ -24,6 +24,10 @@ pub struct Show {
     pub auto: bool,
     /// Absolute vs per-season numbering (episode 27 of a long show is season 2 episode 3).
     pub episode_offset: i64,
+    /// This entry's position in its franchise chain (1 for a standalone show).
+    /// Each season is its own MAL entry, so the matcher can reject a release
+    /// naming a different season.
+    pub season: i64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -189,9 +193,15 @@ pub struct Job {
     pub torrent_id: Option<i64>,
     pub created_at: i64,
     pub updated_at: i64,
+    /// Download progress as qBittorrent last reported it (`0.0 ..= 1.0`).
+    pub progress: f64,
+    /// When progress last moved: the stall timer compares against this.
+    pub last_progress_at: Option<i64>,
+    /// The state a `blocked` job returns to once its blocker clears.
+    pub blocked_from: Option<JobState>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum JobKind {
     Search,
@@ -200,40 +210,113 @@ pub enum JobKind {
     Finalize,
 }
 
-/// Main flow: `queued → searching → downloading → finalizing → done`.
-/// Side states pause a job without blocking the rest of the queue; a stalled
-/// torrent loops back to `searching` for the next candidate.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+impl JobKind {
+    /// The `jobs.kind` value (the column is CHECK-constrained to these four).
+    pub fn as_str(self) -> &'static str {
+        match self {
+            JobKind::Search => "search",
+            JobKind::Add => "add",
+            JobKind::Monitor => "monitor",
+            JobKind::Finalize => "finalize",
+        }
+    }
+
+    pub fn parse(s: &str) -> Self {
+        match s.trim().to_ascii_lowercase().as_str() {
+            "add" => JobKind::Add,
+            "monitor" => JobKind::Monitor,
+            "finalize" => JobKind::Finalize,
+            _ => JobKind::Search,
+        }
+    }
+}
+
+/// The five main steps, left to right, plus the three side states.
+///
+/// Side states pause a job *without* blocking the rest of the queue: a failed
+/// job also raises a question, and a stalled torrent loops back to
+/// [`JobState::Search`] for the next candidate. A job sitting in a main-step
+/// state is *about to run* that step's work, which is what makes a crash
+/// mid-step idempotent: the step is simply run again.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum JobState {
-    Queued,
-    Searching,
-    Downloading,
-    Finalizing,
-    Done,
+    /// Step 1: search Nyaa for candidates.
+    Search,
+    /// Step 2: score them and decide — proceed, ask, or fail.
+    Choose,
+    /// Step 3: add the chosen torrent to qBittorrent.
+    Add,
+    /// Step 4: watch it download; the stall timer lives here.
+    Monitor,
+    /// Step 5: verify and hand the file to the library step.
+    Finalize,
     /// Unclear match or thin seeds: waiting on a question in the Inbox.
     NeedsInput,
-    /// A service is down (circuit breaker) or qBittorrent is unreachable.
+    /// A service is down or a resource is missing: waits, never fails.
     Blocked,
+    /// Out of candidates or attempts; a question is open or answered.
     Failed,
+    /// Resting state after finalize: nothing more to do.
+    Done,
 }
 
 impl JobState {
+    /// `done` is the only state a job never leaves (a retry after `failed`
+    /// starts a *new* attempt rather than resurrecting the old job).
     pub fn is_terminal(self) -> bool {
         matches!(self, JobState::Done)
     }
 
+    /// Steps whose work touches the network or qBittorrent.
+    pub fn is_active(self) -> bool {
+        matches!(
+            self,
+            JobState::Search
+                | JobState::Choose
+                | JobState::Add
+                | JobState::Monitor
+                | JobState::Finalize
+        )
+    }
+
     pub fn as_str(self) -> &'static str {
         match self {
-            JobState::Queued => "queued",
-            JobState::Searching => "searching",
-            JobState::Downloading => "downloading",
-            JobState::Finalizing => "finalizing",
+            JobState::Search => "search",
+            JobState::Choose => "choose",
+            JobState::Add => "add",
+            JobState::Monitor => "monitor",
+            JobState::Finalize => "finalize",
             JobState::Done => "done",
             JobState::NeedsInput => "needs_input",
             JobState::Blocked => "blocked",
             JobState::Failed => "failed",
         }
+    }
+
+    pub fn parse(s: &str) -> Self {
+        match s.trim().to_ascii_lowercase().as_str() {
+            "choose" => JobState::Choose,
+            "add" => JobState::Add,
+            "monitor" => JobState::Monitor,
+            "finalize" => JobState::Finalize,
+            "done" => JobState::Done,
+            "needs_input" | "needsinput" => JobState::NeedsInput,
+            "blocked" => JobState::Blocked,
+            "failed" => JobState::Failed,
+            // The pre-Phase-4 spellings, so an existing database still reads.
+            "searching" => JobState::Search,
+            "downloading" => JobState::Monitor,
+            "finalizing" => JobState::Finalize,
+            "queued" => JobState::Search,
+            _ => JobState::Search,
+        }
+    }
+}
+
+impl std::fmt::Display for JobState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
     }
 }
 
@@ -267,6 +350,9 @@ pub enum QuestionKind {
     AllFailed,
     /// MAL merged, split or renamed the entry.
     EntryChanged,
+    /// A service needs attention (qBittorrent auth failed, say). One notice
+    /// per service, never one per job.
+    ServiceNotice,
 }
 
 impl QuestionKind {
@@ -280,6 +366,7 @@ impl QuestionKind {
             QuestionKind::DiskSpace => "disk_space",
             QuestionKind::AllFailed => "all_failed",
             QuestionKind::EntryChanged => "entry_changed",
+            QuestionKind::ServiceNotice => "service_notice",
         }
     }
 
@@ -291,6 +378,7 @@ impl QuestionKind {
             "disk_space" => QuestionKind::DiskSpace,
             "all_failed" => QuestionKind::AllFailed,
             "entry_changed" => QuestionKind::EntryChanged,
+            "service_notice" => QuestionKind::ServiceNotice,
             _ => QuestionKind::MatchReview,
         }
     }
@@ -314,10 +402,11 @@ mod tests {
     #[test]
     fn job_states_round_trip() {
         for state in [
-            JobState::Queued,
-            JobState::Searching,
-            JobState::Downloading,
-            JobState::Finalizing,
+            JobState::Search,
+            JobState::Choose,
+            JobState::Add,
+            JobState::Monitor,
+            JobState::Finalize,
             JobState::Done,
             JobState::NeedsInput,
             JobState::Blocked,
@@ -328,6 +417,14 @@ mod tests {
             assert_eq!(back, state);
         }
         assert_eq!(JobState::NeedsInput.as_str(), "needs_input");
+        assert_eq!(JobState::parse("monitor"), JobState::Monitor);
+        // Old spellings still read, so an existing database keeps working.
+        assert_eq!(JobState::parse("searching"), JobState::Search);
+        assert_eq!(JobState::parse("downloading"), JobState::Monitor);
+        assert!(JobState::Done.is_terminal());
+        assert!(!JobState::Monitor.is_terminal());
+        assert!(JobState::Add.is_active());
+        assert!(!JobState::Blocked.is_active());
     }
 
     #[test]

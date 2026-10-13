@@ -4,13 +4,24 @@
 //! through the whole limit-proof gate. Phase 2 adds the check the roadmap asks
 //! for: `search` a feed, `grab` a candidate and watch qBittorrent finish it.
 
+//! Phase 4 adds the queue: `genrl queue`, `run`, `pause`, `resume`, and
+//! `plan` walking a fake MAL list file.
+
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use anyhow::{bail, Context, Result};
 use clap::{Parser, Subcommand};
+use genrl_core::clock::{Clock, SystemClock};
 use genrl_core::http::{is_acceptable_link, Gate, Service};
+use genrl_core::models::JobState;
 use genrl_core::nyaa::SearchQuery;
-use genrl_core::{filename, nyaa, qbit, secrets, settings, Db, EventLog, Settings};
+use genrl_core::planner::{FakeMalList, PlanOutcome, PlanPreview};
+use genrl_core::questions::QuestionStore;
+use genrl_core::worker::{Engine, FsDiskProbe, NoopFinalizer};
+use genrl_core::{
+    filename, jobs, nyaa, planner, qbit, queue, secrets, settings, Db, EventLog, Settings,
+};
 
 #[derive(Parser, Debug)]
 #[command(
@@ -122,6 +133,31 @@ enum Command {
 
     /// Check the local environment: database, permissions, settings.
     Doctor,
+
+    /// Show the queue: what is due, waiting, stuck, and what the Inbox holds.
+    Queue,
+
+    /// Reconcile after a crash, then run the workers until Ctrl-C.
+    Run,
+
+    /// Stop dispatching new work (downloads already running keep going).
+    Pause,
+
+    /// Start dispatching again after `genrl pause`.
+    Resume,
+
+    /// Plan episodes from a fake MAL list file.
+    Plan {
+        /// JSON file with the fake MAL list (default: <data dir>/mal_list.json).
+        #[arg(long)]
+        file: Option<PathBuf>,
+        /// Show what would be queued; touches nothing.
+        #[arg(long)]
+        dry_run: bool,
+        /// Accept the first-sync preview and queue it.
+        #[arg(long)]
+        confirm: bool,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -186,6 +222,15 @@ async fn main() -> Result<()> {
             skip_cache,
         } => probe(&data_dir, &service, &url, skip_cache).await,
         Command::Doctor => doctor(&data_dir),
+        Command::Queue => queue_cmd(&data_dir),
+        Command::Run => run_cmd(&data_dir).await,
+        Command::Pause => automation_cmd(&data_dir, false),
+        Command::Resume => automation_cmd(&data_dir, true),
+        Command::Plan {
+            file,
+            dry_run,
+            confirm,
+        } => plan_cmd(&data_dir, file.as_deref(), dry_run, confirm),
     }
 }
 
@@ -264,6 +309,166 @@ fn events(data_dir: &std::path::Path, limit: u32, errors_only: bool) -> Result<(
         println!("{stamp}  {level}  {}", event.message);
     }
     Ok(())
+}
+
+/// The queue at a glance: what is due, what is waiting, what is stuck.
+fn queue_cmd(data_dir: &std::path::Path) -> Result<()> {
+    let db = open_db(data_dir)?;
+    let settings = Settings::load(&db)?;
+    let status = queue::status(&db, &SystemClock)?;
+    println!(
+        "automation: {}",
+        if settings.automation_on { "on" } else { "paused" }
+    );
+    println!("due now  : {}", status.due);
+    println!("questions: {}", status.open_questions);
+
+    const STATES: [JobState; 9] = [
+        JobState::Search,
+        JobState::Choose,
+        JobState::Add,
+        JobState::Monitor,
+        JobState::Finalize,
+        JobState::NeedsInput,
+        JobState::Blocked,
+        JobState::Failed,
+        JobState::Done,
+    ];
+    for state in STATES {
+        if let Some(count) = status.jobs_by_state.get(&state) {
+            if *count > 0 {
+                println!("  {:<12} {count}", state.as_str());
+            }
+        }
+    }
+
+    // Open questions, so "why is it waiting" has an answer without digging
+    // through the Activity log.
+    for question in QuestionStore::open(&db, SystemClock.now())? {
+        let on = match question.job_id {
+            Some(job_id) => format!("job {job_id}"),
+            None => "general".to_string(),
+        };
+        println!(
+            "  question {}  {} ({on})",
+            question.id,
+            question.kind().as_str()
+        );
+    }
+
+    // Parked jobs carry their reason; a job without one is waiting for an
+    // answer rather than reporting an error.
+    let mut printed_stuck = false;
+    for state in [JobState::Blocked, JobState::Failed, JobState::NeedsInput] {
+        for job in jobs::list(&db, Some(state), 10)? {
+            if !printed_stuck {
+                println!("stuck:");
+                printed_stuck = true;
+            }
+            let reason = job.last_error.as_deref().unwrap_or("waiting for an answer");
+            println!("  job {} ({}) {reason}", job.id, state.as_str());
+        }
+    }
+    Ok(())
+}
+
+/// Reconcile after a crash, then run the workers until Ctrl-C.
+async fn run_cmd(data_dir: &std::path::Path) -> Result<()> {
+    let db = open_db(data_dir)?;
+    let settings = Settings::load(&db)?;
+    let engine = Arc::new(Engine::new(
+        db.clone(),
+        Arc::new(Gate::new(db)?),
+        Arc::new(SystemClock),
+        Arc::new(NoopFinalizer),
+        Arc::new(FsDiskProbe),
+    ));
+    let report = queue::reconcile(&engine).await?;
+    println!(
+        "reconcile: {} resumed, {} waiting",
+        report.resumed.len(),
+        report.waiting.len()
+    );
+    if !settings.automation_on {
+        println!("automation is paused; `genrl resume` starts dispatching");
+    }
+    println!("workers running; Ctrl-C stops them — downloads keep going");
+    queue::Scheduler::new(engine).run().await?;
+    Ok(())
+}
+
+/// The global pause switch: stop dispatching, keep downloading.
+fn automation_cmd(data_dir: &std::path::Path, on: bool) -> Result<()> {
+    let db = open_db(data_dir)?;
+    let mut settings = Settings::load(&db)?;
+    settings.automation_on = on;
+    settings.save(&db)?;
+    let message = if on {
+        "workers resumed (genrl resume)"
+    } else {
+        "workers paused (genrl pause); downloads already in qBittorrent continue"
+    };
+    EventLog::new(db).info(None, None, message)?;
+    println!("{message}");
+    Ok(())
+}
+
+/// Plan episodes from a fake MAL list file.
+fn plan_cmd(
+    data_dir: &std::path::Path,
+    file: Option<&std::path::Path>,
+    dry_run: bool,
+    confirm: bool,
+) -> Result<()> {
+    let db = open_db(data_dir)?;
+    let clock = SystemClock;
+    let fallback = data_dir.join("mal_list.json");
+    let path = file.unwrap_or(&fallback);
+    let list = FakeMalList::load(path)
+        .with_context(|| format!("reading the MAL list from {}", path.display()))?;
+
+    if dry_run {
+        print_preview(&planner::preview(&db, &list)?);
+        println!("dry run: nothing was queued");
+        return Ok(());
+    }
+
+    match planner::plan(&db, &clock, &list, true)? {
+        PlanOutcome::Applied { queued, preview } => {
+            print_preview(&preview);
+            println!("queued {queued} new job{}", if queued == 1 { "" } else { "s" });
+        }
+        PlanOutcome::Preview(preview) => {
+            print_preview(&preview);
+            if !confirm {
+                println!("the first sync awaits one confirmation; re-run with --confirm");
+                return Ok(());
+            }
+            let queued = planner::confirm(&db, &clock, &list)?;
+            let mut settings = Settings::load(&db)?;
+            settings.first_run_complete = true;
+            settings.save(&db)?;
+            println!(
+                "confirmed: queued {queued} new job{}; first sync complete",
+                if queued == 1 { "" } else { "s" }
+            );
+        }
+    }
+    Ok(())
+}
+
+/// One preview, three callers: dry run, first sync, applied plan.
+fn print_preview(preview: &PlanPreview) {
+    println!("{}", preview.summary());
+    for episode in &preview.episodes {
+        println!(
+            "  queue : {} — season {} episode {}",
+            episode.title, episode.season, episode.episode
+        );
+    }
+    for note in &preview.skipped {
+        println!("  skip  : {} — {}", note.title, note.reason);
+    }
 }
 
 async fn probe(

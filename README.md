@@ -118,8 +118,16 @@ Each phase ends with a check that must pass before the next one starts.
       → active season; absolute `- 17` → S2E5; watched skipped; missing season
       → not found, never substituted; PlanToWatch skipped by default), plus
       Re:Zero vs Re:Creators and the accept/ask margin
-- [ ] **Matching and seed logic** — name sets, scoring, thresholds, questions.
-- [ ] **Queue and workers** — job states, retries, stall handling, crash recovery.
+- [x] **Queue and workers** — job states, retries, stall handling, crash
+      recovery. *Check: killing the process at every state recovers
+      cleanly.* ✅ 177 tests green — `jobs.rs`'s transition table (every legal
+      and illegal move) and `tests/queue.rs`'s kill test: killed at Search,
+      Choose, Add, Monitor or Finalize, every job ends in `done` with one
+      torrent and exactly one add in qBittorrent; plus stall fall-through on a
+      fake clock, disk-full and missing-folder pause/resume, breaker open →
+      `blocked` never `failed`, first-sync preview/confirm, the daily cap,
+      duplicate enqueue no-op; CLI `genrl queue | run | pause | resume |
+      plan --dry-run` smoke-tested live against qBittorrent 5.2.4
 - [ ] **MAL sync** — OAuth, list diff, episode generation, first-sync preview.
 - [ ] **Library step** — rename/move, synopsis.txt, posters, folder icons.
 - [ ] **Flutter UI** — nine pages in order, styled from `assets/`.

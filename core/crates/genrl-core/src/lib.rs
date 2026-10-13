@@ -19,28 +19,37 @@
 //!   what a release is good for (phase 3).
 //! * [`names`] — a show's name set, stored and searched in priority order.
 //! * [`questions`] — the Inbox: question objects, payloads and answers.
+//! * [`jobs`], [`queue`], [`worker`] — the job state machine, the scheduler
+//!   that runs it, and the crash-recovery reconcile step (phase 4).
+//! * [`planner`] — turning the MAL list into episode rows and jobs, with the
+//!   first-sync preview and the daily cap.
 //! * [`qbit`] — the qBittorrent WebUI client (phase 2).
 //! * [`secrets`] — credentials, in the system keyring only.
 //!
 //! No other module talks to the network directly.
 
 pub mod db;
+pub mod clock;
 pub mod error;
 pub mod events;
 pub mod filename;
 pub mod http;
+pub mod jobs;
 pub mod logging;
 pub mod matching;
 pub mod models;
 pub mod names;
 pub mod nyaa;
+pub mod planner;
 pub mod qbit;
 pub mod questions;
+pub mod queue;
 pub mod rules;
 pub mod score;
 pub mod season;
 pub mod secrets;
 pub mod settings;
+pub mod worker;
 
 pub use db::Db;
 pub use error::{Error, Result};

@@ -17,4 +17,8 @@ pub const MIGRATIONS: &[Migration] = &[
         version: 2,
         sql: include_str!("migrations/002_name_priority.sql"),
     },
+    Migration {
+        version: 3,
+        sql: include_str!("migrations/003_queue_bookkeeping.sql"),
+    },
 ];

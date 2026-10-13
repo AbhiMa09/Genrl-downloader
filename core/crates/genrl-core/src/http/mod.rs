@@ -147,6 +147,16 @@ impl Gate {
         guard.state()
     }
 
+    /// Would a request for `service` be allowed right now?
+    ///
+    /// Non-consuming: it never claims the half-open probe, so the queue can ask
+    /// this on every tick before resuming a job blocked on that service.
+    pub fn would_allow(&self, service: Service) -> bool {
+        let state = self.state(service);
+        let mut guard = state.breaker.lock().unwrap_or_else(|e| e.into_inner());
+        guard.peek(Instant::now())
+    }
+
     /// How long a fresh caller would wait on the limiter right now.
     pub fn rate_wait(&self, service: Service) -> Duration {
         self.state(service).limiter.queued_wait()

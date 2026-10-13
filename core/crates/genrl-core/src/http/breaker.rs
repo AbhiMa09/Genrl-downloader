@@ -74,6 +74,26 @@ impl CircuitBreaker {
         }
     }
 
+    /// Would [`check`] allow a request right now — without consuming the
+    /// half-open probe?
+    ///
+    /// The queue asks this before resuming a blocked job: the cooldown may
+    /// have elapsed (the breaker moves to half-open here, so the *next* request
+    /// claims the probe), but nothing may be spent on the question itself.
+    pub fn peek(&mut self, now: Instant) -> bool {
+        match self.state {
+            State::Closed => true,
+            State::Open => match self.opened_at {
+                Some(at) if now.duration_since(at) >= self.cooldown => {
+                    self.state = State::HalfOpen;
+                    true
+                }
+                _ => false,
+            },
+            State::HalfOpen => !self.probe_in_flight,
+        }
+    }
+
     pub fn on_success(&mut self) {
         self.failures = 0;
         self.state = State::Closed;

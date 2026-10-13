@@ -71,15 +71,19 @@ impl EventLog {
         mal_id: Option<i64>,
         message: impl AsRef<str>,
     ) -> Result<i64> {
-        let message = sanitize(message.as_ref());
-        let at = now_unix();
-        let id = self.db.with(|c| {
-            c.execute(
-                "INSERT INTO events (at, level, job_id, mal_id, message) VALUES (?1, ?2, ?3, ?4, ?5)",
-                rusqlite::params![at, level.as_str(), job_id, mal_id, message],
-            )?;
-            Ok(c.last_insert_rowid())
-        })?;
+        self.record_at(level, job_id, mal_id, message, now_unix())
+    }
+
+    /// Append one event at a caller-supplied time (the queue injects its clock).
+    pub fn record_at(
+        &self,
+        level: Level,
+        job_id: Option<i64>,
+        mal_id: Option<i64>,
+        message: impl AsRef<str>,
+        at: i64,
+    ) -> Result<i64> {
+        let id = self.db.with(|c| record_in(c, level, job_id, mal_id, message.as_ref(), at))?;
 
         // Keep the log bounded without hammering the table on every write.
         if id % 500 == 0 {
@@ -92,7 +96,8 @@ impl EventLog {
             job_id,
             mal_id,
             level = level.as_str(),
-            "{message}"
+            "{}",
+            sanitize(message.as_ref())
         );
         Ok(id)
     }
@@ -205,6 +210,27 @@ impl EventLog {
 }
 
 /// One line per event: no newlines, no control or bidi characters.
+/// Insert one event row on an existing connection.
+///
+/// The queue calls this *inside* its transition transaction, so the state
+/// change and its Activity-log line land together or not at all. Kept `pub`
+/// for that reason only.
+pub fn record_in(
+    conn: &rusqlite::Connection,
+    level: Level,
+    job_id: Option<i64>,
+    mal_id: Option<i64>,
+    message: &str,
+    at: i64,
+) -> Result<i64> {
+    let message = sanitize(message);
+    conn.execute(
+        "INSERT INTO events (at, level, job_id, mal_id, message) VALUES (?1, ?2, ?3, ?4, ?5)",
+        rusqlite::params![at, level.as_str(), job_id, mal_id, message],
+    )?;
+    Ok(conn.last_insert_rowid())
+}
+
 fn sanitize(message: &str) -> String {
     let mut out = String::with_capacity(message.len());
     for ch in message.chars() {

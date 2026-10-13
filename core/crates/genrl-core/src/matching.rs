@@ -71,7 +71,7 @@ impl TargetInputs {
             english_title: show.english_title,
             start_year: show.start_year,
             show_type: show.show_type,
-            season: 1,
+            season: show.season,
             fully_aired: show.status == AiringStatus::Finished,
             auto: show.auto,
             names,
@@ -343,7 +343,7 @@ fn load_show(db: &Db, mal_id: i64) -> Result<Option<Show>> {
     db.with(|c| {
         let mut stmt = c.prepare(
             "SELECT mal_id, title, english_title, type, status, total_episodes, start_year,
-                    synopsis, poster_path, folder_path, auto, episode_offset
+                    synopsis, poster_path, folder_path, auto, episode_offset, season
              FROM shows WHERE mal_id = ?1",
         )?;
         let mut rows = stmt.query_map([mal_id], |r| {
@@ -360,6 +360,7 @@ fn load_show(db: &Db, mal_id: i64) -> Result<Option<Show>> {
                 folder_path: r.get(9)?,
                 auto: r.get::<_, i64>(10)? != 0,
                 episode_offset: r.get(11)?,
+                season: r.get(12)?,
             })
         })?;
         Ok(rows.next().transpose()?)

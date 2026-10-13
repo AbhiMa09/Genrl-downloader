@@ -79,6 +79,8 @@ pub enum Payload {
     AllFailed { candidates_tried: u32 },
     /// MAL merged, split or renamed the entry.
     EntryChanged { mal_id: i64, title: String, detail: String },
+    /// A service needs attention: one notice, not one per job.
+    ServiceNotice { service: String, detail: String },
 }
 
 impl Payload {
@@ -91,6 +93,7 @@ impl Payload {
             Payload::DiskSpace { .. } => QuestionKind::DiskSpace,
             Payload::AllFailed { .. } => QuestionKind::AllFailed,
             Payload::EntryChanged { .. } => QuestionKind::EntryChanged,
+            Payload::ServiceNotice { .. } => QuestionKind::ServiceNotice,
         }
     }
 }
@@ -236,6 +239,36 @@ impl QuestionStore {
                 rusqlite::params![answer, id],
             )?;
             Ok(())
+        })
+    }
+
+    /// One question by id, with its payload parsed.
+    ///
+    /// Applying an answer ([`crate::worker::apply_answer`]) needs the stored
+    /// row — the Inbox answers by id, and the tests drive the same path.
+    pub fn get(db: &Db, id: i64) -> Result<Option<Question>> {
+        db.with(|c| {
+            let mut stmt = c.prepare(
+                "SELECT id, job_id, mal_id, kind, payload, answer, created_at, expires_at
+                 FROM questions WHERE id = ?1",
+            )?;
+            let mut rows = stmt.query_map([id], |r| {
+                Ok(Question {
+                    id: r.get(0)?,
+                    job_id: r.get(1)?,
+                    mal_id: r.get(2)?,
+                    kind: QuestionKind::parse(r.get::<_, String>(3)?.as_str()),
+                    payload: serde_json::from_str(r.get::<_, String>(4)?.as_str())
+                        .unwrap_or(serde_json::Value::Null),
+                    answer: r.get(5)?,
+                    created_at: r.get(6)?,
+                    expires_at: r.get(7)?,
+                })
+            })?;
+            match rows.next().transpose()? {
+                Some(question) => Ok(Some(question)),
+                None => Ok(None),
+            }
         })
     }
 

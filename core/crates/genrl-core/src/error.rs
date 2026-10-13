@@ -60,6 +60,14 @@ pub enum Error {
     #[error("not found: {0}")]
     NotFound(String),
 
+    /// A move the state machine's table does not allow.
+    #[error("illegal job transition {from} → {to} (job {job_id})")]
+    IllegalTransition {
+        from: crate::models::JobState,
+        to: crate::models::JobState,
+        job_id: i64,
+    },
+
     #[error("{0}")]
     Other(String),
 }
