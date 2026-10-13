@@ -1,0 +1,89 @@
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'colors.dart';
+
+/// Obsidian Violet Media Core Typography
+/// Combines Inter (clean readability) with JetBrains Mono (precision telemetry).
+class ObsidianTypography {
+  static TextStyle headlineXl({Color color = ObsidianColors.onSurface}) =>
+      GoogleFonts.inter(
+        fontSize: 32,
+        fontWeight: FontWeight.w700,
+        height: 1.25,
+        letterSpacing: -0.64,
+        color: color,
+      );
+
+  static TextStyle headlineLg({Color color = ObsidianColors.onSurface}) =>
+      GoogleFonts.inter(
+        fontSize: 24,
+        fontWeight: FontWeight.w600,
+        height: 1.33,
+        letterSpacing: -0.36,
+        color: color,
+      );
+
+  static TextStyle headlineMd({Color color = ObsidianColors.onSurface}) =>
+      GoogleFonts.inter(
+        fontSize: 20,
+        fontWeight: FontWeight.w600,
+        height: 1.4,
+        letterSpacing: -0.2,
+        color: color,
+      );
+
+  static TextStyle titleSm({Color color = ObsidianColors.onSurface}) =>
+      GoogleFonts.inter(
+        fontSize: 15,
+        fontWeight: FontWeight.w600,
+        height: 1.46,
+        letterSpacing: 0,
+        color: color,
+      );
+
+  static TextStyle bodyMd({Color color = ObsidianColors.onSurface}) =>
+      GoogleFonts.inter(
+        fontSize: 14,
+        fontWeight: FontWeight.w400,
+        height: 1.42,
+        letterSpacing: 0,
+        color: color,
+      );
+
+  static TextStyle bodySm({Color color = ObsidianColors.onSurfaceVariant}) =>
+      GoogleFonts.inter(
+        fontSize: 13,
+        fontWeight: FontWeight.w400,
+        height: 1.38,
+        letterSpacing: 0,
+        color: color,
+      );
+
+  // Monospaced Telemetry & Technical Specs
+  static TextStyle monoMetric({Color color = ObsidianColors.onSurface}) =>
+      GoogleFonts.jetBrainsMono(
+        fontSize: 13,
+        fontWeight: FontWeight.w500,
+        height: 1.23,
+        letterSpacing: -0.26,
+        color: color,
+      );
+
+  static TextStyle monoCode({Color color = ObsidianColors.outline}) =>
+      GoogleFonts.jetBrainsMono(
+        fontSize: 12,
+        fontWeight: FontWeight.w400,
+        height: 1.33,
+        letterSpacing: 0,
+        color: color,
+      );
+
+  static TextStyle labelBadge({Color color = ObsidianColors.onSurface}) =>
+      GoogleFonts.jetBrainsMono(
+        fontSize: 11,
+        fontWeight: FontWeight.w600,
+        height: 1.27,
+        letterSpacing: 0.44,
+        color: color,
+      );
+}

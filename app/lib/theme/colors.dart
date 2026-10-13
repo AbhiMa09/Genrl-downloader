@@ -1,0 +1,53 @@
+import 'package:flutter/material.dart';
+
+/// Obsidian Violet Media Core Color Tokens
+/// Engineered for low-light Linux desktop media management sessions.
+class ObsidianColors {
+  // Background & Surfaces
+  static const Color surface = Color(0xFF10141A);
+  static const Color surfaceDim = Color(0xFF10141A);
+  static const Color surfaceBright = Color(0xFF353940);
+  static const Color surfaceContainerLowest = Color(0xFF0A0E14);
+  static const Color surfaceContainerLow = Color(0xFF181C22);
+  static const Color surfaceContainer = Color(0xFF1C2026);
+  static const Color surfaceContainerHigh = Color(0xFF262A31);
+  static const Color surfaceContainerHighest = Color(0xFF31353C);
+
+  // Content on surfaces
+  static const Color onSurface = Color(0xFFDFE2EB);
+  static const Color onSurfaceVariant = Color(0xFFCBC3D7);
+  static const Color outline = Color(0xFF958EA0);
+  static const Color outlineVariant = Color(0xFF494454);
+
+  // Primary Violets (Active highlights, selection counters)
+  static const Color primary = Color(0xFFD0BCFF);
+  static const Color onPrimary = Color(0xFF3C0091);
+  static const Color primaryContainer = Color(0xFFA078FF);
+  static const Color onPrimaryContainer = Color(0xFF340080);
+  static const Color primaryFixed = Color(0xFFE9DDFF);
+  static const Color primaryFixedDim = Color(0xFFD0BCFF);
+
+  // Secondary Violets
+  static const Color secondary = Color(0xFFD2BBFF);
+  static const Color onSecondary = Color(0xFF3F008E);
+  static const Color secondaryContainer = Color(0xFF6001D1);
+  static const Color onSecondaryContainer = Color(0xFFC9AEFF);
+
+  // Tertiary Cyans (Telemetry, Network, Torrents)
+  static const Color tertiary = Color(0xFF7BD0FF);
+  static const Color onTertiary = Color(0xFF00354A);
+  static const Color tertiaryContainer = Color(0xFF009BD1);
+  static const Color onTertiaryContainer = Color(0xFF002D40);
+
+  // Functional Semantic Accents
+  static const Color success = Color(0xFF10B981); // Emerald
+  static const Color warning = Color(0xFFF59E0B); // Amber
+  static const Color error = Color(0xFFFFB4AB);   // Rose
+  static const Color errorContainer = Color(0xFF93000A);
+  static const Color onError = Color(0xFF690005);
+  static const Color onErrorContainer = Color(0xFFFFDAD6);
+
+  // Borders & Accents
+  static const Color border = Color(0xFF30363D);
+  static const Color borderHighlight = Color(0xFF494454);
+}
