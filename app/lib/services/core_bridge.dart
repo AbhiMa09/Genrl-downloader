@@ -84,13 +84,25 @@ class CoreBridge {
   }
 
   /// Connect to MAL via PKCE OAuth (runs `genrl mal connect`)
-  Future<ProcessResult> malConnectStart({String? clientId, int? port, bool noOpen = false}) async {
+  Future<ProcessResult> malConnectStart({
+    String? clientId,
+    String? clientSecret,
+    int? port,
+    String? redirectUri,
+    bool noOpen = false,
+  }) async {
     final args = ['mal', 'connect'];
     if (clientId != null && clientId.trim().isNotEmpty) {
       args.addAll(['--client-id', clientId.trim()]);
     }
+    if (clientSecret != null && clientSecret.trim().isNotEmpty) {
+      args.addAll(['--client-secret', clientSecret.trim()]);
+    }
     if (port != null) {
       args.addAll(['--port', port.toString()]);
+    }
+    if (redirectUri != null && redirectUri.trim().isNotEmpty) {
+      args.addAll(['--redirect-uri', redirectUri.trim()]);
     }
     if (noOpen) {
       args.add('--no-open');

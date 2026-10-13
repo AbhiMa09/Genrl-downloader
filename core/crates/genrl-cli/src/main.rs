@@ -22,7 +22,7 @@ use genrl_core::worker::{Engine, FsDiskProbe};
 use genrl_core::{
     filename, jobs, nyaa, planner, qbit, queue, secrets, settings, Db, EventLog, Settings,
 };
-use genrl_core::mal::{self, KeyringStore, MalClient};
+use genrl_core::mal::{self, KeyringStore, MalClient, TokenStore};
 
 #[derive(Parser, Debug)]
 #[command(
@@ -258,6 +258,9 @@ enum MalCommand {
         /// Optional client_id to save in settings before starting.
         #[arg(long)]
         client_id: Option<String>,
+        /// Optional client_secret for Web applications.
+        #[arg(long)]
+        client_secret: Option<String>,
         /// Don't try to open a browser tab automatically.
         #[arg(long)]
         no_open: bool,
@@ -267,9 +270,15 @@ enum MalCommand {
         /// Optional client_id to save in settings before starting.
         #[arg(long)]
         client_id: Option<String>,
+        /// Optional client_secret for Web applications.
+        #[arg(long)]
+        client_secret: Option<String>,
         /// Explicit port to bind (default: 21445).
         #[arg(long)]
         port: Option<u16>,
+        /// Explicit redirect URI (e.g. http://localhost:21445/callback).
+        #[arg(long)]
+        redirect_uri: Option<String>,
         /// Don't try to open a browser tab automatically.
         #[arg(long)]
         no_open: bool,
@@ -446,8 +455,12 @@ async fn main() -> Result<()> {
             episode,
         } => plan_cmd(&data_dir, file.as_deref(), dry_run, confirm, from_mal, mal_id, episode).await,
         Command::Mal { command } => match command {
-            MalCommand::Login { client_id, no_open } => mal_login_cmd(&data_dir, client_id, None, no_open).await,
-            MalCommand::Connect { client_id, port, no_open } => mal_login_cmd(&data_dir, client_id, port, no_open).await,
+            MalCommand::Login { client_id, client_secret, no_open } => {
+                mal_login_cmd(&data_dir, client_id, client_secret, None, None, no_open).await
+            }
+            MalCommand::Connect { client_id, client_secret, port, redirect_uri, no_open } => {
+                mal_login_cmd(&data_dir, client_id, client_secret, port, redirect_uri, no_open).await
+            }
             MalCommand::Disconnect => mal_disconnect_cmd(&data_dir),
             MalCommand::PublicProfile { username } => mal_public_profile_cmd(&data_dir, &username),
             MalCommand::Status { json } => mal_status_cmd(&data_dir, json).await,
@@ -1006,7 +1019,9 @@ fn automation_cmd(data_dir: &std::path::Path, on: bool) -> Result<()> {
 async fn mal_login_cmd(
     data_dir: &std::path::Path,
     client_id: Option<String>,
+    client_secret: Option<String>,
     port: Option<u16>,
+    redirect_uri: Option<String>,
     no_open: bool,
 ) -> Result<()> {
     let db = open_db(data_dir)?;
@@ -1021,10 +1036,16 @@ async fn mal_login_cmd(
     if settings.mal_client_id.trim().is_empty() {
         bail!("set settings.mal_client_id first (myanimelist.net/apiconfig)");
     }
-    let gate = Gate::new(db.clone())?;
     let store = KeyringStore;
+    if let Some(sec) = client_secret {
+        let sec = sec.trim();
+        if !sec.is_empty() {
+            store.set_client_secret(Some(sec))?;
+        }
+    }
+    let gate = Gate::new(db.clone())?;
     let clock = SystemClock;
-    let login = mal::mal_connect_start(&settings, port).await?;
+    let login = mal::mal_connect_start(&settings, port, redirect_uri.as_deref()).await?;
     println!("Authorize URL:\n\n  {}\n", login.url());
     println!("Listening on: {}", login.redirect_uri());
     if !no_open {

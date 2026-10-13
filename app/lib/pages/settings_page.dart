@@ -15,7 +15,9 @@ class _SettingsPageState extends State<SettingsPage> {
   final _qbitUrlController = TextEditingController(text: 'http://localhost:8080');
   final _qbitUserController = TextEditingController(text: 'admin');
   final _malClientIdController = TextEditingController(text: 'c96e52a6f4b5ea18bc13f176ea27f0ae');
+  final _malClientSecretController = TextEditingController(text: '');
   final _malPortController = TextEditingController(text: '21445');
+  final _malRedirectUriController = TextEditingController(text: 'http://127.0.0.1:21445/callback');
   final _publicUserController = TextEditingController(text: '');
   final _downloadFolderController = TextEditingController(text: '/home/genrl/Downloads');
   final _libraryFolderController = TextEditingController(text: '/mnt/anime');
@@ -62,7 +64,9 @@ class _SettingsPageState extends State<SettingsPage> {
     _qbitUrlController.dispose();
     _qbitUserController.dispose();
     _malClientIdController.dispose();
+    _malClientSecretController.dispose();
     _malPortController.dispose();
+    _malRedirectUriController.dispose();
     _publicUserController.dispose();
     _downloadFolderController.dispose();
     _libraryFolderController.dispose();
@@ -334,6 +338,19 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
         const SizedBox(height: 12),
         _TextFieldRow(
+          label: 'MAL Client Secret (Required if App Type is "Web")',
+          controller: _malClientSecretController,
+          hintText: 'Enter Client Secret if registered as Web (leave empty for Other)',
+          obscureText: true,
+        ),
+        const SizedBox(height: 12),
+        _TextFieldRow(
+          label: 'OAuth Redirect URI (must match MAL config exactly)',
+          controller: _malRedirectUriController,
+          hintText: 'http://127.0.0.1:21445/callback',
+        ),
+        const SizedBox(height: 12),
+        _TextFieldRow(
           label: 'OAuth Redirect Port (default 21445)',
           controller: _malPortController,
           hintText: '21445',
@@ -350,7 +367,13 @@ class _SettingsPageState extends State<SettingsPage> {
                 clientId: _malClientIdController.text.trim().isNotEmpty
                     ? _malClientIdController.text.trim()
                     : null,
+                clientSecret: _malClientSecretController.text.trim().isNotEmpty
+                    ? _malClientSecretController.text.trim()
+                    : null,
                 port: port,
+                redirectUri: _malRedirectUriController.text.trim().isNotEmpty
+                    ? _malRedirectUriController.text.trim()
+                    : null,
               ),
               icon: const Icon(Icons.login_rounded, size: 16),
               label: const Text('Connect via Browser (PKCE)'),
@@ -389,7 +412,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
         const SizedBox(height: 14),
         Text(
-          'OAuth2 PKCE (method: "plain") only. Tokens are encrypted and stored in the system keyring.',
+          'OAuth2 PKCE (method: "plain") only. Tokens and secrets are encrypted in the system keyring.',
           style: ObsidianTypography.bodySm(color: ObsidianColors.outline),
         ),
 
@@ -425,9 +448,10 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '1. Client ID matches exactly.\n'
-                  '2. App Redirect URL is registered as: http://127.0.0.1:$port/callback (or http://localhost:$port/callback)\n'
-                  '3. App Type is set to "Web" or "Other".',
+                  '1. If App Type is "Web": Enter your MAL Client Secret in the field above.\n'
+                  '2. If App Type is "Other": Leave the Client Secret field blank.\n'
+                  '3. App Redirect URL in MAL config must exactly match: ${_malRedirectUriController.text.trim()}\n'
+                  '4. Client ID matches exactly with no trailing spaces.',
                   style: ObsidianTypography.bodySm(color: ObsidianColors.outline),
                 ),
               ],
@@ -950,11 +974,13 @@ class _TextFieldRow extends StatelessWidget {
   final String label;
   final TextEditingController controller;
   final String hintText;
+  final bool obscureText;
 
   const _TextFieldRow({
     required this.label,
     required this.controller,
     required this.hintText,
+    this.obscureText = false,
   });
 
   @override
@@ -975,6 +1001,7 @@ class _TextFieldRow extends StatelessWidget {
           alignment: Alignment.centerLeft,
           child: TextField(
             controller: controller,
+            obscureText: obscureText,
             style: ObsidianTypography.monoCode(color: ObsidianColors.onSurface),
             decoration: InputDecoration(
               hintText: hintText,

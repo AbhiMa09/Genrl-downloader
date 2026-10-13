@@ -383,10 +383,20 @@ class StateProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> connectMal({String? clientId, int? port}) async {
+  Future<void> connectMal({
+    String? clientId,
+    String? clientSecret,
+    int? port,
+    String? redirectUri,
+  }) async {
     _malError = null;
     notifyListeners();
-    final res = await bridge.malConnectStart(clientId: clientId, port: port);
+    final res = await bridge.malConnectStart(
+      clientId: clientId,
+      clientSecret: clientSecret,
+      port: port,
+      redirectUri: redirectUri,
+    );
     if (res.exitCode != 0) {
       _malError = res.stderr.toString().isNotEmpty ? res.stderr.toString() : res.stdout.toString();
     } else {

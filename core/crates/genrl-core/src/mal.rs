@@ -184,6 +184,13 @@ pub struct Tokens {
 pub trait TokenStore: Send + Sync {
     fn refresh_token(&self) -> Result<Option<String>>;
     fn set_refresh_token(&self, token: Option<&str>) -> Result<()>;
+    fn client_secret(&self) -> Result<Option<String>> {
+        Ok(None)
+    }
+    fn set_client_secret(&self, secret: Option<&str>) -> Result<()> {
+        let _ = secret;
+        Ok(())
+    }
 }
 
 /// The app's store: [`crate::secrets`], i.e. the system keyring (libsecret)
@@ -200,29 +207,53 @@ impl TokenStore for KeyringStore {
             None => secrets::delete(Secret::MalRefreshToken),
         }
     }
+    fn client_secret(&self) -> Result<Option<String>> {
+        secrets::get(Secret::MalClientSecret)
+    }
+    fn set_client_secret(&self, secret: Option<&str>) -> Result<()> {
+        match secret {
+            Some(s) if !s.trim().is_empty() => secrets::set(Secret::MalClientSecret, s.trim()),
+            _ => secrets::delete(Secret::MalClientSecret),
+        }
+    }
 }
 
 /// An in-memory store for tests and for store-agnostic callers.
 #[derive(Default)]
-pub struct MemoryStore(Mutex<Option<String>>);
+pub struct MemoryStore {
+    token: Mutex<Option<String>>,
+    secret: Mutex<Option<String>>,
+}
 
 impl MemoryStore {
     pub fn new() -> Self {
         Self::default()
     }
     pub fn with(token: &str) -> Self {
-        Self(Mutex::new(Some(token.to_string())))
+        Self {
+            token: Mutex::new(Some(token.to_string())),
+            secret: Mutex::new(None),
+        }
     }
 }
 
 impl TokenStore for MemoryStore {
     fn refresh_token(&self) -> Result<Option<String>> {
-        let guard = self.0.lock().unwrap_or_else(|e| e.into_inner());
+        let guard = self.token.lock().unwrap_or_else(|e| e.into_inner());
         Ok(guard.clone())
     }
     fn set_refresh_token(&self, token: Option<&str>) -> Result<()> {
-        let mut guard = self.0.lock().unwrap_or_else(|e| e.into_inner());
+        let mut guard = self.token.lock().unwrap_or_else(|e| e.into_inner());
         *guard = token.map(str::to_string);
+        Ok(())
+    }
+    fn client_secret(&self) -> Result<Option<String>> {
+        let guard = self.secret.lock().unwrap_or_else(|e| e.into_inner());
+        Ok(guard.clone())
+    }
+    fn set_client_secret(&self, secret: Option<&str>) -> Result<()> {
+        let mut guard = self.secret.lock().unwrap_or_else(|e| e.into_inner());
+        *guard = secret.map(str::to_string);
         Ok(())
     }
 }
@@ -332,9 +363,15 @@ impl<'a> MalClient<'a> {
             ("client_id".to_string(), client_id.to_string()),
             ("refresh_token".to_string(), refresh_token.to_string()),
         ];
-        if let Ok(secret) = std::env::var("GENRL_MAL_CLIENT_SECRET") {
-            if !secret.is_empty() {
-                form.push(("client_secret".to_string(), secret));
+        let secret = self
+            .store
+            .client_secret()
+            .ok()
+            .flatten()
+            .or_else(|| std::env::var("GENRL_MAL_CLIENT_SECRET").ok());
+        if let Some(s) = secret {
+            if !s.trim().is_empty() {
+                form.push(("client_secret".to_string(), s.trim().to_string()));
             }
         }
         self.token_request(&url, &form).await
@@ -357,9 +394,15 @@ impl<'a> MalClient<'a> {
             ("code_verifier".to_string(), verifier.to_string()),
             ("redirect_uri".to_string(), redirect_uri.to_string()),
         ];
-        if let Ok(secret) = std::env::var("GENRL_MAL_CLIENT_SECRET") {
-            if !secret.is_empty() {
-                form.push(("client_secret".to_string(), secret));
+        let secret = self
+            .store
+            .client_secret()
+            .ok()
+            .flatten()
+            .or_else(|| std::env::var("GENRL_MAL_CLIENT_SECRET").ok());
+        if let Some(s) = secret {
+            if !s.trim().is_empty() {
+                form.push(("client_secret".to_string(), s.trim().to_string()));
             }
         }
         let tokens = self.token_request(&url, &form).await?;
@@ -563,6 +606,15 @@ pub async fn start_login(settings: &Settings) -> Result<Login> {
 
 /// Start login with an optional explicit port override.
 pub async fn start_login_with_port(settings: &Settings, override_port: Option<u16>) -> Result<Login> {
+    start_login_with_options(settings, override_port, None).await
+}
+
+/// Start login with an optional explicit port and optional redirect URI override.
+pub async fn start_login_with_options(
+    settings: &Settings,
+    override_port: Option<u16>,
+    override_redirect_uri: Option<&str>,
+) -> Result<Login> {
     let client_id = settings
         .mal_client_id
         .trim()
@@ -584,8 +636,9 @@ pub async fn start_login_with_port(settings: &Settings, override_port: Option<u1
             .unwrap_or(21445)
     });
     let listener = tokio::net::TcpListener::bind(("127.0.0.1", port)).await?;
-    let redirect_uri = std::env::var("GENRL_MAL_REDIRECT_URI")
-        .ok()
+    let redirect_uri = override_redirect_uri
+        .map(str::to_string)
+        .or_else(|| std::env::var("GENRL_MAL_REDIRECT_URI").ok())
         .unwrap_or_else(|| format!("http://127.0.0.1:{port}/callback"));
     let verifier = pkce_verifier();
     let state = random_token(32);
@@ -612,8 +665,9 @@ fn parse_query(query: &str) -> Vec<(String, String)> {
         .collect()
 }
 
-/// Accept exactly one loopback request, verify the OAuth `state` against `CSRF`
-/// and return the code, or explain why not.
+/// Accept loopback request(s), verify the OAuth `state` against `CSRF`
+/// and return the code, or explain why not. Ignores browser background requests
+/// like `/favicon.ico`.
 pub async fn redirect_code(
     listener: tokio::net::TcpListener,
     expected_state: &str,
@@ -621,61 +675,82 @@ pub async fn redirect_code(
 ) -> Result<String> {
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-    let accept = tokio::time::timeout(timeout, listener.accept());
-    let (mut stream, _peer) = match accept.await {
-        Ok(Ok(pair)) => pair,
-        Ok(Err(err)) => return Err(err.into()),
-        Err(_elapsed) => {
+    let deadline = tokio::time::Instant::now() + timeout;
+    loop {
+        let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
+        if remaining.is_zero() {
             return Err(Error::Auth {
                 service: "mal".to_string(),
                 message: "the login timed out waiting for the browser redirect".to_string(),
-            })
+            });
         }
-    };
 
-    let mut buf = [0u8; 8192];
-    let n = stream.read(&mut buf).await?;
-    let request = String::from_utf8_lossy(&buf[..n]);
-    let target = request
-        .lines()
-        .next()
-        .and_then(|line| line.split_whitespace().nth(1))
-        .unwrap_or("/");
-    let query = target.split_once('?').map(|(_, q)| q).unwrap_or("");
-    let params = parse_query(query);
+        let accept = tokio::time::timeout(remaining, listener.accept()).await;
+        let (mut stream, _peer) = match accept {
+            Ok(Ok(pair)) => pair,
+            Ok(Err(err)) => return Err(err.into()),
+            Err(_) => {
+                return Err(Error::Auth {
+                    service: "mal".to_string(),
+                    message: "the login timed out waiting for the browser redirect".to_string(),
+                });
+            }
+        };
 
-    let code = params.iter().find(|(k, _)| k == "code").map(|(_, v)| v.clone());
-    let state = params.iter().find(|(k, _)| k == "state").map(|(_, v)| v.clone());
-    let error = params.iter().find(|(k, _)| k == "error").map(|(_, v)| v.clone());
+        let mut buf = [0u8; 8192];
+        let n = stream.read(&mut buf).await?;
+        if n == 0 {
+            continue;
+        }
+        let request = String::from_utf8_lossy(&buf[..n]);
+        let target = request
+            .lines()
+            .next()
+            .and_then(|line| line.split_whitespace().nth(1))
+            .unwrap_or("/");
 
-    let ok = code.is_some()
-        && state.as_deref() == Some(expected_state)
-        && error.is_none();
-    let page = if ok {
-        "<!doctype html><meta charset=\"utf-8\"><title>Genrl</title><p>You can close this tab now.</p>"
-            .to_string()
-    } else {
-        "<!doctype html><meta charset=\"utf-8\"><title>Genrl</title><p>Login failed: the state did not match.</p>"
-            .to_string()
-    };
-    let response = format!(
-        "HTTP/1.1 {status} OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {len}\r\nConnection: close\r\n\r\n{page}",
-        status = if ok { 200 } else { 400 },
-        len = page.len(),
-    );
-    let _ = stream.write_all(response.as_bytes()).await;
-    let _ = stream.shutdown().await;
+        if target.starts_with("/favicon") {
+            let _ = stream.write_all(b"HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n").await;
+            let _ = stream.shutdown().await;
+            continue;
+        }
 
-    match (code, state, error) {
-        (_, _, Some(denied)) => Err(Error::Auth {
-            service: "mal".to_string(),
-            message: format!("MyAnimeList denied the login: {denied}"),
-        }),
-        (Some(code), Some(state), None) if state == expected_state => Ok(code),
-        _ => Err(Error::Auth {
-            service: "mal".to_string(),
-            message: "the redirect state did not match; refusing the code".to_string(),
-        }),
+        let query = target.split_once('?').map(|(_, q)| q).unwrap_or("");
+        let params = parse_query(query);
+
+        let code = params.iter().find(|(k, _)| k == "code").map(|(_, v)| v.clone());
+        let state = params.iter().find(|(k, _)| k == "state").map(|(_, v)| v.clone());
+        let error = params.iter().find(|(k, _)| k == "error").map(|(_, v)| v.clone());
+
+        let ok = code.is_some()
+            && state.as_deref() == Some(expected_state)
+            && error.is_none();
+        let page = if ok {
+            "<!doctype html><meta charset=\"utf-8\"><title>Genrl</title><p>You can close this tab now.</p>"
+                .to_string()
+        } else {
+            "<!doctype html><meta charset=\"utf-8\"><title>Genrl</title><p>Login failed: the state did not match.</p>"
+                .to_string()
+        };
+        let response = format!(
+            "HTTP/1.1 {status} OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {len}\r\nConnection: close\r\n\r\n{page}",
+            status = if ok { 200 } else { 400 },
+            len = page.len(),
+        );
+        let _ = stream.write_all(response.as_bytes()).await;
+        let _ = stream.shutdown().await;
+
+        match (code, state, error) {
+            (_, _, Some(denied)) => return Err(Error::Auth {
+                service: "mal".to_string(),
+                message: format!("MyAnimeList denied the login: {denied}"),
+            }),
+            (Some(code), Some(state), None) if state == expected_state => return Ok(code),
+            _ => return Err(Error::Auth {
+                service: "mal".to_string(),
+                message: "the redirect state did not match; refusing the code".to_string(),
+            }),
+        }
     }
 }
 
@@ -1883,8 +1958,9 @@ pub struct StatusCounts {
 pub async fn mal_connect_start(
     settings: &Settings,
     redirect_port: Option<u16>,
+    redirect_uri: Option<&str>,
 ) -> Result<Login> {
-    start_login_with_port(settings, redirect_port).await
+    start_login_with_options(settings, redirect_port, redirect_uri).await
 }
 
 pub async fn mal_status(
@@ -1990,9 +2066,10 @@ pub async fn mal_status(
 
 pub fn mal_disconnect(db: &Db, store: &dyn TokenStore) -> Result<()> {
     store.set_refresh_token(None)?;
+    let _ = store.set_client_secret(None);
     settings::write_state(db, JIKAN_USER_STATE_KEY, "")?;
     settings::write_state(db, ACCOUNT_SOURCE_STATE_KEY, "")?;
-    let _ = EventLog::new(db.clone()).info(None, None, "MAL disconnected; refresh token and profile cleared");
+    let _ = EventLog::new(db.clone()).info(None, None, "MAL disconnected; credentials and profile cleared");
     Ok(())
 }
 

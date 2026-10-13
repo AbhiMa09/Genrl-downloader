@@ -16,6 +16,8 @@ pub enum Secret {
     QbitPassword,
     /// MAL OAuth refresh token.
     MalRefreshToken,
+    /// MAL OAuth client secret (for Web applications).
+    MalClientSecret,
 }
 
 impl Secret {
@@ -24,6 +26,7 @@ impl Secret {
         match self {
             Secret::QbitPassword => "qbit_password",
             Secret::MalRefreshToken => "mal_refresh_token",
+            Secret::MalClientSecret => "mal_client_secret",
         }
     }
 
@@ -32,6 +35,7 @@ impl Secret {
         match self {
             Secret::QbitPassword => "GENRL_QBIT_PASSWORD",
             Secret::MalRefreshToken => "GENRL_MAL_REFRESH_TOKEN",
+            Secret::MalClientSecret => "GENRL_MAL_CLIENT_SECRET",
         }
     }
 
@@ -40,6 +44,7 @@ impl Secret {
         match self {
             Secret::QbitPassword => "qBittorrent WebUI password",
             Secret::MalRefreshToken => "MAL refresh token",
+            Secret::MalClientSecret => "MAL client secret",
         }
     }
 }
