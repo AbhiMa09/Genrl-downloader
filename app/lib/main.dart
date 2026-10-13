@@ -10,6 +10,7 @@ import 'pages/rules_page.dart';
 import 'pages/search_page.dart';
 import 'pages/settings_page.dart';
 import 'pages/show_detail_page.dart';
+import 'pages/ingestion_stage_page.dart';
 import 'services/state_provider.dart';
 import 'theme/theme.dart';
 import 'widgets/app_header.dart';
@@ -61,6 +62,7 @@ class MainShell extends StatelessWidget {
       const ActivityPage(),
       const RulesPage(),
       const SettingsPage(),
+      const IngestionStagePage(),
     ];
 
     final titles = <String>[
@@ -72,6 +74,7 @@ class MainShell extends StatelessWidget {
       'Activity Telemetry',
       'Matching Rules',
       'System Settings',
+      'Ingestion & Swarm Stage',
     ];
 
     final activeIndex = state.selectedPageIndex.clamp(0, pages.length - 1);

@@ -113,6 +113,16 @@ class NavRail extends StatelessWidget {
                   onTap: () => state.selectPage(2),
                 ),
                 _NavItem(
+                  index: 8,
+                  label: 'Ingestion Stage',
+                  icon: Icons.radar_outlined,
+                  selectedIcon: Icons.radar_rounded,
+                  badge: 'LIVE',
+                  badgeColor: ObsidianColors.secondary,
+                  isSelected: state.selectedPageIndex == 8,
+                  onTap: () => state.selectPage(8),
+                ),
+                _NavItem(
                   index: 3,
                   label: 'Library',
                   icon: Icons.video_library_outlined,

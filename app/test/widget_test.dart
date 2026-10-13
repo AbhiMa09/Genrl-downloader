@@ -1,14 +1,6 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:genrl_downloader/main.dart';
-
-class _MockHttpOverrides extends HttpOverrides {
-  @override
-  HttpClient createHttpClient(SecurityContext? context) {
-    return super.createHttpClient(context);
-  }
-}
 
 void main() {
   testWidgets('Genrl Downloader desktop app shell smoke test', (WidgetTester tester) async {

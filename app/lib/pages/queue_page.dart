@@ -67,6 +67,29 @@ class _QueuePageState extends State<QueuePage> {
               ),
               const Spacer(),
 
+              // Ingestion Stage View Switcher
+              OutlinedButton.icon(
+                onPressed: () => state.selectPage(8),
+                icon: const Icon(
+                  Icons.radar_rounded,
+                  size: 16,
+                  color: ObsidianColors.tertiary,
+                ),
+                label: Text(
+                  'Ingestion Stage',
+                  style: ObsidianTypography.bodySm(color: ObsidianColors.tertiary),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: ObsidianColors.border),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+
               // Global Pause/Resume
               OutlinedButton.icon(
                 onPressed: () => state.toggleAutomation(),
