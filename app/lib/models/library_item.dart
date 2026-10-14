@@ -65,6 +65,11 @@ class LibraryShow {
   final int? rank;
   final List<EpisodeItem> episodes;
 
+  int get id => malId;
+  int get episodesTotal => totalEpisodes;
+  int get episodesDownloaded => downloadedEpisodes;
+  int get footprintBytes => onDiskBytes;
+
   const LibraryShow({
     required this.malId,
     required this.title,
@@ -100,6 +105,11 @@ class LibraryShow {
     List<String>? aliases,
     Map<String, dynamic>? rules,
     List<EpisodeItem>? episodes,
+    double? score,
+    String? status,
+    String? airingStatus,
+    int? watchedEpisodes,
+    int? downloadedEpisodes,
   }) {
     return LibraryShow(
       malId: malId,
@@ -108,11 +118,11 @@ class LibraryShow {
       japaneseTitle: japaneseTitle,
       startYear: startYear,
       totalEpisodes: totalEpisodes,
-      downloadedEpisodes: downloadedEpisodes,
-      watchedEpisodes: watchedEpisodes,
-      score: score,
-      status: status,
-      airingStatus: airingStatus,
+      downloadedEpisodes: downloadedEpisodes ?? this.downloadedEpisodes,
+      watchedEpisodes: watchedEpisodes ?? this.watchedEpisodes,
+      score: score ?? this.score,
+      status: status ?? this.status,
+      airingStatus: airingStatus ?? this.airingStatus,
       genres: genres,
       synopsis: synopsis,
       posterUrl: posterUrl,

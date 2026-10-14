@@ -33,13 +33,13 @@ void main() {
     await tester.pumpWidget(createTestApp(state));
     await tester.pump();
 
-    expect(find.text('Matching Rules & Preferences'), findsOneWidget);
-    expect(find.text('GLOBAL RULES'), findsOneWidget);
-    expect(find.text('Save Rules'), findsOneWidget);
-    expect(find.text('Reset to Defaults'), findsOneWidget);
+    expect(find.text('Rules & Automation Policies'), findsOneWidget);
+    expect(find.text('LIVE ENGINE'), findsOneWidget);
+    expect(find.text('Save Changes'), findsOneWidget);
+    expect(find.text('Test RSS Feed'), findsOneWidget);
 
     // Save rules action
-    await tester.tap(find.text('Save Rules'));
+    await tester.tap(find.text('Save Changes'));
     await tester.pump();
   });
 
@@ -67,6 +67,6 @@ void main() {
     await tester.tap(find.text('Retry Rules Query'));
     await tester.pump();
 
-    expect(find.text('GLOBAL RULES'), findsOneWidget);
+    expect(find.text('Rules & Automation Policies'), findsOneWidget);
   });
 }

@@ -33,6 +33,15 @@ class SystemStatus {
     this.activeError,
   });
 
+  String get downloadSpeedFormatted => formattedDownloadSpeed;
+  String get uploadSpeedFormatted {
+    if (uploadSpeedBytes <= 0) return '0 B/s';
+    if (uploadSpeedBytes < 1024 * 1024) {
+      return '${(uploadSpeedBytes / 1024).toStringAsFixed(1)} KB/s';
+    }
+    return '${(uploadSpeedBytes / (1024 * 1024)).toStringAsFixed(1)} MB/s';
+  }
+
   String get formattedDownloadSpeed {
     if (downloadSpeedBytes <= 0) return '0 B/s';
     if (downloadSpeedBytes < 1024 * 1024) {

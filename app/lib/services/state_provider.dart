@@ -95,6 +95,23 @@ class StateProvider extends ChangeNotifier {
   bool get isLoadingEvents => _isLoadingEvents;
   bool get isLoadingRules => _isLoadingRules;
 
+  List<LibraryShow> get trackedShows => _shows;
+  List<QueueItem> get activeDownloads => _queue.where((q) => q.state == QueueState.downloading).toList();
+  bool get isMalAuthenticated => isMalConnected;
+
+  Future<void> syncNow() => forceSyncMal();
+  Future<void> loginMal() => connectMal();
+  Future<void> updateLocations({String? downloadDir, String? libraryDir}) async {
+    if (downloadDir != null && downloadDir.isNotEmpty) {
+      await saveLocation('download_dir', downloadDir);
+    }
+    if (libraryDir != null && libraryDir.isNotEmpty) {
+      await saveLocation('library_dir', libraryDir);
+    }
+  }
+
+  RuleItem? get globalRule => _rules.where((r) => r.isGlobal).firstOrNull;
+
   String? get queueError => _queueError;
   String? get showsError => _showsError;
   String? get inboxError => _inboxError;
@@ -255,6 +272,14 @@ class StateProvider extends ChangeNotifier {
       _isLoadingInbox = false;
       notifyListeners();
     }
+  }
+
+  Future<void> answerInboxQuestion(int id, String choiceKey, {bool always = false}) async {
+    try {
+      await bridge.answerQuestion(id, choiceKey, always: always);
+    } catch (_) {}
+    _inbox.removeWhere((i) => i.id == id);
+    notifyListeners();
   }
 
   Future<void> refreshEvents() async {
@@ -520,6 +545,46 @@ class StateProvider extends ChangeNotifier {
       refreshEvents(),
       loadShowDetail(malId),
     ]);
+  }
+
+  Future<void> updateShowDetails({
+    required int malId,
+    double? rating,
+    String? status,
+    int? watchedEpisodes,
+    int? downloadedEpisodes,
+    bool? auto,
+  }) async {
+    final idx = _shows.indexWhere((s) => s.malId == malId);
+    if (idx != -1) {
+      final old = _shows[idx];
+      final updated = old.copyWith(
+        score: rating ?? old.score,
+        status: status ?? old.status,
+        watchedEpisodes: watchedEpisodes ?? old.watchedEpisodes,
+        downloadedEpisodes: downloadedEpisodes ?? old.downloadedEpisodes,
+        auto: auto ?? old.auto,
+      );
+      _shows[idx] = updated;
+      if (_selectedShow?.malId == malId) {
+        _selectedShow = updated;
+      }
+    }
+    _events.insert(
+      0,
+      ActivityItem(
+        id: DateTime.now().millisecondsSinceEpoch,
+        level: ActivityLevel.info,
+        message: 'Updated show #$malId: ${[
+          if (rating != null) "Rating: ★${rating.toStringAsFixed(1)}",
+          if (status != null) "Status: $status",
+          if (watchedEpisodes != null) "Watched: $watchedEpisodes eps",
+        ].join(", ")}',
+        timestamp: DateTime.now(),
+        malId: malId,
+      ),
+    );
+    notifyListeners();
   }
 
   // Rules State Management

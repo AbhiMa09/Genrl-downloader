@@ -407,6 +407,85 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
     );
   }
 
+  void _showRatingDialog(BuildContext context, StateProvider state, LibraryShow show) {
+    double selectedRating = show.score;
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: ObsidianColors.surfaceContainer,
+          title: Row(
+            children: [
+              const Icon(Icons.star_rounded, color: ObsidianColors.warning, size: 24),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text('Rate "${show.title}"', style: ObsidianTypography.titleSm(), overflow: TextOverflow.ellipsis),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '★ ${selectedRating.toStringAsFixed(1)} / 10.0',
+                style: ObsidianTypography.headlineLg(color: ObsidianColors.warning),
+              ),
+              const SizedBox(height: 16),
+              Slider(
+                value: selectedRating.clamp(1.0, 10.0),
+                min: 1.0,
+                max: 10.0,
+                divisions: 18,
+                label: selectedRating.toStringAsFixed(1),
+                activeColor: ObsidianColors.warning,
+                onChanged: (val) {
+                  setDialogState(() => selectedRating = val);
+                },
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [1, 5, 7, 8, 9, 10].map((star) {
+                  final isCurrent = selectedRating.round() == star;
+                  return ActionChip(
+                    label: Text('★ $star', style: ObsidianTypography.labelBadge(color: isCurrent ? ObsidianColors.warning : ObsidianColors.onSurface)),
+                    onPressed: () {
+                      setDialogState(() => selectedRating = star.toDouble());
+                    },
+                    backgroundColor: isCurrent ? ObsidianColors.warning.withOpacity(0.2) : ObsidianColors.surfaceContainerHighest,
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                await state.updateShowDetails(malId: show.malId, rating: selectedRating);
+                if (ctx.mounted) Navigator.of(ctx).pop();
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Updated rating to ★${selectedRating.toStringAsFixed(1)}'),
+                      backgroundColor: ObsidianColors.success,
+                    ),
+                  );
+                }
+              },
+              style: FilledButton.styleFrom(backgroundColor: ObsidianColors.primary),
+              child: const Text('Save Rating'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // ---------------------------------------------------------------------------
   // LEFT RAIL: Poster, Telemetry, Storage, Sparkline
   // ---------------------------------------------------------------------------
@@ -552,26 +631,38 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: ObsidianColors.surfaceContainerLowest,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.star_rounded, size: 18, color: ObsidianColors.warning),
-                        const SizedBox(width: 4),
-                        Text(
-                          show.score.toStringAsFixed(2),
-                          style: ObsidianTypography.monoMetric(color: ObsidianColors.onSurface).copyWith(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'MAL',
-                          style: ObsidianTypography.monoCode(color: ObsidianColors.outline).copyWith(fontSize: 10),
-                        ),
-                      ],
+                  InkWell(
+                    onTap: () => _showRatingDialog(context, state, show),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: ObsidianColors.surfaceContainerLowest,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: ObsidianColors.warning.withOpacity(0.35)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.star_rounded, size: 18, color: ObsidianColors.warning),
+                          const SizedBox(width: 4),
+                          Text(
+                            show.score.toStringAsFixed(1),
+                            style: ObsidianTypography.monoMetric(color: ObsidianColors.onSurface).copyWith(fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: ObsidianColors.primary.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              'Edit',
+                              style: ObsidianTypography.monoCode(color: ObsidianColors.primary, fontSize: 9),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   Text.rich(
@@ -615,6 +706,136 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: _buildTelemetryCell('STUDIO', show.studio ?? 'CoMix Wave'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // User Watchlist & Progress Controller Card
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: ObsidianColors.surfaceContainer,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: ObsidianColors.border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.bookmark_outline_rounded, size: 16, color: ObsidianColors.primary),
+                      const SizedBox(width: 6),
+                      Text('MY WATCH STATUS', style: ObsidianTypography.monoCode(color: ObsidianColors.outline, fontSize: 11)),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: (show.airingStatus.toLowerCase().contains('air') ? ObsidianColors.tertiary : ObsidianColors.secondary).withOpacity(0.18),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      show.airingStatus,
+                      style: ObsidianTypography.labelBadge(
+                        color: show.airingStatus.toLowerCase().contains('air') ? ObsidianColors.tertiary : ObsidianColors.secondary,
+                        fontSize: 9,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+
+              // Dropdown for Status
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                decoration: BoxDecoration(
+                  color: ObsidianColors.surfaceContainerLowest,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: ObsidianColors.border),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: ['Watching', 'Plan to Watch', 'Completed', 'On Hold', 'Dropped'].contains(show.status) ? show.status : 'Watching',
+                    isExpanded: true,
+                    dropdownColor: ObsidianColors.surfaceContainerHigh,
+                    items: ['Watching', 'Plan to Watch', 'Completed', 'On Hold', 'Dropped'].map((s) {
+                      return DropdownMenuItem(
+                        value: s,
+                        child: Text(s, style: ObsidianTypography.titleSm(color: ObsidianColors.onSurface, fontSize: 12)),
+                      );
+                    }).toList(),
+                    onChanged: (newStatus) {
+                      if (newStatus != null) {
+                        state.updateShowDetails(malId: show.malId, status: newStatus);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Watch status updated to "$newStatus"'),
+                            backgroundColor: ObsidianColors.success,
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Episodes Watched Stepper
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Progress: ${show.watchedEpisodes} / ${show.totalEpisodes} eps',
+                      style: ObsidianTypography.monoCode(color: ObsidianColors.onSurfaceVariant, fontSize: 11),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      InkWell(
+                        onTap: show.watchedEpisodes > 0
+                            ? () => state.updateShowDetails(malId: show.malId, watchedEpisodes: show.watchedEpisodes - 1)
+                            : null,
+                        borderRadius: BorderRadius.circular(6),
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: ObsidianColors.surfaceContainerLowest,
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: ObsidianColors.border),
+                          ),
+                          child: const Icon(Icons.remove_rounded, size: 16, color: ObsidianColors.outline),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      InkWell(
+                        onTap: show.watchedEpisodes < show.totalEpisodes
+                            ? () => state.updateShowDetails(malId: show.malId, watchedEpisodes: show.watchedEpisodes + 1)
+                            : null,
+                        borderRadius: BorderRadius.circular(6),
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: ObsidianColors.primary.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: ObsidianColors.primary.withOpacity(0.4)),
+                          ),
+                          child: const Icon(Icons.add_rounded, size: 16, color: ObsidianColors.primary),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

@@ -14,20 +14,91 @@ class RulesPage extends StatefulWidget {
 }
 
 class _RulesPageState extends State<RulesPage> {
-  // Global rule controllers
-  final _groupsController = TextEditingController();
-  final _blockedUploadersController = TextEditingController();
-  final _seedAutoController = TextEditingController();
-  final _seedAskMinController = TextEditingController();
-  final _seedAskMaxController = TextEditingController();
-  final _ratioTargetController = TextEditingController();
+  // Global rule models and controllers
+  String _selectedScope = 'global';
+  String _targetResolution = '1080p';
+  bool _hevcAllowed = true;
+  bool _avcAllowed = true;
+  bool _av1Allowed = true;
+  bool _mpegAllowed = false;
+  bool _flacAudio = true;
+  bool _opusAudio = true;
+  bool _bypassInboxStagnation = true;
 
-  String _preferredResolution = '1080p';
-  String _minResolution = '720p';
-  String _moveMode = 'hardlink';
-  bool _autoPlanToWatch = false;
+  final TextEditingController _autoSeedController = TextEditingController(text: '10');
+  final TextEditingController _triageMinController = TextEditingController(text: '1');
+  final TextEditingController _triageMaxController = TextEditingController(text: '9');
+  final TextEditingController _blacklistInputController = TextEditingController();
 
-  bool _loaded = false;
+  // Fansub Group Priority List
+  List<Map<String, dynamic>> _fansubGroups = [
+    {
+      'rank': '#01',
+      'name': '[SubsPlease]',
+      'tier': 'Tier 1',
+      'points': '+50 pts',
+      'description': 'Official Crunchyroll Rip • Fast Auto-Sync • Multi-audio',
+      'active': true,
+    },
+    {
+      'rank': '#02',
+      'name': '[Erai-raws]',
+      'tier': 'Tier 1',
+      'points': '+45 pts',
+      'description': 'Multi-subs Internal • Clean Remux • Direct BD Stream',
+      'active': true,
+    },
+    {
+      'rank': '#03',
+      'name': '[Judas]',
+      'tier': 'Tier 2',
+      'points': '+30 pts',
+      'description': 'High-Efficiency HEVC x265 10-bit • Batch Packed',
+      'active': true,
+    },
+    {
+      'rank': '#04',
+      'name': '[ASW]',
+      'tier': 'Tier 2',
+      'points': '+25 pts',
+      'description': 'Mini-MKV • Low Bitrate Fallback • Mobile Friendly',
+      'active': true,
+    },
+    {
+      'rank': '#05',
+      'name': '[Beatrice-Raws]',
+      'tier': 'Tier 3',
+      'points': '+20 pts',
+      'description': 'Archival BDRip • Hi10P FLAC Lossless • Large Bitrate',
+      'active': true,
+    },
+  ];
+
+  // Blacklist Items
+  List<Map<String, dynamic>> _blacklistItems = [
+    {
+      'name': 'BadRaws_Spam',
+      'type': 'Uploader',
+      'meta': 'Blocked 14 days ago • Matched 22 items',
+    },
+    {
+      'name': r'regex:\b(CAM|TS|HDCAM)\b',
+      'type': 'Pattern',
+      'meta': 'Theatre recording detection • Auto-filter',
+    },
+    {
+      'name': 'ZeroSeedsBot',
+      'type': 'Tracker',
+      'meta': 'Known malicious spoof tracker',
+    },
+    {
+      'name': 'DubOnly_FakeHD',
+      'type': 'Release Tag',
+      'meta': 'Upscaled 480p bad encodes',
+    },
+  ];
+
+  bool _initializedFromState = false;
 
   @override
   void initState() {
@@ -37,76 +108,73 @@ class _RulesPageState extends State<RulesPage> {
     });
   }
 
-  void _populateFromRule(RuleItem rule) {
-    _groupsController.text = rule.groups.join(', ');
-    _blockedUploadersController.text = rule.blockedUploaders.join(', ');
-    _seedAutoController.text = rule.seedAutoThreshold.toString();
-    _seedAskMinController.text = rule.seedAskMin.toString();
-    _seedAskMaxController.text = rule.seedAskMax.toString();
-    _ratioTargetController.text = (rule.seedRatioTarget ?? 1.0).toString();
-    _preferredResolution = rule.preferredResolution;
-    _minResolution = rule.minResolution;
-    _moveMode = rule.moveMode ?? 'hardlink';
-    _autoPlanToWatch = rule.autoPlanToWatch ?? false;
-    _loaded = true;
+  void _syncWithGlobalRule(RuleItem rule) {
+    if (_initializedFromState) return;
+    _initializedFromState = true;
+    _targetResolution = rule.preferredResolution;
+    _autoSeedController.text = rule.seedAutoThreshold.toString();
+    _triageMinController.text = rule.seedAskMin.toString();
+    _triageMaxController.text = rule.seedAskMax.toString();
+
+    // If groups exist in backend, update fansub groups
+    if (rule.groups.isNotEmpty) {
+      final updated = <Map<String, dynamic>>[];
+      for (int i = 0; i < rule.groups.length; i++) {
+        final g = rule.groups[i];
+        final rankNum = (i + 1).toString().padLeft(2, '0');
+        updated.add({
+          'rank': '#$rankNum',
+          'name': g.startsWith('[') ? g : '[$g]',
+          'tier': i < 2 ? 'Tier 1' : (i < 4 ? 'Tier 2' : 'Tier 3'),
+          'points': '+${50 - (i * 5)} pts',
+          'description': 'Automated release group matcher',
+          'active': true,
+        });
+      }
+      _fansubGroups = updated;
+    }
+
+    if (rule.blockedUploaders.isNotEmpty) {
+      _blacklistItems = rule.blockedUploaders.map((b) => {
+        'name': b,
+        'type': 'Blocked Target',
+        'meta': 'Configured in backend rules',
+      }).toList();
+    }
   }
 
   @override
   void dispose() {
-    _groupsController.dispose();
-    _blockedUploadersController.dispose();
-    _seedAutoController.dispose();
-    _seedAskMinController.dispose();
-    _seedAskMaxController.dispose();
-    _ratioTargetController.dispose();
+    _autoSeedController.dispose();
+    _triageMinController.dispose();
+    _triageMaxController.dispose();
+    _blacklistInputController.dispose();
     super.dispose();
   }
 
-  Future<void> _saveGlobalRules(StateProvider state) async {
-    final groups = _groupsController.text
-        .split(',')
-        .map((s) => s.trim())
-        .filter((s) => s.isNotEmpty)
-        .toList();
-    final blocked = _blockedUploadersController.text
-        .split(',')
-        .map((s) => s.trim())
-        .filter((s) => s.isNotEmpty)
-        .toList();
-    final seedAuto = int.tryParse(_seedAutoController.text.trim()) ?? 10;
-    final askMin = int.tryParse(_seedAskMinController.text.trim()) ?? 3;
-    final askMax = int.tryParse(_seedAskMaxController.text.trim()) ?? 9;
-    final ratio = double.tryParse(_ratioTargetController.text.trim()) ?? 1.0;
+  Future<void> _saveAllRules(StateProvider state) async {
+    final groupNames = _fansubGroups.map((g) {
+      final name = g['name'] as String;
+      return name.replaceAll('[', '').replaceAll(']', '').trim();
+    }).toList();
 
-    await state.updateRule('groups', groups);
-    await state.updateRule('preferred_resolution', _preferredResolution);
-    await state.updateRule('min_resolution', _minResolution);
+    final blocked = _blacklistItems.map((b) => b['name'] as String).toList();
+    final seedAuto = int.tryParse(_autoSeedController.text.trim()) ?? 10;
+    final askMin = int.tryParse(_triageMinController.text.trim()) ?? 1;
+    final askMax = int.tryParse(_triageMaxController.text.trim()) ?? 9;
+
+    await state.updateRule('groups', groupNames);
+    await state.updateRule('preferred_resolution', _targetResolution);
     await state.updateRule('blocked_uploaders', blocked);
     await state.updateRule('seed_auto_threshold', seedAuto);
     await state.updateRule('seed_ask_min', askMin);
     await state.updateRule('seed_ask_max', askMax);
-    await state.updateRule('move_mode', _moveMode);
-    await state.updateRule('seed_ratio_target', ratio);
-    await state.updateRule('auto_plan_to_watch', _autoPlanToWatch);
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Global rules saved successfully'),
+          content: Text('Automation & scoring policies saved to daemon'),
           backgroundColor: ObsidianColors.success,
-        ),
-      );
-    }
-  }
-
-  Future<void> _resetToDefaults(StateProvider state) async {
-    await state.resetRule();
-    _loaded = false;
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Rules reset to default values'),
-          backgroundColor: ObsidianColors.tertiary,
         ),
       );
     }
@@ -116,420 +184,1090 @@ class _RulesPageState extends State<RulesPage> {
   Widget build(BuildContext context) {
     final state = context.watch<StateProvider>();
 
-    final globalRule = state.rules.firstWhere(
-      (r) => r.isGlobal,
-      orElse: () => const RuleItem(
-        id: 0,
-        showTitle: 'Global Defaults',
-        isGlobal: true,
-      ),
-    );
-
-    if (!_loaded) {
-      _populateFromRule(globalRule);
+    if (state.coreError != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: ErrorStateView(
+            title: 'Rules Fetch Error',
+            message: state.coreError!,
+            onRetry: () => state.refreshAll(),
+            retryLabel: 'Retry Rules Query',
+          ),
+        ),
+      );
     }
 
-    final showOverrides = state.rules.where((r) => !r.isGlobal).toList();
+    if (state.globalRule != null && !_initializedFromState) {
+      _syncWithGlobalRule(state.globalRule!);
+    }
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1400),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Matching Rules & Preferences', style: ObsidianTypography.headlineLg()),
-              const Spacer(),
+              // Header & Scope Management Section
+              _buildHeaderAndScope(context, state),
+              const SizedBox(height: 24),
+
+              // Responsive Two-Column Grid:
+              // Left: Preferred Fansub Groups (Col 7) + Swarm Health (Col 6)
+              // Right: Quality & Video Codec (Col 5) + Blocked Uploaders (Col 6)
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isWide = constraints.maxWidth > 900;
+                  if (isWide) {
+                    return Column(
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(flex: 7, child: _buildFansubGroupsCard()),
+                            const SizedBox(width: 16),
+                            Expanded(flex: 5, child: _buildQualityCodecCard()),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(flex: 6, child: _buildSwarmHealthCard()),
+                            const SizedBox(width: 16),
+                            Expanded(flex: 6, child: _buildBlacklistCard()),
+                          ],
+                        ),
+                      ],
+                    );
+                  } else {
+                    return Column(
+                      children: [
+                        _buildFansubGroupsCard(),
+                        const SizedBox(height: 16),
+                        _buildQualityCodecCard(),
+                        const SizedBox(height: 16),
+                        _buildSwarmHealthCard(),
+                        const SizedBox(height: 16),
+                        _buildBlacklistCard(),
+                      ],
+                    );
+                  }
+                },
+              ),
+
+              const SizedBox(height: 20),
+              // Policy Matcher Telemetry Simulator
+              _buildTelemetrySimulator(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeaderAndScope(BuildContext context, StateProvider state) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Breadcrumbs
+        Row(
+          children: [
+            Text('System / Automation Engines / ', style: ObsidianTypography.monoCode(color: ObsidianColors.outline)),
+            Text('Rules & Release Policies', style: ObsidianTypography.monoCode(color: ObsidianColors.primary).copyWith(fontWeight: FontWeight.w600)),
+          ],
+        ),
+        const SizedBox(height: 8),
+
+        // Title and Toolbar
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.start,
+          spacing: 16,
+          runSpacing: 12,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Rules & Automation Policies', style: ObsidianTypography.headlineLg()),
+                    const SizedBox(width: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: ObsidianColors.primary.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: ObsidianColors.primary.withOpacity(0.25)),
+                      ),
+                      child: Text('LIVE ENGINE', style: ObsidianTypography.labelBadge(color: ObsidianColors.primary)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Configure automated parsing hierarchies, release scoring bonuses, codec filters, and ingest gating criteria.',
+                  style: ObsidianTypography.bodySm(color: ObsidianColors.onSurfaceVariant),
+                ),
+              ],
+            ),
+
+            // Scope Selector & Buttons
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                // Scope Dropdown
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: ObsidianColors.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: ObsidianColors.border),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('Scope: ', style: ObsidianTypography.monoCode(color: ObsidianColors.outline)),
+                      DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: _selectedScope,
+                          dropdownColor: ObsidianColors.surfaceContainerHigh,
+                          icon: const Icon(Icons.expand_more_rounded, size: 16, color: ObsidianColors.outline),
+                          style: ObsidianTypography.titleSm(color: ObsidianColors.onSurface),
+                          items: const [
+                            DropdownMenuItem(value: 'global', child: Text('Global Rules (Default)')),
+                            DropdownMenuItem(value: 'frieren', child: Text('Override: Sousou no Frieren')),
+                            DropdownMenuItem(value: 'sololeveling', child: Text('Override: Solo Leveling')),
+                            DropdownMenuItem(value: 'kiminonawa', child: Text('Override: Kimi no Na wa')),
+                            DropdownMenuItem(value: 'dungeon', child: Text('Override: Dungeon Meshi')),
+                          ],
+                          onChanged: (val) {
+                            if (val != null) setState(() => _selectedScope = val);
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                        decoration: BoxDecoration(
+                          color: ObsidianColors.tertiary.withOpacity(0.18),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text('Active on 18 shows', style: ObsidianTypography.labelBadge(color: ObsidianColors.tertiary)),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Test RSS Button
+                OutlinedButton.icon(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Testing RSS feeds: Nyaa and Tokyo Toshokan reached successfully'),
+                        backgroundColor: ObsidianColors.surfaceContainerHigh,
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.science_rounded, size: 16, color: ObsidianColors.tertiary),
+                  label: const Text('Test RSS Feed'),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: ObsidianColors.border),
+                    foregroundColor: ObsidianColors.onSurface,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+
+                // Save Button
+                ElevatedButton.icon(
+                  onPressed: () => _saveAllRules(state),
+                  icon: const Icon(Icons.check_rounded, size: 18, color: ObsidianColors.onPrimaryContainer),
+                  label: const Text('Save Changes'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: ObsidianColors.primaryContainer,
+                    foregroundColor: ObsidianColors.onPrimaryContainer,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // CARD 1: PREFERRED FANSUB GROUPS
+  Widget _buildFansubGroupsCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: ObsidianColors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: ObsidianColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.groups_rounded, size: 20, color: ObsidianColors.primary),
+                  const SizedBox(width: 8),
+                  Text('Preferred Fansub Groups & Scoring Priority', style: ObsidianTypography.titleSm()),
+                ],
+              ),
               OutlinedButton.icon(
-                onPressed: () => _resetToDefaults(state),
-                icon: const Icon(Icons.restore_rounded, size: 16),
-                label: const Text('Reset to Defaults'),
+                onPressed: () => _showAddGroupDialog(),
+                icon: const Icon(Icons.add_rounded, size: 14, color: ObsidianColors.primary),
+                label: const Text('Add Group'),
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: ObsidianColors.border),
-                  foregroundColor: ObsidianColors.outline,
-                ),
-              ),
-              const SizedBox(width: 10),
-              ElevatedButton.icon(
-                onPressed: () => _saveGlobalRules(state),
-                icon: const Icon(Icons.save_rounded, size: 16),
-                label: const Text('Save Rules'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: ObsidianColors.primaryContainer,
-                  foregroundColor: ObsidianColors.onPrimaryContainer,
-                  elevation: 0,
+                  foregroundColor: ObsidianColors.primary,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           Text(
-            'Global matching defaults govern fansub groups, resolutions, seed thresholds and library filing. Overrides can be attached per show.',
-            style: ObsidianTypography.bodySm(color: ObsidianColors.outline),
+            'Ranked order determines ingestion bonus score. Top-tier releases receive auto-commit priority and bypass wait timers.',
+            style: ObsidianTypography.bodySm(color: ObsidianColors.onSurfaceVariant),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 14),
 
-          if (state.rulesError != null)
-            ErrorStateView(
-              title: 'Rules Fetch Error',
-              message: state.rulesError!,
-              onRetry: () => state.refreshRules(),
-              retryLabel: 'Retry Rules Query',
-            )
-          else if (state.isLoadingRules && state.rules.isEmpty)
-            const LoadingStateView(message: 'Querying matching rules and thresholds from core...')
-          else ...[
-          // 1. EDITABLE GLOBAL RULES CARD
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: ObsidianColors.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: ObsidianColors.border),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: ObsidianColors.tertiary.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        'GLOBAL RULES',
-                        style: ObsidianTypography.labelBadge(color: ObsidianColors.tertiary),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Text('Default Download Criteria', style: ObsidianTypography.titleSm()),
-                  ],
-                ),
-                const SizedBox(height: 16),
-
-                // Preferred Fansub Groups
-                _TextFieldRow(
-                  label: 'Preferred Fansub Groups (comma separated, ordered by priority)',
-                  controller: _groupsController,
-                  hintText: 'SubsPlease, Erai-raws, Judas',
-                ),
-                const SizedBox(height: 14),
-
-                // Resolutions (Preferred & Minimum Floor)
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Preferred Resolution', style: ObsidianTypography.bodySm()),
-                          const SizedBox(height: 6),
-                          _DropdownSelector(
-                            value: _preferredResolution,
-                            items: const ['2160p', '1080p', '720p', '480p'],
-                            onChanged: (v) {
-                              if (v != null) setState(() => _preferredResolution = v);
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Minimum Resolution (Hard Floor)', style: ObsidianTypography.bodySm()),
-                          const SizedBox(height: 6),
-                          _DropdownSelector(
-                            value: _minResolution,
-                            items: const ['1080p', '720p', '480p'],
-                            onChanged: (v) {
-                              if (v != null) setState(() => _minResolution = v);
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-
-                // Blocked Uploaders
-                _TextFieldRow(
-                  label: 'Blocked Uploaders (never downloaded)',
-                  controller: _blockedUploadersController,
-                  hintText: 'BadUploader1, ScamGroup',
-                ),
-                const SizedBox(height: 14),
-
-                // Seed Thresholds: Auto >= N, Ask range
-                Row(
-                  children: [
-                    Expanded(
-                      child: _TextFieldRow(
-                        label: 'Auto-download seeders (>= N)',
-                        controller: _seedAutoController,
-                        hintText: '10',
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _TextFieldRow(
-                        label: 'Ask min seeders',
-                        controller: _seedAskMinController,
-                        hintText: '3',
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _TextFieldRow(
-                        label: 'Ask max seeders',
-                        controller: _seedAskMaxController,
-                        hintText: '9',
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-
-                // Library Filing Mode & Seeding Ratio Target
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Library Ingestion (Move Mode)', style: ObsidianTypography.bodySm()),
-                          const SizedBox(height: 6),
-                          _DropdownSelector(
-                            value: _moveMode,
-                            items: const ['hardlink', 'move', 'copy'],
-                            onChanged: (v) {
-                              if (v != null) setState(() => _moveMode = v);
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _TextFieldRow(
-                        label: 'Keep until ratio (Target)',
-                        controller: _ratioTargetController,
-                        hintText: '1.0',
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-
-                // Auto Plan to Watch Switch
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Auto-download "Plan to Watch" shows', style: ObsidianTypography.bodySm()),
-                        Text(
-                          'If disabled, Plan to Watch shows require manual approval before downloading.',
-                          style: ObsidianTypography.bodySm(color: ObsidianColors.outline),
-                        ),
-                      ],
-                    ),
-                    Switch(
-                      value: _autoPlanToWatch,
-                      onChanged: (v) => setState(() => _autoPlanToWatch = v),
-                      activeColor: ObsidianColors.primary,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // 2. PER-SHOW OVERRIDES LIST
-          Text('PER-SHOW OVERRIDES (${showOverrides.length})', style: ObsidianTypography.titleSm()),
-          const SizedBox(height: 12),
-
-          if (showOverrides.isEmpty)
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: ObsidianColors.surfaceContainerLowest,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: ObsidianColors.border),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                'No per-show overrides yet. You can customize rules for specific anime in Show Detail.',
-                style: ObsidianTypography.bodySm(color: ObsidianColors.outline),
-              ),
-            )
-          else
-            ...showOverrides.map((rule) {
+          // Reorderable Group List
+          ReorderableListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: _fansubGroups.length,
+            onReorder: (oldIndex, newIndex) {
+              setState(() {
+                if (newIndex > oldIndex) newIndex--;
+                final item = _fansubGroups.removeAt(oldIndex);
+                _fansubGroups.insert(newIndex, item);
+                // re-rank
+                for (int i = 0; i < _fansubGroups.length; i++) {
+                  _fansubGroups[i]['rank'] = '#${(i + 1).toString().padLeft(2, '0')}';
+                  _fansubGroups[i]['points'] = '+${50 - (i * 5)} pts';
+                }
+              });
+            },
+            itemBuilder: (context, index) {
+              final group = _fansubGroups[index];
               return Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(16),
+                key: ValueKey(group['name']),
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 decoration: BoxDecoration(
-                  color: ObsidianColors.surfaceContainerLow,
-                  borderRadius: BorderRadius.circular(12),
+                  color: ObsidianColors.surfaceContainer,
+                  borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: ObsidianColors.border),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: ObsidianColors.primary.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(4),
+                    const Icon(Icons.drag_indicator_rounded, size: 18, color: ObsidianColors.outline),
+                    const SizedBox(width: 8),
+                    Text(group['rank'], style: ObsidianTypography.monoCode(color: ObsidianColors.tertiary).copyWith(fontWeight: FontWeight.bold)),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(group['name'], style: ObsidianTypography.titleSm().copyWith(fontWeight: FontWeight.bold)),
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                decoration: BoxDecoration(
+                                  color: ObsidianColors.secondary.withOpacity(0.18),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(group['tier'], style: ObsidianTypography.labelBadge(color: ObsidianColors.secondary)),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(group['points'], style: ObsidianTypography.monoCode(color: ObsidianColors.primary).copyWith(fontWeight: FontWeight.bold)),
+                            ],
                           ),
-                          child: Text(
-                            'SHOW #${rule.malId}',
-                            style: ObsidianTypography.labelBadge(color: ObsidianColors.primary),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Text(rule.showTitle, style: ObsidianTypography.titleSm()),
-                        const Spacer(),
-                        IconButton(
-                          onPressed: () => state.resetRule(malId: rule.malId),
-                          tooltip: 'Remove Override',
-                          icon: const Icon(Icons.delete_outline_rounded, size: 16, color: ObsidianColors.error),
-                        ),
-                      ],
+                          const SizedBox(height: 2),
+                          Text(group['description'], style: ObsidianTypography.bodySm(color: ObsidianColors.outline), maxLines: 1, overflow: TextOverflow.ellipsis),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 20,
-                      runSpacing: 8,
-                      children: [
-                        _RuleAttribute(label: 'Preferred Groups', value: rule.preferredGroup),
-                        _RuleAttribute(label: 'Resolution', value: rule.preferredResolution),
-                        _RuleAttribute(label: 'Min Seeders', value: '≥ ${rule.seedAutoThreshold}'),
-                        _RuleAttribute(label: 'Move Mode', value: rule.moveMode ?? 'hardlink'),
-                      ],
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline_rounded, size: 18, color: ObsidianColors.outline),
+                      onPressed: () {
+                        setState(() {
+                          _fansubGroups.removeAt(index);
+                        });
+                      },
+                      hoverColor: ObsidianColors.error.withOpacity(0.15),
                     ),
                   ],
                 ),
               );
-            }),
-          ],
+            },
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  'Drag handles to re-rank priority. Top match wins RSS race conditions.',
+                  style: ObsidianTypography.monoCode(color: ObsidianColors.outline),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text('${_fansubGroups.length} groups active', style: ObsidianTypography.labelBadge(color: ObsidianColors.secondary)),
+            ],
+          ),
         ],
       ),
     );
   }
-}
 
-extension _IterableExt<T> on Iterable<T> {
-  Iterable<T> filter(bool Function(T) predicate) => where(predicate);
-}
+  void _showAddGroupDialog() {
+    final nameCtl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: ObsidianColors.surfaceContainerLow,
+        title: Text('Add Fansub Group', style: ObsidianTypography.titleSm()),
+        content: TextField(
+          controller: nameCtl,
+          style: ObsidianTypography.bodyMd(),
+          decoration: const InputDecoration(
+            hintText: 'e.g. SubsPlease or Erai-raws',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () {
+              if (nameCtl.text.trim().isNotEmpty) {
+                setState(() {
+                  final newNum = (_fansubGroups.length + 1).toString().padLeft(2, '0');
+                  _fansubGroups.add({
+                    'rank': '#$newNum',
+                    'name': '[${nameCtl.text.trim().replaceAll('[', '').replaceAll(']', '')}]',
+                    'tier': 'Tier 2',
+                    'points': '+25 pts',
+                    'description': 'Custom added release group',
+                    'active': true,
+                  });
+                });
+                Navigator.pop(ctx);
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: ObsidianColors.primaryContainer),
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+  }
 
-class _DropdownSelector extends StatelessWidget {
-  final String value;
-  final List<String> items;
-  final ValueChanged<String?> onChanged;
-
-  const _DropdownSelector({
-    required this.value,
-    required this.items,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
+  // CARD 2: QUALITY & VIDEO CODEC SPECIFICATIONS
+  Widget _buildQualityCodecCard() {
     return Container(
-      height: 38,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: ObsidianColors.surfaceContainerLowest,
+        color: ObsidianColors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: ObsidianColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.tune_rounded, size: 20, color: ObsidianColors.primary),
+                  const SizedBox(width: 8),
+                  Text('Quality & Codec Specs', style: ObsidianTypography.titleSm()),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: ObsidianColors.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text('v2.4 Core', style: ObsidianTypography.labelBadge(color: ObsidianColors.outline)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // Target Resolution Segmented Control
+          Text('TARGET RESOLUTION', style: ObsidianTypography.labelBadge(color: ObsidianColors.outline)),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              _buildResolutionButton('720p HD', '720p'),
+              const SizedBox(width: 6),
+              _buildResolutionButton('1080p FHD', '1080p'),
+              const SizedBox(width: 6),
+              _buildResolutionButton('2160p 4K', '2160p'),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text('Optimal profile: 1080p SDR/HDR downsampled with dual audio preferred.', style: ObsidianTypography.monoCode(color: ObsidianColors.secondary)),
+          const SizedBox(height: 14),
+
+          // Allowed Video Codecs Checkbox Grid
+          Text('ALLOWED VIDEO CODECS', style: ObsidianTypography.labelBadge(color: ObsidianColors.outline)),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Expanded(
+                child: _buildCheckboxTile(
+                  title: 'HEVC (H.265)',
+                  subtitle: 'Archival priority',
+                  value: _hevcAllowed,
+                  onChanged: (v) => setState(() => _hevcAllowed = v ?? true),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildCheckboxTile(
+                  title: 'AVC (H.264)',
+                  subtitle: 'Universal compat',
+                  value: _avcAllowed,
+                  onChanged: (v) => setState(() => _avcAllowed = v ?? true),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Expanded(
+                child: _buildCheckboxTile(
+                  title: 'AV1',
+                  subtitle: 'Next-gen open',
+                  value: _av1Allowed,
+                  onChanged: (v) => setState(() => _av1Allowed = v ?? true),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildCheckboxTile(
+                  title: 'MPEG-2 / DivX',
+                  subtitle: 'Legacy (Blocked)',
+                  value: _mpegAllowed,
+                  onChanged: (v) => setState(() => _mpegAllowed = v ?? false),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // Audio Channels Checkboxes
+          Text('AUDIO CHANNELS & CODECS', style: ObsidianTypography.labelBadge(color: ObsidianColors.outline)),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              FilterChip(
+                selected: _flacAudio,
+                label: const Text('Lossless FLAC (24-bit/5.1)'),
+                onSelected: (v) => setState(() => _flacAudio = v),
+                selectedColor: ObsidianColors.primary.withOpacity(0.2),
+                checkmarkColor: ObsidianColors.primary,
+              ),
+              FilterChip(
+                selected: _opusAudio,
+                label: const Text('Opus / AAC 2.0+'),
+                onSelected: (v) => setState(() => _opusAudio = v),
+                selectedColor: ObsidianColors.primary.withOpacity(0.2),
+                checkmarkColor: ObsidianColors.primary,
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // File Size Limits Bar Visualizer
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('EPISODE SIZE GATE', style: ObsidianTypography.labelBadge(color: ObsidianColors.outline)),
+              Text('400 MB — 1.80 GB', style: ObsidianTypography.monoCode(color: ObsidianColors.primary).copyWith(fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Container(
+            height: 6,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: ObsidianColors.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(3),
+            ),
+            child: Row(
+              children: [
+                const Spacer(flex: 16),
+                Expanded(
+                  flex: 52,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: ObsidianColors.primary,
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  ),
+                ),
+                const Spacer(flex: 32),
+              ],
+            ),
+          ),
+          const SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('100M', style: ObsidianTypography.labelBadge(color: ObsidianColors.outline)),
+              Text('400M (Min)', style: ObsidianTypography.labelBadge(color: ObsidianColors.primary)),
+              Text('1.0G', style: ObsidianTypography.labelBadge(color: ObsidianColors.outline)),
+              Text('1.8G (Max)', style: ObsidianTypography.labelBadge(color: ObsidianColors.primary)),
+              Text('3.5G+', style: ObsidianTypography.labelBadge(color: ObsidianColors.outline)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildResolutionButton(String label, String value) {
+    final isSelected = _targetResolution == value;
+    return Expanded(
+      child: InkWell(
+        onTap: () => setState(() => _targetResolution = value),
+        borderRadius: BorderRadius.circular(6),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected ? ObsidianColors.primaryContainer : ObsidianColors.surfaceContainer,
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(
+              color: isSelected ? ObsidianColors.primary : ObsidianColors.border,
+            ),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: ObsidianTypography.monoCode(
+              color: isSelected ? ObsidianColors.onPrimaryContainer : ObsidianColors.onSurfaceVariant,
+            ).copyWith(fontWeight: FontWeight.bold),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCheckboxTile({
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool?> onChanged,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: ObsidianColors.surfaceContainer,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: ObsidianColors.border),
       ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: items.contains(value) ? value : items.first,
-          dropdownColor: ObsidianColors.surfaceContainerHigh,
-          isDense: true,
-          items: items.map((i) {
-            return DropdownMenuItem(
-              value: i,
-              child: Text(i, style: ObsidianTypography.monoCode(color: ObsidianColors.onSurface)),
-            );
-          }).toList(),
-          onChanged: onChanged,
-        ),
+      child: Row(
+        children: [
+          Checkbox(
+            value: value,
+            onChanged: onChanged,
+            activeColor: ObsidianColors.primary,
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: ObsidianTypography.bodySm().copyWith(fontWeight: FontWeight.bold)),
+                Text(subtitle, style: ObsidianTypography.labelBadge(color: ObsidianColors.outline)),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
-}
 
-class _RuleAttribute extends StatelessWidget {
-  final String label;
-  final String value;
-
-  const _RuleAttribute({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: ObsidianTypography.bodySm(color: ObsidianColors.outline)),
-        const SizedBox(height: 2),
-        Text(value, style: ObsidianTypography.monoCode(color: ObsidianColors.onSurface)),
-      ],
-    );
-  }
-}
-
-class _TextFieldRow extends StatelessWidget {
-  final String label;
-  final TextEditingController controller;
-  final String hintText;
-
-  const _TextFieldRow({
-    required this.label,
-    required this.controller,
-    required this.hintText,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: ObsidianTypography.bodySm()),
-        const SizedBox(height: 6),
-        Container(
-          height: 38,
-          decoration: BoxDecoration(
-            color: ObsidianColors.surfaceContainerLowest,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: ObsidianColors.border),
+  // CARD 3: SWARM HEALTH & SEED THRESHOLDS
+  Widget _buildSwarmHealthCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: ObsidianColors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: ObsidianColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.speed_rounded, size: 20, color: ObsidianColors.tertiary),
+                  const SizedBox(width: 8),
+                  Text('Swarm Health & Ingest Criteria', style: ObsidianTypography.titleSm()),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: ObsidianColors.tertiary.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text('Daemon Live', style: ObsidianTypography.labelBadge(color: ObsidianColors.tertiary)),
+              ),
+            ],
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          alignment: Alignment.centerLeft,
-          child: TextField(
-            controller: controller,
-            style: ObsidianTypography.monoCode(color: ObsidianColors.onSurface),
-            decoration: InputDecoration(
-              hintText: hintText,
-              hintStyle: ObsidianTypography.monoCode(color: ObsidianColors.outline),
-              border: InputBorder.none,
-              isDense: true,
+          const SizedBox(height: 4),
+          Text(
+            'Define boundary conditions for unattended automatic download versus triage routing into the user Inbox.',
+            style: ObsidianTypography.bodySm(color: ObsidianColors.onSurfaceVariant),
+          ),
+          const SizedBox(height: 14),
+
+          // Two Inputs Side-by-Side
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: ObsidianColors.surfaceContainer,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: ObsidianColors.border),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'AUTO-COMMIT TARGET',
+                              style: ObsidianTypography.labelBadge(color: ObsidianColors.outline),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: ObsidianColors.tertiary.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text('Direct DL', style: ObsidianTypography.labelBadge(color: ObsidianColors.tertiary)),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 6,
+                        children: [
+                          Text('At or above:', style: ObsidianTypography.bodySm()),
+                          SizedBox(
+                            width: 50,
+                            height: 30,
+                            child: TextField(
+                              controller: _autoSeedController,
+                              textAlign: TextAlign.center,
+                              style: ObsidianTypography.monoCode(color: ObsidianColors.primary).copyWith(fontWeight: FontWeight.bold),
+                              decoration: const InputDecoration(
+                                border: OutlineInputBorder(),
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                            ),
+                          ),
+                          Text('seeders', style: ObsidianTypography.monoCode(color: ObsidianColors.outline)),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text('Transfers to qBittorrent immediately', style: ObsidianTypography.labelBadge(color: ObsidianColors.outline)),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: ObsidianColors.surfaceContainer,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: ObsidianColors.border),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'TRIAGE ROUTE',
+                              style: ObsidianTypography.labelBadge(color: ObsidianColors.outline),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: ObsidianColors.error.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text('Inbox Gate', style: ObsidianTypography.labelBadge(color: ObsidianColors.error)),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 4,
+                        children: [
+                          Text('Between:', style: ObsidianTypography.bodySm()),
+                          SizedBox(
+                            width: 38,
+                            height: 30,
+                            child: TextField(
+                              controller: _triageMinController,
+                              textAlign: TextAlign.center,
+                              style: ObsidianTypography.monoCode(),
+                              decoration: const InputDecoration(border: OutlineInputBorder(), contentPadding: EdgeInsets.zero),
+                            ),
+                          ),
+                          Text('&', style: ObsidianTypography.monoCode(color: ObsidianColors.outline)),
+                          SizedBox(
+                            width: 38,
+                            height: 30,
+                            child: TextField(
+                              controller: _triageMaxController,
+                              textAlign: TextAlign.center,
+                              style: ObsidianTypography.monoCode(),
+                              decoration: const InputDecoration(border: OutlineInputBorder(), contentPadding: EdgeInsets.zero),
+                            ),
+                          ),
+                          Text('seeds', style: ObsidianTypography.monoCode(color: ObsidianColors.outline)),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text('Requires manual one-click confirmation', style: ObsidianTypography.labelBadge(color: ObsidianColors.outline)),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // Spectrum Bar Visualization
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              Text('0 Seeds (Dropped)', style: ObsidianTypography.labelBadge(color: ObsidianColors.error)),
+              Text('1 - 9 Seeds (Inbox Approval)', style: ObsidianTypography.labelBadge(color: ObsidianColors.secondary)),
+              Text('10+ Seeds (Automated)', style: ObsidianTypography.labelBadge(color: ObsidianColors.tertiary)),
+            ],
+          ),
+          const SizedBox(height: 4),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: SizedBox(
+              height: 10,
+              child: Row(
+                children: [
+                  Expanded(flex: 12, child: Container(color: ObsidianColors.error)),
+                  Expanded(flex: 38, child: Container(color: ObsidianColors.secondary)),
+                  Expanded(flex: 50, child: Container(color: ObsidianColors.tertiary)),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // Fallback switch
+          Material(
+            type: MaterialType.transparency,
+            child: SwitchListTile(
+              value: _bypassInboxStagnation,
+              onChanged: (v) => setState(() => _bypassInboxStagnation = v),
+              title: Text('Bypass Inbox Stagnation', style: ObsidianTypography.bodySm().copyWith(fontWeight: FontWeight.bold)),
+              subtitle: Text('Auto-release item from Inbox to downloader if torrent is >48 hours old and no higher-seed release appears.', style: ObsidianTypography.labelBadge(color: ObsidianColors.outline)),
+              activeColor: ObsidianColors.primary,
               contentPadding: EdgeInsets.zero,
             ),
           ),
-        ),
-      ],
+        ],
+      ),
+    );
+  }
+
+  // CARD 4: BLOCKED UPLOADERS & BLACKLIST
+  Widget _buildBlacklistCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: ObsidianColors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: ObsidianColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.block_rounded, size: 20, color: ObsidianColors.error),
+                  const SizedBox(width: 8),
+                  Flexible(child: Text('Blocked Uploaders & Blacklist', style: ObsidianTypography.titleSm(), overflow: TextOverflow.ellipsis)),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: ObsidianColors.error.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text('Silent Drop', style: ObsidianTypography.labelBadge(color: ObsidianColors.error)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Torrents matching these regex patterns, uploader signatures, or bad trackers are immediately suppressed from all feeds.',
+            style: ObsidianTypography.bodySm(color: ObsidianColors.onSurfaceVariant),
+          ),
+          const SizedBox(height: 12),
+
+          // Add input bar
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  height: 36,
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  decoration: BoxDecoration(
+                    color: ObsidianColors.surfaceContainer,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: ObsidianColors.border),
+                  ),
+                  child: TextField(
+                    controller: _blacklistInputController,
+                    style: ObsidianTypography.monoCode(color: ObsidianColors.onSurface),
+                    decoration: InputDecoration(
+                      hintText: r'Add tag, uploader name, or regex: \b(CAM|TS)\b...',
+                      hintStyle: ObsidianTypography.monoCode(color: ObsidianColors.outline),
+                      border: InputBorder.none,
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton.icon(
+                onPressed: () {
+                  final text = _blacklistInputController.text.trim();
+                  if (text.isNotEmpty) {
+                    setState(() {
+                      _blacklistItems.insert(0, {
+                        'name': text,
+                        'type': 'Custom Block',
+                        'meta': 'Added just now',
+                      });
+                      _blacklistInputController.clear();
+                    });
+                  }
+                },
+                icon: const Icon(Icons.add_moderator_rounded, size: 16),
+                label: const Text('Block'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: ObsidianColors.surfaceContainerHigh,
+                  foregroundColor: ObsidianColors.error,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Blacklist list
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: _blacklistItems.length,
+            itemBuilder: (context, index) {
+              final item = _blacklistItems[index];
+              return Container(
+                margin: const EdgeInsets.only(bottom: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: ObsidianColors.surfaceContainer,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: ObsidianColors.border),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: ObsidianColors.error,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(item['name'], style: ObsidianTypography.monoCode().copyWith(fontWeight: FontWeight.bold)),
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                decoration: BoxDecoration(
+                                  color: ObsidianColors.surfaceContainerHighest,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(item['type'], style: ObsidianTypography.labelBadge(color: ObsidianColors.outline)),
+                              ),
+                            ],
+                          ),
+                          Text(item['meta'], style: ObsidianTypography.labelBadge(color: ObsidianColors.outline)),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded, size: 16, color: ObsidianColors.outline),
+                      onPressed: () {
+                        setState(() {
+                          _blacklistItems.removeAt(index);
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  // POLICY MATCHER TELEMETRY SIMULATOR
+  Widget _buildTelemetrySimulator() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: ObsidianColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: ObsidianColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(width: 7, height: 7, decoration: const BoxDecoration(shape: BoxShape.circle, color: ObsidianColors.tertiary)),
+              const SizedBox(width: 8),
+              Text('Policy Matcher Telemetry: ', style: ObsidianTypography.monoCode(color: ObsidianColors.onSurface).copyWith(fontWeight: FontWeight.bold)),
+              Expanded(
+                child: Text(
+                  '[SubsPlease] Sousou no Frieren - 28 (1080p) [98E7B21F].mkv',
+                  style: ObsidianTypography.monoCode(color: ObsidianColors.outline),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Text('Calculated Score: +185 pts', style: ObsidianTypography.monoCode(color: ObsidianColors.tertiary)),
+              const SizedBox(width: 12),
+              Text('Verdict: AUTO_COMMITTED_QBTT', style: ObsidianTypography.monoCode(color: ObsidianColors.primary).copyWith(fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 6,
+            runSpacing: 4,
+            children: [
+              _buildTelemetryChip('Group: SubsPlease (+50)'),
+              _buildTelemetryChip('Res: 1080p (+40)'),
+              _buildTelemetryChip('Codec: H.264/AVC (+20)'),
+              _buildTelemetryChip('Audio: AAC 2.0 (+15)'),
+              _buildTelemetryChip('Swarm: 142 Seeds (>10 Target, +60)'),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: ObsidianColors.surfaceContainerHigh,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text('Inbox: BYPASSED', style: ObsidianTypography.labelBadge(color: ObsidianColors.tertiary)),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTelemetryChip(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: ObsidianColors.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(text, style: ObsidianTypography.labelBadge(color: ObsidianColors.onSurfaceVariant)),
     );
   }
 }

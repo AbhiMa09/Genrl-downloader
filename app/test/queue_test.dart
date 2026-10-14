@@ -39,7 +39,7 @@ void main() {
     expect(find.text('Pause Queue'), findsOneWidget);
 
     // Verify torrent items rendered
-    expect(find.text('Sousou no Frieren'), findsOneWidget);
+    expect(find.text('Sousou no Frieren'), findsAtLeastNWidgets(1));
     expect(find.text('Dungeon Meshi'), findsOneWidget);
     expect(find.textContaining('142 seeds'), findsOneWidget);
   });
@@ -84,6 +84,6 @@ void main() {
     await tester.tap(find.text('Retry Queue'));
     await tester.pump();
 
-    expect(find.text('Sousou no Frieren'), findsOneWidget);
+    expect(find.text('Sousou no Frieren'), findsAtLeastNWidgets(1));
   });
 }

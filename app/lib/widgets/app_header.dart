@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../services/state_provider.dart';
 import '../theme/colors.dart';
 import '../theme/typography.dart';
+import 'tray_notifications_overlay.dart';
 
 class AppHeader extends StatelessWidget {
   final String pageTitle;
@@ -129,6 +130,39 @@ class AppHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 16),
+
+          const SizedBox(width: 12),
+
+          // Tray & Notification Toasts Overlay Button
+          IconButton(
+            onPressed: () {
+              showDialog(
+                context: context,
+                barrierColor: Colors.transparent,
+                builder: (ctx) => SystemTrayNotificationOverlay(onClose: () => Navigator.pop(ctx)),
+              );
+            },
+            icon: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                const Icon(Icons.notifications_active_rounded, size: 20, color: ObsidianColors.primary),
+                Positioned(
+                  right: -2,
+                  top: -2,
+                  child: Container(
+                    width: 7,
+                    height: 7,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: ObsidianColors.error,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            tooltip: 'System Tray & Notifications',
+          ),
+          const SizedBox(width: 8),
 
           // User Profile / Status Avatar
           Container(

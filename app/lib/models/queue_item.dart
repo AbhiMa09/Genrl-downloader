@@ -26,6 +26,8 @@ class QueueItem {
   final QueueState state;
   final String? infoHash;
 
+  final double uploadSpeedBytes;
+
   const QueueItem({
     required this.id,
     required this.malId,
@@ -42,7 +44,13 @@ class QueueItem {
     required this.etaSeconds,
     required this.state,
     this.infoHash,
+    this.uploadSpeedBytes = 0.0,
   });
+
+  String get title => showTitle;
+  String get downloadSpeed => formattedSpeed;
+  String get uploadSpeed => uploadSpeedBytes > 0 ? '${(uploadSpeedBytes / 1024).toStringAsFixed(1)} KB/s' : '0 B/s';
+  String get eta => formattedEta;
 
   String get episodeLabel => 'S${season.toString().padLeft(2, '0')}E${episode.toString().padLeft(2, '0')}';
 

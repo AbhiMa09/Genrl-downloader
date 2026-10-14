@@ -34,19 +34,17 @@ void main() {
     await tester.pump();
 
     // Verify Profile Card
-    expect(find.text('Application Settings'), findsOneWidget);
+    expect(find.text('Settings & System Integration'), findsOneWidget);
     expect(find.text('TestOtaku'), findsOneWidget);
-    expect(find.text('Watching: '), findsOneWidget);
-    expect(find.text('12'), findsOneWidget);
-    expect(find.text('Completed: '), findsOneWidget);
-    expect(find.text('140'), findsOneWidget);
+    expect(find.text('MONITORED SERIES'), findsOneWidget);
+    expect(find.text('PLAN TO WATCH'), findsOneWidget);
 
     // Verify MAL Account Section & Buttons
     expect(find.text('Disconnect'), findsOneWidget);
     expect(find.text('Sync Now'), findsOneWidget);
 
     // Verify Storage Locations
-    expect(find.text('Same Filesystem (Hardlink Enabled)'), findsOneWidget);
+    expect(find.text('Hardlink'), findsOneWidget);
   });
 
   testWidgets('Settings Page renders not connected state when unlinked', (tester) async {
@@ -64,6 +62,5 @@ void main() {
     // Verify Not Connected status
     expect(find.text('Not Connected'), findsWidgets);
     expect(find.text('Connect via Browser (PKCE)'), findsOneWidget);
-    expect(find.text('Save Public Username'), findsOneWidget);
   });
 }

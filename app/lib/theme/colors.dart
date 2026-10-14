@@ -37,7 +37,7 @@ class ObsidianColors {
   static const Color tertiary = Color(0xFF7BD0FF);
   static const Color onTertiary = Color(0xFF00354A);
   static const Color tertiaryContainer = Color(0xFF009BD1);
-  static const Color onTertiaryContainer = Color(0xFF002D40);
+  static const Color tertiaryFixedDim = Color(0xFF7BD0FF);
 
   // Functional Semantic Accents
   static const Color success = Color(0xFF10B981); // Emerald
