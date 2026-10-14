@@ -59,7 +59,7 @@ pub const SYNC_STATE_KEY: &str = "last_mal_sync_at";
 
 /// Fields asked for on the list endpoint: the raw status plus the node fields
 /// the planner needs (`num_episodes` 0 means "unknown", so it maps to `None`).
-const LIST_FIELDS: &str = "list_status{status,score,num_episodes_watched,updated_at},num_episodes,start_season,media_type,status,main_title,alternative_titles{synonyms,en,ja},main_picture";
+const LIST_FIELDS: &str = "list_status{status,score,num_episodes_watched,updated_at},num_episodes,start_season,media_type,status,main_title,alternative_titles{synonyms,en,ja},main_picture,synopsis";
 const PAGE_SIZE: usize = 1000;
 const MAX_PAGES: usize = 20;
 
@@ -811,6 +811,8 @@ pub struct Node {
     status: Option<String>,
     #[serde(default)]
     main_picture: Option<MainPicture>,
+    #[serde(default)]
+    synopsis: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -872,6 +874,7 @@ pub struct MalEntry {
     pub airing_status: Option<String>,
     pub source: String,
     pub poster_url: Option<String>,
+    pub synopsis: Option<String>,
 }
 
 impl MalEntry {
@@ -946,6 +949,7 @@ fn to_mal_entry(item: &ListItem) -> MalEntry {
         airing_status: node.status.clone(),
         source: "mal".to_string(),
         poster_url,
+        synopsis: node.synopsis.clone(),
     }
 }
 
@@ -1323,8 +1327,8 @@ fn upsert_show_full(db: &Db, m: &MalEntry) -> Result<()> {
     db.with(|c| {
         c.execute(
             "INSERT INTO shows (mal_id, title, english_title, type, status, total_episodes,
-                                start_year, auto, episode_offset, season, poster_path)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
+                                start_year, auto, episode_offset, season, poster_path, synopsis)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)
              ON CONFLICT (mal_id) DO UPDATE SET
                 title = excluded.title,
                 english_title = COALESCE(excluded.english_title, shows.english_title),
@@ -1335,7 +1339,8 @@ fn upsert_show_full(db: &Db, m: &MalEntry) -> Result<()> {
                 auto = excluded.auto,
                 episode_offset = excluded.episode_offset,
                 season = excluded.season,
-                poster_path = COALESCE(excluded.poster_path, shows.poster_path)",
+                poster_path = COALESCE(excluded.poster_path, shows.poster_path),
+                synopsis = COALESCE(excluded.synopsis, shows.synopsis)",
             rusqlite::params![
                 e.mal_id,
                 e.title,
@@ -1348,6 +1353,7 @@ fn upsert_show_full(db: &Db, m: &MalEntry) -> Result<()> {
                 e.episode_offset,
                 e.season,
                 m.poster_url,
+                m.synopsis,
             ],
         )?;
         Ok(())
@@ -1635,6 +1641,7 @@ pub async fn fetch_mal_public_load_json(gate: &Gate, username: &str) -> Result<V
                 airing_status: airing,
                 source: "jikan".to_string(),
                 poster_url: item.anime_image_path.clone(),
+                synopsis: None,
             });
         }
         offset += count;
@@ -1690,6 +1697,7 @@ pub async fn fetch_jikan_list(gate: &Gate, settings: &Settings, username: &str) 
                 airing_status: None,
                 source: "jikan".to_string(),
                 poster_url: None,
+                synopsis: None,
             });
         }
 
@@ -1736,6 +1744,7 @@ pub fn parse_jikan_animelist(text: &str) -> Result<Vec<MalEntry>> {
             airing_status: None,
             source: "jikan".to_string(),
             poster_url: None,
+            synopsis: None,
         });
     }
     Ok(out)
@@ -1830,6 +1839,7 @@ pub async fn sync_jikan(
                                                 media_type: None,
                                                 status: None,
                                                 main_picture: None,
+                                                synopsis: None,
                                             },
                                             relation_type: rel_type.clone(),
                                         });

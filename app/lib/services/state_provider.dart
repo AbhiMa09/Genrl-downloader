@@ -283,6 +283,22 @@ class StateProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> addAlias(int malId, String alias) async {
+    if (alias.trim().isEmpty) return;
+    await bridge.addAlias(malId, alias.trim());
+    await loadShowDetail(malId);
+  }
+
+  Future<void> removeAlias(int malId, String alias) async {
+    await bridge.removeAlias(malId, alias);
+    await loadShowDetail(malId);
+  }
+
+  Future<void> setEpisodeOffset(int malId, int offset) async {
+    await bridge.setEpisodeOffset(malId, offset);
+    await loadShowDetail(malId);
+  }
+
   // Actions
   Future<void> toggleAutomation() async {
     final nextState = !_status.automationOn;

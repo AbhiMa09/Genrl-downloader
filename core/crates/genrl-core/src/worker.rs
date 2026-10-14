@@ -329,10 +329,22 @@ impl Engine {
             return self.block(job, "Nyaa's circuit breaker is open");
         }
 
+        let rules = Rules::for_show(&self.db, context.mal_id)?;
+        let mut search_names = inputs.names.clone();
+        if inputs.fully_aired && rules.prefer_batch_when_finished {
+            let mut batch_queries = Vec::new();
+            for n in &inputs.names {
+                batch_queries.push(format!("{n} Batch"));
+                batch_queries.push(format!("{n} Season {}", inputs.season));
+            }
+            batch_queries.extend(search_names);
+            search_names = batch_queries;
+        }
+
         let candidates = match matching::search_candidates(
             &self.gate,
             &settings,
-            &inputs.names,
+            &search_names,
             50,
             25,
         )
@@ -576,6 +588,30 @@ impl Engine {
             Err(err) => return self.fail_or_reschedule(job, &format!("add failed: {err}")),
         }
 
+        let is_batch = torrent.name.to_ascii_lowercase().contains("batch")
+            || crate::filename::parse_release(&torrent.name).is_batch;
+
+        if is_batch {
+            self.db.with(|c| {
+                c.execute(
+                    "UPDATE episodes SET state = 'downloading', torrent_id = (
+                         SELECT id FROM torrents WHERE info_hash = ?1
+                     )
+                     WHERE mal_id = ?2 AND state IN ('missing', 'queued')",
+                    rusqlite::params![torrent.info_hash, context.mal_id],
+                )?;
+                c.execute(
+                    "DELETE FROM jobs WHERE id != ?1 AND episode_id IN (
+                         SELECT id FROM episodes WHERE mal_id = ?2
+                     ) AND kind = 'search'",
+                    rusqlite::params![job.id, context.mal_id],
+                )?;
+                Ok(())
+            })?;
+        } else {
+            self.enqueue_sibling_episodes_if_needed(context.mal_id, job.episode_id)?;
+        }
+
         crate::events::EventLog::new(self.db.clone()).info(
             Some(job.id),
             Some(context.mal_id),
@@ -740,9 +776,14 @@ impl Engine {
         };
 
         // Verify: size matches, and the extension is a video type.
-        let verified = std::fs::metadata(&content_path)
-            .map(|meta| meta.len() as i64 == size_bytes.max(0) || size_bytes == 0)
-            .unwrap_or(false);
+        let path = Path::new(&content_path);
+        let verified = if path.is_dir() {
+            std::fs::read_dir(path).map(|mut d| d.next().is_some()).unwrap_or(false)
+        } else {
+            std::fs::metadata(&content_path)
+                .map(|meta| meta.len() as i64 == size_bytes.max(0) || size_bytes == 0)
+                .unwrap_or(false)
+        };
         if !verified {
             return self.fail_or_reschedule(
                 job,
@@ -844,6 +885,31 @@ impl Engine {
     }
 
     // ------------------------------------------------------------------ helpers
+
+    /// If single-episode download is used, ensure sibling missing episodes have search jobs queued.
+    fn enqueue_sibling_episodes_if_needed(&self, mal_id: i64, current_episode_id: i64) -> Result<()> {
+        let missing_ids: Vec<i64> = self.db.with(|c| {
+            let mut stmt = c.prepare(
+                "SELECT e.id FROM episodes e
+                 WHERE e.mal_id = ?1 AND e.id != ?2 AND e.state IN ('missing', 'queued')
+                   AND NOT EXISTS (
+                       SELECT 1 FROM jobs j WHERE j.episode_id = e.id AND j.kind = 'search'
+                   )
+                 ORDER BY e.number ASC"
+            )?;
+            let rows = stmt.query_map(rusqlite::params![mal_id, current_episode_id], |r| r.get(0))?;
+            let mut list = Vec::new();
+            for r in rows {
+                list.push(r?);
+            }
+            Ok(list)
+        })?;
+
+        for ep_id in missing_ids {
+            crate::jobs::enqueue_search(&self.db, self.clock.as_ref(), ep_id)?;
+        }
+        Ok(())
+    }
 
     /// Back off, or give up and ask: whichever comes first.
     fn fail_or_reschedule(&self, job: &Job, reason: &str) -> Result<JobState> {

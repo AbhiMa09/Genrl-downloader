@@ -279,13 +279,21 @@ pub fn evaluate(
             signal += 30.0;
             notes.push("no episodes expected, none found".into());
         }
-        (None, Some(found)) => return Err(Rejection::EpisodeOnAFeature { found }),
+        (None, Some(found)) => {
+            if !candidate.release.is_batch {
+                return Err(Rejection::EpisodeOnAFeature { found });
+            }
+        }
         (Some(wanted), Some(found)) => {
-            if (wanted - found).abs() > f64::EPSILON {
+            if (wanted - found).abs() > f64::EPSILON && !candidate.release.is_batch {
                 return Err(Rejection::WrongEpisode { wanted, found });
             }
-            signal += 30.0;
-            notes.push(format!("episode {found} matches"));
+            if (wanted - found).abs() <= f64::EPSILON {
+                signal += 30.0;
+                notes.push(format!("episode {found} matches"));
+            } else {
+                notes.push("batch release covering season episodes".into());
+            }
         }
         (Some(_), None) => notes.push("no episode number (batch or feature)".into()),
     }
@@ -325,13 +333,13 @@ pub fn evaluate(
 
     // A batch / season release prioritization.
     // When looking for a wanted episode in a finished show and prefer_batch_when_finished is enabled,
-    // healthy season batches are prioritized (+35) over single episodes (+30).
+    // healthy season batches are prioritized (+50) over single episodes (+30).
     // If the batch has 0 seeders, it is rejected by the zero-seeder check and healthy
     // single episodes are selected instead.
     if candidate.release.is_batch && target.fully_aired {
         if target.wanted_episode.is_some() && rules.prefer_batch_when_finished {
-            signal += 35.0;
-            notes.push("season batch prioritized over single episodes (+35)".into());
+            signal += 50.0;
+            notes.push("season batch prioritized over single episodes (+50)".into());
         } else {
             signal += 15.0;
             notes.push("batch for a show that has finished airing".into());
@@ -743,5 +751,42 @@ mod tests {
         assert_eq!(seed_health(5, &rules), SeedHealth::Thin);
         assert_eq!(seed_health(10, &rules), SeedHealth::Healthy);
         assert_eq!(seed_health(999, &rules), SeedHealth::Healthy);
+    }
+
+    #[test]
+    fn season_batch_prioritized_over_single_and_fails_over_on_zero_seeders() {
+        let names = vec!["9 ruler s crown".to_string(), "9 nine ruler s crown".to_string()];
+        let others: Vec<String> = vec![];
+        let settings = Settings::default();
+        let rules = Rules::default(); // prefer_batch_when_finished = true
+
+        let t = Target {
+            wanted_episode: Some(1.0),
+            fully_aired: true,
+            show_type: ShowType::Tv,
+            season: 1,
+            start_year: Some(2025),
+            ..frieren_target(&names, &others)
+        };
+
+        // 1. Healthy Season Batch
+        let (_r, mut batch_cand) = candidate("[EMBER] 9: Ruler's Crown (2025) (Season 1) [1080p] [Batch]", 14);
+        batch_cand.show_type = Some(ShowType::Tv);
+        let batch_scored = evaluate(&batch_cand, &t, &rules, &settings, now()).unwrap();
+        assert_eq!(batch_scored.signal, 110.0); // 50 title + 10 type + 50 batch
+
+        // 2. Single Episode
+        let (_r, mut single_cand) = candidate("[Valhalla-Society] 9-nine- Ruler's Crown S01E01 [1080p]", 20);
+        single_cand.show_type = Some(ShowType::Tv);
+        let single_scored = evaluate(&single_cand, &t, &rules, &settings, now()).unwrap();
+        assert_eq!(single_scored.signal, 90.0); // 50 title + 10 type + 30 episode
+
+        // Batch signal (110) beats single episode (90) by 20 points, exceeding score_margin (15)!
+        assert!(batch_scored.signal - single_scored.signal >= settings.score_margin);
+
+        // 3. Batch with 0 seeders fails hard filter and is rejected with NoSeeders
+        let (_r, dead_batch) = candidate("[EMBER] 9: Ruler's Crown (2025) (Season 1) [1080p] [Batch]", 0);
+        let err = evaluate(&dead_batch, &t, &rules, &settings, now()).unwrap_err();
+        assert_eq!(err, Rejection::NoSeeders);
     }
 }

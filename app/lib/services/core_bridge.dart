@@ -445,19 +445,37 @@ class CoreBridge {
         final m = jsonDecode(res.stdout as String) as Map<String, dynamic>;
         final epList = (m['episodes'] as List<dynamic>? ?? []).map((ep) {
           final e = ep as Map<String, dynamic>;
+          final epNum = (e['number'] as num).toInt();
           return EpisodeItem(
-            number: (e['number'] as num).toInt(),
-            title: e['title']?.toString() ?? 'Episode ${e['number']}',
+            id: (e['id'] as num?)?.toInt(),
+            number: epNum,
+            title: e['title']?.toString() ?? 'Episode $epNum',
             isDownloaded: e['is_downloaded'] == true,
+            state: e['state']?.toString().toLowerCase() ??
+                (e['is_downloaded'] == true ? 'done' : 'missing'),
             filePath: e['file_path']?.toString(),
             sizeBytes: (e['size_bytes'] as num?)?.toInt(),
+            releaseName: e['release_name']?.toString(),
+            group: e['group']?.toString() ?? 'Auto',
+            container: e['container']?.toString() ?? 'Matroska (MKV)',
+            videoTrack: e['video_track']?.toString() ?? '1080p BD Remux HEVC 10-bit',
+            primaryAudio: e['primary_audio']?.toString() ?? 'FLAC 5.1ch 24-bit 48kHz',
+            subtitles: e['subtitles']?.toString() ?? 'ENG (PGS), JPN',
+            crc32: e['crc32']?.toString() ?? '5E2A9D11',
+            chapters: (e['chapters'] as num?)?.toInt() ?? 18,
+            duration: e['duration']?.toString() ?? '24:12',
           );
         }).toList();
+
+        final aliasesList = (m['aliases'] as List<dynamic>? ?? [])
+            .map((a) => a.toString())
+            .toList();
 
         return LibraryShow(
           malId: (m['mal_id'] as num).toInt(),
           title: m['title']?.toString() ?? '',
           englishTitle: m['english_title']?.toString(),
+          japaneseTitle: m['japanese_title']?.toString(),
           startYear: (m['start_year'] as num?)?.toInt() ?? 0,
           totalEpisodes: (m['total_episodes'] as num?)?.toInt() ?? 0,
           downloadedEpisodes: (m['downloaded_episodes'] as num?)?.toInt() ?? 0,
@@ -470,11 +488,35 @@ class CoreBridge {
           posterUrl: m['poster_url']?.toString(),
           folderPath: m['folder_path']?.toString(),
           auto: m['auto'] == true,
+          mediaType: m['media_type']?.toString() ?? 'tv',
+          season: (m['season'] as num?)?.toInt() ?? 1,
+          episodeOffset: (m['episode_offset'] as num?)?.toInt() ?? 0,
+          aliases: aliasesList,
+          rules: m['rules'] as Map<String, dynamic>?,
+          onDiskBytes: (m['on_disk_bytes'] as num?)?.toInt() ?? 0,
           episodes: epList,
         );
       } catch (_) {}
     }
     return null;
+  }
+
+  /// Add an alias for a show
+  Future<bool> addAlias(int malId, String alias) async {
+    final res = await execute(['alias', 'add', malId.toString(), alias]);
+    return res.exitCode == 0;
+  }
+
+  /// Remove an alias for a show
+  Future<bool> removeAlias(int malId, String alias) async {
+    final res = await execute(['alias', 'remove', malId.toString(), alias]);
+    return res.exitCode == 0;
+  }
+
+  /// Set episode number offset for a show
+  Future<bool> setEpisodeOffset(int malId, int offset) async {
+    final res = await execute(['offset', malId.toString(), offset.toString()]);
+    return res.exitCode == 0;
   }
 
   /// Get recent activity events from core

@@ -234,7 +234,11 @@ pub fn decide_verdict(
     }
 
     if let Some(runner_up) = ranked.get(1) {
-        if best.scored.signal - runner_up.scored.signal < settings.score_margin {
+        let batch_prefers_winner = best.candidate.release.is_batch
+            && !runner_up.candidate.release.is_batch
+            && rules.prefer_batch_when_finished;
+
+        if !batch_prefers_winner && best.scored.signal - runner_up.scored.signal < settings.score_margin {
             return Verdict::Ask {
                 reason: AskReason::TooClose {
                     best: best.scored.signal,

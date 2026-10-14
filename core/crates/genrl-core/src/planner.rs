@@ -420,11 +420,30 @@ pub fn plan_single(
         list
     };
 
+    let rules = crate::rules::Rules::for_show(db, mal_id)?;
+    let should_batch_season = target_episode.is_none()
+        && eps_to_queue.len() > 1
+        && rules.prefer_batch_when_finished
+        && entry.airing_finished();
+
     let mut queued = 0;
-    for ep in eps_to_queue {
-        let episode_id = ensure_episode(db, clock, mal_id, ep)?;
-        crate::jobs::enqueue_search(db, clock, episode_id)?;
-        queued += 1;
+    if should_batch_season {
+        // Ensure all episode rows exist in database
+        for ep in &eps_to_queue {
+            ensure_episode(db, clock, mal_id, *ep)?;
+        }
+        // Enqueue one search job for the season (associated with first missing episode)
+        if let Some(&first_ep) = eps_to_queue.first() {
+            let episode_id = ensure_episode(db, clock, mal_id, first_ep)?;
+            crate::jobs::enqueue_search(db, clock, episode_id)?;
+            queued += 1;
+        }
+    } else {
+        for ep in eps_to_queue {
+            let episode_id = ensure_episode(db, clock, mal_id, ep)?;
+            crate::jobs::enqueue_search(db, clock, episode_id)?;
+            queued += 1;
+        }
     }
 
     Ok(queued)
