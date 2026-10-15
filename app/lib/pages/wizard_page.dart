@@ -17,45 +17,6 @@ class _WizardPageState extends State<WizardPage> {
   int _currentStep = 4; // Step 5: Review & Launch (0-indexed: 4)
   bool _bypassDailyCap = false;
 
-  final List<Map<String, dynamic>> _detectedSeries = [
-    {
-      'title': 'Sousou no Frieren',
-      'tier': 'Tier 1',
-      'missing': 'Missing: Ep 21-28 (8 eps)',
-      'spec': '[SubsPlease] 1080p HEVC',
-      'size': '9.6 GB',
-      'status': 'Ready to queue',
-      'poster': 'https://lh3.googleusercontent.com/aida-public/AB6AXuDfpe9q8TwxbChTXt62KRnfzT6P0q5oUyRnhOJz5XU8rxP2d1dKAdL1BWECbDeu6FAiLfXNVQJ4x4yvMt1k3RmUWjP9ZYMNd5_vzLE71htdXjtwyLRZKCdtSqKau_ultPGac1Nt9FgNbQkvCLpu44LaBSBKhMiy5eu2zc8a6sXPdmsoID2gE_pzALbjE_gWto3XOvZzhsQGCrONZbf7IZp22SEUSYpsRB5ZED7VHtmX8ifFR3nAnL7x',
-    },
-    {
-      'title': 'Dungeon Meshi',
-      'tier': 'Tier 2',
-      'missing': 'Missing: Ep 18-24 (7 eps)',
-      'spec': '[Erai-raws] 1080p AV1',
-      'size': '6.2 GB',
-      'status': 'Ready to queue',
-      'poster': 'https://lh3.googleusercontent.com/aida-public/AB6AXuAJHJTb5RHni39JaqXK_dJXf541U-A1mMEiMhBANVt2weWVgQadDAWTEs--cHelCu8kX92JMrdVsww33jwOHXsPUheluv_2ZmpBXUpPbuZ42bPkac6hUpsCJk7q0IrS4zTXeZrWEBG0doV4TeeGYFwE8quZ1Xh-YHTP846dcPYgvTbambsDwoF-wg8GZjaFDosKA7OKrvhimOnbGZWxRk_dxC_Es-RF2iFyOxmcFmkkq-NgQkhrXg4s',
-    },
-    {
-      'title': 'Solo Leveling',
-      'tier': 'Tier 1',
-      'missing': 'Missing: Ep 09-12 (4 eps)',
-      'spec': '[Judas] 1080p HEVC',
-      'size': '4.1 GB',
-      'status': 'Ready to queue',
-      'poster': 'https://lh3.googleusercontent.com/aida-public/AB6AXuDGAYxtwLt1fEpEGn5Cykjf68bdazu7QWY07jO9onzSWzMhyqNHg4_AAW3j_E2cc5EYnvl5BNjAsXbk9Bs-7dyvAGv3siBjCMz8jQ0VHr2l6RB7YZt8i0CqG_Z2aZKQGvh4f2WwyA2Fx-zBSLf2lsOGFcGlvow2LzeF4PnCdkxUH2MCXgn9Lb7Bb1qBJTMEoPQ9Gk-l5U4VZdxqAY55qS3IgLKDh7K0Bnyg_KYE5RKOFg0hKOI4vI_0',
-    },
-    {
-      'title': 'Oshi no Ko Season 2',
-      'tier': 'Tier 2',
-      'missing': 'Missing: Ep 01-11 (11 eps)',
-      'spec': '[SubsPlease] 1080p AVC',
-      'size': '15.4 GB',
-      'status': 'Ready to queue',
-      'poster': 'https://lh3.googleusercontent.com/aida-public/AB6AXuArfcK78z8aiePHzYToRBGe55HO_E_kt10lqkYjcCUV71j7Zm0e_So7UDKQvlNpjHmUDupZqrm0ehoOmpFF4cFLpQjxeJTUXULsml0dDovTFUPopXrl5bPDnD90mNozX_trc_NIXZIeDHtxkWpuQt8PPzL69QE64C3227rUP8HdoYdRhV0JyRrGVuq85D0RUlPM61Kg78YmHE7bzEyflf3GI11FLILcsqzVAUugPeQky6sgWcjG965B',
-    },
-  ];
-
   @override
   Widget build(BuildContext context) {
     final state = context.watch<StateProvider>();
@@ -487,7 +448,7 @@ class _WizardPageState extends State<WizardPage> {
                       color: ObsidianColors.surfaceContainerHigh,
                       borderRadius: BorderRadius.circular(4),
                     ),
-                    child: Text('31 Shows Found', style: ObsidianTypography.labelBadge(color: ObsidianColors.onSurfaceVariant)),
+                    child: Text('${state.shows.length} Shows Found', style: ObsidianTypography.labelBadge(color: ObsidianColors.onSurfaceVariant)),
                   ),
                 ],
               ),
@@ -513,13 +474,36 @@ class _WizardPageState extends State<WizardPage> {
           ),
           const SizedBox(height: 12),
 
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: _detectedSeries.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
-            itemBuilder: (context, index) {
-              final item = _detectedSeries[index];
+          Builder(builder: (context) {
+            final detected = state.shows.where((s) => s.downloadedEpisodes < s.totalEpisodes).take(4).map((s) {
+              final missingCount = s.totalEpisodes - s.downloadedEpisodes;
+              return {
+                'title': s.title,
+                'tier': s.score >= 8.5 ? 'Tier 1' : 'Tier 2',
+                'missing': 'Missing: $missingCount eps',
+                'spec': '[Auto] 1080p HEVC',
+                'size': '${(missingCount * 1.2).toStringAsFixed(1)} GB',
+                'status': 'Ready to queue',
+                'poster': s.posterUrl ?? '',
+              };
+            }).toList();
+
+            if (detected.isEmpty) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Center(
+                  child: Text('No backlog episodes detected', style: ObsidianTypography.bodySm(color: ObsidianColors.outline)),
+                ),
+              );
+            }
+
+            return ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: detected.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              itemBuilder: (context, index) {
+                final item = detected[index];
               return Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
@@ -597,7 +581,8 @@ class _WizardPageState extends State<WizardPage> {
                 ),
               );
             },
-          ),
+          );
+        }),
         ],
       ),
     );

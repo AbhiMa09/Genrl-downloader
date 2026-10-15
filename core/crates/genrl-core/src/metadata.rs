@@ -263,6 +263,7 @@ pub fn queue_stale_metadata(db: &Db, now: i64) -> Result<usize> {
                     OR poster_path IS NULL
                     OR trim(poster_path) = ''
                     OR poster_path LIKE 'http%')
+               AND metadata_status != 'failed'
                AND (metadata_next_retry_at IS NULL OR metadata_next_retry_at <= ?1)",
             rusqlite::params![now, stale_threshold],
         )?;
@@ -318,7 +319,8 @@ pub async fn fetch_show_metadata(
     let show_row = db.with(|c| {
         c.query_row(
             "SELECT title, english_title, synopsis, poster_path,
-                    metadata_status, metadata_updated_at, metadata_next_retry_at, metadata_retry_count
+                    metadata_status, metadata_updated_at, metadata_next_retry_at, metadata_retry_count,
+                    folder_path
              FROM shows WHERE mal_id = ?1",
             [mal_id],
             |r| {
@@ -331,13 +333,14 @@ pub async fn fetch_show_metadata(
                     r.get::<_, Option<i64>>(5)?,
                     r.get::<_, Option<i64>>(6)?,
                     r.get::<_, Option<i64>>(7)?,
+                    r.get::<_, Option<String>>(8)?,
                 ))
             },
         )
         .map_err(Into::into)
     });
 
-    let (title, english_title, existing_syn, existing_poster, meta_status, updated_at, next_retry, retry_count) =
+    let (title, english_title, existing_syn, existing_poster, meta_status, updated_at, next_retry, retry_count, folder_path) =
         match show_row {
             Ok(data) => data,
             Err(e) => return Err(e),
@@ -346,13 +349,18 @@ pub async fn fetch_show_metadata(
     let meta_status_str = meta_status.unwrap_or_else(|| "pending".into());
     let retry_cnt = retry_count.unwrap_or(0) as u32;
 
+    // Check if existing poster is a valid local file on disk
+    let poster_is_local_file = existing_poster
+        .as_deref()
+        .map(|p| !p.trim().is_empty() && !p.starts_with("http") && Path::new(p).is_file())
+        .unwrap_or(false);
+
     // 2. Cache Check: 7 days
     if !force && meta_status_str == "ready" {
         if let Some(ts) = updated_at {
             if now - ts < 7 * 86400 {
                 let syn_ok = existing_syn.as_deref().map(|s| !s.trim().is_empty()).unwrap_or(false);
-                let poster_ok = existing_poster.as_deref().map(|p| !p.trim().is_empty()).unwrap_or(false);
-                if syn_ok && poster_ok {
+                if syn_ok && poster_is_local_file {
                     return Ok(MetadataOutcome::Cached { mal_id });
                 }
             }
@@ -398,6 +406,7 @@ pub async fn fetch_show_metadata(
 
     let mut jikan_fetched_data: Option<JikanFullData> = None;
     let mut last_error: Option<String> = None;
+    let mut is_404 = false;
 
     match gate.get_with(Service::Jikan, &jikan_url, &jikan_opts).await {
         Ok(fetched) => {
@@ -418,7 +427,12 @@ pub async fn fetch_show_metadata(
             }
         }
         Err(err) => {
-            last_error = Some(format!("Jikan request failed: {err}"));
+            if matches!(err, crate::Error::Status { status: 404, .. }) {
+                is_404 = true;
+                last_error = Some("Anime not found on Jikan (404)".to_string());
+            } else {
+                last_error = Some(format!("Jikan request failed: {err}"));
+            }
         }
     }
 
@@ -426,7 +440,11 @@ pub async fn fetch_show_metadata(
     if let Some(data) = jikan_fetched_data.as_ref() {
         if let Some(syn) = data.synopsis.as_ref() {
             if !syn.trim().is_empty() {
-                return apply_jikan_metadata(db, gate, data_dir, clock, mal_id, &title, english_title.as_deref(), data).await;
+                return apply_jikan_metadata(
+                    db, gate, data_dir, clock, mal_id, &title,
+                    english_title.as_deref(), folder_path.as_deref(),
+                    existing_poster.as_deref(), data,
+                ).await;
             }
         }
     }
@@ -450,12 +468,19 @@ pub async fn fetch_show_metadata(
                     if let Ok(mal_data) = fetched.json::<MalApiAnimeDetailResponse>() {
                         if let Some(ref syn) = mal_data.synopsis {
                             if !syn.trim().is_empty() {
-                                return apply_mal_metadata(db, gate, data_dir, clock, mal_id, &title, &mal_data).await;
+                                return apply_mal_metadata(
+                                    db, gate, data_dir, clock, mal_id, &title,
+                                    english_title.as_deref(), folder_path.as_deref(),
+                                    existing_poster.as_deref(), &mal_data,
+                                ).await;
                             }
                         }
                     }
                 }
                 Err(err) => {
+                    if matches!(err, crate::Error::Status { status: 404, .. }) {
+                        is_404 = true;
+                    }
                     tracing::warn!(mal_id, "MAL API fallback failed: {err}");
                 }
             }
@@ -464,10 +489,57 @@ pub async fn fetch_show_metadata(
 
     // If Jikan had metadata (e.g. title/score/images) but no synopsis, apply what it had
     if let Some(data) = jikan_fetched_data {
-        return apply_jikan_metadata(db, gate, data_dir, clock, mal_id, &title, english_title.as_deref(), &data).await;
+        return apply_jikan_metadata(
+            db, gate, data_dir, clock, mal_id, &title,
+            english_title.as_deref(), folder_path.as_deref(),
+            existing_poster.as_deref(), &data,
+        ).await;
     }
 
-    // 6. Failure handling: store placeholder, set metadata_status = pending with next_run_at and retry with backoff
+    // 6. Failure handling:
+    // Distinguish permanent failure (404) from transient failure (429, 5xx, network):
+    if is_404 {
+        let err_str = "Anime not found (404)".to_string();
+        let _ = db.with(|c| {
+            c.execute(
+                "UPDATE shows SET
+                    synopsis = NULL,
+                    metadata_status = 'failed',
+                    metadata_next_retry_at = NULL,
+                    metadata_retry_count = ?1,
+                    metadata_error = ?2
+                 WHERE mal_id = ?3",
+                rusqlite::params![
+                    retry_cnt + 1,
+                    err_str,
+                    mal_id,
+                ],
+            )?;
+            Ok(())
+        });
+
+        // Write placeholder line to synopsis.txt if folder exists
+        if let Some(ref folder) = folder_path {
+            let folder_p = Path::new(folder);
+            if folder_p.is_dir() {
+                let syn_file = folder_p.join("synopsis.txt");
+                let _ = fs::write(syn_file, format!("[Synopsis unavailable: show #{mal_id} returned 404 Not Found]\n"));
+            }
+        }
+
+        let _ = log.warn(
+            None,
+            Some(mal_id),
+            format!("Metadata fetch failed permanently for show #{mal_id}: 404 Not Found"),
+        );
+
+        return Ok(MetadataOutcome::Failed {
+            mal_id,
+            error: err_str,
+        });
+    }
+
+    // Transient failure: 429, 5xx, network, etc.
     let new_retry_count = retry_cnt + 1;
     let backoff_secs = calculate_backoff(new_retry_count);
     let next_run_at = now + backoff_secs;
@@ -476,14 +548,13 @@ pub async fn fetch_show_metadata(
     let _ = db.with(|c| {
         c.execute(
             "UPDATE shows SET
-                synopsis = COALESCE(NULLIF(synopsis, ''), ?1),
+                synopsis = NULL,
                 metadata_status = 'pending',
-                metadata_next_retry_at = ?2,
-                metadata_retry_count = ?3,
-                metadata_error = ?4
-             WHERE mal_id = ?5",
+                metadata_next_retry_at = ?1,
+                metadata_retry_count = ?2,
+                metadata_error = ?3
+             WHERE mal_id = ?4",
             rusqlite::params![
-                placeholder_synopsis(),
                 next_run_at,
                 new_retry_count,
                 err_str,
@@ -492,6 +563,15 @@ pub async fn fetch_show_metadata(
         )?;
         Ok(())
     });
+
+    // Write placeholder line to synopsis.txt if folder exists
+    if let Some(ref folder) = folder_path {
+        let folder_p = Path::new(folder);
+        if folder_p.is_dir() {
+            let syn_file = folder_p.join("synopsis.txt");
+            let _ = fs::write(syn_file, format!("[Synopsis pending metadata sync for show #{mal_id}]\n"));
+        }
+    }
 
     let _ = log.warn(
         None,
@@ -518,6 +598,8 @@ async fn apply_jikan_metadata(
     mal_id: i64,
     _current_title: &str,
     current_english: Option<&str>,
+    folder_path: Option<&str>,
+    existing_poster: Option<&str>,
     data: &JikanFullData,
 ) -> Result<MetadataOutcome> {
     let now = clock.now();
@@ -525,10 +607,12 @@ async fn apply_jikan_metadata(
 
     let clean_syn = data.synopsis.as_deref().map(clean_plain_text).unwrap_or_default();
 
-    // Determine poster URL (large JPG -> JPG -> large WebP -> WebP)
+    // Determine poster URL (large JPG -> JPG -> large WebP -> WebP) or existing remote URL
     let poster_url = data.images.as_ref().and_then(|imgs| {
         imgs.jpg.as_ref().and_then(|j| j.large_image_url.clone().or_else(|| j.image_url.clone()))
             .or_else(|| imgs.webp.as_ref().and_then(|w| w.large_image_url.clone().or_else(|| w.image_url.clone())))
+    }).or_else(|| {
+        existing_poster.filter(|p| p.starts_with("http")).map(|s| s.to_string())
     });
 
     let local_poster_path = match poster_url {
@@ -600,6 +684,30 @@ async fn apply_jikan_metadata(
         Ok(())
     })?;
 
+    // Replace synopsis.txt in folder if folder exists
+    if let Some(folder) = folder_path {
+        let folder_p = Path::new(folder);
+        if folder_p.is_dir() {
+            let syn_file = folder_p.join("synopsis.txt");
+            let genres_list: Vec<String> = data.genres.iter().map(|g| g.name.clone()).collect();
+            let full_text = crate::library::format_synopsis(
+                &data.title,
+                english_title,
+                data.title_japanese.as_deref(),
+                data.show_type.as_deref().unwrap_or("tv"),
+                data.episodes,
+                data.status.as_deref(),
+                data.aired.as_ref().and_then(|a| a.string.as_deref()),
+                data.score,
+                &genres_list,
+                Some(&clean_syn),
+                mal_id,
+                &format!("Unix timestamp {now}"),
+            );
+            let _ = fs::write(syn_file, full_text);
+        }
+    }
+
     let _ = log.info(
         None,
         Some(mal_id),
@@ -620,6 +728,9 @@ async fn apply_mal_metadata(
     clock: &dyn Clock,
     mal_id: i64,
     _current_title: &str,
+    current_english: Option<&str>,
+    folder_path: Option<&str>,
+    existing_poster: Option<&str>,
     data: &MalApiAnimeDetailResponse,
 ) -> Result<MetadataOutcome> {
     let now = clock.now();
@@ -627,7 +738,8 @@ async fn apply_mal_metadata(
 
     let clean_syn = data.synopsis.as_deref().map(clean_plain_text).unwrap_or_default();
 
-    let poster_url = data.main_picture.as_ref().and_then(|p| p.large.clone().or_else(|| p.medium.clone()));
+    let poster_url = data.main_picture.as_ref().and_then(|p| p.large.clone().or_else(|| p.medium.clone()))
+        .or_else(|| existing_poster.filter(|p| p.starts_with("http")).map(|s| s.to_string()));
 
     let local_poster_path = match poster_url {
         Some(ref url) => download_poster_to_file(gate, data_dir, mal_id, url)
@@ -637,7 +749,7 @@ async fn apply_mal_metadata(
     };
 
     let start_year = data.start_season.as_ref().and_then(|s| s.year);
-    let en_title = data.alternative_titles.as_ref().and_then(|a| a.en.clone());
+    let en_title = data.alternative_titles.as_ref().and_then(|a| a.en.clone()).or_else(|| current_english.map(|s| s.to_string()));
     let ja_title = data.alternative_titles.as_ref().and_then(|a| a.ja.clone());
 
     db.with(|c| {
@@ -695,6 +807,29 @@ async fn apply_mal_metadata(
         Ok(())
     })?;
 
+    // Replace synopsis.txt in folder if folder exists
+    if let Some(folder) = folder_path {
+        let folder_p = Path::new(folder);
+        if folder_p.is_dir() {
+            let syn_file = folder_p.join("synopsis.txt");
+            let full_text = crate::library::format_synopsis(
+                &data.title,
+                en_title.as_deref(),
+                ja_title.as_deref(),
+                data.media_type.as_deref().unwrap_or("tv"),
+                data.num_episodes,
+                data.status.as_deref(),
+                None,
+                data.mean,
+                &[],
+                Some(&clean_syn),
+                mal_id,
+                &format!("Unix timestamp {now}"),
+            );
+            let _ = fs::write(syn_file, full_text);
+        }
+    }
+
     let _ = log.info(
         None,
         Some(mal_id),
@@ -721,6 +856,7 @@ pub struct MetadataBatchReport {
 }
 
 /// Process up to `limit` pending metadata jobs in the queue through Gate.
+/// Watching shows are queued first, then the rest at low priority.
 pub async fn process_metadata_queue(
     db: &Db,
     gate: &Gate,
@@ -734,10 +870,14 @@ pub async fn process_metadata_queue(
 
     let pending_ids: Vec<i64> = db.with(|c| {
         let mut stmt = c.prepare(
-            "SELECT mal_id FROM shows
-             WHERE metadata_status = 'pending'
-               AND (metadata_next_retry_at IS NULL OR metadata_next_retry_at <= ?1)
-             ORDER BY metadata_retry_count ASC, mal_id ASC
+            "SELECT s.mal_id FROM shows s
+             LEFT JOIN mal_entries m ON m.mal_id = s.mal_id
+             WHERE s.metadata_status = 'pending'
+               AND (s.metadata_next_retry_at IS NULL OR s.metadata_next_retry_at <= ?1)
+             ORDER BY
+               CASE WHEN lower(coalesce(m.list_status, '')) = 'watching' THEN 0 ELSE 1 END ASC,
+               s.metadata_retry_count ASC,
+               s.mal_id ASC
              LIMIT ?2",
         )?;
         let rows = stmt.query_map(rusqlite::params![now, max_items as i64], |r| r.get(0))?;

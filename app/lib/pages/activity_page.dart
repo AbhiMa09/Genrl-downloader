@@ -277,24 +277,26 @@ class _ActivityPageState extends State<ActivityPage> {
                   border: Border.all(color: ObsidianColors.border),
                 ),
                 child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: _selectedShow,
-                    dropdownColor: ObsidianColors.surfaceContainerHigh,
-                    icon: const Icon(Icons.expand_more_rounded, size: 16, color: ObsidianColors.outline),
-                    style: ObsidianTypography.bodySm(color: ObsidianColors.onSurface),
-                    items: const [
-                      DropdownMenuItem(value: 'All Monitored Shows', child: Text('All Monitored Shows')),
-                      DropdownMenuItem(value: 'Sousou no Frieren', child: Text('Sousou no Frieren')),
-                      DropdownMenuItem(value: 'Dungeon Meshi', child: Text('Dungeon Meshi')),
-                      DropdownMenuItem(value: 'Solo Leveling', child: Text('Solo Leveling')),
-                      DropdownMenuItem(value: 'Oshi no Ko', child: Text('Oshi no Ko')),
-                      DropdownMenuItem(value: 'Bleach: TYBW', child: Text('Bleach: TYBW')),
-                      DropdownMenuItem(value: 'Kimi no Na wa', child: Text('Kimi no Na wa')),
-                    ],
-                    onChanged: (val) {
-                      if (val != null) setState(() => _selectedShow = val);
-                    },
-                  ),
+                  child: Builder(builder: (context) {
+                    final state = context.watch<StateProvider>();
+                    final showTitles = state.shows.map((s) => s.title).toList();
+                    final currentVal = (showTitles.contains(_selectedShow) || _selectedShow == 'All Monitored Shows')
+                        ? _selectedShow
+                        : 'All Monitored Shows';
+                    return DropdownButton<String>(
+                      value: currentVal,
+                      dropdownColor: ObsidianColors.surfaceContainerHigh,
+                      icon: const Icon(Icons.expand_more_rounded, size: 16, color: ObsidianColors.outline),
+                      style: ObsidianTypography.bodySm(color: ObsidianColors.onSurface),
+                      items: [
+                        const DropdownMenuItem(value: 'All Monitored Shows', child: Text('All Monitored Shows')),
+                        ...showTitles.map((t) => DropdownMenuItem(value: t, child: Text(t))),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) setState(() => _selectedShow = val);
+                      },
+                    );
+                  }),
                 ),
               ),
               const SizedBox(width: 8),

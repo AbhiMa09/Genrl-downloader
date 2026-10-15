@@ -764,7 +764,7 @@ class _PatternCardA extends StatelessWidget {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          '[SubsPlease] Frieren - 28',
+                          'Ingestion Job #101 [1080p HEVC]',
                           style: ObsidianTypography.monoCode(),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -790,7 +790,7 @@ class _PatternCardA extends StatelessWidget {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          '[Erai-raws] Solo Leveling - 12',
+                          'Ingestion Job #100 [BDRip FLAC]',
                           style: ObsidianTypography.monoCode(
                               color: ObsidianColors.outline),
                           overflow: TextOverflow.ellipsis,

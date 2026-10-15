@@ -29,12 +29,12 @@ class EpisodeItem {
     this.releaseName,
     this.group = 'Auto',
     this.container = 'Matroska (MKV)',
-    this.videoTrack = '1080p BD Remux HEVC 10-bit',
-    this.primaryAudio = 'FLAC 5.1ch 24-bit 48kHz',
-    this.subtitles = 'ENG (PGS), JPN',
-    this.crc32 = '5E2A9D11',
-    this.chapters = 18,
-    this.duration = '24:12',
+    this.videoTrack = '1080p',
+    this.primaryAudio = 'Japanese',
+    this.subtitles = 'English',
+    this.crc32 = '-',
+    this.chapters = 0,
+    this.duration = '-',
   });
 }
 

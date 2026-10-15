@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../services/state_provider.dart';
 import '../theme/colors.dart';
 import '../theme/typography.dart';
 
@@ -10,78 +12,13 @@ class SearchPage extends StatefulWidget {
 }
 
 class _SearchPageState extends State<SearchPage> {
-  final _searchController = TextEditingController(text: '[SubsPlease] Sousou no Frieren - 28 (1080p) [F028E44A].mkv');
+  final _searchController = TextEditingController();
   String _selectedRes = '1080p';
   String _selectedView = 'results';
   bool _trustedOnly = true;
   bool _isSearching = false;
 
-  final List<Map<String, dynamic>> _mockResults = [
-    {
-      'isBest': true,
-      'title': '[SubsPlease] Sousou no Frieren - 28 (1080p) [F028E44A].mkv',
-      'hash': 'F028E44A',
-      'indexer': 'Nyaa.si #1823901',
-      'group': 'SubsPlease',
-      'format': '1080p',
-      'codec': 'x264 • AAC',
-      'size': '1.42 GB',
-      'seeds': 142,
-      'leech': 18,
-      'age': '2h ago',
-      'matchScore': '98% Match',
-      'matchTier': 'Tier 1 Target',
-      'bonuses': ['+30 Tier 1 Group', '+20 1080p Match', '+15 Swarm Peak'],
-    },
-    {
-      'isBest': false,
-      'title': '[Erai-raws] Sousou no Frieren - 28 [1080p][HEVC][Multiple Subtitle].mkv',
-      'hash': '8CA109BD',
-      'indexer': 'Nyaa.si #1823904',
-      'group': 'Erai-raws',
-      'format': '1080p',
-      'codec': 'x265 • Opus',
-      'size': '892 MB',
-      'seeds': 89,
-      'leech': 12,
-      'age': '3h ago',
-      'matchScore': '92% Match',
-      'matchTier': 'Tier 2 Valid',
-      'bonuses': ['+20 HEVC Tag', '+10 Preferred Track'],
-    },
-    {
-      'isBest': false,
-      'title': '[Judas] Sousou no Frieren - 28 [1080p][HEVC x265 10bit][Dual-Audio].mkv',
-      'hash': '44AB21C0',
-      'indexer': 'Nyaa.si #1823922',
-      'group': 'Judas',
-      'format': '1080p',
-      'codec': 'HEVC • Dual-Audio',
-      'size': '850 MB',
-      'seeds': 52,
-      'leech': 8,
-      'age': '4h ago',
-      'matchScore': '88% Match',
-      'matchTier': 'Small Size',
-      'bonuses': ['+10 Dual Audio', '-5 Secondary Release'],
-    },
-    {
-      'isBest': false,
-      'title': '[Beatrice-Raws] Sousou no Frieren - 28 [BDRip 1920x1080 HEVC FLAC]',
-      'hash': '19DA77E1',
-      'indexer': 'Nyaa.si #1823955',
-      'group': 'Beatrice-Raws',
-      'format': '1080p BD',
-      'codec': 'HEVC • FLAC 2.0',
-      'size': '3.40 GB',
-      'seeds': 34,
-      'leech': 2,
-      'age': '5h ago',
-      'matchScore': '85% Match',
-      'matchTier': 'Archival Remux',
-      'bonuses': ['+25 Lossless Audio', '-10 Large Size'],
-    },
-  ];
+  List<Map<String, dynamic>> _searchResults = [];
 
   @override
   void dispose() {
@@ -89,14 +26,54 @@ class _SearchPageState extends State<SearchPage> {
     super.dispose();
   }
 
-  void _triggerSearch() {
+  Future<void> _triggerSearch() async {
+    final query = _searchController.text.trim();
+    if (query.isEmpty) return;
     setState(() => _isSearching = true);
-    Future.delayed(const Duration(milliseconds: 600), () {
+    try {
+      final state = context.read<StateProvider>();
+      final items = await state.bridge.search(query);
+      if (mounted) {
+        setState(() {
+          _searchResults = items.asMap().entries.map((entry) {
+            final idx = entry.key;
+            final it = entry.value;
+            final parsed = (it['parsed'] as Map<String, dynamic>?) ?? {};
+            return {
+              'isBest': idx == 0,
+              'title': it['title'] ?? 'Unknown Torrent',
+              'hash': (it['info_hash'] ?? '--------').toString().substring(0, 8.clamp(0, (it['info_hash'] ?? '').toString().length)),
+              'indexer': 'Nyaa.si',
+              'group': parsed['group'] ?? '-',
+              'format': parsed['resolution'] ?? '1080p',
+              'codec': parsed['codec'] ?? '-',
+              'size': it['size_text'] ?? '-',
+              'seeds': it['seeders'] ?? 0,
+              'leech': it['leechers'] ?? 0,
+              'age': '-',
+              'matchScore': '${it['seeders'] ?? 0} seeds',
+              'matchTier': (it['trusted'] == true) ? 'Trusted' : 'Standard',
+              'bonuses': (it['trusted'] == true) ? ['+30 Trusted Uploader'] : <String>[],
+              'magnet': it['magnet'],
+              'link': it['link'],
+            };
+          }).toList();
+        });
+      }
+    } catch (_) {
+    } finally {
       if (mounted) setState(() => _isSearching = false);
-    });
+    }
   }
 
   void _grabRelease(String title) {
+    final item = _searchResults.firstWhere((r) => r['title'] == title, orElse: () => {});
+    final target = (item['magnet'] as String?)?.isNotEmpty == true
+        ? item['magnet'] as String
+        : ((item['link'] as String?)?.isNotEmpty == true ? item['link'] as String : title);
+    try {
+      context.read<StateProvider>().bridge.grab(target);
+    } catch (_) {}
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Queued grab for: $title'),
@@ -107,6 +84,8 @@ class _SearchPageState extends State<SearchPage> {
 
   @override
   Widget build(BuildContext context) {
+    final state = context.watch<StateProvider>();
+
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
       child: Column(
@@ -117,11 +96,11 @@ class _SearchPageState extends State<SearchPage> {
           const SizedBox(height: 12),
 
           // 2. Quick Preset Queries
-          _buildPresets(),
+          _buildPresets(state),
           const SizedBox(height: 16),
 
           // 3. Search Bar & Target Assignment (Top Card)
-          _buildSearchCard(),
+          _buildSearchCard(state),
           const SizedBox(height: 16),
 
           // 4. Granular Filter Toolbar
@@ -133,7 +112,9 @@ class _SearchPageState extends State<SearchPage> {
           const SizedBox(height: 12),
 
           // 6. Compact Dense Results Table View
-          if (_selectedView == 'zero')
+          if (_isSearching)
+            _buildSkeletonState()
+          else if (_selectedView == 'zero' || _searchResults.isEmpty)
             _buildZeroState()
           else if (_selectedView == 'skeleton')
             _buildSkeletonState()
@@ -191,14 +172,14 @@ class _SearchPageState extends State<SearchPage> {
     );
   }
 
-  Widget _buildPresets() {
-    final presets = [
-      'Frieren S01',
-      'Dungeon Meshi Complete',
-      'Oshi no Ko S2 1080p',
-      'Kimi no Na wa Remux',
-      'Bleach TYBW Ep 21',
-    ];
+  Widget _buildPresets(StateProvider state) {
+    final presets = state.shows.isNotEmpty
+        ? state.shows.take(5).map((s) => s.title).toList()
+        : [
+            '1080p HEVC',
+            'BDRip Multi-Sub',
+            'Lossless FLAC',
+          ];
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -238,7 +219,7 @@ class _SearchPageState extends State<SearchPage> {
     );
   }
 
-  Widget _buildSearchCard() {
+  Widget _buildSearchCard(StateProvider state) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -350,11 +331,13 @@ class _SearchPageState extends State<SearchPage> {
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 clipBehavior: Clip.antiAlias,
-                                child: Image.network(
-                                  'https://cdn.myanimelist.net/images/anime/1015/138006.jpg',
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => const Icon(Icons.movie_rounded, size: 14, color: ObsidianColors.outline),
-                                ),
+                                child: (state.selectedShow?.posterUrl ?? (state.shows.isNotEmpty ? state.shows.first.posterUrl : null)) != null
+                                    ? Image.network(
+                                        (state.selectedShow?.posterUrl ?? state.shows.first.posterUrl)!,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) => const Icon(Icons.movie_rounded, size: 14, color: ObsidianColors.outline),
+                                      )
+                                    : const Icon(Icons.movie_rounded, size: 14, color: ObsidianColors.outline),
                               ),
                               const SizedBox(width: 8),
                               Expanded(
@@ -362,8 +345,16 @@ class _SearchPageState extends State<SearchPage> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Text('Sousou no Frieren', style: ObsidianTypography.titleSm(fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis),
-                                    Text('S01E28 • Final Arc', style: ObsidianTypography.monoCode(color: ObsidianColors.outline, fontSize: 9)),
+                                    Text(
+                                      state.selectedShow?.title ?? (state.shows.isNotEmpty ? state.shows.first.title : 'No Target Bound'),
+                                      style: ObsidianTypography.titleSm(fontSize: 11),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    Text(
+                                      state.shows.isNotEmpty ? 'S01 • Monitored' : 'Manual Indexer Search',
+                                      style: ObsidianTypography.monoCode(color: ObsidianColors.outline, fontSize: 9),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -530,14 +521,14 @@ class _SearchPageState extends State<SearchPage> {
       children: [
         Row(
           children: [
-            Text('Found 14 releases across 2 indexers', style: ObsidianTypography.titleSm(fontSize: 12)),
+            Text('Found ${_searchResults.length} releases', style: ObsidianTypography.titleSm(fontSize: 12)),
             const SizedBox(width: 6),
             Container(width: 6, height: 6, decoration: const BoxDecoration(color: ObsidianColors.tertiary, shape: BoxShape.circle)),
           ],
         ),
         Row(
           children: [
-            _buildViewTab('results', 'Results (14)'),
+            _buildViewTab('results', 'Results (${_searchResults.length})'),
             const SizedBox(width: 4),
             _buildViewTab('skeleton', 'Skeleton View'),
             const SizedBox(width: 4),
@@ -604,10 +595,10 @@ class _SearchPageState extends State<SearchPage> {
           ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            itemCount: _mockResults.length,
+            itemCount: _searchResults.length,
             separatorBuilder: (_, __) => const Divider(height: 1, color: ObsidianColors.border),
             itemBuilder: (context, index) {
-              final r = _mockResults[index];
+              final r = _searchResults[index];
               final isBest = r['isBest'] as bool;
 
               return Container(

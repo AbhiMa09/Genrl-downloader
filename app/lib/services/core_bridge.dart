@@ -83,6 +83,15 @@ class CoreBridge {
     return [];
   }
 
+  /// Grab a torrent or release via CLI
+  Future<bool> grab(String target, {String? to, String? category}) async {
+    final args = ['grab', target];
+    if (to != null) args.addAll(['--to', to]);
+    if (category != null) args.addAll(['--category', category]);
+    final res = await execute(args);
+    return res.exitCode == 0;
+  }
+
   /// Connect to MAL via PKCE OAuth (runs `genrl mal connect`)
   Future<ProcessResult> malConnectStart({
     String? clientId,

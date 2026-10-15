@@ -16,8 +16,8 @@ use genrl_core::db::Db;
 use genrl_core::http::policy::{RateSpec, RetryPolicy, ServicePolicy};
 use genrl_core::http::{Gate, Service};
 use genrl_core::metadata::{
-    clean_plain_text, clean_single_line, fetch_show_metadata, queue_stale_metadata,
-    MetadataOutcome,
+    clean_plain_text, clean_single_line, fetch_show_metadata, process_metadata_queue,
+    queue_stale_metadata, MetadataOutcome,
 };
 use genrl_core::settings::{self, Settings};
 
@@ -126,10 +126,13 @@ async fn metadata_429_placeholder_and_retry_fills_it() {
     )
     .unwrap();
 
+    let show_folder = temp.path().join("shows").join("Test Show 100");
+    std::fs::create_dir_all(&show_folder).unwrap();
+
     db.with(|c| {
         c.execute(
-            "INSERT INTO shows (mal_id, title, metadata_status) VALUES (100, 'Test Show 100', 'pending')",
-            [],
+            "INSERT INTO shows (mal_id, title, metadata_status, folder_path) VALUES (100, 'Test Show 100', 'pending', ?1)",
+            [show_folder.to_str().unwrap()],
         )?;
         Ok(())
     })
@@ -155,20 +158,25 @@ async fn metadata_429_placeholder_and_retry_fills_it() {
         other => panic!("expected PendingRetry, got {other:?}"),
     }
 
-    // Verify placeholder was stored in SQLite
-    let (syn, status, retry_cnt): (String, String, i64) = db
+    // Verify NULL synopsis was kept in SQLite, status is pending, and error stored in metadata_error
+    let (syn, status, retry_cnt, err): (Option<String>, String, i64, Option<String>) = db
         .with(|c| {
             Ok(c.query_row(
-                "SELECT synopsis, metadata_status, metadata_retry_count FROM shows WHERE mal_id = 100",
+                "SELECT synopsis, metadata_status, metadata_retry_count, metadata_error FROM shows WHERE mal_id = 100",
                 [],
-                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)),
             )?)
         })
         .unwrap();
 
-    assert!(syn.contains("Synopsis loading"), "synopsis should hold placeholder");
+    assert!(syn.is_none(), "shows.synopsis must remain NULL on failure");
     assert_eq!(status, "pending");
     assert_eq!(retry_cnt, 1);
+    assert!(err.is_some(), "metadata_error must hold failure details");
+
+    // Verify synopsis.txt gets placeholder line
+    let syn_txt = std::fs::read_to_string(show_folder.join("synopsis.txt")).unwrap();
+    assert_eq!(syn_txt, "[Synopsis pending metadata sync for show #100]\n");
 
     // 2. Server recovers and returns 200 OK with valid Jikan JSON
     server.reset().await;
@@ -213,20 +221,26 @@ async fn metadata_429_placeholder_and_retry_fills_it() {
         other => panic!("expected Updated after retry, got {other:?}"),
     }
 
-    // Verify database now contains real synopsis and ready status
-    let (final_syn, final_status, final_retry): (String, String, i64) = db
+    // Verify database now contains real synopsis, ready status, and cleared error
+    let (final_syn, final_status, final_retry, final_err): (Option<String>, String, i64, Option<String>) = db
         .with(|c| {
             Ok(c.query_row(
-                "SELECT synopsis, metadata_status, metadata_retry_count FROM shows WHERE mal_id = 100",
+                "SELECT synopsis, metadata_status, metadata_retry_count, metadata_error FROM shows WHERE mal_id = 100",
                 [],
-                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)),
             )?)
         })
         .unwrap();
 
-    assert_eq!(final_syn, "This is the real recovered synopsis from Jikan.");
+    assert_eq!(final_syn.as_deref(), Some("This is the real recovered synopsis from Jikan."));
     assert_eq!(final_status, "ready");
     assert_eq!(final_retry, 0);
+    assert!(final_err.is_none());
+
+    // Verify synopsis.txt is cleanly replaced with real synopsis
+    let syn_txt_after = std::fs::read_to_string(show_folder.join("synopsis.txt")).unwrap();
+    assert!(syn_txt_after.contains("This is the real recovered synopsis from Jikan."));
+    assert!(!syn_txt_after.starts_with('['));
 }
 
 // ---------------------------------------------------------------------------
@@ -248,12 +262,16 @@ async fn cache_hit_within_7_days_makes_no_request() {
 
     let gate = Gate::with_policies(db.clone(), &[(Service::Jikan, fast_policy())]).unwrap();
 
-    // Show was updated 3 days ago (< 7 days) and has synopsis + poster
+    let poster_file = temp.path().join("posters").join("200.jpg");
+    std::fs::create_dir_all(poster_file.parent().unwrap()).unwrap();
+    std::fs::write(&poster_file, b"fake-jpg-data").unwrap();
+
+    // Show was updated 3 days ago (< 7 days) and has synopsis + local poster file
     db.with(|c| {
         c.execute(
             "INSERT INTO shows (mal_id, title, synopsis, poster_path, metadata_status, metadata_updated_at)
-             VALUES (200, 'Cached Show', 'Existing fresh synopsis', '/tmp/posters/200.jpg', 'ready', ?1)",
-            [NOW - (3 * 86400)],
+             VALUES (200, 'Cached Show', 'Existing fresh synopsis', ?1, 'ready', ?2)",
+            rusqlite::params![poster_file.to_str().unwrap(), NOW - (3 * 86400)],
         )?;
         Ok(())
     })
@@ -392,4 +410,291 @@ async fn fallback_to_mal_when_jikan_is_empty() {
     assert_eq!(syn, "Official synopsis fetched directly from MyAnimeList API.");
     assert_eq!(status, "ready");
     assert_eq!(en_title.as_deref(), Some("Show Three Hundred"));
+}
+
+// ---------------------------------------------------------------------------
+// 6. 404 permanent failure not retried and marked failed
+// ---------------------------------------------------------------------------
+
+#[tokio::test]
+async fn permanent_404_not_retried_and_marked_failed() {
+    let server = MockServer::start().await;
+    let temp = tempdir().unwrap();
+    let data_dir = temp.path().join("data");
+    let show_folder = temp.path().join("shows").join("Show 404");
+    std::fs::create_dir_all(&show_folder).unwrap();
+
+    let db = Db::open_in_memory().unwrap();
+    let clk = clock();
+
+    let mut settings = Settings::load(&db).unwrap();
+    settings.jikan_base_url = server.uri();
+    Settings::save(&settings, &db).unwrap();
+
+    let gate = Gate::with_policies(db.clone(), &[(Service::Jikan, fast_policy())]).unwrap();
+
+    db.with(|c| {
+        c.execute(
+            "INSERT INTO shows (mal_id, title, metadata_status, folder_path) VALUES (404, 'Show 404', 'pending', ?1)",
+            [show_folder.to_str().unwrap()],
+        )?;
+        Ok(())
+    })
+    .unwrap();
+
+    // Jikan returns 404 Not Found
+    Mock::given(method("GET"))
+        .and(path("/v4/anime/404/full"))
+        .respond_with(ResponseTemplate::new(404).set_body_string(r#"{"status":404,"type":"BadResponseException","message":"Resource not found"}"#))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let outcome = fetch_show_metadata(&db, &gate, &settings, &clk, &data_dir, 404, true)
+        .await
+        .unwrap();
+
+    match outcome {
+        MetadataOutcome::Failed { mal_id, error } => {
+            assert_eq!(mal_id, 404);
+            assert!(error.contains("404"), "error should mention 404: {error}");
+        }
+        other => panic!("expected Failed, got {other:?}"),
+    }
+
+    // Verify DB state: synopsis is NULL, status is 'failed', metadata_next_retry_at is NULL
+    let (syn, status, next_retry, err): (Option<String>, String, Option<i64>, Option<String>) = db
+        .with(|c| {
+            Ok(c.query_row(
+                "SELECT synopsis, metadata_status, metadata_next_retry_at, metadata_error FROM shows WHERE mal_id = 404",
+                [],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)),
+            )?)
+        })
+        .unwrap();
+
+    assert!(syn.is_none(), "synopsis must be NULL on failure");
+    assert_eq!(status, "failed");
+    assert!(next_retry.is_none(), "404 must NOT be retried (next_retry_at is NULL)");
+    assert!(err.as_deref().unwrap_or("").contains("404"));
+
+    // Verify synopsis.txt contains 404 placeholder line
+    let syn_txt = std::fs::read_to_string(show_folder.join("synopsis.txt")).unwrap();
+    assert!(syn_txt.contains("404 Not Found"));
+
+    // Verify queue_stale_metadata does NOT queue 'failed' shows
+    let queued = queue_stale_metadata(&db, clk.now()).unwrap();
+    assert_eq!(queued, 0, "failed shows should never be re-queued");
+}
+
+// ---------------------------------------------------------------------------
+// 7. Remote poster URL is re-downloaded to local file
+// ---------------------------------------------------------------------------
+
+#[tokio::test]
+async fn remote_poster_url_is_redownloaded() {
+    let server = MockServer::start().await;
+    let temp = tempdir().unwrap();
+    let data_dir = temp.path().join("data");
+    std::fs::create_dir_all(&data_dir).unwrap();
+
+    let db = Db::open_in_memory().unwrap();
+    let clk = clock();
+
+    let mut settings = Settings::load(&db).unwrap();
+    settings.jikan_base_url = server.uri();
+    Settings::save(&settings, &db).unwrap();
+
+    let gate = Gate::with_policies(
+        db.clone(),
+        &[
+            (Service::Jikan, fast_policy()),
+            (Service::Images, fast_policy()),
+        ],
+    )
+    .unwrap();
+
+    let remote_poster_url = format!("{}/images/500.jpg", server.uri());
+
+    // Show currently has a remote poster URL instead of a local file path
+    db.with(|c| {
+        c.execute(
+            "INSERT INTO shows (mal_id, title, synopsis, poster_path, metadata_status, metadata_updated_at)
+             VALUES (500, 'Show 500', 'Existing synopsis', ?1, 'ready', ?2)",
+            rusqlite::params![&remote_poster_url, NOW - 3600],
+        )?;
+        Ok(())
+    })
+    .unwrap();
+
+    // queue_stale_metadata must detect remote poster_path as needing refresh
+    let queued = queue_stale_metadata(&db, clk.now()).unwrap();
+    assert_eq!(queued, 1, "remote poster URLs must be queued for download");
+
+    let jikan_json = format!(r#"{{
+        "data": {{
+            "mal_id": 500,
+            "title": "Show 500",
+            "synopsis": "Existing synopsis",
+            "images": {{
+                "jpg": {{
+                    "large_image_url": "{}",
+                    "image_url": "{}"
+                }}
+            }}
+        }}
+    }}"#, remote_poster_url, remote_poster_url);
+
+    Mock::given(method("GET"))
+        .and(path("/v4/anime/500/full"))
+        .respond_with(ResponseTemplate::new(200).set_body_string(jikan_json))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    Mock::given(method("GET"))
+        .and(path("/images/500.jpg"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(b"downloaded-poster-bytes"))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let outcome = fetch_show_metadata(&db, &gate, &settings, &clk, &data_dir, 500, true)
+        .await
+        .unwrap();
+
+    match outcome {
+        MetadataOutcome::Updated { mal_id, poster_path, .. } => {
+            assert_eq!(mal_id, 500);
+            assert!(poster_path.is_some());
+            let local_path = poster_path.unwrap();
+            assert!(!local_path.starts_with("http"), "poster_path must be a local file path");
+            assert!(std::path::Path::new(&local_path).is_file(), "poster file must exist on disk");
+        }
+        other => panic!("expected Updated, got {other:?}"),
+    }
+
+    let db_poster: String = db
+        .with(|c| {
+            Ok(c.query_row(
+                "SELECT poster_path FROM shows WHERE mal_id = 500",
+                [],
+                |r| r.get(0),
+            )?)
+        })
+        .unwrap();
+
+    assert!(!db_poster.starts_with("http"));
+    assert!(std::path::Path::new(&db_poster).is_file());
+}
+
+// ---------------------------------------------------------------------------
+// 8. Sync queues Watching shows first, then the rest at low priority
+// ---------------------------------------------------------------------------
+
+#[tokio::test]
+async fn sync_queues_watching_shows_with_priority() {
+    let server = MockServer::start().await;
+    let temp = tempdir().unwrap();
+    let data_dir = temp.path().join("data");
+    std::fs::create_dir_all(&data_dir).unwrap();
+
+    let db = Db::open_in_memory().unwrap();
+    let clk = clock();
+
+    let mut settings = Settings::load(&db).unwrap();
+    settings.jikan_base_url = server.uri();
+    Settings::save(&settings, &db).unwrap();
+
+    let gate = Gate::with_policies(db.clone(), &[(Service::Jikan, fast_policy())]).unwrap();
+
+    // Populate shows and mal_entries:
+    // Show 10: plan_to_watch
+    // Show 20: watching
+    // Show 30: completed
+    // Show 40: watching
+    db.with(|c| {
+        c.execute("INSERT INTO shows (mal_id, title, metadata_status) VALUES (10, 'Show 10', 'pending')", [])?;
+        c.execute("INSERT INTO mal_entries (mal_id, list_status, updated_at) VALUES (10, 'plan_to_watch', ?1)", [NOW])?;
+
+        c.execute("INSERT INTO shows (mal_id, title, metadata_status) VALUES (20, 'Show 20', 'pending')", [])?;
+        c.execute("INSERT INTO mal_entries (mal_id, list_status, updated_at) VALUES (20, 'watching', ?1)", [NOW])?;
+
+        c.execute("INSERT INTO shows (mal_id, title, metadata_status) VALUES (30, 'Show 30', 'pending')", [])?;
+        c.execute("INSERT INTO mal_entries (mal_id, list_status, updated_at) VALUES (30, 'completed', ?1)", [NOW])?;
+
+        c.execute("INSERT INTO shows (mal_id, title, metadata_status) VALUES (40, 'Show 40', 'pending')", [])?;
+        c.execute("INSERT INTO mal_entries (mal_id, list_status, updated_at) VALUES (40, 'watching', ?1)", [NOW])?;
+        Ok(())
+    })
+    .unwrap();
+
+    for id in [20, 40] {
+        let resp = format!(r#"{{"data":{{"mal_id":{id},"title":"Show {id}","synopsis":"Synopsis for {id}"}}}}"#);
+        Mock::given(method("GET"))
+            .and(path(format!("/v4/anime/{id}/full")))
+            .respond_with(ResponseTemplate::new(200).set_body_string(resp))
+            .expect(1)
+            .mount(&server)
+            .await;
+    }
+
+    // Process a batch of limit 2: only the 2 Watching shows (20 and 40) must be processed first!
+    let report = process_metadata_queue(&db, &gate, &settings, &clk, &data_dir, Some(2))
+        .await
+        .unwrap();
+
+    assert_eq!(report.processed, 2);
+    assert_eq!(report.updated, 2);
+
+    // Verify Shows 20 and 40 are now ready, while 10 and 30 remain pending
+    let statuses: Vec<(i64, String)> = db
+        .with(|c| {
+            let mut stmt = c.prepare("SELECT mal_id, metadata_status FROM shows ORDER BY mal_id")?;
+            let rows = stmt.query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?;
+            Ok(rows.filter_map(Result::ok).collect())
+        })
+        .unwrap();
+
+    assert_eq!(statuses, vec![
+        (10, "pending".into()),
+        (20, "ready".into()),
+        (30, "pending".into()),
+        (40, "ready".into()),
+    ]);
+}
+
+// ---------------------------------------------------------------------------
+// 9. Per-minute cap respected with a fake clock
+// ---------------------------------------------------------------------------
+
+#[tokio::test(start_paused = true)]
+async fn jikan_per_minute_cap_respected_with_fake_clock() {
+    let jikan_policy = ServicePolicy::for_service(Service::Jikan);
+    assert_eq!(jikan_policy.rate.per_minute_cap, Some(50));
+    assert_eq!(jikan_policy.rate.permits_per_second, 2.0);
+
+    // Rate spec with 50/minute cap
+    let spec = RateSpec {
+        permits_per_second: 1000.0,
+        burst: 1000,
+        per_minute_cap: Some(50),
+        jitter: false,
+    };
+    let limiter = genrl_core::http::limiter::Limiter::new(&spec);
+
+    let started = tokio::time::Instant::now();
+    for _ in 0..50 {
+        limiter.acquire().await;
+    }
+    // All 50 initial tokens were consumed instantly
+    assert_eq!(started.elapsed(), std::time::Duration::ZERO);
+
+    // The 51st request exceeds the minute cap: must wait for the minute bucket to refill (50/60 tokens/sec = 1.2s per token)
+    limiter.acquire().await;
+    let elapsed = started.elapsed();
+    assert!(
+        elapsed >= std::time::Duration::from_millis(1150),
+        "51st permit must wait ~1.2s for minute bucket to refill, waited {elapsed:?}"
+    );
 }

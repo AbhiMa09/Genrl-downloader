@@ -652,7 +652,7 @@ mod tests {
     fn rate_specs_match_the_design() {
         let jikan = ServicePolicy::for_service(Service::Jikan);
         assert_eq!(jikan.rate.permits_per_second, 2.0);
-        assert_eq!(jikan.rate.per_minute_cap, Some(60));
+        assert_eq!(jikan.rate.per_minute_cap, Some(50));
         assert_eq!(jikan.cache_ttl, Some(Duration::from_secs(7 * 24 * 3600)));
 
         let nyaa = ServicePolicy::for_service(Service::Nyaa);

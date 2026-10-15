@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../models/activity_item.dart';
 import '../models/library_item.dart';
 import '../services/state_provider.dart';
 import '../theme/colors.dart';
@@ -230,7 +231,7 @@ class _DashboardPageState extends State<DashboardPage> {
     final monitoredShows = state.status.totalShows > 0
         ? state.status.totalShows
         : state.shows.length;
-    final nextShow = state.shows.isNotEmpty ? state.shows.first.title : 'Frieren #28';
+    final nextShow = state.shows.isNotEmpty ? state.shows.first.title : '-';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -777,29 +778,29 @@ class _DashboardPageState extends State<DashboardPage> {
                       ],
                     ),
                     const SizedBox(height: 12),
-                    _buildFeedRow(
-                      dotColor: ObsidianColors.tertiary,
-                      title: 'Dungeon Meshi - 24 [1080p x265 Remux]',
-                      group: 'Erai-raws',
-                      target: 'Linked to /mnt/anime/TV/Dungeon Meshi/Season 01/Dungeon Meshi - S01E24.mkv',
-                      time: '12m ago',
-                    ),
-                    const SizedBox(height: 8),
-                    _buildFeedRow(
-                      dotColor: ObsidianColors.primary,
-                      title: 'Wind Breaker - 08 [1080p Web-DL AAC]',
-                      group: 'SubsPlease',
-                      target: 'Linked to /mnt/anime/TV/Wind Breaker/Season 01/Wind Breaker - S01E08.mkv',
-                      time: '44m ago',
-                    ),
-                    const SizedBox(height: 8),
-                    _buildFeedRow(
-                      dotColor: ObsidianColors.secondary,
-                      title: 'Bleach: Thousand-Year Blood War - 26 [BD 1080p Remux]',
-                      group: 'Beatrice-Raws',
-                      target: 'Upgraded cutoff unmet → High Quality Archival Tier',
-                      time: '2h 15m ago',
-                    ),
+                    if (state.events.isNotEmpty)
+                      ...state.events.take(3).map((act) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8.0),
+                            child: _buildFeedRow(
+                              dotColor: act.level == ActivityLevel.error
+                                  ? ObsidianColors.error
+                                  : (act.level == ActivityLevel.warn ? ObsidianColors.warning : ObsidianColors.primary),
+                              title: act.message,
+                              group: act.jobId != null ? 'Job #${act.jobId}' : (act.malId != null ? 'Show #${act.malId}' : 'Core'),
+                              target: 'Event #${act.id} recorded in events store',
+                              time: act.formattedTime,
+                            ),
+                          ))
+                    else
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 16.0),
+                        child: Center(
+                          child: Text(
+                            'No recent ingestions or disk links yet',
+                            style: ObsidianTypography.bodySm(color: ObsidianColors.outline),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),

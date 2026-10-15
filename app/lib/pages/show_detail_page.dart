@@ -103,17 +103,15 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
 
     final onDiskString = show.onDiskBytes > 0
         ? _formatBytes(show.onDiskBytes)
-        : (show.downloadedEpisodes > 0 ? '${(show.downloadedEpisodes * 1.4).toStringAsFixed(2)} GiB' : '14.24 GiB');
+        : (show.downloadedEpisodes > 0 ? '${(show.downloadedEpisodes * 1.4).toStringAsFixed(2)} GiB' : '0 B');
 
     final isMovie = show.mediaType.toLowerCase() == 'movie';
     final formatLabel = isMovie ? 'Movie (1 Part)' : 'TV Series (${show.totalEpisodes} Parts)';
-    final durationLabel = isMovie ? '106 min' : '${show.totalEpisodes} eps';
-    final premieredLabel = show.startYear > 0 ? '${show.startYear}' : 'Aug 2016';
+    final durationLabel = isMovie ? 'Feature Film' : '${show.totalEpisodes} eps';
+    final premieredLabel = show.startYear > 0 ? '${show.startYear}' : '-';
     final isFinished = show.airingStatus.toLowerCase().contains('finish');
 
-    final effectiveGenres = show.genres.isNotEmpty
-        ? show.genres
-        : ['Drama', 'Romance', 'Supernatural', 'Award Winning', 'Time Slip'];
+    final effectiveGenres = show.genres;
 
     final effectiveAliases = show.aliases.isNotEmpty
         ? show.aliases
@@ -121,7 +119,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
             show.title,
             if (show.englishTitle != null && show.englishTitle != show.title) show.englishTitle!,
             if (show.japaneseTitle != null) show.japaneseTitle!,
-            '${show.title} (${show.startYear > 0 ? show.startYear : 2016})',
+            if (show.startYear > 0) '${show.title} (${show.startYear})',
           ];
 
     return Material(
@@ -716,7 +714,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: _buildTelemetryCell('STUDIO', show.studio ?? 'CoMix Wave'),
+                    child: _buildTelemetryCell('STUDIO', show.studio ?? '-'),
                   ),
                 ],
               ),
@@ -1244,7 +1242,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
                       style: ObsidianTypography.bodySm(color: ObsidianColors.onSurfaceVariant),
                       children: [
                         TextSpan(
-                          text: show.studio ?? 'CoMix Wave Films',
+                          text: show.studio ?? 'Unknown Studio',
                           style: ObsidianTypography.bodySm(color: ObsidianColors.onSurface).copyWith(fontWeight: FontWeight.bold),
                         ),
                       ],
@@ -1548,16 +1546,16 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
               title: isMovie ? 'Feature Film: ${show.title}' : 'Episode ${index + 1}',
               isDownloaded: index < show.downloadedEpisodes,
               state: index < show.downloadedEpisodes ? 'done' : 'missing',
-              filePath: show.folderPath != null ? '${show.folderPath}/[Beatrice-Raws] ${show.title} - ${index + 1}.mkv' : null,
-              sizeBytes: 15290757120, // 14.24 GiB
-              releaseName: '[Beatrice-Raws] ${show.title} [BDRip 1920x1080 HEVC FLAC].mkv',
+              filePath: show.folderPath != null ? '${show.folderPath}/${show.title} - ${index + 1}.mkv' : null,
+              sizeBytes: 0,
+              releaseName: '${show.title} - ${index + 1}',
               container: 'Matroska (MKV)',
-              videoTrack: '1080p BD Remux HEVC 10-bit',
-              primaryAudio: 'FLAC 5.1ch 24-bit 48kHz',
-              subtitles: 'ENG (PGS), JPN, RADWIMPS Comm.',
-              crc32: '5E2A9D11',
-              chapters: 18,
-              duration: isMovie ? '106:35' : '24:12',
+              videoTrack: '1080p',
+              primaryAudio: 'Japanese',
+              subtitles: 'English',
+              crc32: '-',
+              chapters: 0,
+              duration: isMovie ? '-' : '24m',
             ),
           );
 
@@ -1743,7 +1741,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
 
                     // Filename Line
                     SelectableText(
-                      ep.releaseName ?? '[Beatrice-Raws] ${show.title} - ${ep.number.toString().padLeft(2, '0')}.mkv',
+                      ep.releaseName ?? '${show.title} - ${ep.number.toString().padLeft(2, '0')}.mkv',
                       style: ObsidianTypography.monoCode(color: ObsidianColors.primary),
                     ),
                   ],
@@ -1967,7 +1965,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
                     controller: _aliasController,
                     style: ObsidianTypography.monoCode(color: ObsidianColors.onSurface),
                     decoration: InputDecoration(
-                      hintText: 'Type new alias (e.g. ${show.title} Beatrice)...',
+                      hintText: 'Type new alias (e.g. ${show.title} S2)...',
                       hintStyle: ObsidianTypography.monoCode(color: ObsidianColors.outline),
                       filled: true,
                       fillColor: ObsidianColors.surfaceContainerLowest,
@@ -2214,17 +2212,24 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
                   ),
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        _buildGroupPill('1. Beatrice-Raws', isPrimary: true),
-                        _buildGroupSeparator(),
-                        _buildGroupPill('2. Erai-raws'),
-                        _buildGroupSeparator(),
-                        _buildGroupPill('3. Judas'),
-                        _buildGroupSeparator(),
-                        _buildGroupPill('4. SubsPlease'),
-                      ],
-                    ),
+                    child: Builder(builder: (context) {
+                      final groupsList = (show.rules?['groups'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [];
+                      if (groupsList.isEmpty) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                          child: Text('Default global group order (Auto, SubsPlease, Erai-raws, Judas)',
+                              style: ObsidianTypography.monoCode(color: ObsidianColors.outline, fontSize: 10)),
+                        );
+                      }
+                      return Row(
+                        children: [
+                          for (int i = 0; i < groupsList.length; i++) ...[
+                            if (i > 0) _buildGroupSeparator(),
+                            _buildGroupPill('${i + 1}. ${groupsList[i]}', isPrimary: i == 0),
+                          ],
+                        ],
+                      );
+                    }),
                   ),
                 ),
               ],
@@ -2356,6 +2361,9 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
     StateProvider state,
     LibraryShow show,
   ) {
+    final related = state.shows.where((s) => s.malId != show.malId).take(4).toList();
+    if (related.isEmpty) return const SizedBox.shrink();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -2369,18 +2377,17 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
               crossAxisAlignment: WrapCrossAlignment.center,
               spacing: 10,
               children: [
-                Text('Related Works & Spinoffs', style: ObsidianTypography.titleSm()),
-                Text('CoMix Wave Films Studio Index',
+                Text('Other Shows in Library', style: ObsidianTypography.titleSm()),
+                Text('${related.length} available',
                     style: ObsidianTypography.monoCode(color: ObsidianColors.outline).copyWith(fontSize: 11)),
               ],
             ),
             InkWell(
               onTap: () {
-                state.setSearchFilter('Makoto Shinkai');
-                state.selectPage(4); // Search page
+                state.selectPage(3); // Library page
               },
               child: Text(
-                'Explore Director Filmography →',
+                'View All Shows →',
                 style: ObsidianTypography.monoCode(color: ObsidianColors.primary),
               ),
             ),
@@ -2388,51 +2395,27 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
         ),
         const SizedBox(height: 12),
 
-        // 4 Bento Cards
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
-            children: [
-              SizedBox(
-                width: 220,
-                child: _buildBentoCard(
-                  title: 'Tenki no Ko',
-                  year: '2019 • In Library',
-                  badge: '1080p REMUX',
-                  posterUrl: 'https://cdn.myanimelist.net/images/anime/1880/101146.jpg',
+            children: related.map((s) {
+              return Padding(
+                padding: const EdgeInsets.only(right: 12.0),
+                child: SizedBox(
+                  width: 220,
+                  child: InkWell(
+                    onTap: () => state.openShowDetail(s),
+                    borderRadius: BorderRadius.circular(8),
+                    child: _buildBentoCard(
+                      title: s.title,
+                      year: '${s.startYear > 0 ? s.startYear : '-'} • In Library',
+                      badge: s.mediaType.toUpperCase(),
+                      posterUrl: s.posterUrl ?? '',
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              SizedBox(
-                width: 220,
-                child: _buildBentoCard(
-                  title: 'Suzume',
-                  year: '2022 • In Library',
-                  badge: '4K UHD',
-                  posterUrl: 'https://cdn.myanimelist.net/images/anime/1208/129906.jpg',
-                ),
-              ),
-              const SizedBox(width: 12),
-              SizedBox(
-                width: 220,
-                child: _buildBentoCard(
-                  title: 'Kotonoha no Niwa',
-                  year: '2013 • In Library',
-                  badge: '1080p REMUX',
-                  posterUrl: 'https://cdn.myanimelist.net/images/anime/3/49883.jpg',
-                ),
-              ),
-              const SizedBox(width: 12),
-              SizedBox(
-                width: 220,
-                child: _buildBentoCard(
-                  title: '5cm per Second',
-                  year: '2007 • In Library',
-                  badge: '1080p BDRIP',
-                  posterUrl: 'https://cdn.myanimelist.net/images/anime/12/32491.jpg',
-                ),
-              ),
-            ],
+              );
+            }).toList(),
           ),
         ),
       ],

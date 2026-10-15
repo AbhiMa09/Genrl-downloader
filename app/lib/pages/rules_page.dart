@@ -66,37 +66,16 @@ class _RulesPageState extends State<RulesPage> {
     },
     {
       'rank': '#05',
-      'name': '[Beatrice-Raws]',
+      'name': '[Generic]',
       'tier': 'Tier 3',
       'points': '+20 pts',
-      'description': 'Archival BDRip • Hi10P FLAC Lossless • Large Bitrate',
+      'description': 'Standard MKV / MP4 release group',
       'active': true,
     },
   ];
 
   // Blacklist Items
-  List<Map<String, dynamic>> _blacklistItems = [
-    {
-      'name': 'BadRaws_Spam',
-      'type': 'Uploader',
-      'meta': 'Blocked 14 days ago • Matched 22 items',
-    },
-    {
-      'name': r'regex:\b(CAM|TS|HDCAM)\b',
-      'type': 'Pattern',
-      'meta': 'Theatre recording detection • Auto-filter',
-    },
-    {
-      'name': 'ZeroSeedsBot',
-      'type': 'Tracker',
-      'meta': 'Known malicious spoof tracker',
-    },
-    {
-      'name': 'DubOnly_FakeHD',
-      'type': 'Release Tag',
-      'meta': 'Upscaled 480p bad encodes',
-    },
-  ];
+  List<Map<String, dynamic>> _blacklistItems = [];
 
   bool _initializedFromState = false;
 
@@ -260,7 +239,7 @@ class _RulesPageState extends State<RulesPage> {
 
               const SizedBox(height: 20),
               // Policy Matcher Telemetry Simulator
-              _buildTelemetrySimulator(),
+              _buildTelemetrySimulator(state),
             ],
           ),
         ),
@@ -335,16 +314,15 @@ class _RulesPageState extends State<RulesPage> {
                       Text('Scope: ', style: ObsidianTypography.monoCode(color: ObsidianColors.outline)),
                       DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
-                          value: _selectedScope,
+                          value: (_selectedScope == 'global' || state.shows.any((s) => s.malId.toString() == _selectedScope))
+                              ? _selectedScope
+                              : 'global',
                           dropdownColor: ObsidianColors.surfaceContainerHigh,
                           icon: const Icon(Icons.expand_more_rounded, size: 16, color: ObsidianColors.outline),
                           style: ObsidianTypography.titleSm(color: ObsidianColors.onSurface),
-                          items: const [
-                            DropdownMenuItem(value: 'global', child: Text('Global Rules (Default)')),
-                            DropdownMenuItem(value: 'frieren', child: Text('Override: Sousou no Frieren')),
-                            DropdownMenuItem(value: 'sololeveling', child: Text('Override: Solo Leveling')),
-                            DropdownMenuItem(value: 'kiminonawa', child: Text('Override: Kimi no Na wa')),
-                            DropdownMenuItem(value: 'dungeon', child: Text('Override: Dungeon Meshi')),
+                          items: [
+                            const DropdownMenuItem(value: 'global', child: Text('Global Rules (Default)')),
+                            ...state.shows.map((s) => DropdownMenuItem(value: s.malId.toString(), child: Text('Override: ${s.title}'))),
                           ],
                           onChanged: (val) {
                             if (val != null) setState(() => _selectedScope = val);
@@ -358,7 +336,10 @@ class _RulesPageState extends State<RulesPage> {
                           color: ObsidianColors.tertiary.withOpacity(0.18),
                           borderRadius: BorderRadius.circular(4),
                         ),
-                        child: Text('Active on 18 shows', style: ObsidianTypography.labelBadge(color: ObsidianColors.tertiary)),
+                        child: Text(
+                          _selectedScope == 'global' ? 'Active on all shows' : 'Single show override',
+                          style: ObsidianTypography.labelBadge(color: ObsidianColors.tertiary),
+                        ),
                       ),
                     ],
                   ),
@@ -1207,7 +1188,11 @@ class _RulesPageState extends State<RulesPage> {
   }
 
   // POLICY MATCHER TELEMETRY SIMULATOR
-  Widget _buildTelemetrySimulator() {
+  Widget _buildTelemetrySimulator(StateProvider state) {
+    final sampleTarget = state.queue.isNotEmpty
+        ? state.queue.first.title
+        : (state.shows.isNotEmpty ? '${state.shows.first.title} - 01' : 'No active test target');
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -1225,7 +1210,7 @@ class _RulesPageState extends State<RulesPage> {
               Text('Policy Matcher Telemetry: ', style: ObsidianTypography.monoCode(color: ObsidianColors.onSurface).copyWith(fontWeight: FontWeight.bold)),
               Expanded(
                 child: Text(
-                  '[SubsPlease] Sousou no Frieren - 28 (1080p) [98E7B21F].mkv',
+                  sampleTarget,
                   style: ObsidianTypography.monoCode(color: ObsidianColors.outline),
                   overflow: TextOverflow.ellipsis,
                 ),

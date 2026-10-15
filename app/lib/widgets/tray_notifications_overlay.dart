@@ -321,53 +321,64 @@ class SystemTrayNotificationOverlay extends StatelessWidget {
   Widget _buildNotificationToasts(BuildContext context, StateProvider state) {
     return Column(
       children: [
-        // TOAST 1: Download Complete Toast
-        _buildToast(
-          accentColor: ObsidianColors.tertiary,
-          icon: Icons.download_done_rounded,
-          iconColor: ObsidianColors.tertiary,
-          category: 'Genrl Downloader • Just now',
-          title: 'Episode 7 of Sousou no Frieren finished',
-          body: 'Downloaded [SubsPlease] 1080p (1.24 GB). Hardlinked & moved to /mnt/anime/Sousou no Frieren/.',
-          actions: [
-            ElevatedButton.icon(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Playing episode in external player')));
-              },
-              icon: const Icon(Icons.play_arrow_rounded, size: 14),
-              label: const Text('Play file'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: ObsidianColors.surfaceContainerHigh,
-                foregroundColor: ObsidianColors.onSurface,
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        // TOAST 1: Download / Activity Toast
+        Builder(builder: (context) {
+          final latestDone = state.events.isNotEmpty ? state.events.first : null;
+          final toastTitle = latestDone != null
+              ? latestDone.message
+              : (state.shows.isNotEmpty ? '${state.shows.first.title} up to date' : 'All monitored shows up to date');
+          final toastBody = latestDone != null
+              ? 'Event logged at ${latestDone.formattedTime}'
+              : 'Background scanner idle. No active transfers.';
+
+          return _buildToast(
+            accentColor: ObsidianColors.tertiary,
+            icon: Icons.download_done_rounded,
+            iconColor: ObsidianColors.tertiary,
+            category: 'Genrl Downloader • Core',
+            title: toastTitle,
+            body: toastBody,
+            actions: [
+              ElevatedButton.icon(
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Playing episode in external player')));
+                },
+                icon: const Icon(Icons.play_arrow_rounded, size: 14),
+                label: const Text('Play file'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: ObsidianColors.surfaceContainerHigh,
+                  foregroundColor: ObsidianColors.onSurface,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                ),
               ),
-            ),
-            const SizedBox(width: 6),
-            OutlinedButton.icon(
-              onPressed: () {},
-              icon: const Icon(Icons.folder_open_rounded, size: 14),
-              label: const Text('Show in folder'),
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: ObsidianColors.border),
-                foregroundColor: ObsidianColors.onSurfaceVariant,
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              const SizedBox(width: 6),
+              OutlinedButton.icon(
+                onPressed: () {},
+                icon: const Icon(Icons.folder_open_rounded, size: 14),
+                label: const Text('Show in folder'),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: ObsidianColors.border),
+                  foregroundColor: ObsidianColors.onSurfaceVariant,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                ),
               ),
-            ),
-          ],
-        ),
+            ],
+          );
+        }),
         const SizedBox(height: 10),
 
         // TOAST 2: Inbox Triage Questions
-        _buildToast(
-          accentColor: ObsidianColors.primary,
-          icon: Icons.help_center_rounded,
-          iconColor: ObsidianColors.primary,
-          category: 'Inbox Triage • 2m ago',
-          title: '3 questions need your input',
-          body: 'Swarm ties detected between [Erai-raws] and [Judas] for 2 backlog series, plus 1 ambiguous CRC32 hash match.',
-          actions: [
-            ElevatedButton.icon(
+        if (state.inboxCount > 0)
+          _buildToast(
+            accentColor: ObsidianColors.primary,
+            icon: Icons.help_center_rounded,
+            iconColor: ObsidianColors.primary,
+            category: 'Inbox Triage • Action Required',
+            title: '${state.inboxCount} question${state.inboxCount > 1 ? 's' : ''} need your input',
+            body: 'Candidate ties or ambiguous match questions are waiting for resolution in your inbox.',
+            actions: [
+              ElevatedButton.icon(
               onPressed: () {
                 state.selectPage(1); // Inbox
                 onClose();

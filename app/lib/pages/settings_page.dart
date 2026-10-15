@@ -949,11 +949,14 @@ class _SettingsPageState extends State<SettingsPage> {
                           Text('Target Ext: .mkv', style: ObsidianTypography.labelBadge(color: ObsidianColors.outline)),
                         ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '/mnt/anime/TV/Sousou no Frieren/Season 01/Sousou no Frieren - S01E28 [1080p] [SubsPlease].mkv',
-                        style: ObsidianTypography.monoCode(color: ObsidianColors.onSurface),
-                      ),
+                      Builder(builder: (context) {
+                        final state = context.watch<StateProvider>();
+                        final title = state.shows.isNotEmpty ? state.shows.first.title : '{Series Title}';
+                        return Text(
+                          '/mnt/anime/TV/$title/Season 01/$title - S01E01 [1080p].mkv',
+                          style: ObsidianTypography.monoCode(color: ObsidianColors.onSurface),
+                        );
+                      }),
                     ],
                   ),
                 ),

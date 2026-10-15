@@ -138,13 +138,12 @@ impl ServicePolicy {
                 breaker_threshold: 5,
                 breaker_cooldown: Duration::from_secs(900),
             },
-            // ~3 req/s and 60/min allowed; we use 2/s. Cache every show 7 days,
-            // fetch only when a show first completes an episode.
+            // Jikan policy: 2 req/s and 50/min cap on top. Cache every show 7 days.
             Service::Jikan => ServicePolicy {
                 rate: RateSpec {
                     permits_per_second: 2.0,
                     burst: 2,
-                    per_minute_cap: Some(60),
+                    per_minute_cap: Some(50),
                     jitter: false,
                 },
                 cache_ttl: Some(Duration::from_secs(7 * 24 * 3600)),

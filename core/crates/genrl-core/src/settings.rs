@@ -178,7 +178,7 @@ impl Default for Settings {
 
             mal_sync_interval_min: 30,
             jikan_per_second: 2.0,
-            jikan_per_minute: 60,
+            jikan_per_minute: 50,
             nyaa_interval_secs: 2.0,
             mal_cache_secs: 1800,
             jikan_cache_secs: 7 * 24 * 3600,
@@ -445,7 +445,7 @@ mod tests {
         assert_eq!(s.max_episode_mb, 4096);
         assert_eq!(s.mal_sync_interval_min, 30);
         assert_eq!(s.jikan_per_second, 2.0);
-        assert_eq!(s.jikan_per_minute, 60);
+        assert_eq!(s.jikan_per_minute, 50);
         assert_eq!(s.nyaa_interval_secs, 2.0);
         assert_eq!(s.jikan_cache_secs, 7 * 24 * 3600);
         assert_eq!(s.nyaa_cache_secs, 600);

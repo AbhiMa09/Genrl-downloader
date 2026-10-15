@@ -1063,18 +1063,24 @@ async fn show_detail_cmd(data_dir: &std::path::Path, mal_id: i64, json: bool) ->
     let clock = genrl_core::clock::SystemClock;
 
     // Check if synopsis or poster is missing or pending; trigger on-demand fetch if needed
-    let (current_synopsis, meta_status): (Option<String>, Option<String>) = db.with(|c| {
+    let (current_synopsis, current_poster, meta_status): (Option<String>, Option<String>, Option<String>) = db.with(|c| {
         Ok(c.query_row(
-            "SELECT synopsis, metadata_status FROM shows WHERE mal_id = ?1",
+            "SELECT synopsis, poster_path, metadata_status FROM shows WHERE mal_id = ?1",
             [mal_id],
-            |r| Ok((r.get(0)?, r.get(1)?)),
-        ).unwrap_or((None, None)))
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+        ).unwrap_or((None, None, None)))
     })?;
 
-    let needs_fetch = current_synopsis.as_deref().map(|s| s.trim().is_empty() || s.starts_with("[Synopsis loading")).unwrap_or(true)
+    let poster_is_missing = current_poster
+        .as_deref()
+        .map(|p| p.trim().is_empty() || p.starts_with("http") || !std::path::Path::new(p).is_file())
+        .unwrap_or(true);
+
+    let needs_fetch = current_synopsis.as_deref().map(|s| s.trim().is_empty() || s.starts_with('[')).unwrap_or(true)
+        || poster_is_missing
         || meta_status.as_deref() == Some("pending");
 
-    if needs_fetch {
+    if needs_fetch && meta_status.as_deref() != Some("failed") {
         if let Ok(gate) = Gate::new(db.clone()) {
             let _ = genrl_core::fetch_show_metadata(
                 &db,
@@ -1083,7 +1089,7 @@ async fn show_detail_cmd(data_dir: &std::path::Path, mal_id: i64, json: bool) ->
                 &clock,
                 data_dir,
                 mal_id,
-                false,
+                true,
             )
             .await;
         }
@@ -1141,15 +1147,15 @@ async fn show_detail_cmd(data_dir: &std::path::Path, mal_id: i64, json: bool) ->
         Ok(val)
     })?;
 
-    // Check synopsis. If empty, check folder_path/synopsis.txt
+    // Check synopsis. If empty, check folder_path/synopsis.txt (ignoring placeholder lines starting with [)
     let current_synopsis = show["synopsis"].as_str().unwrap_or("").trim().to_string();
-    if current_synopsis.is_empty() {
+    if current_synopsis.is_empty() || current_synopsis.starts_with('[') {
         if let Some(folder) = show["folder_path"].as_str() {
             let syn_file = std::path::Path::new(folder).join("synopsis.txt");
             if syn_file.exists() {
                 if let Ok(content) = std::fs::read_to_string(&syn_file) {
                     let trimmed = content.trim().to_string();
-                    if !trimmed.is_empty() {
+                    if !trimmed.is_empty() && !trimmed.starts_with('[') {
                         let _ = db.with(|c| {
                             c.execute(
                                 "UPDATE shows SET synopsis = ?1 WHERE mal_id = ?2",
@@ -1243,9 +1249,9 @@ async fn show_detail_cmd(data_dir: &std::path::Path, mal_id: i64, json: bool) ->
             };
 
             let resolution = res.unwrap_or_else(|| "1080p".to_string());
-            let video_track = format!("{resolution} BD Remux HEVC 10-bit");
-            let audio_track = "FLAC 5.1ch 24-bit 48kHz".to_string();
-            let subtitles = "ENG (PGS), JPN, RADWIMPS Comm.".to_string();
+            let video_track = format!("{resolution} HEVC");
+            let audio_track = "Japanese (Stereo / 5.1)".to_string();
+            let subtitles = "ENG, JPN".to_string();
 
             let crc32 = release_name
                 .rfind('[')
@@ -1259,7 +1265,7 @@ async fn show_detail_cmd(data_dir: &std::path::Path, mal_id: i64, json: bool) ->
                         }
                     })
                 })
-                .unwrap_or_else(|| format!("{:08X}", (mal_id as u32).wrapping_mul(31).wrapping_add(num_int as u32)));
+                .unwrap_or_else(|| "-".to_string());
 
             Ok(serde_json::json!({
                 "id": id,
@@ -1276,8 +1282,8 @@ async fn show_detail_cmd(data_dir: &std::path::Path, mal_id: i64, json: bool) ->
                 "primary_audio": audio_track,
                 "subtitles": subtitles,
                 "crc32": crc32,
-                "chapters": 18,
-                "duration": if is_movie { "106:35" } else { "24:12" },
+                "chapters": 0,
+                "duration": if is_movie { "-" } else { "24m" },
             }))
         })?;
         let mut list = Vec::new();
