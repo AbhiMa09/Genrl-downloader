@@ -1,0 +1,5 @@
+bricks:
+  page_bundle:
+    path: ./page_bundle
+  bridge_call:
+    path: ./bridge_call

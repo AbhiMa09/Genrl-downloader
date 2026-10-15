@@ -1,0 +1,10 @@
+name: page_bundle
+description: Generates a Flutter page with hero/content section widgets, cubit/state, model, and test stub.
+version: 0.1.0
+environment:
+  mason: ">=0.1.0-dev.50 <0.2.0"
+vars:
+  name:
+    type: string
+    description: Page name in snake_case or PascalCase (e.g. analytics or ShowAnalytics)
+    prompt: What is the page name?

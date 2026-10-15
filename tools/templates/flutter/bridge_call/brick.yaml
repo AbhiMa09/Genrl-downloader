@@ -1,0 +1,10 @@
+name: bridge_call
+description: Generates a typed bridge call method, request/response models, and unit test stub.
+version: 0.1.0
+environment:
+  mason: ">=0.1.0-dev.50 <0.2.0"
+vars:
+  name:
+    type: string
+    description: Call/command name in snake_case (e.g. sync_catalog)
+    prompt: What is the bridge command name?
