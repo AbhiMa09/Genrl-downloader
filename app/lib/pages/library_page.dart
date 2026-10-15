@@ -70,23 +70,21 @@ class _LibraryPageState extends State<LibraryPage> {
 
     final allShows = state.shows;
 
-    // Compute status counts
-    final watchingCount = allShows.where((s) => s.status.toLowerCase().contains('watch') && !s.status.toLowerCase().contains('plan')).length;
-    final planCount = allShows.where((s) => s.status.toLowerCase().contains('plan')).length;
-    final completedCount = allShows.where((s) => s.status.toLowerCase().contains('complet')).length;
-    final incompleteCount = allShows.where((s) => s.episodesDownloaded < s.episodesTotal).length;
-    final ongoingCount = allShows.where((s) => s.airingStatus.toLowerCase().contains('air') || s.status.toLowerCase().contains('watch')).length;
+    // Compute status counts matching MAL list categories
+    final watchingCount = allShows.where((s) => s.status == 'Watching').length;
+    final planCount = allShows.where((s) => s.status == 'Plan to Watch').length;
+    final onHoldCount = allShows.where((s) => s.status == 'On Hold').length;
+    final completedCount = allShows.where((s) => s.status == 'Completed').length;
+    final droppedCount = allShows.where((s) => s.status == 'Dropped').length;
 
     // Filter shows
     var filteredShows = allShows.where((show) {
       if (_selectedStatus != 'All') {
-        final norm = _selectedStatus.toLowerCase();
-        final sNorm = show.status.toLowerCase();
-        if (norm == 'watching' && (!sNorm.contains('watch') || sNorm.contains('plan'))) return false;
-        if (norm == 'plan to watch' && !sNorm.contains('plan')) return false;
-        if (norm == 'ongoing' && (!show.airingStatus.toLowerCase().contains('air') && !sNorm.contains('watch'))) return false;
-        if (norm == 'completed' && !sNorm.contains('complet')) return false;
-        if (norm == 'incomplete' && show.episodesDownloaded >= show.episodesTotal) return false;
+        if (_selectedStatus == 'Watching' && show.status != 'Watching') return false;
+        if (_selectedStatus == 'Plan to Watch' && show.status != 'Plan to Watch') return false;
+        if (_selectedStatus == 'On Hold' && show.status != 'On Hold') return false;
+        if (_selectedStatus == 'Completed' && show.status != 'Completed') return false;
+        if (_selectedStatus == 'Dropped' && show.status != 'Dropped') return false;
       }
 
       final query = _searchController.text.trim().toLowerCase();
@@ -117,22 +115,23 @@ class _LibraryPageState extends State<LibraryPage> {
     });
 
     final totalTb = (allShows.fold<num>(0, (sum, s) => sum + s.onDiskBytes) / (1024 * 1024 * 1024 * 1024)).toStringAsFixed(1);
+    final libraryPath = state.locationsReport?['library']?['path']?.toString() ?? '/mnt/anime/TV';
 
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // 1. Sub-header Telemetry Banner
-          _buildTelemetryBanner(allShows.length, totalTb),
+          _buildTelemetryBanner(allShows.length, totalTb, libraryPath, state),
 
           // 2. Primary Workspace Control Bar
           _buildControlBar(
             totalCount: allShows.length,
             watchingCount: watchingCount,
             planCount: planCount,
-            ongoingCount: ongoingCount,
+            onHoldCount: onHoldCount,
             completedCount: completedCount,
-            incompleteCount: incompleteCount,
+            droppedCount: droppedCount,
             onRescan: () => state.manualDiskScan(),
             onAddSeries: () => state.selectPage(4),
           ),
@@ -201,7 +200,10 @@ class _LibraryPageState extends State<LibraryPage> {
     );
   }
 
-  Widget _buildTelemetryBanner(int seriesCount, String totalTb) {
+  Widget _buildTelemetryBanner(int seriesCount, String totalTb, String libraryPath, StateProvider state) {
+    final qbLabel = state.status.qbitConnected ? 'qB: ${state.status.qbitVersion}' : 'qB: Offline';
+    final fsLabel = 'FS: Btrfs (Hardlink: ${state.sameFilesystem ? "Supported" : "Cross-FS"})';
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       decoration: const BoxDecoration(
@@ -234,7 +236,7 @@ class _LibraryPageState extends State<LibraryPage> {
                   ),
                   Text(' / ', style: ObsidianTypography.monoCode(color: ObsidianColors.outline)),
                   Text(
-                    '$totalTb TB on /mnt/anime/TV',
+                    '$totalTb TB on $libraryPath',
                     style: ObsidianTypography.monoCode(color: ObsidianColors.onSurfaceVariant, fontSize: 11),
                   ),
                 ],
@@ -254,7 +256,7 @@ class _LibraryPageState extends State<LibraryPage> {
                 children: [
                   const Icon(Icons.sync_rounded, size: 14, color: ObsidianColors.tertiary),
                   const SizedBox(width: 6),
-                  Text('Inotify Kernel Watcher Active', style: ObsidianTypography.monoCode(color: ObsidianColors.outline, fontSize: 11)),
+                  Text('Library Ingestion Ready', style: ObsidianTypography.monoCode(color: ObsidianColors.outline, fontSize: 11)),
                 ],
               ),
             ],
@@ -268,7 +270,7 @@ class _LibraryPageState extends State<LibraryPage> {
                   color: ObsidianColors.surfaceContainerHigh,
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: Text('FS: Btrfs (compress=zstd:3)', style: ObsidianTypography.monoCode(color: ObsidianColors.outline, fontSize: 10)),
+                child: Text(fsLabel, style: ObsidianTypography.monoCode(color: ObsidianColors.outline, fontSize: 10)),
               ),
               const SizedBox(width: 8),
               Container(
@@ -277,7 +279,7 @@ class _LibraryPageState extends State<LibraryPage> {
                   color: ObsidianColors.surfaceContainerHigh,
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: Text('qB: v4.6.3 headless', style: ObsidianTypography.monoCode(color: ObsidianColors.tertiary, fontSize: 10)),
+                child: Text(qbLabel, style: ObsidianTypography.monoCode(color: ObsidianColors.tertiary, fontSize: 10)),
               ),
             ],
           ),
@@ -290,9 +292,9 @@ class _LibraryPageState extends State<LibraryPage> {
     required int totalCount,
     required int watchingCount,
     required int planCount,
-    required int ongoingCount,
+    required int onHoldCount,
     required int completedCount,
-    required int incompleteCount,
+    required int droppedCount,
     required VoidCallback onRescan,
     required VoidCallback onAddSeries,
   }) {
@@ -360,9 +362,9 @@ class _LibraryPageState extends State<LibraryPage> {
                   _buildChip('All', '$totalCount'),
                   _buildChip('Watching', '$watchingCount', activeColor: ObsidianColors.tertiary),
                   _buildChip('Plan to Watch', '$planCount'),
-                  _buildChip('Ongoing', '$ongoingCount', activeColor: ObsidianColors.tertiary),
+                  _buildChip('On Hold', '$onHoldCount', activeColor: ObsidianColors.warning),
                   _buildChip('Completed', '$completedCount'),
-                  _buildChip('Incomplete', '$incompleteCount', activeColor: ObsidianColors.error),
+                  _buildChip('Dropped', '$droppedCount', activeColor: ObsidianColors.outline),
                 ],
               ),
 

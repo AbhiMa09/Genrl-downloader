@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../models/queue_item.dart';
 import '../services/state_provider.dart';
 import '../theme/colors.dart';
 import '../theme/typography.dart';
@@ -86,18 +87,22 @@ class SystemTrayNotificationOverlay extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    const Icon(Icons.downloading_rounded, size: 18, color: ObsidianColors.primary),
-                    const SizedBox(width: 8),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Genrl Downloader', style: ObsidianTypography.titleSm().copyWith(fontWeight: FontWeight.bold)),
-                        Text('Background Engine', style: ObsidianTypography.labelBadge(color: ObsidianColors.outline)),
-                      ],
-                    ),
-                  ],
+                Expanded(
+                  child: Row(
+                    children: [
+                      const Icon(Icons.downloading_rounded, size: 18, color: ObsidianColors.primary),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Genrl Downloader', style: ObsidianTypography.titleSm().copyWith(fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
+                            Text('Background Engine', style: ObsidianTypography.labelBadge(color: ObsidianColors.outline), overflow: TextOverflow.ellipsis),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -153,7 +158,25 @@ class SystemTrayNotificationOverlay extends StatelessWidget {
                             ],
                           ),
                         ),
-                        Text('DL: 42.8 MB/s • UL: 3.1 MB/s', style: ObsidianTypography.labelBadge(color: ObsidianColors.outline)),
+                        Builder(
+                          builder: (context) {
+                            double totalDl = 0;
+                            double totalUl = 0;
+                            for (final q in state.queue) {
+                              if (q.state == QueueState.downloading) {
+                                totalDl += q.speedBytes;
+                                totalUl += q.uploadSpeedBytes;
+                              }
+                            }
+                            final dlText = totalDl >= 1024 * 1024
+                                ? '${(totalDl / (1024 * 1024)).toStringAsFixed(1)} MB/s'
+                                : (totalDl > 0 ? '${(totalDl / 1024).toStringAsFixed(1)} KB/s' : '0 B/s');
+                            final ulText = totalUl >= 1024 * 1024
+                                ? '${(totalUl / (1024 * 1024)).toStringAsFixed(1)} MB/s'
+                                : (totalUl > 0 ? '${(totalUl / 1024).toStringAsFixed(1)} KB/s' : '0 B/s');
+                            return Text('DL: $dlText • UL: $ulText', style: ObsidianTypography.labelBadge(color: ObsidianColors.outline));
+                          },
+                        ),
                       ],
                     ),
                   ),
@@ -208,7 +231,7 @@ class SystemTrayNotificationOverlay extends StatelessWidget {
                   icon: Icons.sync_rounded,
                   iconColor: ObsidianColors.outline,
                   label: 'Sync now',
-                  subtext: 'MAL • Tokyo Toshokan',
+                  subtext: 'MAL • Nyaa.si',
                   onTap: () {
                     state.syncNow();
                     onClose();
@@ -216,23 +239,26 @@ class SystemTrayNotificationOverlay extends StatelessWidget {
                 ),
                 const Divider(color: ObsidianColors.border, height: 12),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    TextButton.icon(
-                      onPressed: () {
-                        state.selectPage(7); // Settings
-                        onClose();
-                      },
-                      icon: const Icon(Icons.tune_rounded, size: 14),
-                      label: const Text('Settings'),
+                    Expanded(
+                      child: TextButton.icon(
+                        onPressed: () {
+                          state.selectPage(7); // Settings
+                          onClose();
+                        },
+                        icon: const Icon(Icons.tune_rounded, size: 14),
+                        label: const Text('Settings', overflow: TextOverflow.ellipsis),
+                      ),
                     ),
-                    TextButton.icon(
-                      onPressed: () {
-                        state.selectPage(1); // Inbox
-                        onClose();
-                      },
-                      icon: const Icon(Icons.inbox_rounded, size: 14),
-                      label: Text('Inbox ($alertCount)'),
+                    Expanded(
+                      child: TextButton.icon(
+                        onPressed: () {
+                          state.selectPage(1); // Inbox
+                          onClose();
+                        },
+                        icon: const Icon(Icons.inbox_rounded, size: 14),
+                        label: Text('Inbox ($alertCount)', overflow: TextOverflow.ellipsis),
+                      ),
                     ),
                   ],
                 ),
@@ -260,8 +286,9 @@ class SystemTrayNotificationOverlay extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Daemon: Unix Socket OK', style: ObsidianTypography.labelBadge(color: ObsidianColors.outline)),
-                Text('RAM: 38.4 MB', style: ObsidianTypography.labelBadge(color: ObsidianColors.outline)),
+                Flexible(child: Text('Daemon: Unix Socket OK', style: ObsidianTypography.labelBadge(color: ObsidianColors.outline), overflow: TextOverflow.ellipsis)),
+                const SizedBox(width: 4),
+                Flexible(child: Text('RAM: 38.4 MB', style: ObsidianTypography.labelBadge(color: ObsidianColors.outline), overflow: TextOverflow.ellipsis)),
               ],
             ),
           ),
@@ -510,7 +537,7 @@ class SystemTrayNotificationOverlay extends StatelessWidget {
                       const SizedBox(height: 6),
                       Text(body, style: ObsidianTypography.labelBadge(color: ObsidianColors.onSurfaceVariant)),
                       const SizedBox(height: 8),
-                      Row(children: actions),
+                      Wrap(spacing: 6, runSpacing: 4, children: actions),
                     ],
                   ),
                 ),

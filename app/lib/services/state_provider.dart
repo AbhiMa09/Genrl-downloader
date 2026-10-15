@@ -409,6 +409,19 @@ class StateProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<bool> grabNextAvailable() async {
+    final watchingShows = _shows.where((s) => s.status == 'Watching').toList();
+    for (final show in watchingShows) {
+      if (show.downloadedEpisodes < show.totalEpisodes) {
+        final nextEp = show.downloadedEpisodes + 1;
+        await downloadEpisode(show.malId, nextEp);
+        return true;
+      }
+    }
+    selectPage(4);
+    return false;
+  }
+
   // MAL Status State
   String _malStatus = 'not_connected'; // 'connected', 'public_profile', 'token_expired', 'not_connected'
   String? _malUsername;

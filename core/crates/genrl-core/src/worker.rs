@@ -481,7 +481,14 @@ impl Engine {
                     auto_list: inputs.auto,
                 };
                 self.ask(job, context.mal_id, payload, &format!("only {seeders} seeders"))?;
-                Ok(JobState::NeedsInput)
+                jobs::transition(
+                    &self.db,
+                    self.clock.as_ref(),
+                    job.id,
+                    JobState::NeedsInput,
+                    &format!("only {seeders} seeders"),
+                    &MoveOptions::default(),
+                )
             }
             matching::Verdict::Ask { reason, ranked } => {
                 let options: Vec<MatchOption> =
@@ -492,7 +499,14 @@ impl Engine {
                     reason: reason.to_string(),
                 };
                 self.ask(job, context.mal_id, payload, &format!("{reason}"))?;
-                Ok(JobState::NeedsInput)
+                jobs::transition(
+                    &self.db,
+                    self.clock.as_ref(),
+                    job.id,
+                    JobState::NeedsInput,
+                    &format!("{reason}"),
+                    &MoveOptions::default(),
+                )
             }
             matching::Verdict::NotFound { rejections } => {
                 let reasons = rejections

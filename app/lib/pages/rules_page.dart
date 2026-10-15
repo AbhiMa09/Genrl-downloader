@@ -350,7 +350,7 @@ class _RulesPageState extends State<RulesPage> {
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('Testing RSS feeds: Nyaa and Tokyo Toshokan reached successfully'),
+                        content: Text('Testing indexers: Nyaa.si reached successfully'),
                         backgroundColor: ObsidianColors.surfaceContainerHigh,
                       ),
                     );

@@ -52,3 +52,6 @@ Thumbs.db
 *.temp
 *.bak
 *.backup*
+
+# --- Audit & diff artifacts ---
+audit/

@@ -92,7 +92,7 @@ class _SearchPageState extends State<SearchPage> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // 1. Header Section with Indexer Status Chips
-          _buildHeader(),
+          _buildHeader(state),
           const SizedBox(height: 12),
 
           // 2. Quick Preset Queries
@@ -125,7 +125,7 @@ class _SearchPageState extends State<SearchPage> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(StateProvider state) {
     return Wrap(
       alignment: WrapAlignment.spaceBetween,
       crossAxisAlignment: WrapCrossAlignment.center,
@@ -163,9 +163,16 @@ class _SearchPageState extends State<SearchPage> {
           spacing: 8,
           runSpacing: 6,
           children: [
-            _buildIndexerChip('Nyaa.si', 'Online • 42ms', ObsidianColors.tertiary),
-            _buildIndexerChip('Tokyo Toshokan', 'Idle', ObsidianColors.outline),
-            _buildIndexerChip('Prowlarr Bridge', 'Connected', ObsidianColors.primary),
+            _buildIndexerChip(
+              'Nyaa.si',
+              state.isCoreConnected ? 'Online (Gate 2 req/s)' : 'Offline',
+              state.isCoreConnected ? ObsidianColors.tertiary : ObsidianColors.error,
+            ),
+            _buildIndexerChip(
+              'MyAnimeList',
+              state.isMalConnected ? 'OAuth Linked' : 'Public Profile',
+              state.isMalConnected ? ObsidianColors.primary : ObsidianColors.outline,
+            ),
           ],
         ),
       ],
@@ -173,13 +180,10 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   Widget _buildPresets(StateProvider state) {
-    final presets = state.shows.isNotEmpty
-        ? state.shows.take(5).map((s) => s.title).toList()
-        : [
-            '1080p HEVC',
-            'BDRip Multi-Sub',
-            'Lossless FLAC',
-          ];
+    if (state.shows.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final presets = state.shows.take(5).map((s) => s.title).toList();
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -756,7 +760,7 @@ class _SearchPageState extends State<SearchPage> {
           Text('No Torrent Results Found', style: ObsidianTypography.headlineMd()),
           const SizedBox(height: 6),
           Text(
-            'Try widening your size filter range, enabling non-trusted uploaders, or querying Tokyo Toshokan.',
+            'Try widening your size filter range, enabling non-trusted uploaders, or searching for an alternative title.',
             style: ObsidianTypography.bodySm(color: ObsidianColors.outline),
             textAlign: TextAlign.center,
           ),

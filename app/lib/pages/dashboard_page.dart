@@ -30,6 +30,17 @@ class _DashboardPageState extends State<DashboardPage> {
     }
   }
 
+  String _currentSeasonCycle() {
+    final now = DateTime.now();
+    final season = switch (now.month) {
+      1 || 2 || 3 => 'Winter',
+      4 || 5 || 6 => 'Spring',
+      7 || 8 || 9 => 'Summer',
+      _ => 'Fall',
+    };
+    return '$season ${now.year}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = context.watch<StateProvider>();
@@ -182,7 +193,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 icon: state.isSyncing
                     ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: ObsidianColors.primary))
                     : const Icon(Icons.sync_rounded, size: 16, color: ObsidianColors.primary),
-                label: Text('Force Sync RSS', style: ObsidianTypography.bodySm(color: ObsidianColors.onSurface)),
+                label: Text('Sync MyAnimeList', style: ObsidianTypography.bodySm(color: ObsidianColors.onSurface)),
                 style: OutlinedButton.styleFrom(
                   backgroundColor: ObsidianColors.surfaceContainer,
                   side: const BorderSide(color: ObsidianColors.border),
@@ -206,7 +217,7 @@ class _DashboardPageState extends State<DashboardPage> {
               ),
 
               ElevatedButton.icon(
-                onPressed: () => state.selectPage(4),
+                onPressed: () async => await state.grabNextAvailable(),
                 icon: const Icon(Icons.bolt_rounded, size: 16),
                 label: Text('Grab Next Available', style: ObsidianTypography.titleSm(color: ObsidianColors.onPrimaryContainer, fontSize: 12)),
                 style: ElevatedButton.styleFrom(
@@ -284,7 +295,12 @@ class _DashboardPageState extends State<DashboardPage> {
                         children: [
                           const TextSpan(text: 'Next Release: ', style: TextStyle(color: ObsidianColors.primaryFixedDim)),
                           TextSpan(text: nextShow, style: const TextStyle(color: ObsidianColors.onSurface, fontWeight: FontWeight.bold)),
-                          const TextSpan(text: ' (~38m)', style: TextStyle(color: ObsidianColors.outline)),
+                          TextSpan(
+                            text: state.shows.isNotEmpty && state.shows.first.airingStatus.isNotEmpty
+                                ? ' (${state.shows.first.airingStatus})'
+                                : '',
+                            style: const TextStyle(color: ObsidianColors.outline),
+                          ),
                         ],
                       ),
                     ),
@@ -311,7 +327,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   color: ObsidianColors.surfaceContainer,
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: Text('PARSE: NYAA+AB', style: ObsidianTypography.labelBadge(color: ObsidianColors.tertiary, fontSize: 10)),
+                child: Text('PARSE: NYAA.SI', style: ObsidianTypography.labelBadge(color: ObsidianColors.tertiary, fontSize: 10)),
               ),
             ],
           ),
@@ -326,6 +342,16 @@ class _DashboardPageState extends State<DashboardPage> {
     final totalEpisodes = state.shows.fold<int>(0, (sum, show) => sum + show.totalEpisodes);
     final activeQueue = state.activeQueueCount;
     final dlSpeed = status.downloadSpeedFormatted;
+
+    final pipelineProgress = state.queue.isEmpty
+        ? (activeQueue > 0 ? (status.downloadSpeedBytes > 0 ? 0.68 : 0.2) : 0.0)
+        : (state.queue.fold<double>(0.0, (sum, q) => sum + q.progress) / state.queue.length).clamp(0.0, 1.0);
+    final downloadedEpisodes = state.shows.fold<int>(0, (sum, show) => sum + show.downloadedEpisodes);
+    final libraryProgress = totalEpisodes > 0 ? (downloadedEpisodes / totalEpisodes).clamp(0.0, 1.0) : 0.0;
+    final inboxProgress = state.inboxCount > 0 ? (1.0 / (1.0 + state.inboxCount)).clamp(0.0, 1.0) : 1.0;
+    final now = DateTime.now();
+    final seasonStartMonth = ((now.month - 1) ~/ 3) * 3 + 1;
+    final seasonProgress = (now.difference(DateTime(now.year, seasonStartMonth, 1)).inDays / 91.0).clamp(0.0, 1.0);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -348,8 +374,8 @@ class _DashboardPageState extends State<DashboardPage> {
               iconColor: ObsidianColors.primary,
               headline: '$activeQueue',
               subhead: 'Torrents Active',
-              detail: '$dlSpeed • ETA ~14m 12s',
-              progress: 0.68,
+              detail: dlSpeed.isNotEmpty && dlSpeed != '0 B/s' ? '$dlSpeed • In Progress' : 'Swarm Idle',
+              progress: pipelineProgress,
               progressColor: ObsidianColors.primary,
             ),
 
@@ -359,24 +385,24 @@ class _DashboardPageState extends State<DashboardPage> {
               label: 'LIBRARY INDEX',
               icon: Icons.video_library_rounded,
               iconColor: ObsidianColors.tertiary,
-              headline: totalShows > 0 ? '$totalShows' : '1,428',
-              subhead: 'Series',
-              detail: '$totalEpisodes Ep • 18.2 TB on /mnt/anime',
-              progress: 0.82,
+              headline: '$totalShows',
+              subhead: 'Series Tracked',
+              detail: '$totalEpisodes Ep • ${state.status.formattedDiskSpace}',
+              progress: libraryProgress,
               progressColor: ObsidianColors.tertiary,
             ),
 
             // Card 3: Missing Catalog
             _KpiCard(
               width: isCompact ? constraints.maxWidth : cardWidth,
-              label: 'MISSING CATALOG',
+              label: 'ACTION INBOX',
               icon: Icons.rule_folder_rounded,
               iconColor: ObsidianColors.secondary,
-              headline: '19',
-              subhead: 'Episodes Unmet',
-              subheadColor: ObsidianColors.error,
-              detail: '7 Ready in monitored RSS index',
-              progress: 0.38,
+              headline: '${state.inboxCount}',
+              subhead: state.inboxCount > 0 ? 'Questions Pending' : 'All Clear',
+              subheadColor: state.inboxCount > 0 ? ObsidianColors.warning : ObsidianColors.success,
+              detail: state.inboxCount > 0 ? '${state.inboxCount} action items need review' : 'No questions pending in Inbox',
+              progress: inboxProgress,
               progressColor: ObsidianColors.secondaryContainer,
             ),
 
@@ -386,11 +412,11 @@ class _DashboardPageState extends State<DashboardPage> {
               label: 'CURRENT CYCLE',
               icon: Icons.calendar_month_rounded,
               iconColor: ObsidianColors.primary,
-              headline: 'Spring 2025',
+              headline: _currentSeasonCycle(),
               headlineSize: 22,
-              subhead: '16 Tracked',
-              detail: '6 Airing in next 48h',
-              progress: 0.90,
+              subhead: '${state.shows.where((s) => s.status.toLowerCase() == "watching").length} Watching',
+              detail: '${state.queue.length} in active pipeline',
+              progress: seasonProgress,
               progressColor: ObsidianColors.primaryContainer,
             ),
           ],
@@ -555,8 +581,10 @@ class _DashboardPageState extends State<DashboardPage> {
                                     ],
                                   ),
                                   Text(
-                                    'Target: /mnt/anime/TV/...',
+                                    'Target: ${state.locationsReport?['library']?['path'] ?? 'Library'}',
                                     style: ObsidianTypography.monoCode(color: ObsidianColors.outline, fontSize: 10),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ],
                               ),
@@ -843,11 +871,11 @@ class _DashboardPageState extends State<DashboardPage> {
                       ],
                     ),
                     const SizedBox(height: 12),
-                    _buildTrackerRow('Nyaa.si (Prowlarr)', '42 ms', 'HTTP 200', ObsidianColors.tertiary),
+                    _buildTrackerRow('Nyaa.si (Gate Limiter)', 'Gate: 2 req/s', state.isCoreConnected ? 'ACTIVE' : 'OFFLINE', ObsidianColors.tertiary),
                     const SizedBox(height: 6),
-                    _buildTrackerRow('AnimeBytes (Passkey)', '110 ms', 'AUTH OK', ObsidianColors.tertiary),
+                    _buildTrackerRow('MyAnimeList API', state.isMalConnected ? 'OAuth Linked' : 'Public Profile', state.isMalConnected ? 'AUTH OK' : 'READY', ObsidianColors.primary),
                     const SizedBox(height: 6),
-                    _buildTrackerRow('Tokyo Toshokan', '85 ms', 'HTTP 200', ObsidianColors.tertiary),
+                    _buildTrackerRow('Jikan Moe API', 'Rate: 50/min', 'METADATA OK', ObsidianColors.tertiary),
                     const SizedBox(height: 12),
                     Container(
                       padding: const EdgeInsets.all(8),

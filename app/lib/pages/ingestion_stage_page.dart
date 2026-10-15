@@ -340,10 +340,14 @@ class _IngestionStagePageState extends State<IngestionStagePage> {
                           ),
                           const SizedBox(height: 8),
 
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          Wrap(
+                            alignment: WrapAlignment.spaceBetween,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            spacing: 12,
+                            runSpacing: 6,
                             children: [
                               Row(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Container(
                                     width: 8,
@@ -358,6 +362,7 @@ class _IngestionStagePageState extends State<IngestionStagePage> {
                                     'Committed: 115 Eps',
                                     style: ObsidianTypography.monoCode(
                                       color: ObsidianColors.outline,
+                                      fontSize: 11,
                                     ),
                                   ),
                                   const SizedBox(width: 12),
@@ -374,6 +379,7 @@ class _IngestionStagePageState extends State<IngestionStagePage> {
                                     'Chunk Hash: 31 Eps',
                                     style: ObsidianTypography.monoCode(
                                       color: ObsidianColors.outline,
+                                      fontSize: 11,
                                     ),
                                   ),
                                 ],
@@ -382,6 +388,7 @@ class _IngestionStagePageState extends State<IngestionStagePage> {
                                 'Time remaining: ~24s',
                                 style: ObsidianTypography.monoCode(
                                   color: ObsidianColors.outline,
+                                  fontSize: 11,
                                 ),
                               ),
                             ],
@@ -536,21 +543,24 @@ class _IngestionStagePageState extends State<IngestionStagePage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Application Loading State Patterns',
-                        style: ObsidianTypography.headlineMd(),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Standardized feedback primitives deployed across Genrl Downloader runtime views.',
-                        style: ObsidianTypography.bodySm(
-                            color: ObsidianColors.outline),
-                      ),
-                    ],
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Application Loading State Patterns',
+                          style: ObsidianTypography.headlineMd(),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Standardized feedback primitives deployed across Genrl Downloader runtime views.',
+                          style: ObsidianTypography.bodySm(
+                              color: ObsidianColors.outline),
+                        ),
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 16),
                   Text(
                     'PATTERN LIB // TOKENS v2',
                     style: ObsidianTypography.monoCode(
@@ -580,7 +590,7 @@ class _IngestionStagePageState extends State<IngestionStagePage> {
                     physics: const NeverScrollableScrollPhysics(),
                     crossAxisSpacing: 14,
                     mainAxisSpacing: 14,
-                    childAspectRatio: isWide ? 0.85 : 1.2,
+                    childAspectRatio: isWide ? 0.85 : 0.82,
                     children: const [
                       // Card A: Mini Inline Spinner
                       _PatternCardA(),
@@ -713,7 +723,12 @@ class _PatternCardA extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Mini Inline Spinner', style: ObsidianTypography.titleSm()),
+              Expanded(
+                child: Text('Mini Inline Spinner',
+                    style: ObsidianTypography.titleSm(),
+                    overflow: TextOverflow.ellipsis),
+              ),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                 decoration: BoxDecoration(
@@ -810,12 +825,19 @@ class _PatternCardA extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Latency: <4ms',
-                  style: ObsidianTypography.monoCode(
-                      color: ObsidianColors.outline)),
-              Text('CSS Keyframe',
-                  style: ObsidianTypography.monoCode(
-                      color: ObsidianColors.tertiary)),
+              Flexible(
+                child: Text('Latency: <4ms',
+                    style: ObsidianTypography.monoCode(
+                        color: ObsidianColors.outline, fontSize: 10),
+                    overflow: TextOverflow.ellipsis),
+              ),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text('CSS Keyframe',
+                    style: ObsidianTypography.monoCode(
+                        color: ObsidianColors.tertiary, fontSize: 10),
+                    overflow: TextOverflow.ellipsis),
+              ),
             ],
           ),
         ],
@@ -843,8 +865,12 @@ class _PatternCardB extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Skeleton & Shimmer Card',
-                  style: ObsidianTypography.titleSm()),
+              Expanded(
+                child: Text('Skeleton & Shimmer Card',
+                    style: ObsidianTypography.titleSm(),
+                    overflow: TextOverflow.ellipsis),
+              ),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                 decoration: BoxDecoration(
@@ -920,12 +946,19 @@ class _PatternCardB extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Ratio: 2:3 Portrait',
-                  style: ObsidianTypography.monoCode(
-                      color: ObsidianColors.outline)),
-              Text('Shimmer Pass',
-                  style: ObsidianTypography.monoCode(
-                      color: ObsidianColors.secondary)),
+              Flexible(
+                child: Text('Ratio: 2:3 Portrait',
+                    style: ObsidianTypography.monoCode(
+                        color: ObsidianColors.outline, fontSize: 10),
+                    overflow: TextOverflow.ellipsis),
+              ),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text('Shimmer Pass',
+                    style: ObsidianTypography.monoCode(
+                        color: ObsidianColors.secondary, fontSize: 10),
+                    overflow: TextOverflow.ellipsis),
+              ),
             ],
           ),
         ],
@@ -953,7 +986,12 @@ class _PatternCardC extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Packet Buffer Check', style: ObsidianTypography.titleSm()),
+              Expanded(
+                child: Text('Packet Buffer Check',
+                    style: ObsidianTypography.titleSm(),
+                    overflow: TextOverflow.ellipsis),
+              ),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                 decoration: BoxDecoration(
@@ -1012,12 +1050,19 @@ class _PatternCardC extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Buffer: 64MB In-RAM',
-                  style: ObsidianTypography.monoCode(
-                      color: ObsidianColors.outline)),
-              Text('Zero-Drop IO',
-                  style: ObsidianTypography.monoCode(
-                      color: ObsidianColors.primary)),
+              Flexible(
+                child: Text('Buffer: 64MB In-RAM',
+                    style: ObsidianTypography.monoCode(
+                        color: ObsidianColors.outline, fontSize: 10),
+                    overflow: TextOverflow.ellipsis),
+              ),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text('Zero-Drop IO',
+                    style: ObsidianTypography.monoCode(
+                        color: ObsidianColors.primary, fontSize: 10),
+                    overflow: TextOverflow.ellipsis),
+              ),
             ],
           ),
         ],
@@ -1045,7 +1090,12 @@ class _PatternCardD extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Daemon Ping Reconnect', style: ObsidianTypography.titleSm()),
+              Expanded(
+                child: Text('Daemon Ping Reconnect',
+                    style: ObsidianTypography.titleSm(),
+                    overflow: TextOverflow.ellipsis),
+              ),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                 decoration: BoxDecoration(
@@ -1091,7 +1141,7 @@ class _PatternCardD extends StatelessWidget {
                         const SizedBox(width: 6),
                         Text(
                           '127.0.0.1:8080',
-                          style: ObsidianTypography.monoCode(),
+                          style: ObsidianTypography.monoCode(fontSize: 10),
                         ),
                       ],
                     ),
@@ -1099,6 +1149,7 @@ class _PatternCardD extends StatelessWidget {
                       '12 ms',
                       style: ObsidianTypography.monoMetric(
                         color: ObsidianColors.tertiary,
+                        fontSize: 10,
                       ),
                     ),
                   ],
@@ -1122,12 +1173,19 @@ class _PatternCardD extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Heartbeat: 2000ms',
-                  style: ObsidianTypography.monoCode(
-                      color: ObsidianColors.outline)),
-              Text('TCP_NODELAY',
-                  style: ObsidianTypography.monoCode(
-                      color: ObsidianColors.tertiary)),
+              Flexible(
+                child: Text('Heartbeat: 2000ms',
+                    style: ObsidianTypography.monoCode(
+                        color: ObsidianColors.outline, fontSize: 10),
+                    overflow: TextOverflow.ellipsis),
+              ),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text('TCP_NODELAY',
+                    style: ObsidianTypography.monoCode(
+                        color: ObsidianColors.tertiary, fontSize: 10),
+                    overflow: TextOverflow.ellipsis),
+              ),
             ],
           ),
         ],

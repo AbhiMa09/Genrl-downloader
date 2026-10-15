@@ -598,7 +598,7 @@ async fn apply_jikan_metadata(
     mal_id: i64,
     _current_title: &str,
     current_english: Option<&str>,
-    folder_path: Option<&str>,
+    _folder_path: Option<&str>,
     existing_poster: Option<&str>,
     data: &JikanFullData,
 ) -> Result<MetadataOutcome> {
@@ -684,29 +684,8 @@ async fn apply_jikan_metadata(
         Ok(())
     })?;
 
-    // Replace synopsis.txt in folder if folder exists
-    if let Some(folder) = folder_path {
-        let folder_p = Path::new(folder);
-        if folder_p.is_dir() {
-            let syn_file = folder_p.join("synopsis.txt");
-            let genres_list: Vec<String> = data.genres.iter().map(|g| g.name.clone()).collect();
-            let full_text = crate::library::format_synopsis(
-                &data.title,
-                english_title,
-                data.title_japanese.as_deref(),
-                data.show_type.as_deref().unwrap_or("tv"),
-                data.episodes,
-                data.status.as_deref(),
-                data.aired.as_ref().and_then(|a| a.string.as_deref()),
-                data.score,
-                &genres_list,
-                Some(&clean_syn),
-                mal_id,
-                &format!("Unix timestamp {now}"),
-            );
-            let _ = fs::write(syn_file, full_text);
-        }
-    }
+    // Rewrite synopsis.txt and movie.nfo/tvshow.nfo across all existing folders of this show
+    let _ = crate::library::rewrite_show_folder_metadata(db, mal_id);
 
     let _ = log.info(
         None,
@@ -729,7 +708,7 @@ async fn apply_mal_metadata(
     mal_id: i64,
     _current_title: &str,
     current_english: Option<&str>,
-    folder_path: Option<&str>,
+    _folder_path: Option<&str>,
     existing_poster: Option<&str>,
     data: &MalApiAnimeDetailResponse,
 ) -> Result<MetadataOutcome> {
@@ -807,28 +786,8 @@ async fn apply_mal_metadata(
         Ok(())
     })?;
 
-    // Replace synopsis.txt in folder if folder exists
-    if let Some(folder) = folder_path {
-        let folder_p = Path::new(folder);
-        if folder_p.is_dir() {
-            let syn_file = folder_p.join("synopsis.txt");
-            let full_text = crate::library::format_synopsis(
-                &data.title,
-                en_title.as_deref(),
-                ja_title.as_deref(),
-                data.media_type.as_deref().unwrap_or("tv"),
-                data.num_episodes,
-                data.status.as_deref(),
-                None,
-                data.mean,
-                &[],
-                Some(&clean_syn),
-                mal_id,
-                &format!("Unix timestamp {now}"),
-            );
-            let _ = fs::write(syn_file, full_text);
-        }
-    }
+    // Rewrite synopsis.txt and movie.nfo/tvshow.nfo across all existing folders of this show
+    let _ = crate::library::rewrite_show_folder_metadata(db, mal_id);
 
     let _ = log.info(
         None,

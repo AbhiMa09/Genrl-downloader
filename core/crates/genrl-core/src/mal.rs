@@ -1414,6 +1414,7 @@ pub async fn sync_if_due(
         Err(err) => {
             tracing::warn!("MAL sync failed: {err}");
             let _ = EventLog::new(db.clone()).warn(None, None, format!("MAL sync failed: {err}"));
+            let _ = settings::write_state_now(db, SYNC_STATE_KEY);
             None
         }
     }

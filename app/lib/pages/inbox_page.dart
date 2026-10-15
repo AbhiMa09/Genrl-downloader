@@ -247,22 +247,25 @@ class _InboxPageState extends State<InboxPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              _buildPillTab('all', 'Action Required ($pendingCount)'),
-              const SizedBox(width: 6),
-              _buildPillTab('matches', 'Matches (0)'),
-              const SizedBox(width: 6),
-              _buildPillTab('seeds', 'Seeds (0)'),
-              const SizedBox(width: 6),
-              _buildPillTab('files', 'Files ($pendingCount)'),
-              const SizedBox(width: 6),
-              _buildPillTab('batches', 'Batches (0)'),
-            ],
+        Expanded(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildPillTab('all', 'Action Required ($pendingCount)'),
+                const SizedBox(width: 6),
+                _buildPillTab('matches', 'Matches (0)'),
+                const SizedBox(width: 6),
+                _buildPillTab('seeds', 'Seeds (0)'),
+                const SizedBox(width: 6),
+                _buildPillTab('files', 'Files ($pendingCount)'),
+                const SizedBox(width: 6),
+                _buildPillTab('batches', 'Batches (0)'),
+              ],
+            ),
           ),
         ),
+        const SizedBox(width: 12),
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -495,13 +498,22 @@ class _DecisionCardFrame extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.check_box_outline_blank_rounded, size: 16, color: ObsidianColors.primary),
-                      const SizedBox(width: 6),
-                      Text(autoRuleText, style: ObsidianTypography.bodySm(color: ObsidianColors.onSurfaceVariant, fontSize: 10)),
-                    ],
+                  Expanded(
+                    child: Row(
+                      children: [
+                        const Icon(Icons.check_box_outline_blank_rounded, size: 16, color: ObsidianColors.primary),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            autoRuleText,
+                            style: ObsidianTypography.bodySm(color: ObsidianColors.onSurfaceVariant, fontSize: 10),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   Text('Rule ID: $ruleId', style: ObsidianTypography.monoCode(color: ObsidianColors.outline, fontSize: 9)),
                 ],
               ),

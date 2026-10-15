@@ -152,18 +152,21 @@ class _WizardPageState extends State<WizardPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       color: ObsidianColors.surfaceContainerLowest,
-      child: Row(
-        children: [
-          _buildStepItem(stepNum: 1, title: 'MAL Account', subtitle: 'ren_kurokawa', isDone: true, isActive: false),
-          _buildStepDivider(isDone: true),
-          _buildStepItem(stepNum: 2, title: 'qBittorrent', subtitle: ':8080 OK', isDone: true, isActive: false),
-          _buildStepDivider(isDone: true),
-          _buildStepItem(stepNum: 3, title: 'Root Path', subtitle: '/mnt/anime/TV', isDone: true, isActive: false),
-          _buildStepDivider(isDone: true),
-          _buildStepItem(stepNum: 4, title: 'Quality / Groups', subtitle: '1080p • 5 Groups', isDone: true, isActive: false),
-          _buildStepDivider(isDone: false),
-          _buildStepItem(stepNum: 5, title: 'Review & Launch', subtitle: 'Ready', isDone: false, isActive: true),
-        ],
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            _buildStepItem(stepNum: 1, title: 'MAL Account', subtitle: 'ren_kurokawa', isDone: true, isActive: false),
+            _buildStepDivider(isDone: true),
+            _buildStepItem(stepNum: 2, title: 'qBittorrent', subtitle: ':8080 OK', isDone: true, isActive: false),
+            _buildStepDivider(isDone: true),
+            _buildStepItem(stepNum: 3, title: 'Root Path', subtitle: '/mnt/anime/TV', isDone: true, isActive: false),
+            _buildStepDivider(isDone: true),
+            _buildStepItem(stepNum: 4, title: 'Quality / Groups', subtitle: '1080p • 5 Groups', isDone: true, isActive: false),
+            _buildStepDivider(isDone: false),
+            _buildStepItem(stepNum: 5, title: 'Review & Launch', subtitle: 'Ready', isDone: false, isActive: true),
+          ],
+        ),
       ),
     );
   }
@@ -222,12 +225,11 @@ class _WizardPageState extends State<WizardPage> {
   }
 
   Widget _buildStepDivider({required bool isDone}) {
-    return Expanded(
-      child: Container(
-        height: 1.5,
-        margin: const EdgeInsets.symmetric(horizontal: 8),
-        color: isDone ? ObsidianColors.tertiary.withOpacity(0.4) : ObsidianColors.primary.withOpacity(0.4),
-      ),
+    return Container(
+      width: 32,
+      height: 1.5,
+      margin: const EdgeInsets.symmetric(horizontal: 8),
+      color: isDone ? ObsidianColors.tertiary.withOpacity(0.4) : ObsidianColors.primary.withOpacity(0.4),
     );
   }
 
@@ -273,7 +275,7 @@ class _WizardPageState extends State<WizardPage> {
                     _buildPill('31 Tracked Series', ObsidianColors.surfaceContainerHigh, ObsidianColors.onSurface),
                     _buildPill('214 Missing Backlog', ObsidianColors.secondary.withOpacity(0.2), ObsidianColors.secondary),
                     _buildPill('Est. Storage ~248 GB', ObsidianColors.tertiary.withOpacity(0.2), ObsidianColors.tertiary),
-                    _buildPill('Nyaa.si + Tokyo Toshokan', ObsidianColors.surfaceContainerHighest, ObsidianColors.onSurfaceVariant),
+                    _buildPill('Nyaa.si (Gate Limiter)', ObsidianColors.surfaceContainerHighest, ObsidianColors.onSurfaceVariant),
                   ],
                 ),
               ],
@@ -282,7 +284,7 @@ class _WizardPageState extends State<WizardPage> {
           const SizedBox(width: 16),
           // Micro Telemetry Sparkline
           Container(
-            width: 160,
+            width: 180,
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: ObsidianColors.surfaceContainerLowest,
@@ -294,7 +296,8 @@ class _WizardPageState extends State<WizardPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Index Snatches', style: ObsidianTypography.labelBadge(color: ObsidianColors.outline)),
+                    Flexible(child: Text('Index Snatches', style: ObsidianTypography.labelBadge(color: ObsidianColors.outline), overflow: TextOverflow.ellipsis)),
+                    const SizedBox(width: 4),
                     Text('100%', style: ObsidianTypography.labelBadge(color: ObsidianColors.tertiary).copyWith(fontWeight: FontWeight.bold)),
                   ],
                 ),
@@ -402,17 +405,25 @@ class _WizardPageState extends State<WizardPage> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    Checkbox(
-                      value: _bypassDailyCap,
-                      onChanged: (v) => setState(() => _bypassDailyCap = v ?? false),
-                      activeColor: ObsidianColors.primary,
-                    ),
-                    Text('Bypass daily cap for initial first-run sync ', style: ObsidianTypography.bodySm().copyWith(fontWeight: FontWeight.bold)),
-                    Text('(Queue all 214 immediately without daily delay)', style: ObsidianTypography.monoCode(color: ObsidianColors.outline)),
-                  ],
+                Expanded(
+                  child: Row(
+                    children: [
+                      Checkbox(
+                        value: _bypassDailyCap,
+                        onChanged: (v) => setState(() => _bypassDailyCap = v ?? false),
+                        activeColor: ObsidianColors.primary,
+                      ),
+                      Flexible(
+                        child: Text(
+                          'Bypass daily cap for initial first-run sync (Queue all 214 immediately without daily delay)',
+                          style: ObsidianTypography.bodySm().copyWith(fontWeight: FontWeight.bold),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 8),
                 Text(
                   _bypassDailyCap ? 'Full queue release' : 'Staged batching active',
                   style: ObsidianTypography.labelBadge(color: _bypassDailyCap ? ObsidianColors.warning : ObsidianColors.outline),

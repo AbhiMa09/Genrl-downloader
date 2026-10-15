@@ -256,6 +256,10 @@ enum Command {
         #[command(subcommand)]
         command: MetadataCommand,
     },
+    /// Step a single job directly through the engine.
+    Step {
+        job_id: i64,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -552,6 +556,33 @@ async fn main() -> Result<()> {
                 metadata_sync_cmd(&data_dir, limit, json).await
             }
         },
+        Command::Step { job_id } => {
+            let db = open_db(&data_dir)?;
+            let gate = Arc::new(Gate::new(db.clone())?);
+            let finalizer = Arc::new(genrl_core::library::LibraryFinalizer::new(
+                db.clone(),
+                gate.clone(),
+                Arc::new(SystemClock),
+                data_dir.to_path_buf(),
+            ));
+            let engine = Arc::new(Engine::new(
+                db.clone(),
+                gate,
+                Arc::new(SystemClock),
+                finalizer,
+                Arc::new(FsDiskProbe),
+            ));
+            println!("Stepping job {job_id}...");
+            match engine.step(job_id).await {
+                Ok(outcome) => {
+                    println!("Job {job_id} stepped successfully: {:?} -> {:?}", outcome.from, outcome.to);
+                }
+                Err(err) => {
+                    println!("Step failed with error: {err:?}");
+                }
+            }
+            Ok(())
+        }
     }
 }
 
@@ -875,6 +906,10 @@ fn answer_cmd(data_dir: &std::path::Path, id: i64, choice_str: &str, always: boo
         always,
     };
     QuestionStore::answer(&db, id, &ans)?;
+    if let Ok(Some(q)) = QuestionStore::get(&db, id) {
+        let clock = genrl_core::clock::SystemClock;
+        let _ = genrl_core::worker::apply_answer(&db, &clock, &q, &ans);
+    }
     let log = EventLog::new(db);
     log.info(None, None, format!("answered question #{id} with choice '{choice_str}' (always: {always})"))?;
     println!("Answered question #{id}");
@@ -1089,11 +1124,13 @@ async fn show_detail_cmd(data_dir: &std::path::Path, mal_id: i64, json: bool) ->
                 &clock,
                 data_dir,
                 mal_id,
-                true,
+                false,
             )
             .await;
         }
     }
+
+    let _ = genrl_core::rewrite_show_folder_metadata(&db, mal_id);
 
     let mut show: serde_json::Value = db.with(|c| {
         let val = c.query_row(

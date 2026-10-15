@@ -34,6 +34,7 @@
 //!    overwriting silently, honoring `Keep`, `Replace`, or `KeepBoth`.
 //! 7. **Rescan folders:** adopts existing directories and episodes without duplication.
 
+use std::collections::HashSet;
 use std::fs;
 use std::future::Future;
 use std::path::{Path, PathBuf};
@@ -280,6 +281,33 @@ pub fn format_synopsis(
     }
 
     out
+}
+
+/// Check if a synopsis text is a placeholder.
+pub fn is_placeholder_synopsis(content: &str) -> bool {
+    let t = content.trim();
+    t.is_empty()
+        || t.starts_with("[Synopsis pending")
+        || t.starts_with("[Synopsis unavailable")
+        || t.starts_with("[Synopsis loading")
+}
+
+/// Format the NFO metadata file according to Kodi / Jellyfin / Emby XML spec (plot, rating, year).
+pub fn format_nfo(
+    tag: &str,
+    title: &str,
+    original_title: Option<&str>,
+    plot: &str,
+    rating: Option<f64>,
+    year: Option<i64>,
+    mal_id: i64,
+) -> String {
+    let eng = original_title.unwrap_or(title);
+    let rating_str = rating.map(|r| format!("{:.2}", r)).unwrap_or_default();
+    let year_str = year.map(|y| y.to_string()).unwrap_or_default();
+    format!(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<{tag}>\n  <title>{title}</title>\n  <originaltitle>{eng}</originaltitle>\n  <plot>{plot}</plot>\n  <rating>{rating_str}</rating>\n  <year>{year_str}</year>\n  <uniqueid type=\"mal\" default=\"true\">{mal_id}</uniqueid>\n</{tag}>\n"
+    )
 }
 
 /// Format an episode's filename based on settings patterns.
@@ -650,6 +678,219 @@ pub fn resolve_show_folder(
     Ok(show_dir)
 }
 
+/// Rewrite synopsis.txt and movie.nfo/tvshow.nfo (plot, rating, year) for all existing folders of a show.
+/// Called when shows.synopsis becomes ready or when metadata is updated.
+pub fn rewrite_show_folder_metadata(db: &Db, mal_id: i64) -> Result<usize> {
+    // 1. Fetch show details from database
+    let show_data: Option<(
+        String,
+        Option<String>,
+        String,
+        Option<i64>,
+        Option<String>,
+        Option<String>,
+        Option<f64>,
+        Option<i64>,
+        Option<String>,
+        Option<String>,
+    )> = db.with(|c| {
+        Ok(c.query_row(
+            "SELECT title, english_title, type, start_year, synopsis, poster_path, score, total_episodes, status, folder_path
+             FROM shows WHERE mal_id = ?1",
+            [mal_id],
+            |r| {
+                Ok((
+                    r.get::<_, String>(0)?,
+                    r.get::<_, Option<String>>(1)?,
+                    r.get::<_, String>(2)?,
+                    r.get::<_, Option<i64>>(3)?,
+                    r.get::<_, Option<String>>(4)?,
+                    r.get::<_, Option<String>>(5)?,
+                    r.get::<_, Option<f64>>(6)?,
+                    r.get::<_, Option<i64>>(7)?,
+                    r.get::<_, Option<String>>(8)?,
+                    r.get::<_, Option<String>>(9)?,
+                ))
+            },
+        )
+        .optional()?)
+    })?;
+
+    let (title, english_title, show_type_str, start_year, synopsis, poster_path, score, total_episodes, status, folder_path) = match show_data {
+        Some(d) => d,
+        None => return Ok(0),
+    };
+
+    let syn = match synopsis {
+        Some(s) if !s.trim().is_empty() && !is_placeholder_synopsis(&s) => s,
+        _ => return Ok(0), // synopsis not ready yet
+    };
+
+    let show_type = ShowType::parse(&show_type_str);
+
+    // Fetch Japanese title from show_names if present
+    let japanese_title: Option<String> = db.with(|c| {
+        Ok(c.query_row(
+            "SELECT name FROM show_names WHERE mal_id = ?1 AND source = 'jikan' ORDER BY priority DESC LIMIT 1",
+            [mal_id],
+            |r| r.get::<_, String>(0),
+        )
+        .optional()?)
+    })?;
+
+    // Load settings for library root
+    let settings = Settings::load(db)?;
+    let library_root = if settings.library_folder.trim().is_empty() {
+        crate::locations::default_library_dir()
+    } else {
+        crate::locations::resolve_home_dir(&settings.library_folder)
+    };
+
+    // Collect all unique existing folders for this show
+    let mut folders = HashSet::new();
+
+    // 1) Folder path stored in shows table
+    if let Some(ref fp) = folder_path {
+        let p = PathBuf::from(fp);
+        if p.is_dir() {
+            folders.insert(p);
+        }
+    }
+
+    // 2) Parent directory of any recorded episode file
+    let ep_paths: Vec<String> = db.with(|c| {
+        let mut stmt = c.prepare("SELECT DISTINCT file_path FROM episodes WHERE mal_id = ?1 AND file_path IS NOT NULL")?;
+        let rows = stmt.query_map([mal_id], |r| r.get::<_, String>(0))?;
+        let mut list = Vec::new();
+        for r in rows.flatten() {
+            if !r.trim().is_empty() {
+                list.push(r);
+            }
+        }
+        Ok(list)
+    })?;
+
+    for ep_p in ep_paths {
+        let p = PathBuf::from(&ep_p);
+        if let Some(parent) = p.parent() {
+            if parent.is_dir() {
+                folders.insert(parent.to_path_buf());
+            }
+        }
+    }
+
+    // 3) Any subfolder in library_root with matching .mal_id marker
+    if library_root.is_dir() {
+        if let Ok(entries) = fs::read_dir(&library_root) {
+            for entry in entries.flatten() {
+                let p = entry.path();
+                if p.is_dir() {
+                    let marker = p.join(MARKER_FILE);
+                    if marker.exists() {
+                        if let Ok(content) = fs::read_to_string(&marker) {
+                            if let Ok(id) = content.trim().parse::<i64>() {
+                                if id == mal_id {
+                                    folders.insert(p);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if folders.is_empty() {
+        return Ok(0);
+    }
+
+    let now_date = format!(
+        "Unix timestamp {}",
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs()
+    );
+    let syn_formatted = format_synopsis(
+        &title,
+        english_title.as_deref(),
+        japanese_title.as_deref(),
+        &show_type_str,
+        total_episodes,
+        status.as_deref(),
+        None,
+        score,
+        &[],
+        Some(&syn),
+        mal_id,
+        &now_date,
+    );
+
+    let tag = if show_type == ShowType::Movie { "movie" } else { "tvshow" };
+    let nfo_content = format_nfo(
+        tag,
+        &title,
+        english_title.as_deref(),
+        &syn,
+        score,
+        start_year,
+        mal_id,
+    );
+
+    let mut updated_count = 0;
+    for dir in &folders {
+        // Rewrite synopsis.txt
+        let synopsis_file = dir.join(SYNOPSIS_FILE);
+        let _ = fs::write(&synopsis_file, &syn_formatted);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let _ = fs::set_permissions(&synopsis_file, fs::Permissions::from_mode(0o644));
+        }
+
+        // Rewrite movie.nfo or tvshow.nfo
+        let movie_nfo = dir.join("movie.nfo");
+        let tvshow_nfo = dir.join("tvshow.nfo");
+        let target_nfo = if movie_nfo.exists() {
+            movie_nfo
+        } else if tvshow_nfo.exists() {
+            tvshow_nfo
+        } else if show_type == ShowType::Movie {
+            movie_nfo
+        } else {
+            tvshow_nfo
+        };
+
+        let _ = fs::write(&target_nfo, &nfo_content);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let _ = fs::set_permissions(&target_nfo, fs::Permissions::from_mode(0o644));
+        }
+
+        // Ensure marker exists
+        let marker_file = dir.join(MARKER_FILE);
+        if !marker_file.exists() {
+            let _ = fs::write(&marker_file, format!("{mal_id}\n"));
+        }
+
+        // If poster_path is a local file and folder.png is missing, create it
+        let folder_png = dir.join(FOLDER_ICON_FILE);
+        if !folder_png.exists() {
+            if let Some(ref post) = poster_path {
+                let pb = Path::new(post);
+                if pb.is_file() {
+                    let _ = create_folder_png(pb, &folder_png, settings.icon_style);
+                }
+            }
+        }
+
+        updated_count += 1;
+    }
+
+    Ok(updated_count)
+}
+
 // ---------------------------------------------------------------------------
 // Library Rescan
 // ---------------------------------------------------------------------------
@@ -843,9 +1084,9 @@ impl LibraryFinalizer {
             let _ = fs::create_dir_all(&library_root);
         }
 
-        let (title, english_title, show_type_str, start_year, season) = self.db.with(|c| {
+        let (title, english_title, show_type_str, start_year, season, existing_synopsis, existing_poster, existing_score, existing_episodes, existing_status) = self.db.with(|c| {
             Ok(c.query_row(
-                "SELECT title, english_title, type, start_year, season FROM shows WHERE mal_id = ?1",
+                "SELECT title, english_title, type, start_year, season, synopsis, poster_path, score, total_episodes, status FROM shows WHERE mal_id = ?1",
                 [context.mal_id],
                 |r| {
                     Ok((
@@ -854,6 +1095,11 @@ impl LibraryFinalizer {
                         r.get::<_, String>(2)?,
                         r.get::<_, Option<i64>>(3)?,
                         r.get::<_, i64>(4)?,
+                        r.get::<_, Option<String>>(5)?,
+                        r.get::<_, Option<String>>(6)?,
+                        r.get::<_, Option<f64>>(7)?,
+                        r.get::<_, Option<i64>>(8)?,
+                        r.get::<_, Option<String>>(9)?,
                     ))
                 },
             )?)
@@ -868,71 +1114,157 @@ impl LibraryFinalizer {
             start_year,
         )?;
 
-        // Ensure synopsis and folder icon
+        // Ensure synopsis, NFO, and folder icon
         let synopsis_path = show_dir.join(SYNOPSIS_FILE);
         let folder_png_path = show_dir.join(FOLDER_ICON_FILE);
-        if !synopsis_path.exists() || !folder_png_path.exists() {
-            let meta = self.fetch_metadata(context.mal_id, settings).await;
+        let nfo_path = if show_type == ShowType::Movie {
+            show_dir.join("movie.nfo")
+        } else {
+            show_dir.join("tvshow.nfo")
+        };
+
+        if !synopsis_path.exists() || !folder_png_path.exists() || !nfo_path.exists() {
+            let meta = if existing_synopsis.is_none() || existing_poster.is_none() {
+                self.fetch_metadata(context.mal_id, settings).await
+            } else {
+                None
+            };
             let now_date = format!("Unix timestamp {}", self.clock.now());
-            let syn_text = match &meta {
-                Some(m) => {
+            let syn_text = match (&meta, &existing_synopsis) {
+                (Some(m), _) => {
                     let genres: Vec<String> = m.genres.iter().map(|g| g.name.clone()).collect();
                     format_synopsis(
                         m.title.as_deref().unwrap_or(&title),
                         m.title_english.as_deref().or(english_title.as_deref()),
                         m.title_japanese.as_deref(),
                         m.show_type.as_deref().unwrap_or(&show_type_str),
-                        m.episodes,
-                        m.status.as_deref(),
+                        m.episodes.or(existing_episodes),
+                        m.status.as_deref().or(existing_status.as_deref()),
                         m.aired.as_ref().and_then(|a| a.string.as_deref()),
-                        m.score,
+                        m.score.or(existing_score),
                         &genres,
-                        m.synopsis.as_deref(),
+                        m.synopsis.as_deref().or(existing_synopsis.as_deref()),
                         context.mal_id,
                         &now_date,
                     )
                 }
-                None => format_synopsis(
+                (None, Some(syn)) => format_synopsis(
                     &title,
                     english_title.as_deref(),
                     None,
                     &show_type_str,
+                    existing_episodes,
+                    existing_status.as_deref(),
                     None,
+                    existing_score,
+                    &[],
+                    Some(syn.as_str()),
+                    context.mal_id,
+                    &now_date,
+                ),
+                (None, None) => format_synopsis(
+                    &title,
+                    english_title.as_deref(),
                     None,
+                    &show_type_str,
+                    existing_episodes,
+                    existing_status.as_deref(),
                     None,
-                    None,
+                    existing_score,
                     &[],
                     None,
                     context.mal_id,
                     &now_date,
                 ),
             };
-            let _ = fs::write(&synopsis_path, syn_text);
-            #[cfg(unix)]
-            {
-                use std::os::unix::fs::PermissionsExt;
-                let _ = fs::set_permissions(&synopsis_path, fs::Permissions::from_mode(0o644));
+            let should_write_syn = !synopsis_path.exists() || {
+                if let Ok(c) = fs::read_to_string(&synopsis_path) {
+                    is_placeholder_synopsis(&c) && !is_placeholder_synopsis(&syn_text)
+                } else {
+                    false
+                }
+            };
+            if should_write_syn {
+                let _ = fs::write(&synopsis_path, &syn_text);
+                #[cfg(unix)]
+                {
+                    use std::os::unix::fs::PermissionsExt;
+                    let _ = fs::set_permissions(&synopsis_path, fs::Permissions::from_mode(0o644));
+                }
             }
 
-            let poster_url = meta.as_ref().and_then(|m| {
-                m.images.as_ref().and_then(|imgs| {
-                    imgs.jpg.as_ref().and_then(|j| j.large_image_url.clone().or_else(|| j.image_url.clone()))
-                        .or_else(|| imgs.webp.as_ref().and_then(|w| w.large_image_url.clone().or_else(|| w.image_url.clone())))
-                })
-            });
-            let master_poster = match poster_url {
-                Some(url) => self.download_poster(context.mal_id, &url).await,
-                None => None,
-            };
-            let poster_to_use = master_poster.unwrap_or_else(|| {
-                let placeholder = self.data_dir.join("placeholder_poster.png");
-                if !placeholder.exists() {
-                    let _ = write_solid_png(&placeholder, 64, 64, 30, 20, 50);
+            let plot = meta.as_ref().and_then(|m| m.synopsis.as_deref())
+                .or(existing_synopsis.as_deref())
+                .unwrap_or("");
+            let should_write_nfo = !nfo_path.exists() || {
+                if let Ok(c) = fs::read_to_string(&nfo_path) {
+                    (c.contains("<plot></plot>") || c.contains("<plot/>")) && !plot.trim().is_empty()
+                } else {
+                    false
                 }
-                placeholder
-            });
-            let _ = create_folder_png(&poster_to_use, &folder_png_path, settings.icon_style);
-            let _ = apply_folder_icon(settings.folder_icon_method, &show_dir, &folder_png_path);
+            };
+            if should_write_nfo {
+                let tag = if show_type == ShowType::Movie { "movie" } else { "tvshow" };
+                let score_val = meta.as_ref().and_then(|m| m.score).or(existing_score);
+                let nfo_content = format_nfo(
+                    tag,
+                    &title,
+                    english_title.as_deref(),
+                    plot,
+                    score_val,
+                    start_year,
+                    context.mal_id,
+                );
+                let _ = fs::write(&nfo_path, nfo_content);
+                #[cfg(unix)]
+                {
+                    use std::os::unix::fs::PermissionsExt;
+                    let _ = fs::set_permissions(&nfo_path, fs::Permissions::from_mode(0o644));
+                }
+            }
+
+            if !folder_png_path.exists() {
+                let poster_url = meta.as_ref().and_then(|m| {
+                    m.images.as_ref().and_then(|imgs| {
+                        imgs.jpg.as_ref().and_then(|j| j.large_image_url.clone().or_else(|| j.image_url.clone()))
+                            .or_else(|| imgs.webp.as_ref().and_then(|w| w.large_image_url.clone().or_else(|| w.image_url.clone())))
+                    })
+                }).or_else(|| {
+                    existing_poster.as_ref().and_then(|p| {
+                        if p.starts_with("http://") || p.starts_with("https://") {
+                            Some(p.clone())
+                        } else {
+                            None
+                        }
+                    })
+                });
+
+                let master_poster = match poster_url {
+                    Some(url) => self.download_poster(context.mal_id, &url).await,
+                    None => {
+                        if let Some(ref local_p) = existing_poster {
+                            let pb = PathBuf::from(local_p);
+                            if pb.exists() {
+                                Some(pb)
+                            } else {
+                                None
+                            }
+                        } else {
+                            None
+                        }
+                    }
+                };
+
+                let poster_to_use = master_poster.unwrap_or_else(|| {
+                    let placeholder = self.data_dir.join("placeholder_poster.png");
+                    if !placeholder.exists() {
+                        let _ = write_solid_png(&placeholder, 64, 64, 30, 20, 50);
+                    }
+                    placeholder
+                });
+                let _ = create_folder_png(&poster_to_use, &folder_png_path, settings.icon_style);
+                let _ = apply_folder_icon(settings.folder_icon_method, &show_dir, &folder_png_path);
+            }
         }
 
         // Collect all video files recursively in batch_dir
@@ -1070,9 +1402,9 @@ impl Finalizer for LibraryFinalizer {
             }
 
             // Load show information from database
-            let (title, english_title, show_type_str, start_year, season) = self.db.with(|c| {
+            let (title, english_title, show_type_str, start_year, season, existing_synopsis, existing_poster, existing_score, existing_episodes, existing_status) = self.db.with(|c| {
                 Ok(c.query_row(
-                    "SELECT title, english_title, type, start_year, season FROM shows WHERE mal_id = ?1",
+                    "SELECT title, english_title, type, start_year, season, synopsis, poster_path, score, total_episodes, status FROM shows WHERE mal_id = ?1",
                     [context.mal_id],
                     |r| {
                         Ok((
@@ -1081,6 +1413,11 @@ impl Finalizer for LibraryFinalizer {
                             r.get::<_, String>(2)?,
                             r.get::<_, Option<i64>>(3)?,
                             r.get::<_, i64>(4)?,
+                            r.get::<_, Option<String>>(5)?,
+                            r.get::<_, Option<String>>(6)?,
+                            r.get::<_, Option<f64>>(7)?,
+                            r.get::<_, Option<i64>>(8)?,
+                            r.get::<_, Option<String>>(9)?,
                         ))
                     },
                 )?)
@@ -1096,46 +1433,67 @@ impl Finalizer for LibraryFinalizer {
                 start_year,
             )?;
 
-            // 2. Write synopsis.txt and folder.png if not present
+            // 2. Write synopsis.txt, NFO, and folder.png if not present
             let synopsis_path = show_dir.join(SYNOPSIS_FILE);
             let folder_png_path = show_dir.join(FOLDER_ICON_FILE);
+            let nfo_path = if show_type == ShowType::Movie {
+                show_dir.join("movie.nfo")
+            } else {
+                show_dir.join("tvshow.nfo")
+            };
 
-            if !synopsis_path.exists() || !folder_png_path.exists() {
-                let meta = self.fetch_metadata(context.mal_id, &settings).await;
+            if !synopsis_path.exists() || !folder_png_path.exists() || !nfo_path.exists() {
+                let meta = if existing_synopsis.is_none() || existing_poster.is_none() {
+                    self.fetch_metadata(context.mal_id, &settings).await
+                } else {
+                    None
+                };
                 let now_date = {
                     let ts = self.clock.now();
-                    let _days = ts / 86400;
-                    // Approximate ISO date or timestamp string
                     format!("Unix timestamp {ts}")
                 };
 
-                let syn_text = match &meta {
-                    Some(m) => {
+                let syn_text = match (&meta, &existing_synopsis) {
+                    (Some(m), _) => {
                         let genres: Vec<String> = m.genres.iter().map(|g| g.name.clone()).collect();
                         format_synopsis(
                             m.title.as_deref().unwrap_or(&title),
                             m.title_english.as_deref().or(english_title.as_deref()),
                             m.title_japanese.as_deref(),
                             m.show_type.as_deref().unwrap_or(&show_type_str),
-                            m.episodes,
-                            m.status.as_deref(),
+                            m.episodes.or(existing_episodes),
+                            m.status.as_deref().or(existing_status.as_deref()),
                             m.aired.as_ref().and_then(|a| a.string.as_deref()),
-                            m.score,
+                            m.score.or(existing_score),
                             &genres,
-                            m.synopsis.as_deref(),
+                            m.synopsis.as_deref().or(existing_synopsis.as_deref()),
                             context.mal_id,
                             &now_date,
                         )
                     }
-                    None => format_synopsis(
+                    (None, Some(syn)) => format_synopsis(
                         &title,
                         english_title.as_deref(),
                         None,
                         &show_type_str,
+                        existing_episodes,
+                        existing_status.as_deref(),
                         None,
+                        existing_score,
+                        &[],
+                        Some(syn.as_str()),
+                        context.mal_id,
+                        &now_date,
+                    ),
+                    (None, None) => format_synopsis(
+                        &title,
+                        english_title.as_deref(),
                         None,
+                        &show_type_str,
+                        existing_episodes,
+                        existing_status.as_deref(),
                         None,
-                        None,
+                        existing_score,
                         &[],
                         None,
                         context.mal_id,
@@ -1143,36 +1501,97 @@ impl Finalizer for LibraryFinalizer {
                     ),
                 };
 
-                let _ = fs::write(&synopsis_path, syn_text);
-                #[cfg(unix)]
-                {
-                    use std::os::unix::fs::PermissionsExt;
-                    let _ = fs::set_permissions(&synopsis_path, fs::Permissions::from_mode(0o644));
+                let should_write_syn = !synopsis_path.exists() || {
+                    if let Ok(c) = fs::read_to_string(&synopsis_path) {
+                        is_placeholder_synopsis(&c) && !is_placeholder_synopsis(&syn_text)
+                    } else {
+                        false
+                    }
+                };
+                if should_write_syn {
+                    let _ = fs::write(&synopsis_path, &syn_text);
+                    #[cfg(unix)]
+                    {
+                        use std::os::unix::fs::PermissionsExt;
+                        let _ = fs::set_permissions(&synopsis_path, fs::Permissions::from_mode(0o644));
+                    }
+                }
+
+                // NFO metadata file
+                let plot = meta.as_ref().and_then(|m| m.synopsis.as_deref())
+                    .or(existing_synopsis.as_deref())
+                    .unwrap_or("");
+                let should_write_nfo = !nfo_path.exists() || {
+                    if let Ok(c) = fs::read_to_string(&nfo_path) {
+                        (c.contains("<plot></plot>") || c.contains("<plot/>")) && !plot.trim().is_empty()
+                    } else {
+                        false
+                    }
+                };
+                if should_write_nfo {
+                    let tag = if show_type == ShowType::Movie { "movie" } else { "tvshow" };
+                    let score_val = meta.as_ref().and_then(|m| m.score).or(existing_score);
+                    let nfo_content = format_nfo(
+                        tag,
+                        &title,
+                        english_title.as_deref(),
+                        plot,
+                        score_val,
+                        start_year,
+                        context.mal_id,
+                    );
+                    let _ = fs::write(&nfo_path, nfo_content);
+                    #[cfg(unix)]
+                    {
+                        use std::os::unix::fs::PermissionsExt;
+                        let _ = fs::set_permissions(&nfo_path, fs::Permissions::from_mode(0o644));
+                    }
                 }
 
                 // Poster & folder icon
-                let poster_url = meta.as_ref().and_then(|m| {
-                    m.images.as_ref().and_then(|imgs| {
-                        imgs.jpg.as_ref().and_then(|j| j.large_image_url.clone().or_else(|| j.image_url.clone()))
-                            .or_else(|| imgs.webp.as_ref().and_then(|w| w.large_image_url.clone().or_else(|| w.image_url.clone())))
-                    })
-                });
+                if !folder_png_path.exists() {
+                    let poster_url = meta.as_ref().and_then(|m| {
+                        m.images.as_ref().and_then(|imgs| {
+                            imgs.jpg.as_ref().and_then(|j| j.large_image_url.clone().or_else(|| j.image_url.clone()))
+                                .or_else(|| imgs.webp.as_ref().and_then(|w| w.large_image_url.clone().or_else(|| w.image_url.clone())))
+                        })
+                    }).or_else(|| {
+                        existing_poster.as_ref().and_then(|p| {
+                            if p.starts_with("http://") || p.starts_with("https://") {
+                                Some(p.clone())
+                            } else {
+                                None
+                            }
+                        })
+                    });
 
-                let master_poster = match poster_url {
-                    Some(url) => self.download_poster(context.mal_id, &url).await,
-                    None => None,
-                };
+                    let master_poster = match poster_url {
+                        Some(url) => self.download_poster(context.mal_id, &url).await,
+                        None => {
+                            if let Some(ref local_p) = existing_poster {
+                                let pb = PathBuf::from(local_p);
+                                if pb.exists() {
+                                    Some(pb)
+                                } else {
+                                    None
+                                }
+                            } else {
+                                None
+                            }
+                        }
+                    };
 
-                let poster_to_use = master_poster.unwrap_or_else(|| {
-                    let placeholder = self.data_dir.join("placeholder_poster.png");
-                    if !placeholder.exists() {
-                        let _ = write_solid_png(&placeholder, 64, 64, 30, 20, 50);
-                    }
-                    placeholder
-                });
+                    let poster_to_use = master_poster.unwrap_or_else(|| {
+                        let placeholder = self.data_dir.join("placeholder_poster.png");
+                        if !placeholder.exists() {
+                            let _ = write_solid_png(&placeholder, 64, 64, 30, 20, 50);
+                        }
+                        placeholder
+                    });
 
-                let _ = create_folder_png(&poster_to_use, &folder_png_path, settings.icon_style);
-                let _ = apply_folder_icon(settings.folder_icon_method, &show_dir, &folder_png_path);
+                    let _ = create_folder_png(&poster_to_use, &folder_png_path, settings.icon_style);
+                    let _ = apply_folder_icon(settings.folder_icon_method, &show_dir, &folder_png_path);
+                }
             }
 
             // 3. Determine Episode Filename

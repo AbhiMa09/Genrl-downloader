@@ -1083,8 +1083,8 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('00:00', style: ObsidianTypography.monoCode(color: ObsidianColors.outline).copyWith(fontSize: 9)),
-              Text('Peak: 38.4 Mbps', style: ObsidianTypography.monoCode(color: ObsidianColors.outline).copyWith(fontSize: 9)),
-              Text(durationLabel == '106 min' ? '01:46:35' : '00:24:12',
+              Text('Bitrate Sparkline', style: ObsidianTypography.monoCode(color: ObsidianColors.outline).copyWith(fontSize: 9)),
+              Text(durationLabel,
                   style: ObsidianTypography.monoCode(color: ObsidianColors.outline).copyWith(fontSize: 9)),
             ],
           ),

@@ -47,6 +47,28 @@ class ObsidianColors {
   static const Color onError = Color(0xFF690005);
   static const Color onErrorContainer = Color(0xFFFFDAD6);
 
+  // Inverses
+  static const Color inverseSurface = Color(0xFFDFE2EB);
+  static const Color inverseOnSurface = Color(0xFF2D3137);
+  static const Color inversePrimary = Color(0xFF6D3BD7);
+
+  // Background
+  static const Color background = Color(0xFF10141A);
+  static const Color onBackground = Color(0xFFDFE2EB);
+  static const Color surfaceVariant = Color(0xFF31353C);
+
+  // Fixed Tokens
+  static const Color onPrimaryFixed = Color(0xFF23005C);
+  static const Color onPrimaryFixedVariant = Color(0xFF5516BE);
+  static const Color secondaryFixed = Color(0xFFEADDFF);
+  static const Color secondaryFixedDim = Color(0xFFD2BBFF);
+  static const Color onSecondaryFixed = Color(0xFF25005A);
+  static const Color onSecondaryFixedVariant = Color(0xFF5A00C6);
+  static const Color tertiaryFixed = Color(0xFFC4E7FF);
+  static const Color onTertiaryFixed = Color(0xFF001E2C);
+  static const Color onTertiaryFixedVariant = Color(0xFF004C69);
+  static const Color onTertiaryContainer = Color(0xFF002D40);
+
   // Borders & Accents
   static const Color border = Color(0xFF30363D);
   static const Color borderHighlight = Color(0xFF494454);

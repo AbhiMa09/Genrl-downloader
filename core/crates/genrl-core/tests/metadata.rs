@@ -698,3 +698,155 @@ async fn jikan_per_minute_cap_respected_with_fake_clock() {
         "51st permit must wait ~1.2s for minute bucket to refill, waited {elapsed:?}"
     );
 }
+
+// ---------------------------------------------------------------------------
+// 10. Placeholder synopsis & NFO replaced for all existing folders when metadata arrives
+// ---------------------------------------------------------------------------
+
+#[tokio::test]
+async fn placeholder_synopsis_and_nfo_replaced_for_all_existing_folders_when_metadata_arrives() {
+    let server = MockServer::start().await;
+    let temp = tempdir().unwrap();
+    let data_dir = temp.path().join("data");
+    std::fs::create_dir_all(&data_dir).unwrap();
+
+    let db = Db::open_in_memory().unwrap();
+    let clk = clock();
+
+    let library_dir = temp.path().join("library");
+    std::fs::create_dir_all(&library_dir).unwrap();
+
+    let mut settings = Settings::load(&db).unwrap();
+    settings.jikan_base_url = server.uri();
+    settings.library_folder = library_dir.to_str().unwrap().to_string();
+    Settings::save(&settings, &db).unwrap();
+
+    let gate = Gate::with_policies(
+        db.clone(),
+        &[
+            (Service::Jikan, fast_policy()),
+            (Service::Images, fast_policy()),
+        ],
+    )
+    .unwrap();
+
+    let mal_id = 500;
+    // Create folder 1: show's folder_path
+    let show_folder1 = library_dir.join("Test Movie (2024)");
+    std::fs::create_dir_all(&show_folder1).unwrap();
+    std::fs::write(show_folder1.join(".mal_id"), format!("{mal_id}\n")).unwrap();
+    std::fs::write(
+        show_folder1.join("synopsis.txt"),
+        format!("[Synopsis pending metadata sync for show #{mal_id}]\n"),
+    )
+    .unwrap();
+    std::fs::write(
+        show_folder1.join("movie.nfo"),
+        format!(
+            "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<movie>\n  <title>Test Movie</title>\n  <originaltitle>Test Movie</originaltitle>\n  <plot></plot>\n  <uniqueid type=\"mal\" default=\"true\">{mal_id}</uniqueid>\n</movie>\n"
+        ),
+    )
+    .unwrap();
+
+    // Create folder 2: an archive folder referenced by an episode file
+    let show_folder2 = temp.path().join("archive").join("Test Movie Extra");
+    std::fs::create_dir_all(&show_folder2).unwrap();
+    std::fs::write(show_folder2.join(".mal_id"), format!("{mal_id}\n")).unwrap();
+    std::fs::write(
+        show_folder2.join("synopsis.txt"),
+        format!("[Synopsis pending metadata sync for show #{mal_id}]\n"),
+    )
+    .unwrap();
+    std::fs::write(
+        show_folder2.join("movie.nfo"),
+        format!(
+            "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n<movie>\n  <title>Test Movie</title>\n  <originaltitle>Test Movie</originaltitle>\n  <plot></plot>\n  <uniqueid type=\"mal\" default=\"true\">{mal_id}</uniqueid>\n</movie>\n"
+        ),
+    )
+    .unwrap();
+    let ep2_file = show_folder2.join("Test Movie Extra.mkv");
+    std::fs::write(&ep2_file, b"dummy").unwrap();
+
+    db.with(|c| {
+        c.execute(
+            "INSERT INTO shows (mal_id, title, type, start_year, metadata_status, folder_path)
+             VALUES (?1, 'Test Movie', 'movie', 2024, 'pending', ?2)",
+            rusqlite::params![mal_id, show_folder1.to_str().unwrap()],
+        )?;
+        c.execute(
+            "INSERT INTO episodes (mal_id, number, state, file_path)
+             VALUES (?1, 1, 'done', ?2)",
+            rusqlite::params![mal_id, ep2_file.to_str().unwrap()],
+        )?;
+        Ok(())
+    })
+    .unwrap();
+
+    // Verify initial state: both folders have the 49-byte placeholder and empty plot
+    assert_eq!(
+        std::fs::read_to_string(show_folder1.join("synopsis.txt")).unwrap(),
+        format!("[Synopsis pending metadata sync for show #{mal_id}]\n")
+    );
+    assert_eq!(
+        std::fs::read_to_string(show_folder2.join("synopsis.txt")).unwrap(),
+        format!("[Synopsis pending metadata sync for show #{mal_id}]\n")
+    );
+
+    // Mock Jikan response with full metadata
+    let jikan_body = format!(
+        r#"{{
+            "data": {{
+                "mal_id": {mal_id},
+                "title": "Test Movie",
+                "title_english": "Test Movie English",
+                "title_japanese": "テストムービー",
+                "synopsis": "This is the real recovered movie synopsis from Jikan with rich detail.",
+                "score": 8.95,
+                "type": "Movie",
+                "episodes": 1,
+                "status": "Finished Airing",
+                "year": 2024
+            }}
+        }}"#
+    );
+
+    Mock::given(method("GET"))
+        .and(path(format!("/v4/anime/{mal_id}/full")))
+        .respond_with(ResponseTemplate::new(200).set_body_string(jikan_body))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    // Fetch metadata
+    let outcome = fetch_show_metadata(&db, &gate, &settings, &clk, &data_dir, mal_id, true)
+        .await
+        .unwrap();
+
+    match outcome {
+        MetadataOutcome::Updated { mal_id: id, synopsis, .. } => {
+            assert_eq!(id, mal_id);
+            assert!(synopsis.contains("This is the real recovered movie synopsis"));
+        }
+        other => panic!("expected Updated outcome, got {other:?}"),
+    }
+
+    // Verify folder 1: synopsis.txt AND movie.nfo replaced with real values
+    let syn1 = std::fs::read_to_string(show_folder1.join("synopsis.txt")).unwrap();
+    assert!(syn1.contains("This is the real recovered movie synopsis"));
+    assert!(!syn1.starts_with('['));
+
+    let nfo1 = std::fs::read_to_string(show_folder1.join("movie.nfo")).unwrap();
+    assert!(nfo1.contains("<plot>This is the real recovered movie synopsis from Jikan with rich detail.</plot>"));
+    assert!(nfo1.contains("<rating>8.95</rating>"));
+    assert!(nfo1.contains("<year>2024</year>"));
+
+    // Verify folder 2: also replaced with real values!
+    let syn2 = std::fs::read_to_string(show_folder2.join("synopsis.txt")).unwrap();
+    assert!(syn2.contains("This is the real recovered movie synopsis"));
+    assert!(!syn2.starts_with('['));
+
+    let nfo2 = std::fs::read_to_string(show_folder2.join("movie.nfo")).unwrap();
+    assert!(nfo2.contains("<plot>This is the real recovered movie synopsis from Jikan with rich detail.</plot>"));
+    assert!(nfo2.contains("<rating>8.95</rating>"));
+    assert!(nfo2.contains("<year>2024</year>"));
+}
