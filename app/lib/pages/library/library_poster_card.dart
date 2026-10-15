@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/library_item.dart';
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
+import '../../widgets/loading/skeleton_poster_card.dart';
 import 'poster_density.dart';
 
 class LibraryPosterCard extends StatefulWidget {
@@ -74,6 +75,10 @@ class _LibraryPosterCardState extends State<LibraryPosterCard> {
                       Image.network(
                         show.posterUrl!,
                         fit: BoxFit.cover,
+                        loadingBuilder: (context, child, progress) {
+                          if (progress == null) return child;
+                          return const SkeletonPosterCard();
+                        },
                         errorBuilder: (_, __, ___) => _buildPlaceholder(show),
                       )
                     else

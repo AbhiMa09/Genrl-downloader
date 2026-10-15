@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/queue_item.dart';
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
+import '../../widgets/loading/inline_spinner.dart';
 
 class QueueTable extends StatelessWidget {
   final List<QueueItem> items;
@@ -353,9 +354,23 @@ class QueueTable extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration:
           BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12)),
-      child: Text(label,
-          style: ObsidianTypography.monoCode(
-              color: fg, fontSize: 10, fontWeight: FontWeight.w500)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (item.state == QueueState.queued) ...[
+            const InlineSpinner(size: 9, color: ObsidianColors.outline),
+            const SizedBox(width: 4),
+          ],
+          Flexible(
+            child: Text(
+              label,
+              style: ObsidianTypography.monoCode(
+                  color: fg, fontSize: 10, fontWeight: FontWeight.w500),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

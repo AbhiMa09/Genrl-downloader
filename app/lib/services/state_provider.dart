@@ -5,6 +5,7 @@ import '../models/queue_item.dart';
 import '../models/system_status.dart';
 import 'core_bridge.dart';
 import 'state/activity_state.dart';
+import 'state/ingestion_state.dart';
 import 'state/library_state.dart';
 import 'state/queue_state.dart';
 import 'state/rules_state.dart';
@@ -13,6 +14,7 @@ import 'state/show_detail_state.dart';
 import 'state/state_context.dart';
 
 export 'state/activity_state.dart';
+export 'state/ingestion_state.dart';
 export 'state/library_state.dart';
 export 'state/queue_state.dart';
 export 'state/rules_state.dart';
@@ -27,7 +29,8 @@ class StateProvider extends StateContext
         LibraryStateMixin,
         ShowDetailStateMixin,
         RulesStateMixin,
-        SettingsStateMixin {
+        SettingsStateMixin,
+        IngestionStateMixin {
   @override
   final CoreBridge bridge;
 

@@ -47,7 +47,7 @@ class NavRail extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       Text(
-                        'v2.4.1 Linux x86_64',
+                        'v2.4.1',
                         style: ObsidianTypography.monoCode(
                           color: ObsidianColors.outline,
                         ),
@@ -96,16 +96,6 @@ class NavRail extends StatelessWidget {
                   badgeColor: ObsidianColors.tertiary,
                   isSelected: state.selectedPageIndex == 2,
                   onTap: () => state.selectPage(2),
-                ),
-                _NavItem(
-                  index: 8,
-                  label: 'Ingestion Stage',
-                  icon: Icons.radar_outlined,
-                  selectedIcon: Icons.radar_rounded,
-                  badge: 'LIVE',
-                  badgeColor: ObsidianColors.secondary,
-                  isSelected: state.selectedPageIndex == 8,
-                  onTap: () => state.selectPage(8),
                 ),
                 _NavItem(
                   index: 3,

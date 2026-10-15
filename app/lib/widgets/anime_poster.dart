@@ -2,6 +2,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import '../theme/colors.dart';
 
+import 'loading/skeleton_poster_card.dart';
+
 class AnimePoster extends StatelessWidget {
   final String? urlOrPath;
   final double aspectRatio;
@@ -27,6 +29,10 @@ class AnimePoster extends StatelessWidget {
           fit: BoxFit.cover,
           cacheWidth: 320,
           cacheHeight: 480,
+          loadingBuilder: (context, child, progress) {
+            if (progress == null) return child;
+            return const SkeletonPosterCard();
+          },
           errorBuilder: (_, __, ___) => _placeholder(),
         );
       } else {

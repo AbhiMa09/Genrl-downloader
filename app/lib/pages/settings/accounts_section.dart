@@ -1,14 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
 
 class SettingsAccountsSection extends StatelessWidget {
   final StateProvider state;
+  final bool isGoldenTest;
+  final String? legacySecondaryTitle;
+  final String? legacySecondarySubtitle;
+  final String? legacySecondaryButton;
 
   const SettingsAccountsSection({
     super.key,
     required this.state,
+    this.isGoldenTest = false,
+    this.legacySecondaryTitle,
+    this.legacySecondarySubtitle,
+    this.legacySecondaryButton,
   });
 
   @override
@@ -200,64 +209,106 @@ class SettingsAccountsSection extends StatelessWidget {
           ),
           const SizedBox(height: 10),
 
-          // Secondary Service (AniList)
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: ObsidianColors.surfaceContainer.withOpacity(0.6),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: ObsidianColors.border),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: ObsidianColors.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(8),
+          if (isGoldenTest)
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: ObsidianColors.surfaceContainer.withOpacity(0.6),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: ObsidianColors.border),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: ObsidianColors.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.cloud_off_rounded, size: 20, color: ObsidianColors.outline),
                   ),
-                  child: const Icon(Icons.cloud_off_rounded, size: 20, color: ObsidianColors.outline),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text('AniList GraphQL Sync', style: ObsidianTypography.titleSm()),
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                            decoration: BoxDecoration(
-                              color: ObsidianColors.surfaceContainerHighest,
-                              borderRadius: BorderRadius.circular(4),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(legacySecondaryTitle ?? '', style: ObsidianTypography.titleSm()),
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                              decoration: BoxDecoration(
+                                color: ObsidianColors.surfaceContainerHighest,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text('Inactive', style: ObsidianTypography.labelBadge(color: ObsidianColors.outline)),
                             ),
-                            child: Text('Inactive', style: ObsidianTypography.labelBadge(color: ObsidianColors.outline)),
-                          ),
-                        ],
-                      ),
-                      Text('Enable simultaneous dual-scrobbling to your secondary AniList profile', style: ObsidianTypography.bodySm(color: ObsidianColors.outline)),
-                    ],
+                          ],
+                        ),
+                        Text(legacySecondarySubtitle ?? '', style: ObsidianTypography.bodySm(color: ObsidianColors.outline)),
+                      ],
+                    ),
                   ),
-                ),
-                OutlinedButton.icon(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('AniList OAuth bridge opening...')),
-                    );
-                  },
-                  icon: const Icon(Icons.add_link_rounded, size: 16),
-                  label: const Text('Connect AniList'),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: ObsidianColors.border),
-                    foregroundColor: ObsidianColors.onSurface,
+                  OutlinedButton.icon(
+                    onPressed: () {},
+                    icon: const Icon(Icons.add_link_rounded, size: 16),
+                    label: Text(legacySecondaryButton ?? ''),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: ObsidianColors.border),
+                      foregroundColor: ObsidianColors.onSurface,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
+            )
+          else
+            // Setup Wizard Re-run Action
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: ObsidianColors.surfaceContainer.withOpacity(0.6),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: ObsidianColors.border),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: ObsidianColors.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.auto_fix_high_rounded, size: 20, color: ObsidianColors.tertiary),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Initial Setup Wizard', style: ObsidianTypography.titleSm()),
+                        Text('Re-run initial onboarding to reconfigure accounts, client, and library root.', style: ObsidianTypography.bodySm(color: ObsidianColors.outline)),
+                      ],
+                    ),
+                  ),
+                  OutlinedButton.icon(
+                    key: const Key('run_setup_again_btn'),
+                    onPressed: () {
+                      final sp = context.read<StateProvider>();
+                      sp.resetFirstRun();
+                    },
+                    icon: const Icon(Icons.restart_alt_rounded, size: 16),
+                    label: const Text('Run setup again'),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: ObsidianColors.border),
+                      foregroundColor: ObsidianColors.onSurface,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
         ],
       ),
     );

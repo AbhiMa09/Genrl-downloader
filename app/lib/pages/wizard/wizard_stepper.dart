@@ -9,6 +9,17 @@ class WizardStepper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final step1Done = currentStep > 0;
+    final step1Active = currentStep == 0;
+    final step2Done = currentStep > 1;
+    final step2Active = currentStep == 1;
+    final step3Done = currentStep > 2;
+    final step3Active = currentStep == 2;
+    final step4Done = currentStep > 3;
+    final step4Active = currentStep == 3;
+    final step5Done = currentStep > 4;
+    final step5Active = currentStep == 4;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       color: ObsidianColors.surfaceContainerLowest,
@@ -19,37 +30,37 @@ class WizardStepper extends StatelessWidget {
             _buildStepItem(
                 stepNum: 1,
                 title: 'MAL Account',
-                subtitle: 'ren_kurokawa',
-                isDone: true,
-                isActive: false),
-            _buildStepDivider(isDone: true),
+                subtitle: step1Done ? 'ren_kurokawa' : 'Configure',
+                isDone: step1Done,
+                isActive: step1Active),
+            _buildStepDivider(isDone: step1Done),
             _buildStepItem(
                 stepNum: 2,
                 title: 'qBittorrent',
-                subtitle: ':8080 OK',
-                isDone: true,
-                isActive: false),
-            _buildStepDivider(isDone: true),
+                subtitle: step2Done ? ':8080 OK' : 'Connect',
+                isDone: step2Done,
+                isActive: step2Active),
+            _buildStepDivider(isDone: step2Done),
             _buildStepItem(
                 stepNum: 3,
                 title: 'Root Path',
-                subtitle: '/mnt/anime/TV',
-                isDone: true,
-                isActive: false),
-            _buildStepDivider(isDone: true),
+                subtitle: step3Done ? '/mnt/anime/TV' : 'Destination',
+                isDone: step3Done,
+                isActive: step3Active),
+            _buildStepDivider(isDone: step3Done),
             _buildStepItem(
                 stepNum: 4,
                 title: 'Quality / Groups',
-                subtitle: '1080p • 5 Groups',
-                isDone: true,
-                isActive: false),
-            _buildStepDivider(isDone: false),
+                subtitle: step4Done ? '1080p • 5 Groups' : 'Preferences',
+                isDone: step4Done,
+                isActive: step4Active),
+            _buildStepDivider(isDone: step4Done),
             _buildStepItem(
                 stepNum: 5,
                 title: 'Review & Launch',
                 subtitle: 'Ready',
-                isDone: false,
-                isActive: true),
+                isDone: step5Done,
+                isActive: step5Active),
           ],
         ),
       ),

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -5,22 +6,22 @@ import 'pages/activity_page.dart';
 import 'pages/dashboard_page.dart';
 import 'pages/inbox_page.dart';
 import 'pages/library_page.dart';
+import 'pages/loading_gallery_page.dart';
 import 'pages/queue_page.dart';
 import 'pages/rules_page.dart';
 import 'pages/search_page.dart';
 import 'pages/settings_page.dart';
 import 'pages/show_detail_page.dart';
-import 'pages/ingestion_stage_page.dart';
+import 'pages/wizard_page.dart';
 import 'services/state_provider.dart';
 import 'theme/colors.dart';
 import 'theme/theme.dart';
 import 'widgets/app_header.dart';
+import 'widgets/cyber_logo.dart';
+import 'widgets/loading/connection_banner.dart';
 import 'widgets/nav_rail.dart';
 import 'widgets/status_strip.dart';
-
-import 'pages/wizard_page.dart';
 import 'widgets/tray_notifications_overlay.dart';
-import 'widgets/cyber_logo.dart';
 
 void main(List<String> args) {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,7 +30,7 @@ void main(List<String> args) {
   bool isWizard = false;
   bool isTray = false;
   bool isLogo = false;
-  bool isIngestion = false;
+  bool isGallery = false;
 
   for (int i = 0; i < args.length; i++) {
     if (args[i] == '--page' && i + 1 < args.length) {
@@ -42,8 +43,8 @@ void main(List<String> args) {
       isTray = true;
     } else if (args[i] == '--logo') {
       isLogo = true;
-    } else if (args[i] == '--ingestion') {
-      isIngestion = true;
+    } else if (args[i] == '--gallery' || args[i] == '--debug-gallery') {
+      isGallery = true;
     }
   }
 
@@ -53,7 +54,7 @@ void main(List<String> args) {
     isWizard: isWizard,
     isTray: isTray,
     isLogo: isLogo,
-    isIngestion: isIngestion,
+    isGallery: isGallery,
   ));
 }
 
@@ -64,7 +65,7 @@ class GenrlApp extends StatelessWidget {
   final bool isWizard;
   final bool isTray;
   final bool isLogo;
-  final bool isIngestion;
+  final bool isGallery;
 
   const GenrlApp({
     super.key,
@@ -74,33 +75,11 @@ class GenrlApp extends StatelessWidget {
     this.isWizard = false,
     this.isTray = false,
     this.isLogo = false,
-    this.isIngestion = false,
+    this.isGallery = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    Widget homeWidget;
-    if (isWizard) {
-      homeWidget = WizardPage(onComplete: () {});
-    } else if (isTray) {
-      homeWidget = Scaffold(
-        backgroundColor: ObsidianColors.surface,
-        body: Center(child: SystemTrayNotificationOverlay(onClose: () {})),
-      );
-    } else if (isLogo) {
-      homeWidget = const Scaffold(
-        backgroundColor: ObsidianColors.surface,
-        body: Center(child: CyberLogo(size: 256)),
-      );
-    } else if (isIngestion) {
-      homeWidget = const Scaffold(
-        backgroundColor: ObsidianColors.surface,
-        body: IngestionStagePage(),
-      );
-    } else {
-      homeWidget = const MainShell();
-    }
-
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) {
@@ -118,7 +97,36 @@ class GenrlApp extends StatelessWidget {
         title: 'Genrl Downloader',
         debugShowCheckedModeBanner: false,
         theme: ObsidianTheme.darkTheme,
-        home: homeWidget,
+        routes: {
+          if (kDebugMode) '/debug/loading-gallery': (ctx) => const LoadingGalleryPage(),
+        },
+        home: Consumer<StateProvider>(
+          builder: (context, sp, _) {
+            if (isGallery && kDebugMode) {
+              return const LoadingGalleryPage();
+            }
+            if (isWizard || !sp.firstRunCompleted) {
+              return WizardPage(
+                onComplete: () {
+                  sp.setFirstRunCompleted(true);
+                },
+              );
+            }
+            if (isTray) {
+              return Scaffold(
+                backgroundColor: ObsidianColors.surface,
+                body: Center(child: SystemTrayNotificationOverlay(onClose: () {})),
+              );
+            }
+            if (isLogo) {
+              return const Scaffold(
+                backgroundColor: ObsidianColors.surface,
+                body: Center(child: CyberLogo(size: 256)),
+              );
+            }
+            return const MainShell();
+          },
+        ),
       ),
     );
   }
@@ -142,7 +150,6 @@ class MainShell extends StatelessWidget {
       const ActivityPage(),
       const RulesPage(),
       const SettingsPage(),
-      const IngestionStagePage(),
     ];
 
     final titles = <String>[
@@ -154,7 +161,6 @@ class MainShell extends StatelessWidget {
       'Activity Telemetry',
       'Matching Rules',
       'System Settings',
-      'Ingestion & Swarm Stage',
     ];
 
     final activeIndex = state.selectedPageIndex.clamp(0, pages.length - 1);
@@ -177,6 +183,9 @@ class MainShell extends StatelessWidget {
               children: [
                 // Top Header Bar
                 AppHeader(pageTitle: currentTitle),
+
+                // Connection status banner
+                const ConnectionBanner(),
 
                 // Main Page Content
                 Expanded(

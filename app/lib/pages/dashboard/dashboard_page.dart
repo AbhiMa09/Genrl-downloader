@@ -5,6 +5,7 @@ import '../../widgets/state_views.dart';
 import 'dashboard_airing_posters.dart';
 import 'dashboard_bottom_grid.dart';
 import 'dashboard_health_pulse_bar.dart';
+import 'dashboard_ingestion_strip.dart';
 import 'dashboard_kpi_metrics.dart';
 import 'dashboard_operational_bar.dart';
 import 'dashboard_pipeline_table.dart';
@@ -51,6 +52,9 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
             const SizedBox(height: 16),
           ],
+
+          // Compact Ingestion Strip during any active sync
+          DashboardIngestionStrip(state: state),
 
           // 1. Operational Command & Action Bar
           DashboardOperationalBar(

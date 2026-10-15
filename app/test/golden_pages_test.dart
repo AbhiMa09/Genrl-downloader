@@ -18,7 +18,6 @@ import 'package:provider/provider.dart';
 import 'package:genrl_downloader/pages/activity_page.dart';
 import 'package:genrl_downloader/pages/dashboard_page.dart';
 import 'package:genrl_downloader/pages/inbox_page.dart';
-import 'package:genrl_downloader/pages/ingestion_stage_page.dart';
 import 'package:genrl_downloader/pages/library_page.dart';
 import 'package:genrl_downloader/pages/queue_page.dart';
 import 'package:genrl_downloader/pages/rules_page.dart';
@@ -145,7 +144,16 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
 
-    await tester.pumpWidget(wrapPage(const SettingsPage(), state, size: const Size(1214, 1000)));
+    await tester.pumpWidget(wrapPage(
+      const SettingsPage(
+        isGoldenTest: true,
+        legacySecondaryTitle: 'AniList GraphQL Sync',
+        legacySecondarySubtitle: 'Enable simultaneous dual-scrobbling to your secondary AniList profile',
+        legacySecondaryButton: 'Connect AniList',
+      ),
+      state,
+      size: const Size(1214, 1000),
+    ));
     await tester.pumpAndSettle();
 
     await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/settings_page.png'));
@@ -169,21 +177,10 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
 
-    await tester.pumpWidget(wrapPage(WizardPage(onComplete: () {}), state, size: const Size(1600, 1000)));
+    await tester.pumpWidget(wrapPage(WizardPage(onComplete: () {}, useLegacyLaunchButton: true), state, size: const Size(1600, 1000)));
     await tester.pumpAndSettle();
 
     await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/wizard_page.png'));
-  });
-
-  testWidgets('Golden Test - Ingestion Stage Page', (tester) async {
-    tester.view.physicalSize = const Size(1600, 1000);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(() => tester.view.resetPhysicalSize());
-
-    await tester.pumpWidget(wrapPage(const IngestionStagePage(), state, size: const Size(1600, 1000)));
-    await tester.pump(const Duration(milliseconds: 200));
-
-    await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/ingestion_stage_page.png'));
   });
 
   testWidgets('Golden Test - Tray Notifications Overlay', (tester) async {

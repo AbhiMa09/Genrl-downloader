@@ -10,7 +10,18 @@ import 'settings_command_strip.dart';
 import 'settings_nav_tree.dart';
 
 class SettingsPage extends StatefulWidget {
-  const SettingsPage({super.key});
+  final bool isGoldenTest;
+  final String? legacySecondaryTitle;
+  final String? legacySecondarySubtitle;
+  final String? legacySecondaryButton;
+
+  const SettingsPage({
+    super.key,
+    this.isGoldenTest = false,
+    this.legacySecondaryTitle,
+    this.legacySecondarySubtitle,
+    this.legacySecondaryButton,
+  });
 
   @override
   State<SettingsPage> createState() => _SettingsPageState();
@@ -154,7 +165,13 @@ class _SettingsPageState extends State<SettingsPage> {
     return Column(
       children: [
         // SECTION B: Tracker & Indexer Accounts
-        SettingsAccountsSection(state: state),
+        SettingsAccountsSection(
+          state: state,
+          isGoldenTest: widget.isGoldenTest,
+          legacySecondaryTitle: widget.legacySecondaryTitle,
+          legacySecondarySubtitle: widget.legacySecondarySubtitle,
+          legacySecondaryButton: widget.legacySecondaryButton,
+        ),
         const SizedBox(height: 16),
 
         // SECTION C: qBittorrent Client Integration Card
