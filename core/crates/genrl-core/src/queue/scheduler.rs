@@ -1,42 +1,19 @@
-//! The scheduler, and the launch-time reconcile that survives being killed.
-//!
-//! The scheduler is deliberately thin: it picks due jobs, respects the pause
-//! switch and the per-kind concurrency limits, and dispatches them to
-//! [`worker::Engine::step`]. Everything interesting — state, retries, blocking —
-//! lives in the steps and the transition table, so the scheduler can be
-//! replaced or run headless without changing what a job means.
-//!
-//! [`reconcile`] is the phase's check. On launch it walks every non-terminal
-//! job, compares it with qBittorrent by info hash, and resumes it:
-//!
-//! | what it finds | what it does |
-//! |---|---|
-//! | torrent present and complete | finalize |
-//! | torrent present and downloading | monitor |
-//! | absent after the add step | re-add by magnet (idempotent by hash) |
-//! | absent before the add step | redo the step |
-//!
-//! Because a transition is written *before* the work it enables, every
-//! possible kill point leaves the job in exactly one of these cases.
-
 use std::collections::HashMap;
-use std::sync::Mutex;
 use std::sync::Arc;
+use std::sync::Mutex;
 use std::time::Duration;
 
 use tokio::task::JoinHandle;
 
-use crate::clock::Clock;
-use crate::db::Db;
 use crate::error::Result;
 use crate::events::EventLog;
 use crate::http::{Gate, Service};
 use crate::jobs;
 use crate::models::{JobKind, JobState};
-use crate::qbit;
-use crate::questions::QuestionStore;
 use crate::settings::Settings;
 use crate::worker::Engine;
+
+use super::status::sweep;
 
 /// How long the run loop sleeps between ticks.
 pub const TICK_SECS: u64 = 1;
@@ -52,24 +29,6 @@ pub struct TickReport {
     pub dispatched: Vec<(JobKind, i64)>,
     /// Blocked jobs whose blocker cleared, and where they went back to.
     pub resumed: Vec<(i64, JobState)>,
-}
-
-/// What reconcile did with one job.
-#[derive(Debug, Clone, PartialEq)]
-pub struct Resume {
-    pub job_id: i64,
-    pub from: JobState,
-    pub to: JobState,
-    pub why: String,
-}
-
-/// What reconcile found overall.
-#[derive(Debug, Clone, Default, PartialEq)]
-pub struct ReconcileReport {
-    pub resumed: Vec<Resume>,
-    /// Jobs left alone: waiting on a question, failed, blocked, or nothing to
-    /// compare against yet.
-    pub waiting: Vec<(i64, JobState)>,
 }
 
 /// The scheduler: picks due jobs, keeps the limits, spawns the steps.
@@ -364,208 +323,4 @@ impl Scheduler {
         }
         out
     }
-}
-
-/// Launch-time recovery: compare every non-terminal job with qBittorrent and
-/// resume it.
-pub async fn reconcile(engine: &Engine) -> Result<ReconcileReport> {
-    let settings = Settings::load(engine.db())?;
-    let client = qbit::Qbit::from_settings(&settings)?;
-    let health = client.health(engine.gate()).await?;
-
-    let mut report = ReconcileReport::default();
-    for job in jobs::non_terminal_jobs(engine.db())? {
-        let why;
-        let to;
-        match job.state {
-            JobState::Search | JobState::Choose => {
-                // Nothing on the wire yet: the scheduler redoes the step.
-                report.waiting.push((job.id, job.state));
-                continue;
-            }
-            JobState::Add => match &job.torrent_id {
-                Some(_) => {
-                    let hash = hash_of(engine, &job)?;
-                    match client.get_torrent(engine.gate(), &hash).await? {
-                        Some(info) if info.is_complete() => {
-                            why = "the download finished while the app was down".to_string();
-                            to = JobState::Finalize;
-                        }
-                        Some(_) => {
-                            why = "the download is running again".to_string();
-                            to = JobState::Monitor;
-                        }
-                        None => {
-                            // Added, then the add never confirmed: add again.
-                            // The magnet is keyed by info hash, so this cannot
-                            // duplicate a torrent in qBittorrent.
-                            engine.step(job.id).await?;
-                            continue;
-                        }
-                    }
-                }
-                None => {
-                    why = "no candidate was chosen before the kill; choosing again".to_string();
-                    to = JobState::Choose;
-                }
-            },
-            JobState::Monitor => match &job.torrent_id {
-                Some(_) => {
-                    let hash = hash_of(engine, &job)?;
-                    match client.get_torrent(engine.gate(), &hash).await? {
-                        Some(info) if info.is_complete() => {
-                            why = "the download finished while the app was down".to_string();
-                            to = JobState::Finalize;
-                        }
-                        Some(_) => {
-                            // Restart the stall timer from now: progress was
-                            // just observed, so a crash must not look like a
-                            // stall.
-                            engine.restart_stall_timer(&job);
-                            why = "still downloading; monitoring resumed".to_string();
-                            to = JobState::Monitor;
-                        }
-                        None => {
-                            why = "the torrent left qBittorrent; searching for the next candidate"
-                                .to_string();
-                            to = JobState::Search;
-                        }
-                    }
-                }
-                None => {
-                    why = "no torrent was being watched; choosing again".to_string();
-                    to = JobState::Choose;
-                }
-            },
-            JobState::Finalize => {
-                // Re-run it: the library step is idempotent and the episode row
-                // is written once.
-                engine.step(job.id).await?;
-                continue;
-            }
-            other => {
-                report.waiting.push((job.id, other));
-                continue;
-            }
-        };
-
-        if job.state != to {
-            jobs::transition(
-                engine.db(),
-                engine.clock(),
-                job.id,
-                to,
-                &why,
-                &jobs::MoveOptions::default(),
-            )?;
-            report.resumed.push(Resume {
-                job_id: job.id,
-                from: job.state,
-                to,
-                why,
-            });
-        } else {
-            report.waiting.push((job.id, to));
-        }
-    }
-
-    let log = EventLog::new(engine.db().clone());
-    log.info(
-        None,
-        None,
-        format!(
-            "reconcile: {} resumed, {} waiting (qBittorrent {})",
-            report.resumed.len(),
-            report.waiting.len(),
-            health.version
-        ),
-    )?;
-    Ok(report)
-}
-
-/// The info hash of a job's chosen torrent.
-fn hash_of(engine: &Engine, job: &crate::models::Job) -> Result<String> {
-    let Some(torrent_id) = job.torrent_id else {
-        return Err(crate::Error::Other(format!(
-            "job {} has no chosen torrent",
-            job.id
-        )));
-    };
-    engine.db().with(|c| {
-        Ok(c.query_row(
-            "SELECT info_hash FROM torrents WHERE id = ?1",
-            [torrent_id],
-            |r| r.get(0),
-        )?)
-    })
-}
-
-/// Expire stale questions and return their episodes to `missing`.
-pub fn sweep(db: &Db, clock: &dyn Clock) -> Result<usize> {
-    let expired = QuestionStore::expire(db, clock.now())?;
-    let mut released = 0;
-    for question in &expired {
-        let Some(job_id) = question.job_id else {
-            continue;
-        };
-        let Some(job) = jobs::get(db, job_id)? else {
-            continue;
-        };
-        // A waiting job goes to failed (it asked and got nothing); a job that
-        // already failed just loses its episode back to the pool.
-        if job.state == JobState::NeedsInput {
-            jobs::transition(
-                db,
-                clock,
-                job_id,
-                JobState::Failed,
-                "question expired; the episode is missing again",
-                &jobs::MoveOptions {
-                    reset_attempts: true,
-                    ..Default::default()
-                },
-            )?;
-        } else if job.state != JobState::Failed {
-            continue;
-        }
-        crate::planner::mark_missing(db, job.episode_id)?;
-        released += 1;
-    }
-    Ok(released)
-}
-
-/// A status summary for the CLI and the status strip.
-#[derive(Debug, Clone, Default, PartialEq)]
-pub struct QueueStatus {
-    pub jobs_by_state: HashMap<JobState, u64>,
-    pub open_questions: u64,
-    pub due: u64,
-}
-
-pub fn status(db: &Db, clock: &dyn Clock) -> Result<QueueStatus> {
-    let mut jobs_by_state = HashMap::new();
-    db.with_rusqlite(|c| {
-        let mut stmt = c.prepare("SELECT state, COUNT(*) FROM jobs GROUP BY state")?;
-        let rows = stmt.query_map([], |r| {
-            Ok((
-                JobState::parse(&r.get::<_, String>(0)?),
-                r.get::<_, i64>(1)? as u64,
-            ))
-        })?;
-        for row in rows {
-            let (state, count) = row?;
-            jobs_by_state.insert(state, count);
-        }
-        Ok(())
-    })?;
-    let open_questions = QuestionStore::open_count(db, clock.now())?;
-    let due = jobs::due_jobs(db, clock.now(), &[], usize::MAX)?
-        .into_iter()
-        .filter(|job| job.state.is_active())
-        .count() as u64;
-    Ok(QueueStatus {
-        jobs_by_state,
-        open_questions,
-        due,
-    })
 }
