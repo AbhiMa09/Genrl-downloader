@@ -55,6 +55,7 @@ pub mod secrets;
 pub mod settings;
 pub mod worker;
 pub mod locations;
+pub mod metadata;
 
 pub use db::Db;
 pub use error::{Error, Result};
@@ -62,6 +63,7 @@ pub use events::{EventLog, Level};
 pub use http::{Gate, Service};
 pub use library::{LibraryFinalizer, RescanReport, rescan_library};
 pub use locations::{LocationCheck, LocationsReport, get_locations, set_location, check_directory};
+pub use metadata::{fetch_show_metadata, process_metadata_queue, queue_stale_metadata, MetadataOutcome};
 pub use rules::Rules;
 pub use settings::Settings;
 

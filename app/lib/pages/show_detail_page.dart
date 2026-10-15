@@ -318,11 +318,22 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
             ),
             const SizedBox(width: 8),
 
-          // Update Metadata Button
+          // Refresh Metadata Button
           OutlinedButton.icon(
-            onPressed: () => state.loadShowDetail(show.malId),
-            icon: const Icon(Icons.sync_rounded, size: 16, color: ObsidianColors.tertiary),
-            label: Text('Update Metadata', style: ObsidianTypography.monoCode(color: ObsidianColors.onSurface)),
+            onPressed: show.metadataStatus == 'fetching'
+                ? null
+                : () => state.refreshShowMetadata(show.malId, force: true),
+            icon: show.metadataStatus == 'fetching'
+                ? const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: ObsidianColors.tertiary),
+                  )
+                : const Icon(Icons.sync_rounded, size: 16, color: ObsidianColors.tertiary),
+            label: Text(
+              show.metadataStatus == 'fetching' ? 'Refreshing...' : 'Refresh Metadata',
+              style: ObsidianTypography.monoCode(color: ObsidianColors.onSurface),
+            ),
             style: OutlinedButton.styleFrom(
               backgroundColor: ObsidianColors.surfaceContainer,
               side: const BorderSide(color: ObsidianColors.border),
@@ -1145,7 +1156,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Hero Information Card
-        _buildHeroCard(show, isMovie, effectiveGenres),
+        _buildHeroCard(context, state, show, isMovie, effectiveGenres),
         const SizedBox(height: 20),
 
         // 3-Tab Segmented Navigation Bar
@@ -1168,7 +1179,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
     );
   }
 
-  Widget _buildHeroCard(LibraryShow show, bool isMovie, List<String> genres) {
+  Widget _buildHeroCard(BuildContext context, StateProvider state, LibraryShow show, bool isMovie, List<String> genres) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
@@ -1248,13 +1259,8 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
               ),
               const SizedBox(height: 14),
 
-              // Synopsis Paragraph
-              Text(
-                show.synopsis.isNotEmpty
-                    ? show.synopsis
-                    : 'Mitsuha Miyamizu, a high school girl living in the rural mountain town of Itomori, yearns for an exhilarating life in the sprawling metropolis of Tokyo. Meanwhile, in Tokyo, Taki Tachibana lives a busy life as a high school student while juggling his part-time architecture job. One day, Mitsuha awakens in a room that is not her own and finds herself in Tokyo inside Taki\'s body, while Taki discovers he is living Mitsuha\'s humble countryside routine. As they seek an answer to this supernatural cosmic phenomenon, their actions intertwine with a celestial event spanning past and future.',
-                style: ObsidianTypography.bodyMd(color: ObsidianColors.onSurfaceVariant).copyWith(height: 1.55),
-              ),
+              // Synopsis Section
+              _buildSynopsisSection(context, state, show),
               const SizedBox(height: 16),
 
               // Genre Chips
@@ -1358,6 +1364,102 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildSynopsisSection(BuildContext context, StateProvider state, LibraryShow show) {
+    final status = show.metadataStatus;
+    final isFetching = status == 'fetching' || show.synopsis == '[Synopsis loading...]';
+    final isPendingOrFailed = status == 'pending' || status == 'failed' || show.synopsis.startsWith('[Synopsis unavailable');
+
+    if (isFetching) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: ObsidianColors.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: ObsidianColors.border),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(
+              width: 14,
+              height: 14,
+              child: CircularProgressIndicator(strokeWidth: 2, color: ObsidianColors.primary),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              'Synopsis loading...',
+              style: ObsidianTypography.bodyMd(color: ObsidianColors.outline).copyWith(fontStyle: FontStyle.italic),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (isPendingOrFailed) {
+      final errorMsg = show.metadataError ?? 'upstream rate limit or network unreachable';
+      String retryNotice = 'Could not load, retrying';
+      if (show.metadataNextRetryAt != null) {
+        final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+        final diff = show.metadataNextRetryAt! - now;
+        if (diff > 0) {
+          retryNotice = 'Could not load, retrying in ${diff}s';
+        }
+      }
+
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: ObsidianColors.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: ObsidianColors.errorContainer.withOpacity(0.5)),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const Icon(Icons.info_outline, size: 16, color: ObsidianColors.warning),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                '$retryNotice ($errorMsg)',
+                style: ObsidianTypography.bodySm(color: ObsidianColors.onSurfaceVariant),
+              ),
+            ),
+            const SizedBox(width: 12),
+            FilledButton.tonal(
+              onPressed: () => state.refreshShowMetadata(show.malId, force: true),
+              style: FilledButton.styleFrom(
+                backgroundColor: ObsidianColors.surfaceContainerHigh,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.refresh_rounded, size: 14, color: ObsidianColors.primary),
+                  const SizedBox(width: 6),
+                  Text('Retry', style: ObsidianTypography.monoCode(color: ObsidianColors.primary)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (show.synopsis.isNotEmpty && !show.synopsis.startsWith('[')) {
+      return Text(
+        show.synopsis,
+        style: ObsidianTypography.bodyMd(color: ObsidianColors.onSurfaceVariant).copyWith(height: 1.55),
+      );
+    }
+
+    return Text(
+      'No synopsis available for this show.',
+      style: ObsidianTypography.bodyMd(color: ObsidianColors.outline).copyWith(fontStyle: FontStyle.italic),
     );
   }
 

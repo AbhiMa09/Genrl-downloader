@@ -251,6 +251,35 @@ enum Command {
         mal_id: i64,
         offset: i64,
     },
+    /// Ingest and manage show metadata (Jikan/MAL, synopsis, posters, retry queue).
+    Metadata {
+        #[command(subcommand)]
+        command: MetadataCommand,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+enum MetadataCommand {
+    /// Fetch metadata for a specific show immediately.
+    Fetch {
+        /// MAL show id.
+        mal_id: i64,
+        /// Force re-fetch even if cached within 7 days.
+        #[arg(long)]
+        force: bool,
+        /// Machine-readable output.
+        #[arg(long)]
+        json: bool,
+    },
+    /// Process queued metadata jobs for pending shows.
+    Sync {
+        /// Maximum number of shows to process.
+        #[arg(long, default_value = "20")]
+        limit: usize,
+        /// Machine-readable output.
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -474,7 +503,7 @@ async fn main() -> Result<()> {
         Command::Inbox { json } => inbox_cmd(&data_dir, json),
         Command::Answer { id, choice, always } => answer_cmd(&data_dir, id, &choice, always),
         Command::Shows { status, json } => shows_cmd(&data_dir, status.as_deref(), json),
-        Command::Show { mal_id, json } => show_detail_cmd(&data_dir, mal_id, json),
+        Command::Show { mal_id, json } => show_detail_cmd(&data_dir, mal_id, json).await,
         Command::Run => run_cmd(&data_dir).await,
         Command::Pause => automation_cmd(&data_dir, false),
         Command::Resume => automation_cmd(&data_dir, true),
@@ -515,6 +544,14 @@ async fn main() -> Result<()> {
         },
         Command::Alias { command } => alias_cmd(&data_dir, command),
         Command::Offset { mal_id, offset } => offset_cmd(&data_dir, mal_id, offset),
+        Command::Metadata { command } => match command {
+            MetadataCommand::Fetch { mal_id, force, json } => {
+                metadata_fetch_cmd(&data_dir, mal_id, force, json).await
+            }
+            MetadataCommand::Sync { limit, json } => {
+                metadata_sync_cmd(&data_dir, limit, json).await
+            }
+        },
     }
 }
 
@@ -852,8 +889,9 @@ fn shows_cmd(data_dir: &std::path::Path, status_filter: Option<&str>, json: bool
                     s.status, s.synopsis, s.poster_path, s.folder_path, s.auto,
                     COALESCE(m.list_status, 'plan_to_watch'),
                     COALESCE(m.watched_count, 0),
-                    COALESCE(m.score, 0),
-                    (SELECT COUNT(*) FROM episodes e WHERE e.mal_id = s.mal_id AND e.state = 'done') AS downloaded_episodes
+                    COALESCE(m.score, s.score, 0),
+                    (SELECT COUNT(*) FROM episodes e WHERE e.mal_id = s.mal_id AND e.state = 'done') AS downloaded_episodes,
+                    s.metadata_status, s.metadata_error
              FROM shows s
              LEFT JOIN mal_entries m ON m.mal_id = s.mal_id
              WHERE 1=1"
@@ -871,6 +909,7 @@ fn shows_cmd(data_dir: &std::path::Path, status_filter: Option<&str>, json: bool
             let total_eps: Option<i64> = r.get(4)?;
             let airing_st: Option<String> = r.get(5)?;
             let synopsis_txt: Option<String> = r.get(6)?;
+            let poster_val: Option<String> = r.get(7)?;
             Ok(serde_json::json!({
                 "mal_id": r.get::<_, i64>(0)?,
                 "title": r.get::<_, String>(1)?,
@@ -879,13 +918,15 @@ fn shows_cmd(data_dir: &std::path::Path, status_filter: Option<&str>, json: bool
                 "total_episodes": total_eps.unwrap_or(0),
                 "airing_status": airing_st.unwrap_or_else(|| "Finished".into()),
                 "synopsis": synopsis_txt.unwrap_or_default(),
-                "poster_url": r.get::<_, Option<String>>(7)?,
+                "poster_url": poster_val,
                 "folder_path": r.get::<_, Option<String>>(8)?,
                 "auto": r.get::<_, i64>(9)? != 0,
                 "status": r.get::<_, String>(10)?,
                 "watched_episodes": r.get::<_, i64>(11)?,
                 "score": r.get::<_, f64>(12)?,
                 "downloaded_episodes": r.get::<_, i64>(13)?,
+                "metadata_status": r.get::<_, Option<String>>(14)?.unwrap_or_else(|| "ready".into()),
+                "metadata_error": r.get::<_, Option<String>>(15)?,
             }))
         })?;
         let mut list = Vec::new();
@@ -906,19 +947,163 @@ fn shows_cmd(data_dir: &std::path::Path, status_filter: Option<&str>, json: bool
     Ok(())
 }
 
-fn show_detail_cmd(data_dir: &std::path::Path, mal_id: i64, json: bool) -> Result<()> {
+async fn metadata_fetch_cmd(
+    data_dir: &std::path::Path,
+    mal_id: i64,
+    force: bool,
+    json: bool,
+) -> Result<()> {
     let db = open_db(data_dir)?;
+    let gate = Gate::new(db.clone())?;
+    let settings = Settings::load(&db)?;
+    let clock = genrl_core::clock::SystemClock;
+
+    let outcome = genrl_core::fetch_show_metadata(
+        &db,
+        &gate,
+        &settings,
+        &clock,
+        data_dir,
+        mal_id,
+        force,
+    )
+    .await?;
+
+    if json {
+        let val = match outcome {
+            genrl_core::MetadataOutcome::Updated { mal_id, synopsis, poster_path } => {
+                serde_json::json!({
+                    "status": "updated",
+                    "mal_id": mal_id,
+                    "synopsis": synopsis,
+                    "poster_path": poster_path,
+                })
+            }
+            genrl_core::MetadataOutcome::Cached { mal_id } => {
+                serde_json::json!({
+                    "status": "cached",
+                    "mal_id": mal_id,
+                })
+            }
+            genrl_core::MetadataOutcome::PendingRetry { mal_id, next_run_at, error } => {
+                serde_json::json!({
+                    "status": "pending_retry",
+                    "mal_id": mal_id,
+                    "next_run_at": next_run_at,
+                    "error": error,
+                })
+            }
+            genrl_core::MetadataOutcome::Failed { mal_id, error } => {
+                serde_json::json!({
+                    "status": "failed",
+                    "mal_id": mal_id,
+                    "error": error,
+                })
+            }
+        };
+        println!("{}", serde_json::to_string_pretty(&val)?);
+    } else {
+        match outcome {
+            genrl_core::MetadataOutcome::Updated { mal_id, .. } => {
+                println!("Metadata updated for show #{mal_id}");
+            }
+            genrl_core::MetadataOutcome::Cached { mal_id } => {
+                println!("Metadata is fresh (cached within 7 days) for show #{mal_id}");
+            }
+            genrl_core::MetadataOutcome::PendingRetry { mal_id, next_run_at, error } => {
+                println!("Metadata fetch failed for show #{mal_id}: {error}. Next retry at {next_run_at}");
+            }
+            genrl_core::MetadataOutcome::Failed { mal_id, error } => {
+                println!("Metadata fetch failed for show #{mal_id}: {error}");
+            }
+        }
+    }
+    Ok(())
+}
+
+async fn metadata_sync_cmd(
+    data_dir: &std::path::Path,
+    limit: usize,
+    json: bool,
+) -> Result<()> {
+    let db = open_db(data_dir)?;
+    let gate = Gate::new(db.clone())?;
+    let settings = Settings::load(&db)?;
+    let clock = genrl_core::clock::SystemClock;
+
+    let report = genrl_core::process_metadata_queue(
+        &db,
+        &gate,
+        &settings,
+        &clock,
+        data_dir,
+        Some(limit),
+    )
+    .await?;
+
+    if json {
+        println!("{}", serde_json::to_string_pretty(&serde_json::json!({
+            "processed": report.processed,
+            "updated": report.updated,
+            "failed": report.failed,
+            "cached": report.cached,
+        }))?);
+    } else {
+        println!(
+            "Metadata queue: {} processed, {} updated, {} cached, {} pending retry",
+            report.processed, report.updated, report.cached, report.failed
+        );
+    }
+    Ok(())
+}
+
+async fn show_detail_cmd(data_dir: &std::path::Path, mal_id: i64, json: bool) -> Result<()> {
+    let db = open_db(data_dir)?;
+    let settings = Settings::load(&db)?;
+    let clock = genrl_core::clock::SystemClock;
+
+    // Check if synopsis or poster is missing or pending; trigger on-demand fetch if needed
+    let (current_synopsis, meta_status): (Option<String>, Option<String>) = db.with(|c| {
+        Ok(c.query_row(
+            "SELECT synopsis, metadata_status FROM shows WHERE mal_id = ?1",
+            [mal_id],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        ).unwrap_or((None, None)))
+    })?;
+
+    let needs_fetch = current_synopsis.as_deref().map(|s| s.trim().is_empty() || s.starts_with("[Synopsis loading")).unwrap_or(true)
+        || meta_status.as_deref() == Some("pending");
+
+    if needs_fetch {
+        if let Ok(gate) = Gate::new(db.clone()) {
+            let _ = genrl_core::fetch_show_metadata(
+                &db,
+                &gate,
+                &settings,
+                &clock,
+                data_dir,
+                mal_id,
+                false,
+            )
+            .await;
+        }
+    }
+
     let mut show: serde_json::Value = db.with(|c| {
         let val = c.query_row(
             "SELECT s.mal_id, s.title, s.english_title, s.start_year, s.total_episodes,
                     s.status, s.synopsis, s.poster_path, s.folder_path, s.auto,
                     COALESCE(m.list_status, 'plan_to_watch'),
                     COALESCE(m.watched_count, 0),
-                    COALESCE(m.score, 0),
+                    COALESCE(m.score, s.score, 0),
                     (SELECT COUNT(*) FROM episodes e WHERE e.mal_id = s.mal_id AND e.state = 'done'),
                     COALESCE(s.type, 'tv'),
                     COALESCE(s.season, 1),
-                    COALESCE(s.episode_offset, 0)
+                    COALESCE(s.episode_offset, 0),
+                    s.metadata_status,
+                    s.metadata_updated_at,
+                    s.metadata_next_retry_at,
+                    s.metadata_error
              FROM shows s
              LEFT JOIN mal_entries m ON m.mal_id = s.mal_id
              WHERE s.mal_id = ?1",
@@ -927,6 +1112,7 @@ fn show_detail_cmd(data_dir: &std::path::Path, mal_id: i64, json: bool) -> Resul
                 let total_eps: Option<i64> = r.get(4)?;
                 let airing_st: Option<String> = r.get(5)?;
                 let synopsis_txt: Option<String> = r.get(6)?;
+                let poster_val: Option<String> = r.get(7)?;
                 Ok(serde_json::json!({
                     "mal_id": r.get::<_, i64>(0)?,
                     "title": r.get::<_, String>(1)?,
@@ -935,7 +1121,7 @@ fn show_detail_cmd(data_dir: &std::path::Path, mal_id: i64, json: bool) -> Resul
                     "total_episodes": total_eps.unwrap_or(0),
                     "airing_status": airing_st.unwrap_or_else(|| "Finished".into()),
                     "synopsis": synopsis_txt.unwrap_or_default(),
-                    "poster_url": r.get::<_, Option<String>>(7)?,
+                    "poster_url": poster_val,
                     "folder_path": r.get::<_, Option<String>>(8)?,
                     "auto": r.get::<_, i64>(9)? != 0,
                     "status": r.get::<_, String>(10)?,
@@ -945,6 +1131,10 @@ fn show_detail_cmd(data_dir: &std::path::Path, mal_id: i64, json: bool) -> Resul
                     "media_type": r.get::<_, String>(14)?,
                     "season": r.get::<_, i64>(15)?,
                     "episode_offset": r.get::<_, i64>(16)?,
+                    "metadata_status": r.get::<_, Option<String>>(17)?.unwrap_or_else(|| "ready".into()),
+                    "metadata_updated_at": r.get::<_, Option<i64>>(18)?,
+                    "metadata_next_retry_at": r.get::<_, Option<i64>>(19)?,
+                    "metadata_error": r.get::<_, Option<String>>(20)?,
                 }))
             },
         )?;

@@ -1097,6 +1097,7 @@ pub struct SyncReport {
     pub removed: usize,
     pub total: usize,
     pub relations_failed: usize,
+    pub metadata_jobs_queued: usize,
     /// Titles MAL changed; one `entry_changed` question is raised per change.
     pub renamed: Vec<String>,
     /// The plan-ready entries (`plan --from-mal` replans straight from these).
@@ -1115,6 +1116,9 @@ impl SyncReport {
                 " ({} season-relation lookups failed; those stay single-season)",
                 self.relations_failed
             ));
+        }
+        if self.metadata_jobs_queued > 0 {
+            s.push_str(&format!(", {} metadata refresh jobs queued", self.metadata_jobs_queued));
         }
         s
     }
@@ -1229,14 +1233,19 @@ pub async fn sync(client: &MalClient<'_>) -> Result<SyncReport> {
         }
     }
 
+    // Queue metadata refresh jobs for any show missing synopsis/poster or with stale data (> 7 days)
+    if let Ok(queued) = crate::metadata::queue_stale_metadata(&db, now) {
+        report.metadata_jobs_queued = queued;
+    }
+
     settings::write_state(&db, SYNC_STATE_KEY, &now.to_string())?;
     report.entries = fetched.entries.into_iter().map(|m| m.entry).collect();
     let _ = log.info(
         None,
         None,
         format!(
-            "MAL sync: {} new, {} updated, {} unchanged, {} removed",
-            report.added, report.updated, report.unchanged, report.removed
+            "MAL sync: {} new, {} updated, {} unchanged, {} removed, {} metadata refresh queued",
+            report.added, report.updated, report.unchanged, report.removed, report.metadata_jobs_queued
         ),
     );
     Ok(report)
@@ -1919,14 +1928,19 @@ pub async fn sync_jikan(
         }
     }
 
+    // Queue metadata refresh jobs for any show missing synopsis/poster or with stale data (> 7 days)
+    if let Ok(queued) = crate::metadata::queue_stale_metadata(db, now) {
+        report.metadata_jobs_queued = queued;
+    }
+
     settings::write_state(db, SYNC_STATE_KEY, &now.to_string())?;
     report.entries = entries.into_iter().map(|m| m.entry).collect();
     let _ = log.info(
         None,
         None,
         format!(
-            "Jikan sync: {} new, {} updated, {} unchanged, {} removed",
-            report.added, report.updated, report.unchanged, report.removed
+            "Jikan sync: {} new, {} updated, {} unchanged, {} removed, {} metadata refresh queued",
+            report.added, report.updated, report.unchanged, report.removed, report.metadata_jobs_queued
         ),
     );
     Ok(report)

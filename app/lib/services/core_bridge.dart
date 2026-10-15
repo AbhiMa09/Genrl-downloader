@@ -429,6 +429,8 @@ class CoreBridge {
             posterUrl: m['poster_url']?.toString(),
             folderPath: m['folder_path']?.toString(),
             auto: m['auto'] == true,
+            metadataStatus: m['metadata_status']?.toString() ?? 'ready',
+            metadataError: m['metadata_error']?.toString(),
             episodes: const [],
           );
         }).toList();
@@ -494,8 +496,25 @@ class CoreBridge {
           aliases: aliasesList,
           rules: m['rules'] as Map<String, dynamic>?,
           onDiskBytes: (m['on_disk_bytes'] as num?)?.toInt() ?? 0,
+          metadataStatus: m['metadata_status']?.toString() ?? 'ready',
+          metadataError: m['metadata_error']?.toString(),
+          metadataNextRetryAt: (m['metadata_next_retry_at'] as num?)?.toInt(),
+          metadataUpdatedAt: (m['metadata_updated_at'] as num?)?.toInt(),
           episodes: epList,
         );
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  /// Explicitly fetch metadata for a show (runs `genrl metadata fetch <id> [--force] [--json]`)
+  Future<Map<String, dynamic>?> fetchShowMetadata(int malId, {bool force = false}) async {
+    final args = ['metadata', 'fetch', malId.toString(), '--json'];
+    if (force) args.add('--force');
+    final res = await execute(args);
+    if (res.exitCode == 0) {
+      try {
+        return jsonDecode(res.stdout as String) as Map<String, dynamic>;
       } catch (_) {}
     }
     return null;

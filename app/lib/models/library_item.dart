@@ -63,6 +63,10 @@ class LibraryShow {
   final int onDiskBytes;
   final String? studio;
   final int? rank;
+  final String metadataStatus; // ready, pending, fetching, failed
+  final String? metadataError;
+  final int? metadataNextRetryAt;
+  final int? metadataUpdatedAt;
   final List<EpisodeItem> episodes;
 
   int get id => malId;
@@ -95,6 +99,10 @@ class LibraryShow {
     this.onDiskBytes = 0,
     this.studio,
     this.rank,
+    this.metadataStatus = 'ready',
+    this.metadataError,
+    this.metadataNextRetryAt,
+    this.metadataUpdatedAt,
     this.episodes = const [],
   });
 
@@ -110,6 +118,12 @@ class LibraryShow {
     String? airingStatus,
     int? watchedEpisodes,
     int? downloadedEpisodes,
+    String? synopsis,
+    String? posterUrl,
+    String? metadataStatus,
+    String? metadataError,
+    int? metadataNextRetryAt,
+    int? metadataUpdatedAt,
   }) {
     return LibraryShow(
       malId: malId,
@@ -124,8 +138,8 @@ class LibraryShow {
       status: status ?? this.status,
       airingStatus: airingStatus ?? this.airingStatus,
       genres: genres,
-      synopsis: synopsis,
-      posterUrl: posterUrl,
+      synopsis: synopsis ?? this.synopsis,
+      posterUrl: posterUrl ?? this.posterUrl,
       folderPath: folderPath ?? this.folderPath,
       auto: auto ?? this.auto,
       mediaType: mediaType,
@@ -136,6 +150,10 @@ class LibraryShow {
       onDiskBytes: onDiskBytes,
       studio: studio,
       rank: rank,
+      metadataStatus: metadataStatus ?? this.metadataStatus,
+      metadataError: metadataError ?? this.metadataError,
+      metadataNextRetryAt: metadataNextRetryAt ?? this.metadataNextRetryAt,
+      metadataUpdatedAt: metadataUpdatedAt ?? this.metadataUpdatedAt,
       episodes: episodes ?? this.episodes,
     );
   }

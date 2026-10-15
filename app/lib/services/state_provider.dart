@@ -195,6 +195,16 @@ class StateProvider extends ChangeNotifier {
       if (eventsRes != null) {
         _events = eventsRes;
         _eventsError = null;
+        if (_selectedShow != null && _selectedShow!.metadataStatus != 'ready') {
+          final hasMetadataUpdate = eventsRes.any((e) =>
+              (e.malId == _selectedShow!.malId ||
+                  e.message.contains('#${_selectedShow!.malId}') ||
+                  e.message.toLowerCase().contains(_selectedShow!.title.toLowerCase())) &&
+              (e.message.toLowerCase().contains('metadata') || e.message.toLowerCase().contains('synopsis')));
+          if (hasMetadataUpdate) {
+            await loadShowDetail(_selectedShow!.malId);
+          }
+        }
       }
     } catch (e) {
       _isCoreConnected = false;
@@ -288,6 +298,16 @@ class StateProvider extends ChangeNotifier {
     try {
       final items = await bridge.getEvents();
       _events = items;
+      if (_selectedShow != null && _selectedShow!.metadataStatus != 'ready') {
+        final hasMetadataUpdate = items.any((e) =>
+            (e.malId == _selectedShow!.malId ||
+                e.message.contains('#${_selectedShow!.malId}') ||
+                e.message.toLowerCase().contains(_selectedShow!.title.toLowerCase())) &&
+            (e.message.toLowerCase().contains('metadata') || e.message.toLowerCase().contains('synopsis')));
+        if (hasMetadataUpdate) {
+          await loadShowDetail(_selectedShow!.malId);
+        }
+      }
     } catch (e) {
       _eventsError = e.toString();
     } finally {
@@ -306,6 +326,19 @@ class StateProvider extends ChangeNotifier {
       }
       notifyListeners();
     }
+  }
+
+  /// Trigger metadata refresh or retry for a show
+  Future<void> refreshShowMetadata(int malId, {bool force = false}) async {
+    if (_selectedShow != null && _selectedShow!.malId == malId) {
+      _selectedShow = _selectedShow!.copyWith(
+        metadataStatus: 'fetching',
+      );
+      notifyListeners();
+    }
+    await bridge.fetchShowMetadata(malId, force: force);
+    await loadShowDetail(malId);
+    await refreshEvents();
   }
 
   Future<void> addAlias(int malId, String alias) async {

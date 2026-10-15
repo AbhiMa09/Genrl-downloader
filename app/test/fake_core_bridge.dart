@@ -12,9 +12,12 @@ class FakeCoreBridge extends CoreBridge {
   FakeMode mode;
   String errorMessage;
 
+  LibraryShow? customShowDetail;
+
   FakeCoreBridge({
     this.mode = FakeMode.data,
     this.errorMessage = 'Connection refused by genrl core daemon',
+    this.customShowDetail,
   });
 
   @override
@@ -160,6 +163,9 @@ class FakeCoreBridge extends CoreBridge {
     if (mode == FakeMode.empty) {
       return null;
     }
+    if (customShowDetail != null && customShowDetail!.malId == malId) {
+      return customShowDetail;
+    }
     return const LibraryShow(
       malId: 52991,
       title: 'Sousou no Frieren',
@@ -177,6 +183,14 @@ class FakeCoreBridge extends CoreBridge {
       folderPath: '/mnt/anime/Sousou no Frieren (2023)',
       auto: true,
     );
+  }
+
+  @override
+  Future<Map<String, dynamic>?> fetchShowMetadata(int malId, {bool force = false}) async {
+    if (mode == FakeMode.error) {
+      throw Exception(errorMessage);
+    }
+    return {'status': 'updated', 'mal_id': malId};
   }
 
   @override
