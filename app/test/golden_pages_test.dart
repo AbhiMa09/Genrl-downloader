@@ -68,7 +68,7 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
 
-    await tester.pumpWidget(wrapPage(const DashboardPage(), state, size: const Size(1593, 1000)));
+    await tester.pumpWidget(wrapPage(DashboardPage(referenceTime: DateTime(2026, 10, 15, 22, 0)), state, size: const Size(1593, 1000)));
     await tester.pumpAndSettle();
 
     await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/dashboard_page.png'));

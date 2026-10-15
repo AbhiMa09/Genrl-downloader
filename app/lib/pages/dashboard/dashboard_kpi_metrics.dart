@@ -5,14 +5,16 @@ import '../../theme/typography.dart';
 
 class DashboardKpiMetrics extends StatelessWidget {
   final StateProvider state;
+  final DateTime? referenceTime;
 
   const DashboardKpiMetrics({
     super.key,
     required this.state,
+    this.referenceTime,
   });
 
-  String _currentSeasonCycle() {
-    final now = DateTime.now();
+  String _currentSeasonCycle([DateTime? nowTime]) {
+    final now = nowTime ?? referenceTime ?? DateTime.now();
     final season = switch (now.month) {
       1 || 2 || 3 => 'Winter',
       4 || 5 || 6 => 'Spring',
@@ -36,7 +38,7 @@ class DashboardKpiMetrics extends StatelessWidget {
     final downloadedEpisodes = state.shows.fold<int>(0, (sum, show) => sum + show.downloadedEpisodes);
     final libraryProgress = totalEpisodes > 0 ? (downloadedEpisodes / totalEpisodes).clamp(0.0, 1.0) : 0.0;
     final inboxProgress = state.inboxCount > 0 ? (1.0 / (1.0 + state.inboxCount)).clamp(0.0, 1.0) : 1.0;
-    final now = DateTime.now();
+    final now = referenceTime ?? DateTime.now();
     final seasonStartMonth = ((now.month - 1) ~/ 3) * 3 + 1;
     final seasonProgress = (now.difference(DateTime(now.year, seasonStartMonth, 1)).inDays / 91.0).clamp(0.0, 1.0);
 

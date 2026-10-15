@@ -10,7 +10,9 @@ import 'dashboard_operational_bar.dart';
 import 'dashboard_pipeline_table.dart';
 
 class DashboardPage extends StatefulWidget {
-  const DashboardPage({super.key});
+  final DateTime? referenceTime;
+
+  const DashboardPage({super.key, this.referenceTime});
 
   @override
   State<DashboardPage> createState() => _DashboardPageState();
@@ -62,7 +64,7 @@ class _DashboardPageState extends State<DashboardPage> {
           const SizedBox(height: 16),
 
           // 3. KPI Metric Strip (4 Cards)
-          DashboardKpiMetrics(state: state),
+          DashboardKpiMetrics(state: state, referenceTime: widget.referenceTime),
           const SizedBox(height: 20),
 
           // 4. Daemon Pipeline & Active Ingestion Table
