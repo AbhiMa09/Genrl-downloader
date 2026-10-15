@@ -9,42 +9,14 @@ use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
-use crate::db::{now_unix, Db};
+use crate::db::Db;
 use crate::error::Result;
 
-/// How finished files get into the library.
-/// Default follows the open decision in the design: hardlink, so seeding continues.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
-#[serde(rename_all = "snake_case")]
-pub enum MoveMode {
-    #[default]
-    Hardlink,
-    Move,
-    Copy,
-}
+pub mod state;
+pub mod types;
 
-/// Folder icon method, per desktop.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
-#[serde(rename_all = "snake_case")]
-pub enum IconMethod {
-    /// Detect the desktop from `XDG_CURRENT_DESKTOP`, fall back to `.directory`.
-    #[default]
-    Auto,
-    /// Write `Icon=folder.png` into `.directory` (KDE and most file managers).
-    Directory,
-    /// `gio set -t string <folder> metadata::custom-icon` (GNOME/Nautilus).
-    Gio,
-    Off,
-}
-
-/// Plain poster, or the poster composited onto a folder shape.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
-#[serde(rename_all = "snake_case")]
-pub enum IconStyle {
-    #[default]
-    Plain,
-    FolderShape,
-}
+pub use state::*;
+pub use types::*;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
@@ -187,8 +159,6 @@ impl Default for Settings {
             fuzzy_threshold: 0.92,
             score_threshold: 80.0,
             score_margin: 15.0,
-            // Plan to watch is manual by default: 73 planned shows must never
-            // queue at once. A per-show override still opts one in.
             auto_plan_to_watch: false,
             stall_timeout_min: 20,
             max_failed_candidates: 3,
@@ -375,47 +345,6 @@ impl Settings {
         settings.save(db)?;
         Ok(settings)
     }
-}
-
-/// Runtime values (last sync time, cached versions) share the settings table
-/// but never the settings struct, so exporting config never leaks state.
-pub const STATE_PREFIX: &str = "state.";
-
-/// Read a runtime state value.
-pub fn read_state(db: &Db, key: &str) -> Result<Option<String>> {
-    let full = format!("{STATE_PREFIX}{key}");
-    db.with(|c| {
-        let mut stmt = c.prepare("SELECT value FROM settings WHERE key = ?1")?;
-        let mut rows = stmt.query([&full])?;
-        if let Some(row) = rows.next()? {
-            Ok(Some(row.get(0)?))
-        } else {
-            Ok(None)
-        }
-    })
-}
-
-/// Write a runtime state value.
-pub fn write_state(db: &Db, key: &str, value: &str) -> Result<()> {
-    let full = format!("{STATE_PREFIX}{key}");
-    db.with(|c| {
-        c.execute(
-            "INSERT INTO settings (key, value) VALUES (?1, ?2)
-             ON CONFLICT(key) DO UPDATE SET value = excluded.value",
-            rusqlite::params![full, value],
-        )?;
-        Ok(())
-    })
-}
-
-/// Read a runtime state value as a Unix timestamp.
-pub fn read_state_time(db: &Db, key: &str) -> Result<Option<i64>> {
-    Ok(read_state(db, key)?.and_then(|v| v.parse().ok()))
-}
-
-/// Convenience: record "now" under a state key.
-pub fn write_state_now(db: &Db, key: &str) -> Result<()> {
-    write_state(db, key, &now_unix().to_string())
 }
 
 #[cfg(unix)]
