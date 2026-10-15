@@ -1,0 +1,215 @@
+{
+  "version": "1.0.0",
+  "name": "GenrlCoreContract",
+  "description": "Single-source definition for all Genrl core commands, queries, and events.",
+  "commands": [
+    {
+      "name": "init",
+      "description": "Initialize database and default configs",
+      "internal": true,
+      "cli": "genrl init"
+    },
+    {
+      "name": "settings",
+      "description": "Get or set system settings",
+      "internal": false,
+      "cli": "genrl settings",
+      "ui_method": "getRules"
+    },
+    {
+      "name": "events",
+      "description": "Query event log entries",
+      "internal": false,
+      "cli": "genrl events",
+      "ui_method": "getEvents"
+    },
+    {
+      "name": "search",
+      "description": "Search Nyaa or mirrors for torrents",
+      "internal": false,
+      "cli": "genrl search",
+      "ui_method": "search"
+    },
+    {
+      "name": "grab",
+      "description": "Download a magnet or URL into the library",
+      "internal": false,
+      "cli": "genrl grab",
+      "ui_method": "grab"
+    },
+    {
+      "name": "torrents",
+      "description": "List active and managed torrents in qBittorrent",
+      "internal": true,
+      "cli": "genrl torrents"
+    },
+    {
+      "name": "rm",
+      "description": "Remove a torrent or job",
+      "internal": true,
+      "cli": "genrl rm"
+    },
+    {
+      "name": "qbit",
+      "description": "Inspect and manage qBittorrent connection",
+      "internal": true,
+      "cli": "genrl qbit"
+    },
+    {
+      "name": "probe",
+      "description": "Probe an upstream HTTP endpoint",
+      "internal": true,
+      "cli": "genrl probe"
+    },
+    {
+      "name": "doctor",
+      "description": "Verify dependencies and environment sanity",
+      "internal": true,
+      "cli": "genrl doctor"
+    },
+    {
+      "name": "status",
+      "description": "System health and runtime status",
+      "internal": false,
+      "cli": "genrl status",
+      "ui_method": "getSystemStatus"
+    },
+    {
+      "name": "queue",
+      "description": "List download queue jobs",
+      "internal": false,
+      "cli": "genrl queue",
+      "ui_method": "getQueue"
+    },
+    {
+      "name": "inbox",
+      "description": "List open questions in action inbox",
+      "internal": false,
+      "cli": "genrl inbox",
+      "ui_method": "getInbox"
+    },
+    {
+      "name": "answer",
+      "description": "Answer an action inbox question",
+      "internal": false,
+      "cli": "genrl answer",
+      "ui_method": "answerQuestion"
+    },
+    {
+      "name": "shows",
+      "description": "List shows in library and watch progress",
+      "internal": false,
+      "cli": "genrl shows",
+      "ui_method": "getShows"
+    },
+    {
+      "name": "show",
+      "description": "Get detailed show progress and episodes",
+      "internal": false,
+      "cli": "genrl show",
+      "ui_method": "getShowDetail"
+    },
+    {
+      "name": "run",
+      "description": "Run background reconciliation and scheduling loop",
+      "internal": true,
+      "cli": "genrl run"
+    },
+    {
+      "name": "pause",
+      "description": "Pause queue dispatching",
+      "internal": false,
+      "cli": "genrl pause",
+      "ui_method": "pauseQueue"
+    },
+    {
+      "name": "resume",
+      "description": "Resume queue dispatching",
+      "internal": false,
+      "cli": "genrl resume",
+      "ui_method": "resumeQueue"
+    },
+    {
+      "name": "plan",
+      "description": "Run episode planning against show rules and watch progress",
+      "internal": false,
+      "cli": "genrl plan",
+      "ui_method": "downloadEpisode"
+    },
+    {
+      "name": "mal",
+      "description": "MyAnimeList account and sync commands",
+      "internal": false,
+      "cli": "genrl mal",
+      "ui_method": "syncMal"
+    },
+    {
+      "name": "rules",
+      "description": "Rule management and per-show overrides",
+      "internal": false,
+      "cli": "genrl rules",
+      "ui_method": "updateRule"
+    },
+    {
+      "name": "library",
+      "description": "Library filesystem rescan and indexing",
+      "internal": false,
+      "cli": "genrl library",
+      "ui_method": "rescanLibrary"
+    },
+    {
+      "name": "locations",
+      "description": "Directory paths and storage locations",
+      "internal": false,
+      "cli": "genrl locations",
+      "ui_method": "getLocations"
+    },
+    {
+      "name": "alias",
+      "description": "Title aliases for torrent candidate matching",
+      "internal": false,
+      "cli": "genrl alias",
+      "ui_method": "addAlias"
+    },
+    {
+      "name": "offset",
+      "description": "Episode numbering offsets",
+      "internal": false,
+      "cli": "genrl offset",
+      "ui_method": "setEpisodeOffset"
+    },
+    {
+      "name": "metadata",
+      "description": "Fetch and synchronize show posters and synopsis",
+      "internal": false,
+      "cli": "genrl metadata",
+      "ui_method": "fetchShowMetadata"
+    },
+    {
+      "name": "step",
+      "description": "Step a single queue job for debugging",
+      "internal": true,
+      "cli": "genrl step"
+    }
+  ],
+  "queries": [
+    {"name": "getStatus", "response": "SystemStatus"},
+    {"name": "getQueue", "response": "List<QueueItem>"},
+    {"name": "getInbox", "response": "List<InboxItem>"},
+    {"name": "getShows", "response": "List<LibraryShow>"},
+    {"name": "getShowDetail", "response": "LibraryShow?"},
+    {"name": "getEvents", "response": "List<ActivityItem>"},
+    {"name": "getLocations", "response": "Map<String, dynamic>?"},
+    {"name": "getRules", "response": "Map<String, dynamic>?"},
+    {"name": "getMalStatus", "response": "Map<String, dynamic>?"}
+  ],
+  "events": [
+    {"name": "sync_started", "fields": ["timestamp", "source"]},
+    {"name": "sync_completed", "fields": ["timestamp", "synced_count"]},
+    {"name": "metadata_updated", "fields": ["mal_id", "title"]},
+    {"name": "queue_job_added", "fields": ["job_id", "mal_id", "episode"]},
+    {"name": "queue_job_completed", "fields": ["job_id", "path"]},
+    {"name": "question_raised", "fields": ["question_id", "kind"]},
+    {"name": "question_resolved", "fields": ["question_id", "choice"]}
+  ]
+}
