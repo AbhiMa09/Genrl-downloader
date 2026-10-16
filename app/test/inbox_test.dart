@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:genrl_downloader/pages/inbox_page.dart';
 import 'package:genrl_downloader/services/state_provider.dart';
 import 'package:genrl_downloader/theme/theme.dart';
+
 import 'fake_core_bridge.dart';
 
 Widget createTestApp(StateProvider stateProvider) {
@@ -21,7 +22,9 @@ void main() {
     TestWidgetsFlutterBinding.ensureInitialized();
   });
 
-  testWidgets('Inbox Page renders question card and choice actions', (tester) async {
+  testWidgets('Inbox Page renders question card and choice actions', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(1280, 800);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
@@ -43,7 +46,9 @@ void main() {
     await tester.pump();
   });
 
-  testWidgets('Inbox Page renders empty state when no questions remain', (tester) async {
+  testWidgets('Inbox Page renders empty state when no questions remain', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(1280, 800);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
@@ -56,10 +61,15 @@ void main() {
     await tester.pump();
 
     expect(find.text('All Caught Up!'), findsOneWidget);
-    expect(find.textContaining('No pending questions in your Inbox'), findsOneWidget);
+    expect(
+      find.textContaining('No pending questions in your Inbox'),
+      findsOneWidget,
+    );
   });
 
-  testWidgets('Inbox Page displays error message and Retry button on error', (tester) async {
+  testWidgets('Inbox Page displays error message and Retry button on error', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(1280, 800);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());

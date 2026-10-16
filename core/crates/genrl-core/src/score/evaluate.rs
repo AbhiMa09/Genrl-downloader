@@ -204,10 +204,12 @@ pub fn evaluate(
     }
 
     // Seeders on a log scale: 500 seeders are worth more than 5, but not 100×.
-    let seeder_points =
-        20.0 * ((candidate.seeders as f64 + 1.0).log10() / 1001.0f64.log10());
+    let seeder_points = 20.0 * ((candidate.seeders as f64 + 1.0).log10() / 1001.0f64.log10());
     ranking += seeder_points;
-    notes.push(format!("{} seeders (+{seeder_points:.1})", candidate.seeders));
+    notes.push(format!(
+        "{} seeders (+{seeder_points:.1})",
+        candidate.seeders
+    ));
 
     if candidate.trusted && !candidate.remake {
         ranking += 15.0;
@@ -216,11 +218,12 @@ pub fn evaluate(
 
     // Languages: exactly what was asked for wins; dual audio is still a plus.
     if !rules.preferred_languages.is_empty()
-        && candidate
-            .release
-            .languages
-            .iter()
-            .any(|l| rules.preferred_languages.iter().any(|p| p.eq_ignore_ascii_case(l)))
+        && candidate.release.languages.iter().any(|l| {
+            rules
+                .preferred_languages
+                .iter()
+                .any(|p| p.eq_ignore_ascii_case(l))
+        })
     {
         ranking += 15.0;
         notes.push("has the subtitle language you asked for".into());

@@ -13,11 +13,11 @@ use std::path::Path;
 
 use genrl_core::db::Db;
 use genrl_core::events::EventLog;
+use genrl_core::library::resolve_show_folder;
 use genrl_core::locations::{
     are_on_same_filesystem, check_directory, default_download_dir, default_library_dir,
     get_locations, get_show_folder, move_existing_library, set_location, validate_path_safety,
 };
-use genrl_core::library::resolve_show_folder;
 
 #[test]
 fn path_safety_rejects_traversal_and_empty() {
@@ -67,7 +67,10 @@ fn directory_validation_read_only_folder() {
     let check = check_directory(&ro_dir.to_string_lossy(), false);
     assert!(check.exists);
     assert!(!check.writable, "read-only folder must not be writable");
-    assert!(!check.is_valid, "read-only folder is invalid for library/downloads");
+    assert!(
+        !check.is_valid,
+        "read-only folder is invalid for library/downloads"
+    );
     assert!(check.error.is_some());
 
     // Restore permissions so tempdir cleanup succeeds
@@ -95,8 +98,14 @@ fn get_and_set_locations_with_event_log() {
 
     // Default locations
     let report = get_locations(&db).unwrap();
-    assert_eq!(report.download_dir.path, default_download_dir().display().to_string());
-    assert_eq!(report.library_dir.path, default_library_dir().display().to_string());
+    assert_eq!(
+        report.download_dir.path,
+        default_download_dir().display().to_string()
+    );
+    assert_eq!(
+        report.library_dir.path,
+        default_library_dir().display().to_string()
+    );
 
     // Update download folder
     let tmp = tempfile::tempdir().unwrap();
@@ -111,7 +120,9 @@ fn get_and_set_locations_with_event_log() {
 
     // Verify event log
     let events = log.recent(10).unwrap();
-    assert!(events.iter().any(|e| e.message.contains("Updated download folder")));
+    assert!(events
+        .iter()
+        .any(|e| e.message.contains("Updated download folder")));
 }
 
 #[test]
@@ -152,7 +163,10 @@ fn per_show_folder_override_wins_and_never_falls_back() {
 
     // Verify get_show_folder
     let show_info = get_show_folder(&db, 101).unwrap();
-    assert_eq!(show_info.folder_path, Some(override_dir.display().to_string()));
+    assert_eq!(
+        show_info.folder_path,
+        Some(override_dir.display().to_string())
+    );
 
     // With override, resolve_show_folder returns the override path strictly
     let resolved = resolve_show_folder(&db, &lib_dir, 101, "Frieren", Some(2023)).unwrap();
@@ -174,7 +188,10 @@ fn per_show_folder_override_wins_and_never_falls_back() {
     .unwrap();
 
     let result = resolve_show_folder(&db, &lib_dir, 102, "Bocchi", Some(2022));
-    assert!(result.is_err(), "Must error out rather than silently falling back to a different folder");
+    assert!(
+        result.is_err(),
+        "Must error out rather than silently falling back to a different folder"
+    );
 }
 
 #[test]
@@ -189,7 +206,11 @@ fn explicit_library_migration() {
     // Populate old library with a show and episode
     let show_dir = old_lib.join("Frieren");
     fs::create_dir_all(&show_dir).unwrap();
-    fs::write(show_dir.join("Frieren - S01E01.mkv"), b"video content episode 1").unwrap();
+    fs::write(
+        show_dir.join("Frieren - S01E01.mkv"),
+        b"video content episode 1",
+    )
+    .unwrap();
     fs::write(show_dir.join("synopsis.txt"), b"synopsis info").unwrap();
 
     // Register show in DB pointing to old_lib/Frieren
@@ -217,11 +238,11 @@ fn explicit_library_migration() {
     // Verify show folder_path was updated in database
     let updated_path: String = db
         .with(|c| {
-            Ok(c.query_row(
-                "SELECT folder_path FROM shows WHERE mal_id = 1",
-                [],
-                |r| r.get(0),
-            )?)
+            Ok(
+                c.query_row("SELECT folder_path FROM shows WHERE mal_id = 1", [], |r| {
+                    r.get(0)
+                })?,
+            )
         })
         .unwrap();
     assert_eq!(updated_path, new_show_dir.display().to_string());

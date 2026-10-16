@@ -7,9 +7,7 @@ use crate::events::EventLog;
 use crate::http::{Gate, GetOptions, Service};
 use crate::settings::{self, Settings};
 
-use super::jikan_parse::{
-    fetch_jikan_list, fetch_mal_public_load_json, JikanAnimeDetailResponse,
-};
+use super::jikan_parse::{fetch_jikan_list, fetch_mal_public_load_json, JikanAnimeDetailResponse};
 use super::models::{build_chains, Node, Relation};
 use super::pkce::SYNC_STATE_KEY;
 use super::sync::{load_mal_entry, save_mal_entry, upsert_show_full, SyncReport};
@@ -28,11 +26,11 @@ pub async fn sync_jikan(
     let entries_res = fetch_mal_public_load_json(gate, username).await;
     let (mut entries, is_load_json) = match entries_res {
         Ok(list) if !list.is_empty() => (list, true),
-        Ok(_) => {
-            (fetch_jikan_list(gate, settings, username).await?, false)
-        }
+        Ok(_) => (fetch_jikan_list(gate, settings, username).await?, false),
         Err(e) => {
-            tracing::warn!("MAL load.json public profile fetch failed ({e}); trying Jikan fallback");
+            tracing::warn!(
+                "MAL load.json public profile fetch failed ({e}); trying Jikan fallback"
+            );
             (fetch_jikan_list(gate, settings, username).await?, false)
         }
     };
@@ -56,7 +54,10 @@ pub async fn sync_jikan(
         for m in &mut entries {
             let id = m.mal_id();
             let detail_url = format!("{base}/anime/{id}/full");
-            match gate.get_with(Service::Jikan, &detail_url, &GetOptions::default()).await {
+            match gate
+                .get_with(Service::Jikan, &detail_url, &GetOptions::default())
+                .await
+            {
                 Ok(fetched) => {
                     if let Ok(detail) = fetched.json::<JikanAnimeDetailResponse>() {
                         let d = detail.data;
@@ -133,19 +134,23 @@ pub async fn sync_jikan(
         crate::planner::upsert_names(db, &m.entry)?;
 
         let prev_title: Option<String> = db.with(|c| {
-            Ok(c.query_row(
-                "SELECT title FROM shows WHERE mal_id = ?1",
-                [id],
-                |r| r.get::<_, String>(0),
+            Ok(
+                c.query_row("SELECT title FROM shows WHERE mal_id = ?1", [id], |r| {
+                    r.get::<_, String>(0)
+                })
+                .ok(),
             )
-            .ok())
         })?;
 
         match load_mal_entry(db, id)? {
             None => {
                 save_mal_entry(db, m)?;
                 report.added += 1;
-                let _ = log.info(None, Some(id), format!("Jikan sync: added \"{}\"", m.entry.title));
+                let _ = log.info(
+                    None,
+                    Some(id),
+                    format!("Jikan sync: added \"{}\"", m.entry.title),
+                );
             }
             Some(stored) => {
                 if let Some(old) = prev_title {
@@ -195,7 +200,11 @@ pub async fn sync_jikan(
         None,
         format!(
             "Jikan sync: {} new, {} updated, {} unchanged, {} removed, {} metadata refresh queued",
-            report.added, report.updated, report.unchanged, report.removed, report.metadata_jobs_queued
+            report.added,
+            report.updated,
+            report.unchanged,
+            report.removed,
+            report.metadata_jobs_queued
         ),
     );
     Ok(report)

@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:genrl_downloader/models/activity_item.dart';
 import 'package:genrl_downloader/models/inbox_item.dart';
 import 'package:genrl_downloader/models/library_item.dart';
@@ -54,7 +55,7 @@ class FakeCoreBridge extends CoreBridge {
       qbitConnected: true,
       qbitVersion: 'v4.6.5',
       downloadSpeedBytes: 52428800, // 50 MB/s
-      uploadSpeedBytes: 2097152,   // 2 MB/s
+      uploadSpeedBytes: 2097152, // 2 MB/s
       freeDiskSpaceGb: 400,
       totalDiskSpaceGb: 1000,
       activeTorrents: 3,
@@ -80,7 +81,8 @@ class FakeCoreBridge extends CoreBridge {
         showTitle: 'Sousou no Frieren',
         season: 1,
         episode: 28,
-        releaseName: '[SubsPlease] Sousou no Frieren - 28 (1080p) [ABCD1234].mkv',
+        releaseName:
+            '[SubsPlease] Sousou no Frieren - 28 (1080p) [ABCD1234].mkv',
         group: 'SubsPlease',
         progress: 0.72,
         speedBytes: 12582912,
@@ -136,7 +138,7 @@ class FakeCoreBridge extends CoreBridge {
         posterUrl: null,
         auto: true,
       ),
-      LibraryShow(
+      const LibraryShow(
         malId: 54959,
         title: 'Dungeon Meshi',
         englishTitle: 'Delicious in Dungeon',
@@ -186,7 +188,10 @@ class FakeCoreBridge extends CoreBridge {
   }
 
   @override
-  Future<Map<String, dynamic>?> fetchShowMetadata(int malId, {bool force = false}) async {
+  Future<Map<String, dynamic>?> fetchShowMetadata(
+    int malId, {
+    bool force = false,
+  }) async {
     if (mode == FakeMode.error) {
       throw Exception(errorMessage);
     }
@@ -220,7 +225,10 @@ class FakeCoreBridge extends CoreBridge {
   }
 
   @override
-  Future<List<ActivityItem>> getEvents({int limit = 50, bool errorsOnly = false}) async {
+  Future<List<ActivityItem>> getEvents({
+    int limit = 50,
+    bool errorsOnly = false,
+  }) async {
     if (mode == FakeMode.error) {
       throw Exception(errorMessage);
     }

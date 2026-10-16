@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
@@ -28,14 +29,27 @@ class SettingsCommandStrip extends StatelessWidget {
               crossAxisAlignment: WrapCrossAlignment.center,
               spacing: 6,
               children: [
-                Text('System / Configuration / ', style: ObsidianTypography.monoCode(color: ObsidianColors.outline)),
+                Text(
+                  'System / Configuration / ',
+                  style: ObsidianTypography.monoCode(
+                    color: ObsidianColors.outline,
+                  ),
+                ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 1.5,
+                  ),
                   decoration: BoxDecoration(
                     color: ObsidianColors.surfaceContainerHigh,
                     borderRadius: BorderRadius.circular(4),
                   ),
-                  child: Text('SESSION ACTIVE', style: ObsidianTypography.labelBadge(color: ObsidianColors.tertiary)),
+                  child: Text(
+                    'SESSION ACTIVE',
+                    style: ObsidianTypography.labelBadge(
+                      color: ObsidianColors.tertiary,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -44,8 +58,16 @@ class SettingsCommandStrip extends StatelessWidget {
               crossAxisAlignment: WrapCrossAlignment.center,
               spacing: 8,
               children: [
-                Text('Settings & System Integration', style: ObsidianTypography.headlineLg()),
-                Text('v2.4.1', style: ObsidianTypography.titleSm(color: ObsidianColors.outline)),
+                Text(
+                  'Settings & System Integration',
+                  style: ObsidianTypography.headlineLg(),
+                ),
+                Text(
+                  'v2.4.1',
+                  style: ObsidianTypography.titleSm(
+                    color: ObsidianColors.outline,
+                  ),
+                ),
               ],
             ),
           ],
@@ -57,7 +79,9 @@ class SettingsCommandStrip extends StatelessWidget {
             OutlinedButton.icon(
               onPressed: () {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Preferences reloaded from disk')),
+                  const SnackBar(
+                    content: Text('Preferences reloaded from disk'),
+                  ),
                 );
               },
               icon: const Icon(Icons.restart_alt_rounded, size: 16),

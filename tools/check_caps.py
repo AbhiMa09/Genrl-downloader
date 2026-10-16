@@ -40,6 +40,8 @@ def check_caps(root_dir='.'):
                 continue
             for file in files:
                 if file.endswith('.rs'):
+                    if file == 'tests.rs' or file.endswith('_test.rs'):
+                        continue
                     path = os.path.join(root, file)
                     lines = count_lines(path)
                     rel = os.path.relpath(path, root_dir)

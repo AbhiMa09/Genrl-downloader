@@ -64,7 +64,10 @@ impl Qbit {
     }
 
     fn session(&self) -> Option<String> {
-        self.session.lock().unwrap_or_else(|e| e.into_inner()).clone()
+        self.session
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
     }
 
     fn store_session(&self, cookie: Option<String>) {
@@ -107,7 +110,12 @@ impl Qbit {
     ) -> Result<crate::http::Fetched> {
         let url = self.url(path);
         match gate
-            .post_form(Service::Qbit, &url, form, &self.opts(self.session().as_deref()))
+            .post_form(
+                Service::Qbit,
+                &url,
+                form,
+                &self.opts(self.session().as_deref()),
+            )
             .await
         {
             Err(Error::Status { status: 403, .. }) => {
@@ -190,10 +198,12 @@ impl Qbit {
         if !body.is_empty() && !body.eq_ignore_ascii_case("Ok.") {
             return Err(self.auth_error(body));
         }
-        let cookie = cookie.ok_or_else(|| self.auth_error("the reply carried no session cookie"))?;
+        let cookie =
+            cookie.ok_or_else(|| self.auth_error("the reply carried no session cookie"))?;
         self.store_session(Some(cookie));
 
-        if self.username.eq_ignore_ascii_case("admin") && self.password.as_deref() == Some("adminadmin")
+        if self.username.eq_ignore_ascii_case("admin")
+            && self.password.as_deref() == Some("adminadmin")
         {
             tracing::warn!(
                 "qBittorrent is using its default WebUI credentials; change the password"

@@ -45,7 +45,8 @@ impl FakeDiskProbe {
     }
 
     pub fn set(&self, free_bytes: u64) {
-        self.free.store(free_bytes.min(i64::MAX as u64) as i64, Ordering::SeqCst);
+        self.free
+            .store(free_bytes.min(i64::MAX as u64) as i64, Ordering::SeqCst);
     }
 }
 

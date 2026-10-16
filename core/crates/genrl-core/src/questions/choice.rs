@@ -1,6 +1,6 @@
-use serde::{Deserialize, Serialize};
-use crate::models::QuestionKind;
 use super::payload::Payload;
+use crate::models::QuestionKind;
+use serde::{Deserialize, Serialize};
 
 /// The choice a user makes on a card.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

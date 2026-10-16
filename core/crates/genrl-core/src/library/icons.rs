@@ -24,7 +24,14 @@ fn crc32(data: &[u8]) -> u32 {
 }
 
 /// Generate a valid 512x512 PNG with a solid background color (pure Rust fallback).
-pub fn write_solid_png(path: &Path, width: u32, height: u32, r: u8, g: u8, b: u8) -> std::io::Result<()> {
+pub fn write_solid_png(
+    path: &Path,
+    width: u32,
+    height: u32,
+    r: u8,
+    g: u8,
+    b: u8,
+) -> std::io::Result<()> {
     use std::io::Write;
 
     let mut file = fs::File::create(path)?;
@@ -58,14 +65,16 @@ pub fn write_solid_png(path: &Path, width: u32, height: u32, r: u8, g: u8, b: u8
 
     // Construct raw scanlines: filter byte 0 followed by width * 3 bytes
     let line_len = 1 + (width as usize) * 3;
+    let mut row = Vec::with_capacity(line_len);
+    row.push(0); // filter: None
+    for _ in 0..width {
+        row.push(r);
+        row.push(g);
+        row.push(b);
+    }
     let mut raw = Vec::with_capacity(line_len * (height as usize));
     for _ in 0..height {
-        raw.push(0); // filter: None
-        for _ in 0..width {
-            raw.push(r);
-            raw.push(g);
-            raw.push(b);
-        }
+        raw.extend_from_slice(&row);
     }
 
     // zlib wrapping for IDAT
@@ -117,7 +126,9 @@ pub fn create_folder_png(
     for bin in binaries {
         let status = Command::new(bin)
             .arg(poster_src)
-            .args(["-resize", "512x512^", "-gravity", "center", "-extent", "512x512"])
+            .args([
+                "-resize", "512x512^", "-gravity", "center", "-extent", "512x512",
+            ])
             .arg(folder_png_dst)
             .status();
         if let Ok(st) = status {
@@ -128,15 +139,12 @@ pub fn create_folder_png(
     }
 
     // Fallback: If poster_src is already a valid file, try copying it directly
-    if poster_src.exists() {
-        if let Ok(_) = fs::copy(poster_src, folder_png_dst) {
-            return Ok(());
-        }
+    if poster_src.exists() && fs::copy(poster_src, folder_png_dst).is_ok() {
+        return Ok(());
     }
 
     // Fallback: Generate a dark violet square PNG (64x64)
-    write_solid_png(folder_png_dst, 64, 64, 30, 20, 50)
-        .map_err(|e| Error::Io(e))?;
+    write_solid_png(folder_png_dst, 64, 64, 30, 20, 50).map_err(Error::Io)?;
     Ok(())
 }
 
@@ -151,7 +159,9 @@ pub fn apply_folder_icon(
         IconMethod::Directory => write_directory_file(show_dir),
         IconMethod::Gio => set_gio_custom_icon(show_dir, folder_png_path),
         IconMethod::Auto => {
-            let desktop = std::env::var("XDG_CURRENT_DESKTOP").unwrap_or_default().to_ascii_lowercase();
+            let desktop = std::env::var("XDG_CURRENT_DESKTOP")
+                .unwrap_or_default()
+                .to_ascii_lowercase();
             if desktop.contains("gnome") {
                 if set_gio_custom_icon(show_dir, folder_png_path).is_err() {
                     let _ = write_directory_file(show_dir);

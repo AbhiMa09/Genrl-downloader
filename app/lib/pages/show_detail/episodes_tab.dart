@@ -1,6 +1,8 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../models/library_item.dart';
 import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
@@ -26,10 +28,14 @@ class ShowDetailEpisodesTab extends StatelessWidget {
             show.totalEpisodes > 0 ? show.totalEpisodes : 1,
             (index) => EpisodeItem(
               number: index + 1,
-              title: isMovie ? 'Feature Film: ${show.title}' : 'Episode ${index + 1}',
+              title: isMovie
+                  ? 'Feature Film: ${show.title}'
+                  : 'Episode ${index + 1}',
               isDownloaded: index < show.downloadedEpisodes,
               state: index < show.downloadedEpisodes ? 'done' : 'missing',
-              filePath: show.folderPath != null ? '${show.folderPath}/${show.title} - ${index + 1}.mkv' : null,
+              filePath: show.folderPath != null
+                  ? '${show.folderPath}/${show.title} - ${index + 1}.mkv'
+                  : null,
               sizeBytes: 0,
               releaseName: '${show.title} - ${index + 1}',
               container: 'Matroska (MKV)',
@@ -52,16 +58,22 @@ class ShowDetailEpisodesTab extends StatelessWidget {
             children: [
               Text(
                 'EPISODES MATRIX',
-                style: ObsidianTypography.labelBadge(color: ObsidianColors.outline),
+                style: ObsidianTypography.labelBadge(
+                  color: ObsidianColors.outline,
+                ),
               ),
               Text(
                 '${episodes.length} Episodes Tracked',
-                style: ObsidianTypography.monoCode(color: ObsidianColors.outline),
+                style: ObsidianTypography.monoCode(
+                  color: ObsidianColors.outline,
+                ),
               ),
             ],
           ),
         ),
-        ...episodes.map((ep) => _buildEpisodeCard(context, state, show, ep, isMovie)),
+        ...episodes.map(
+          (ep) => _buildEpisodeCard(context, state, show, ep, isMovie),
+        ),
         const SizedBox(height: 16),
 
         // Extras / Scans Section
@@ -77,16 +89,25 @@ class ShowDetailEpisodesTab extends StatelessWidget {
               Expanded(
                 child: Row(
                   children: [
-                    const Icon(Icons.collections_bookmark_outlined, size: 22, color: ObsidianColors.outline),
+                    const Icon(
+                      Icons.collections_bookmark_outlined,
+                      size: 22,
+                      color: ObsidianColors.outline,
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Artbook & Production Scans', style: ObsidianTypography.titleSm()),
+                          Text(
+                            'Artbook & Production Scans',
+                            style: ObsidianTypography.titleSm(),
+                          ),
                           Text(
                             'Found 48 files in /Scans/ directory (Lossless PNG, 820 MB)',
-                            style: ObsidianTypography.monoCode(color: ObsidianColors.outline),
+                            style: ObsidianTypography.monoCode(
+                              color: ObsidianColors.outline,
+                            ),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ],
@@ -105,10 +126,20 @@ class ShowDetailEpisodesTab extends StatelessWidget {
                 style: OutlinedButton.styleFrom(
                   backgroundColor: ObsidianColors.surfaceContainerHigh,
                   side: const BorderSide(color: ObsidianColors.border),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
-                child: Text('Browse Art Gallery', style: ObsidianTypography.monoCode(color: ObsidianColors.onSurface)),
+                child: Text(
+                  'Browse Art Gallery',
+                  style: ObsidianTypography.monoCode(
+                    color: ObsidianColors.onSurface,
+                  ),
+                ),
               ),
             ],
           ),
@@ -164,10 +195,9 @@ class ShowDetailEpisodesTab extends StatelessWidget {
                   child: Center(
                     child: Text(
                       'EP ${ep.number}',
-                      style: ObsidianTypography.monoMetric(color: ObsidianColors.onSurface).copyWith(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
+                      style: ObsidianTypography.monoMetric(
+                        color: ObsidianColors.onSurface,
+                      ).copyWith(fontWeight: FontWeight.bold, fontSize: 12),
                     ),
                   ),
                 ),
@@ -184,7 +214,9 @@ class ShowDetailEpisodesTab extends StatelessWidget {
                         Flexible(
                           child: Text(
                             ep.title,
-                            style: ObsidianTypography.titleSm().copyWith(fontWeight: FontWeight.w600),
+                            style: ObsidianTypography.titleSm().copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -192,24 +224,35 @@ class ShowDetailEpisodesTab extends StatelessWidget {
 
                         // Status Badge
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
-                            color: isDone ? const Color(0xFF064E3B) : ObsidianColors.surfaceContainerHighest,
+                            color: isDone
+                                ? const Color(0xFF064E3B)
+                                : ObsidianColors.surfaceContainerHighest,
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
-                                isDone ? Icons.check_circle_rounded : Icons.schedule_rounded,
+                                isDone
+                                    ? Icons.check_circle_rounded
+                                    : Icons.schedule_rounded,
                                 size: 12,
-                                color: isDone ? ObsidianColors.success : ObsidianColors.outline,
+                                color: isDone
+                                    ? ObsidianColors.success
+                                    : ObsidianColors.outline,
                               ),
                               const SizedBox(width: 4),
                               Text(
                                 isDone ? 'DONE' : ep.state.toUpperCase(),
                                 style: ObsidianTypography.labelBadge(
-                                  color: isDone ? ObsidianColors.success : ObsidianColors.outline,
+                                  color: isDone
+                                      ? ObsidianColors.success
+                                      : ObsidianColors.outline,
                                 ),
                               ),
                             ],
@@ -217,15 +260,23 @@ class ShowDetailEpisodesTab extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
 
-                        Text(ep.duration, style: ObsidianTypography.monoCode(color: ObsidianColors.outline)),
+                        Text(
+                          ep.duration,
+                          style: ObsidianTypography.monoCode(
+                            color: ObsidianColors.outline,
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 4),
 
                     // Filename Line
                     SelectableText(
-                      ep.releaseName ?? '${show.title} - ${ep.number.toString().padLeft(2, '0')}.mkv',
-                      style: ObsidianTypography.monoCode(color: ObsidianColors.primary),
+                      ep.releaseName ??
+                          '${show.title} - ${ep.number.toString().padLeft(2, '0')}.mkv',
+                      style: ObsidianTypography.monoCode(
+                        color: ObsidianColors.primary,
+                      ),
                     ),
                   ],
                 ),
@@ -243,14 +294,30 @@ class ShowDetailEpisodesTab extends StatelessWidget {
                         state.downloadEpisode(show.malId, ep.number);
                       }
                     },
-                    icon: Icon(isDone ? Icons.play_arrow_rounded : Icons.download_rounded, size: 16),
+                    icon: Icon(
+                      isDone
+                          ? Icons.play_arrow_rounded
+                          : Icons.download_rounded,
+                      size: 16,
+                    ),
                     label: Text(isDone ? 'Play / Open' : 'Download'),
                     style: FilledButton.styleFrom(
-                      backgroundColor: isDone ? ObsidianColors.primaryContainer : ObsidianColors.surfaceContainerHigh,
-                      foregroundColor: isDone ? ObsidianColors.onPrimaryContainer : ObsidianColors.onSurface,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      textStyle: ObsidianTypography.bodySm().copyWith(fontWeight: FontWeight.w600),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      backgroundColor: isDone
+                          ? ObsidianColors.primaryContainer
+                          : ObsidianColors.surfaceContainerHigh,
+                      foregroundColor: isDone
+                          ? ObsidianColors.onPrimaryContainer
+                          : ObsidianColors.onSurface,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      textStyle: ObsidianTypography.bodySm().copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -258,15 +325,26 @@ class ShowDetailEpisodesTab extends StatelessWidget {
                     onPressed: () {
                       state.downloadEpisode(show.malId, ep.number);
                     },
-                    icon: const Icon(Icons.help_outline_rounded, size: 14, color: ObsidianColors.error),
+                    icon: const Icon(
+                      Icons.help_outline_rounded,
+                      size: 14,
+                      color: ObsidianColors.error,
+                    ),
                     label: const Text('Wrong Release'),
                     style: OutlinedButton.styleFrom(
                       backgroundColor: ObsidianColors.surfaceContainerHigh,
                       foregroundColor: ObsidianColors.onSurface,
                       side: const BorderSide(color: ObsidianColors.border),
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                      textStyle: ObsidianTypography.monoCode(color: ObsidianColors.onSurface),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
+                      textStyle: ObsidianTypography.monoCode(
+                        color: ObsidianColors.onSurface,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                   ),
                 ],
@@ -323,11 +401,15 @@ class ShowDetailEpisodesTab extends StatelessWidget {
             children: [
               Text(
                 'Indexed Chapters (${ep.chapters} chapters verified)',
-                style: ObsidianTypography.monoCode(color: ObsidianColors.outline).copyWith(fontSize: 11),
+                style: ObsidianTypography.monoCode(
+                  color: ObsidianColors.outline,
+                ).copyWith(fontSize: 11),
               ),
               Text(
                 'CRC32: ${ep.crc32} [MATCH]',
-                style: ObsidianTypography.monoCode(color: ObsidianColors.success).copyWith(fontSize: 11),
+                style: ObsidianTypography.monoCode(
+                  color: ObsidianColors.success,
+                ).copyWith(fontSize: 11),
               ),
             ],
           ),
@@ -349,7 +431,9 @@ class ShowDetailEpisodesTab extends StatelessWidget {
                   child: Container(
                     margin: const EdgeInsets.symmetric(horizontal: 0.5),
                     decoration: BoxDecoration(
-                      color: isDone ? ObsidianColors.primary : ObsidianColors.surfaceContainerHighest,
+                      color: isDone
+                          ? ObsidianColors.primary
+                          : ObsidianColors.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -368,12 +452,14 @@ class ShowDetailEpisodesTab extends StatelessWidget {
       children: [
         Text(
           label,
-          style: ObsidianTypography.monoCode(color: ObsidianColors.outline).copyWith(fontSize: 9),
+          style: ObsidianTypography.monoCode(color: ObsidianColors.outline)
+              .copyWith(fontSize: 9),
         ),
         const SizedBox(height: 2),
         Text(
           value,
-          style: ObsidianTypography.monoCode(color: valueColor).copyWith(fontSize: 11, fontWeight: FontWeight.w500),
+          style: ObsidianTypography.monoCode(color: valueColor)
+              .copyWith(fontSize: 11, fontWeight: FontWeight.w500),
           overflow: TextOverflow.ellipsis,
         ),
       ],

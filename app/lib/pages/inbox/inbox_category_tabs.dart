@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
 
@@ -41,14 +42,21 @@ class InboxCategoryTabs extends StatelessWidget {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Sort: ',
-                style: ObsidianTypography.monoCode(
-                    color: ObsidianColors.outline, fontSize: 11)),
-            Text('Priority & Age',
-                style: ObsidianTypography.monoCode(
-                    color: ObsidianColors.onSurface,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 11)),
+            Text(
+              'Sort: ',
+              style: ObsidianTypography.monoCode(
+                color: ObsidianColors.outline,
+                fontSize: 11,
+              ),
+            ),
+            Text(
+              'Priority & Age',
+              style: ObsidianTypography.monoCode(
+                color: ObsidianColors.onSurface,
+                fontWeight: FontWeight.bold,
+                fontSize: 11,
+              ),
+            ),
           ],
         ),
       ],

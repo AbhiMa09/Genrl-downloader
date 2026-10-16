@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
@@ -16,9 +17,14 @@ class DashboardIngestionStrip extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    final stageName = state.isIngesting ? state.ingestionStage.name.toUpperCase() : 'SYNCING';
+    final stageName = state.isIngesting
+        ? state.ingestionStage.name.toUpperCase()
+        : 'SYNCING';
     final progress = state.ingestionTotalCount > 0
-        ? (state.ingestionProcessedCount / state.ingestionTotalCount).clamp(0.0, 1.0)
+        ? (state.ingestionProcessedCount / state.ingestionTotalCount).clamp(
+            0.0,
+            1.0,
+          )
         : 0.0;
 
     return Container(
@@ -44,31 +50,40 @@ class DashboardIngestionStrip extends StatelessWidget {
                   children: [
                     Text(
                       'INGESTION ACTIVE [$stageName]: ',
-                      style: ObsidianTypography.monoCode(color: ObsidianColors.secondary).copyWith(fontWeight: FontWeight.bold),
+                      style: ObsidianTypography.monoCode(
+                        color: ObsidianColors.secondary,
+                      ).copyWith(fontWeight: FontWeight.bold),
                     ),
                     Flexible(
                       child: Text(
                         state.isIngesting
                             ? '${state.ingestionProcessedCount} / ${state.ingestionTotalCount} items processed'
                             : 'Synchronizing library manifests with core...',
-                        style: ObsidianTypography.bodySm(color: ObsidianColors.onSurface),
+                        style: ObsidianTypography.bodySm(
+                          color: ObsidianColors.onSurface,
+                        ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
                 ),
               ),
-              if (state.ingestionEtaSeconds != null && state.ingestionEtaSeconds! > 0)
+              if (state.ingestionEtaSeconds != null &&
+                  state.ingestionEtaSeconds! > 0)
                 Text(
                   '~${state.ingestionEtaSeconds}s remaining',
-                  style: ObsidianTypography.monoCode(color: ObsidianColors.outline),
+                  style: ObsidianTypography.monoCode(
+                    color: ObsidianColors.outline,
+                  ),
                 ),
               const SizedBox(width: 12),
               InkWell(
                 onTap: () => state.selectPage(5),
                 child: Text(
                   'View Telemetry',
-                  style: ObsidianTypography.labelBadge(color: ObsidianColors.tertiary),
+                  style: ObsidianTypography.labelBadge(
+                    color: ObsidianColors.tertiary,
+                  ),
                 ),
               ),
             ],
@@ -81,7 +96,9 @@ class DashboardIngestionStrip extends StatelessWidget {
                 value: progress,
                 minHeight: 3,
                 backgroundColor: ObsidianColors.surfaceContainerLowest,
-                valueColor: const AlwaysStoppedAnimation<Color>(ObsidianColors.primary),
+                valueColor: const AlwaysStoppedAnimation<Color>(
+                  ObsidianColors.primary,
+                ),
               ),
             ),
           ],

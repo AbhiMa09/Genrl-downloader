@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
 
@@ -68,37 +69,51 @@ class DecisionCardFrame extends StatelessWidget {
                             children: [
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 6, vertical: 2),
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
-                                    color: tagColor.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(4)),
+                                  color: tagColor.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Icon(tagIcon, size: 12, color: tagColor),
                                     const SizedBox(width: 4),
-                                    Text(categoryTag,
-                                        style: ObsidianTypography.labelBadge(
-                                            color: tagColor, fontSize: 9)),
+                                    Text(
+                                      categoryTag,
+                                      style: ObsidianTypography.labelBadge(
+                                        color: tagColor,
+                                        fontSize: 9,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
                               const SizedBox(width: 8),
-                              Text(metaText,
-                                  style: ObsidianTypography.monoCode(
-                                      color: ObsidianColors.outline,
-                                      fontSize: 10)),
+                              Text(
+                                metaText,
+                                style: ObsidianTypography.monoCode(
+                                  color: ObsidianColors.outline,
+                                  fontSize: 10,
+                                ),
+                              ),
                             ],
                           ),
                           const SizedBox(height: 6),
-                          Text(title,
-                              style:
-                                  ObsidianTypography.headlineMd(fontSize: 16)),
+                          Text(
+                            title,
+                            style: ObsidianTypography.headlineMd(fontSize: 16),
+                          ),
                           const SizedBox(height: 2),
-                          Text(description,
-                              style: ObsidianTypography.bodySm(
-                                  color: ObsidianColors.onSurfaceVariant,
-                                  fontSize: 11)),
+                          Text(
+                            description,
+                            style: ObsidianTypography.bodySm(
+                              color: ObsidianColors.onSurfaceVariant,
+                              fontSize: 11,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -108,11 +123,17 @@ class DecisionCardFrame extends StatelessWidget {
                         style: OutlinedButton.styleFrom(
                           side: const BorderSide(color: ObsidianColors.border),
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 6),
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
                         ),
-                        child: Text(secondaryActionLabel!,
-                            style: ObsidianTypography.monoCode(
-                                color: ObsidianColors.error, fontSize: 10)),
+                        child: Text(
+                          secondaryActionLabel!,
+                          style: ObsidianTypography.monoCode(
+                            color: ObsidianColors.error,
+                            fontSize: 10,
+                          ),
+                        ),
                       ),
                   ],
                 ),
@@ -124,11 +145,14 @@ class DecisionCardFrame extends StatelessWidget {
 
                 // Footer with "Always do this" auto-rule checkbox
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
-                    color:
-                        ObsidianColors.surfaceContainerLowest.withOpacity(0.5),
+                    color: ObsidianColors.surfaceContainerLowest.withOpacity(
+                      0.5,
+                    ),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Row(
@@ -137,15 +161,19 @@ class DecisionCardFrame extends StatelessWidget {
                       Expanded(
                         child: Row(
                           children: [
-                            const Icon(Icons.check_box_outline_blank_rounded,
-                                size: 16, color: ObsidianColors.primary),
+                            const Icon(
+                              Icons.check_box_outline_blank_rounded,
+                              size: 16,
+                              color: ObsidianColors.primary,
+                            ),
                             const SizedBox(width: 6),
                             Expanded(
                               child: Text(
                                 autoRuleText,
                                 style: ObsidianTypography.bodySm(
-                                    color: ObsidianColors.onSurfaceVariant,
-                                    fontSize: 10),
+                                  color: ObsidianColors.onSurfaceVariant,
+                                  fontSize: 10,
+                                ),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
@@ -153,9 +181,13 @@ class DecisionCardFrame extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Text('Rule ID: $ruleId',
-                          style: ObsidianTypography.monoCode(
-                              color: ObsidianColors.outline, fontSize: 9)),
+                      Text(
+                        'Rule ID: $ruleId',
+                        style: ObsidianTypography.monoCode(
+                          color: ObsidianColors.outline,
+                          fontSize: 9,
+                        ),
+                      ),
                     ],
                   ),
                 ),

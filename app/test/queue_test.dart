@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:genrl_downloader/pages/queue_page.dart';
 import 'package:genrl_downloader/services/state_provider.dart';
 import 'package:genrl_downloader/theme/theme.dart';
+
 import 'fake_core_bridge.dart';
 
 Widget createTestApp(StateProvider stateProvider) {
@@ -21,7 +22,9 @@ void main() {
     TestWidgetsFlutterBinding.ensureInitialized();
   });
 
-  testWidgets('Queue Page renders active torrent transfers and filter tabs', (tester) async {
+  testWidgets('Queue Page renders active torrent transfers and filter tabs', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(1280, 800);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
@@ -44,7 +47,9 @@ void main() {
     expect(find.textContaining('142 seeds'), findsOneWidget);
   });
 
-  testWidgets('Queue Page renders empty state when no transfers exist', (tester) async {
+  testWidgets('Queue Page renders empty state when no transfers exist', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(1280, 800);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
@@ -57,10 +62,15 @@ void main() {
     await tester.pump();
 
     expect(find.text('No Transfers In Queue'), findsOneWidget);
-    expect(find.textContaining('Active downloads and jobs will appear here live'), findsOneWidget);
+    expect(
+      find.textContaining('Active downloads and jobs will appear here live'),
+      findsOneWidget,
+    );
   });
 
-  testWidgets('Queue Page displays error message and Retry button on error', (tester) async {
+  testWidgets('Queue Page displays error message and Retry button on error', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(1280, 800);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
@@ -76,7 +86,10 @@ void main() {
     await tester.pump();
 
     expect(find.text('Queue Query Error'), findsOneWidget);
-    expect(find.textContaining('qBittorrent WebUI unreachable'), findsOneWidget);
+    expect(
+      find.textContaining('qBittorrent WebUI unreachable'),
+      findsOneWidget,
+    );
     expect(find.text('Retry Queue'), findsOneWidget);
 
     // Switch to data and tap Retry

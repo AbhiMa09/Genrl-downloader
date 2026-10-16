@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../models/library_item.dart';
 import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
@@ -34,11 +35,17 @@ class StorageInspectorCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.folder_outlined, size: 16, color: ObsidianColors.tertiary),
+                  const Icon(
+                    Icons.folder_outlined,
+                    size: 16,
+                    color: ObsidianColors.tertiary,
+                  ),
                   const SizedBox(width: 6),
                   Text(
                     'ROOT DIRECTORY',
-                    style: ObsidianTypography.monoCode(color: ObsidianColors.outline),
+                    style: ObsidianTypography.monoCode(
+                      color: ObsidianColors.outline,
+                    ),
                   ),
                 ],
               ),
@@ -50,7 +57,9 @@ class StorageInspectorCard extends StatelessWidget {
                 ),
                 child: Text(
                   'EXT4',
-                  style: ObsidianTypography.labelBadge(color: ObsidianColors.tertiary),
+                  style: ObsidianTypography.labelBadge(
+                    color: ObsidianColors.tertiary,
+                  ),
                 ),
               ),
             ],
@@ -67,7 +76,9 @@ class StorageInspectorCard extends StatelessWidget {
             ),
             child: SelectableText(
               show.folderPath ?? '/mnt/anime/${show.title}/',
-              style: ObsidianTypography.monoCode(color: ObsidianColors.onSurfaceVariant).copyWith(fontSize: 11),
+              style: ObsidianTypography.monoCode(
+                color: ObsidianColors.onSurfaceVariant,
+              ).copyWith(fontSize: 11),
             ),
           ),
           const SizedBox(height: 10),
@@ -79,14 +90,18 @@ class StorageInspectorCard extends StatelessWidget {
               Flexible(
                 child: Text(
                   'On-Disk Footprint:',
-                  style: ObsidianTypography.monoCode(color: ObsidianColors.outline),
+                  style: ObsidianTypography.monoCode(
+                    color: ObsidianColors.outline,
+                  ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
               const SizedBox(width: 8),
               Text(
                 onDiskString,
-                style: ObsidianTypography.monoCode(color: ObsidianColors.primary).copyWith(fontWeight: FontWeight.bold),
+                style: ObsidianTypography.monoCode(
+                  color: ObsidianColors.primary,
+                ).copyWith(fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -97,13 +112,19 @@ class StorageInspectorCard extends StatelessWidget {
             width: double.infinity,
             child: FilledButton.icon(
               onPressed: () => openFileOrFolder(show.folderPath),
-              icon: const Icon(Icons.folder_open_rounded, size: 16, color: ObsidianColors.primary),
+              icon: const Icon(
+                Icons.folder_open_rounded,
+                size: 16,
+                color: ObsidianColors.primary,
+              ),
               label: const Text('Open in File Manager'),
               style: FilledButton.styleFrom(
                 backgroundColor: ObsidianColors.surfaceContainerHigh,
                 foregroundColor: ObsidianColors.onSurface,
                 padding: const EdgeInsets.symmetric(vertical: 10),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
             ),
           ),
@@ -124,7 +145,9 @@ class StorageInspectorCard extends StatelessWidget {
                     foregroundColor: ObsidianColors.onSurfaceVariant,
                     side: const BorderSide(color: ObsidianColors.border),
                     padding: const EdgeInsets.symmetric(vertical: 8),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                 ),
               ),
@@ -140,7 +163,9 @@ class StorageInspectorCard extends StatelessWidget {
                     foregroundColor: ObsidianColors.onSurfaceVariant,
                     side: const BorderSide(color: ObsidianColors.border),
                     padding: const EdgeInsets.symmetric(vertical: 8),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                 ),
               ),

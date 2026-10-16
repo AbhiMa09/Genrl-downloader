@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -26,7 +27,9 @@ void main() {
         final content = file.readAsStringSync();
         for (final forbidden in forbiddenStrings) {
           if (content.contains(forbidden)) {
-            violations.add('${file.path}: contains forbidden placeholder "$forbidden"');
+            violations.add(
+              '${file.path}: contains forbidden placeholder "$forbidden"',
+            );
           }
         }
       }
@@ -35,7 +38,8 @@ void main() {
     expect(
       violations,
       isEmpty,
-      reason: 'Forbidden mock placeholder strings found in app/lib:\n${violations.join('\n')}',
+      reason:
+          'Forbidden mock placeholder strings found in app/lib:\n${violations.join('\n')}',
     );
   });
 }

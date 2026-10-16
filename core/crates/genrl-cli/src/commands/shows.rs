@@ -1,4 +1,3 @@
-use std::path::Path;
 use anyhow::{bail, Result};
 use clap::Subcommand;
 use genrl_core::http::Gate;
@@ -6,21 +5,16 @@ use genrl_core::models::NameSource;
 use genrl_core::names::{NameSet, PRIORITY_USER};
 use genrl_core::rules::Rules;
 use genrl_core::Settings;
+use std::path::Path;
 
 use super::common::open_db;
 
 #[derive(Subcommand, Debug)]
 pub enum AliasCommand {
     /// Add an alias for a show.
-    Add {
-        mal_id: i64,
-        name: String,
-    },
+    Add { mal_id: i64, name: String },
     /// Remove an alias for a show.
-    Remove {
-        mal_id: i64,
-        name: String,
-    },
+    Remove { mal_id: i64, name: String },
     /// List all aliases for a show.
     List {
         mal_id: i64,
@@ -107,12 +101,17 @@ pub async fn show_detail_cmd(data_dir: &Path, mal_id: i64, json: bool) -> Result
     let clock = genrl_core::clock::SystemClock;
 
     // Check if synopsis or poster is missing or pending; trigger on-demand fetch if needed
-    let (current_synopsis, current_poster, meta_status): (Option<String>, Option<String>, Option<String>) = db.with(|c| {
+    let (current_synopsis, current_poster, meta_status): (
+        Option<String>,
+        Option<String>,
+        Option<String>,
+    ) = db.with(|c| {
         Ok(c.query_row(
             "SELECT synopsis, poster_path, metadata_status FROM shows WHERE mal_id = ?1",
             [mal_id],
             |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
-        ).unwrap_or((None, None, None)))
+        )
+        .unwrap_or((None, None, None)))
     })?;
 
     let poster_is_missing = current_poster
@@ -120,20 +119,17 @@ pub async fn show_detail_cmd(data_dir: &Path, mal_id: i64, json: bool) -> Result
         .map(|p| p.trim().is_empty() || p.starts_with("http") || !Path::new(p).is_file())
         .unwrap_or(true);
 
-    let needs_fetch = current_synopsis.as_deref().map(|s| s.trim().is_empty() || s.starts_with('[')).unwrap_or(true)
+    let needs_fetch = current_synopsis
+        .as_deref()
+        .map(|s| s.trim().is_empty() || s.starts_with('['))
+        .unwrap_or(true)
         || poster_is_missing
         || meta_status.as_deref() == Some("pending");
 
     if needs_fetch && meta_status.as_deref() != Some("failed") {
         if let Ok(gate) = Gate::new(db.clone()) {
             let _ = genrl_core::fetch_show_metadata(
-                &db,
-                &gate,
-                &settings,
-                &clock,
-                data_dir,
-                mal_id,
-                false,
+                &db, &gate, &settings, &clock, data_dir, mal_id, false,
             )
             .await;
         }
@@ -260,7 +256,7 @@ pub async fn show_detail_cmd(data_dir: &Path, mal_id: i64, json: bool) -> Result
              FROM episodes e
              LEFT JOIN torrents t ON t.id = e.torrent_id
              WHERE e.mal_id = ?1
-             ORDER BY e.number ASC"
+             ORDER BY e.number ASC",
         )?;
         let rows = stmt.query_map([mal_id], |r| {
             let id = r.get::<_, i64>(0)?;
@@ -279,15 +275,22 @@ pub async fn show_detail_cmd(data_dir: &Path, mal_id: i64, json: bool) -> Result
                 format!("Episode {num_int}")
             };
 
-            let release_name = torrent_name.clone().or_else(|| {
-                path.as_ref().and_then(|p| {
-                    Path::new(p).file_name().and_then(|f| f.to_str()).map(|s| s.to_string())
+            let release_name = torrent_name
+                .clone()
+                .or_else(|| {
+                    path.as_ref().and_then(|p| {
+                        Path::new(p)
+                            .file_name()
+                            .and_then(|f| f.to_str())
+                            .map(|s| s.to_string())
+                    })
                 })
-            }).unwrap_or_else(|| format!("[Genrl] {show_title} - {:02}", num_int));
+                .unwrap_or_else(|| format!("[Genrl] {show_title} - {:02}", num_int));
 
-            let ext = path.as_ref().and_then(|p| {
-                Path::new(p).extension().and_then(|e| e.to_str())
-            }).unwrap_or("mkv");
+            let ext = path
+                .as_ref()
+                .and_then(|p| Path::new(p).extension().and_then(|e| e.to_str()))
+                .unwrap_or("mkv");
             let container = match ext.to_lowercase().as_str() {
                 "mp4" => "MPEG-4 (MP4)",
                 "webm" => "WebM",
@@ -304,7 +307,8 @@ pub async fn show_detail_cmd(data_dir: &Path, mal_id: i64, json: bool) -> Result
                 .and_then(|start| {
                     release_name[start..].find(']').and_then(|end| {
                         let candidate = &release_name[start + 1..start + end];
-                        if candidate.len() == 8 && candidate.chars().all(|c| c.is_ascii_hexdigit()) {
+                        if candidate.len() == 8 && candidate.chars().all(|c| c.is_ascii_hexdigit())
+                        {
                             Some(candidate.to_uppercase())
                         } else {
                             None
@@ -339,7 +343,10 @@ pub async fn show_detail_cmd(data_dir: &Path, mal_id: i64, json: bool) -> Result
         Ok(list)
     })?;
 
-    let on_disk_bytes: i64 = episodes.iter().filter_map(|e| e["size_bytes"].as_i64()).sum();
+    let on_disk_bytes: i64 = episodes
+        .iter()
+        .filter_map(|e| e["size_bytes"].as_i64())
+        .sum();
 
     if let Some(obj) = show.as_object_mut() {
         obj.insert(
@@ -421,7 +428,10 @@ pub fn library_rescan_cmd(data_dir: &Path) -> Result<()> {
     }
     let p = Path::new(&settings.library_folder);
     if !p.exists() {
-        bail!("configured library folder '{}' does not exist", settings.library_folder);
+        bail!(
+            "configured library folder '{}' does not exist",
+            settings.library_folder
+        );
     }
     let report = genrl_core::library::rescan_library(&db, p)?;
     println!(

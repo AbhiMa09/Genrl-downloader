@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
 
@@ -27,8 +28,11 @@ class WizardDailyCapWarning extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.warning_rounded,
-                  size: 22, color: ObsidianColors.primary),
+              const Icon(
+                Icons.warning_rounded,
+                size: 22,
+                color: ObsidianColors.primary,
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -37,19 +41,27 @@ class WizardDailyCapWarning extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Daily Ingestion Cap Exceeded Warning',
-                            style: ObsidianTypography.titleSm()
-                                .copyWith(fontWeight: FontWeight.bold)),
+                        Text(
+                          'Daily Ingestion Cap Exceeded Warning',
+                          style: ObsidianTypography.titleSm().copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: ObsidianColors.surfaceContainer,
                             borderRadius: BorderRadius.circular(4),
                           ),
-                          child: Text('Cap: 30 eps/day',
-                              style: ObsidianTypography.monoCode(
-                                  color: ObsidianColors.primary)),
+                          child: Text(
+                            'Cap: 30 eps/day',
+                            style: ObsidianTypography.monoCode(
+                              color: ObsidianColors.primary,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -57,7 +69,8 @@ class WizardDailyCapWarning extends StatelessWidget {
                     Text(
                       'Your download cap is configured to 30 episodes/day in client preferences. Committing all 214 backlog episodes will schedule the first 30 today and throttle the remaining 184 into staged daily queues to prevent tracker rate-limits and ISP bandwidth alarms.',
                       style: ObsidianTypography.bodySm(
-                          color: ObsidianColors.onSurfaceVariant),
+                        color: ObsidianColors.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
@@ -85,8 +98,9 @@ class WizardDailyCapWarning extends StatelessWidget {
                       Flexible(
                         child: Text(
                           'Bypass daily cap for initial first-run sync (Queue all 214 immediately without daily delay)',
-                          style: ObsidianTypography.bodySm()
-                              .copyWith(fontWeight: FontWeight.bold),
+                          style: ObsidianTypography.bodySm().copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -99,9 +113,10 @@ class WizardDailyCapWarning extends StatelessWidget {
                       ? 'Full queue release'
                       : 'Staged batching active',
                   style: ObsidianTypography.labelBadge(
-                      color: bypassDailyCap
-                          ? ObsidianColors.warning
-                          : ObsidianColors.outline),
+                    color: bypassDailyCap
+                        ? ObsidianColors.warning
+                        : ObsidianColors.outline,
+                  ),
                 ),
               ],
             ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
@@ -43,15 +44,23 @@ class DashboardOperationalBar extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.travel_explore_rounded, size: 18, color: ObsidianColors.outline),
+                  const Icon(
+                    Icons.travel_explore_rounded,
+                    size: 18,
+                    color: ObsidianColors.outline,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: TextField(
                       controller: searchFilterController,
-                      style: ObsidianTypography.bodySm(color: ObsidianColors.onSurface),
+                      style: ObsidianTypography.bodySm(
+                        color: ObsidianColors.onSurface,
+                      ),
                       decoration: InputDecoration(
                         hintText: 'Quick jump or filter anime... (Ctrl+K)',
-                        hintStyle: ObsidianTypography.bodySm(color: ObsidianColors.outline),
+                        hintStyle: ObsidianTypography.bodySm(
+                          color: ObsidianColors.outline,
+                        ),
                         border: InputBorder.none,
                         isDense: true,
                       ),
@@ -63,12 +72,21 @@ class DashboardOperationalBar extends StatelessWidget {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 5,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: ObsidianColors.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(4),
                     ),
-                    child: Text('Ctrl+K', style: ObsidianTypography.monoCode(color: ObsidianColors.onSurfaceVariant, fontSize: 10)),
+                    child: Text(
+                      'Ctrl+K',
+                      style: ObsidianTypography.monoCode(
+                        color: ObsidianColors.onSurfaceVariant,
+                        fontSize: 10,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -82,7 +100,10 @@ class DashboardOperationalBar extends StatelessWidget {
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: ObsidianColors.surfaceContainer,
                   borderRadius: BorderRadius.circular(8),
@@ -95,14 +116,19 @@ class DashboardOperationalBar extends StatelessWidget {
                       width: 7,
                       height: 7,
                       decoration: BoxDecoration(
-                        color: status.qbitConnected ? ObsidianColors.tertiary : ObsidianColors.error,
+                        color: status.qbitConnected
+                            ? ObsidianColors.tertiary
+                            : ObsidianColors.error,
                         shape: BoxShape.circle,
                       ),
                     ),
                     const SizedBox(width: 8),
                     Text(
                       'qBittorrent ${status.qbitVersion} :: ${status.qbitConnected ? "IPC Linked" : "Offline"}',
-                      style: ObsidianTypography.monoCode(color: ObsidianColors.onSurfaceVariant, fontSize: 11),
+                      style: ObsidianTypography.monoCode(
+                        color: ObsidianColors.onSurfaceVariant,
+                        fontSize: 11,
+                      ),
                     ),
                   ],
                 ),
@@ -111,41 +137,96 @@ class DashboardOperationalBar extends StatelessWidget {
               OutlinedButton.icon(
                 onPressed: state.isSyncing ? null : () => state.forceSyncMal(),
                 icon: state.isSyncing
-                    ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: ObsidianColors.primary))
-                    : const Icon(Icons.sync_rounded, size: 16, color: ObsidianColors.primary),
-                label: Text('Sync MyAnimeList', style: ObsidianTypography.bodySm(color: ObsidianColors.onSurface)),
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: ObsidianColors.primary,
+                        ),
+                      )
+                    : const Icon(
+                        Icons.sync_rounded,
+                        size: 16,
+                        color: ObsidianColors.primary,
+                      ),
+                label: Text(
+                  'Sync MyAnimeList',
+                  style: ObsidianTypography.bodySm(
+                    color: ObsidianColors.onSurface,
+                  ),
+                ),
                 style: OutlinedButton.styleFrom(
                   backgroundColor: ObsidianColors.surfaceContainer,
                   side: const BorderSide(color: ObsidianColors.border),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               ),
 
               OutlinedButton.icon(
-                onPressed: state.isScanning ? null : () => state.manualDiskScan(),
+                onPressed: state.isScanning
+                    ? null
+                    : () => state.manualDiskScan(),
                 icon: state.isScanning
-                    ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: ObsidianColors.tertiary))
-                    : const Icon(Icons.folder_special_rounded, size: 16, color: ObsidianColors.tertiary),
-                label: Text('Manual Disk Scan', style: ObsidianTypography.bodySm(color: ObsidianColors.onSurface)),
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: ObsidianColors.tertiary,
+                        ),
+                      )
+                    : const Icon(
+                        Icons.folder_special_rounded,
+                        size: 16,
+                        color: ObsidianColors.tertiary,
+                      ),
+                label: Text(
+                  'Manual Disk Scan',
+                  style: ObsidianTypography.bodySm(
+                    color: ObsidianColors.onSurface,
+                  ),
+                ),
                 style: OutlinedButton.styleFrom(
                   backgroundColor: ObsidianColors.surfaceContainer,
                   side: const BorderSide(color: ObsidianColors.border),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               ),
 
               ElevatedButton.icon(
                 onPressed: () async => await state.grabNextAvailable(),
                 icon: const Icon(Icons.bolt_rounded, size: 16),
-                label: Text('Grab Next Available', style: ObsidianTypography.titleSm(color: ObsidianColors.onPrimaryContainer, fontSize: 12)),
+                label: Text(
+                  'Grab Next Available',
+                  style: ObsidianTypography.titleSm(
+                    color: ObsidianColors.onPrimaryContainer,
+                    fontSize: 12,
+                  ),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: ObsidianColors.primaryContainer,
                   foregroundColor: ObsidianColors.onPrimaryContainer,
                   elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               ),
             ],

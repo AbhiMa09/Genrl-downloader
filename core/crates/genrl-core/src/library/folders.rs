@@ -25,13 +25,13 @@ pub fn transfer_file(source: &Path, target: &Path, mode: MoveMode) -> Result<()>
 
     match mode {
         MoveMode::Hardlink => {
-            if let Err(_) = fs::hard_link(source, target) {
+            if fs::hard_link(source, target).is_err() {
                 // Cross-device link fallback: copy
                 fs::copy(source, target)?;
             }
         }
         MoveMode::Move => {
-            if let Err(_) = fs::rename(source, target) {
+            if fs::rename(source, target).is_err() {
                 // Cross-device rename fallback: copy then unlink
                 fs::copy(source, target)?;
                 let _ = fs::remove_file(source);
@@ -65,15 +65,16 @@ pub fn resolve_show_folder(
     start_year: Option<i64>,
 ) -> Result<PathBuf> {
     // 1. Check database for existing folder_path
-    let existing_path: Option<String> = db.with(|c| {
-        Ok(c.query_row(
-            "SELECT folder_path FROM shows WHERE mal_id = ?1",
-            [mal_id],
-            |r| r.get::<_, Option<String>>(0),
-        )
-        .optional()?)
-    })?
-    .flatten();
+    let existing_path: Option<String> = db
+        .with(|c| {
+            Ok(c.query_row(
+                "SELECT folder_path FROM shows WHERE mal_id = ?1",
+                [mal_id],
+                |r| r.get::<_, Option<String>>(0),
+            )
+            .optional()?)
+        })?
+        .flatten();
 
     if let Some(path_str) = &existing_path {
         let p = PathBuf::from(path_str);
@@ -150,6 +151,7 @@ pub fn resolve_show_folder(
 
 /// Rewrite synopsis.txt and movie.nfo/tvshow.nfo (plot, rating, year) for all existing folders of a show.
 /// Called when shows.synopsis becomes ready or when metadata is updated.
+#[allow(clippy::type_complexity)]
 pub fn rewrite_show_folder_metadata(db: &Db, mal_id: i64) -> Result<usize> {
     // 1. Fetch show details from database
     let show_data: Option<(
@@ -186,7 +188,18 @@ pub fn rewrite_show_folder_metadata(db: &Db, mal_id: i64) -> Result<usize> {
         .optional()?)
     })?;
 
-    let (title, english_title, show_type_str, start_year, synopsis, poster_path, score, total_episodes, status, folder_path) = match show_data {
+    let (
+        title,
+        english_title,
+        show_type_str,
+        start_year,
+        synopsis,
+        poster_path,
+        score,
+        total_episodes,
+        status,
+        folder_path,
+    ) = match show_data {
         Some(d) => d,
         None => return Ok(0),
     };
@@ -229,7 +242,9 @@ pub fn rewrite_show_folder_metadata(db: &Db, mal_id: i64) -> Result<usize> {
 
     // 2) Parent directory of any recorded episode file
     let ep_paths: Vec<String> = db.with(|c| {
-        let mut stmt = c.prepare("SELECT DISTINCT file_path FROM episodes WHERE mal_id = ?1 AND file_path IS NOT NULL")?;
+        let mut stmt = c.prepare(
+            "SELECT DISTINCT file_path FROM episodes WHERE mal_id = ?1 AND file_path IS NOT NULL",
+        )?;
         let rows = stmt.query_map([mal_id], |r| r.get::<_, String>(0))?;
         let mut list = Vec::new();
         for r in rows.flatten() {
@@ -296,7 +311,11 @@ pub fn rewrite_show_folder_metadata(db: &Db, mal_id: i64) -> Result<usize> {
         &now_date,
     );
 
-    let tag = if show_type == ShowType::Movie { "movie" } else { "tvshow" };
+    let tag = if show_type == ShowType::Movie {
+        "movie"
+    } else {
+        "tvshow"
+    };
     let nfo_content = format_nfo(
         tag,
         &title,

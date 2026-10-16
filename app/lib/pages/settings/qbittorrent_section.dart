@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
@@ -21,10 +22,12 @@ class SettingsQbittorrentSection extends StatefulWidget {
   });
 
   @override
-  State<SettingsQbittorrentSection> createState() => _SettingsQbittorrentSectionState();
+  State<SettingsQbittorrentSection> createState() =>
+      _SettingsQbittorrentSectionState();
 }
 
-class _SettingsQbittorrentSectionState extends State<SettingsQbittorrentSection> {
+class _SettingsQbittorrentSectionState
+    extends State<SettingsQbittorrentSection> {
   bool _obscureQbitPassword = true;
 
   @override
@@ -51,15 +54,29 @@ class _SettingsQbittorrentSectionState extends State<SettingsQbittorrentSection>
                         color: ObsidianColors.surfaceContainerHigh,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.hub_rounded, size: 20, color: ObsidianColors.tertiary),
+                      child: const Icon(
+                        Icons.hub_rounded,
+                        size: 20,
+                        color: ObsidianColors.tertiary,
+                      ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('qBittorrent WebUI Connection', style: ObsidianTypography.titleSm(), overflow: TextOverflow.ellipsis),
-                          Text('Manage RPC bridge for automated magnet handoff and seeding limits', style: ObsidianTypography.bodySm(color: ObsidianColors.outline), overflow: TextOverflow.ellipsis),
+                          Text(
+                            'qBittorrent WebUI Connection',
+                            style: ObsidianTypography.titleSm(),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            'Manage RPC bridge for automated magnet handoff and seeding limits',
+                            style: ObsidianTypography.bodySm(
+                              color: ObsidianColors.outline,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ],
                       ),
                     ),
@@ -75,9 +92,21 @@ class _SettingsQbittorrentSectionState extends State<SettingsQbittorrentSection>
                 ),
                 child: Row(
                   children: [
-                    Container(width: 6, height: 6, decoration: const BoxDecoration(shape: BoxShape.circle, color: ObsidianColors.tertiary)),
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: ObsidianColors.tertiary,
+                      ),
+                    ),
                     const SizedBox(width: 6),
-                    Text('Connected • v4.6.3 Web API', style: ObsidianTypography.labelBadge(color: ObsidianColors.tertiary)),
+                    Text(
+                      'Connected • v4.6.3 Web API',
+                      style: ObsidianTypography.labelBadge(
+                        color: ObsidianColors.tertiary,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -123,7 +152,10 @@ class _SettingsQbittorrentSectionState extends State<SettingsQbittorrentSection>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('WebUI Secret Key / Password', style: ObsidianTypography.monoCode()),
+                    Text(
+                      'WebUI Secret Key / Password',
+                      style: ObsidianTypography.monoCode(),
+                    ),
                     const SizedBox(height: 4),
                     Container(
                       height: 38,
@@ -135,23 +167,36 @@ class _SettingsQbittorrentSectionState extends State<SettingsQbittorrentSection>
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.lock_rounded, size: 16, color: ObsidianColors.outline),
+                          const Icon(
+                            Icons.lock_rounded,
+                            size: 16,
+                            color: ObsidianColors.outline,
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: TextField(
                               controller: widget.passwordController,
                               obscureText: _obscureQbitPassword,
                               style: ObsidianTypography.monoCode(),
-                              decoration: const InputDecoration(border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.zero),
+                              decoration: const InputDecoration(
+                                border: InputBorder.none,
+                                isDense: true,
+                                contentPadding: EdgeInsets.zero,
+                              ),
                             ),
                           ),
                           IconButton(
                             icon: Icon(
-                              _obscureQbitPassword ? Icons.visibility_rounded : Icons.visibility_off_rounded,
+                              _obscureQbitPassword
+                                  ? Icons.visibility_rounded
+                                  : Icons.visibility_off_rounded,
                               size: 16,
                               color: ObsidianColors.outline,
                             ),
-                            onPressed: () => setState(() => _obscureQbitPassword = !_obscureQbitPassword),
+                            onPressed: () => setState(
+                              () =>
+                                  _obscureQbitPassword = !_obscureQbitPassword,
+                            ),
                           ),
                         ],
                       ),
@@ -173,21 +218,37 @@ class _SettingsQbittorrentSectionState extends State<SettingsQbittorrentSection>
             ),
             child: Row(
               children: [
-                const Icon(Icons.check_circle_rounded, size: 20, color: ObsidianColors.tertiary),
+                const Icon(
+                  Icons.check_circle_rounded,
+                  size: 20,
+                  color: ObsidianColors.tertiary,
+                ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Connection verified in 12ms', style: ObsidianTypography.monoCode(color: ObsidianColors.tertiary).copyWith(fontWeight: FontWeight.bold)),
-                      Text('qBittorrent v4.6.3 x86_64 daemon responded on loopback', style: ObsidianTypography.labelBadge(color: ObsidianColors.outline)),
+                      Text(
+                        'Connection verified in 12ms',
+                        style: ObsidianTypography.monoCode(
+                          color: ObsidianColors.tertiary,
+                        ).copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        'qBittorrent v4.6.3 x86_64 daemon responded on loopback',
+                        style: ObsidianTypography.labelBadge(
+                          color: ObsidianColors.outline,
+                        ),
+                      ),
                     ],
                   ),
                 ),
                 ElevatedButton.icon(
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Ping verified: 8ms loopback response')),
+                      const SnackBar(
+                        content: Text('Ping verified: 8ms loopback response'),
+                      ),
                     );
                   },
                   icon: const Icon(Icons.network_ping_rounded, size: 16),

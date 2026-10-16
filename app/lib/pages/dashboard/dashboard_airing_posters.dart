@@ -1,5 +1,7 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
+
 import '../../models/library_item.dart';
 import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
@@ -8,10 +10,7 @@ import '../../theme/typography.dart';
 class DashboardAiringPosters extends StatelessWidget {
   final StateProvider state;
 
-  const DashboardAiringPosters({
-    super.key,
-    required this.state,
-  });
+  const DashboardAiringPosters({super.key, required this.state});
 
   void _openFileExplorer(String path) {
     if (!Platform.environment.containsKey('FLUTTER_TEST')) {
@@ -34,9 +33,16 @@ class DashboardAiringPosters extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Icon(Icons.live_tv_rounded, size: 20, color: ObsidianColors.primary),
+                const Icon(
+                  Icons.live_tv_rounded,
+                  size: 20,
+                  color: ObsidianColors.primary,
+                ),
                 const SizedBox(width: 8),
-                Text('Airing Today & Monitored Next Up', style: ObsidianTypography.headlineMd()),
+                Text(
+                  'Airing Today & Monitored Next Up',
+                  style: ObsidianTypography.headlineMd(),
+                ),
               ],
             ),
             const SizedBox(height: 20),
@@ -45,7 +51,9 @@ class DashboardAiringPosters extends StatelessWidget {
                 padding: const EdgeInsets.all(16),
                 child: Text(
                   'No organized shows discovered yet. Run a disk scan or connect MAL to populate.',
-                  style: ObsidianTypography.bodySm(color: ObsidianColors.onSurfaceVariant),
+                  style: ObsidianTypography.bodySm(
+                    color: ObsidianColors.onSurfaceVariant,
+                  ),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -69,9 +77,16 @@ class DashboardAiringPosters extends StatelessWidget {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.live_tv_rounded, size: 20, color: ObsidianColors.primary),
+                const Icon(
+                  Icons.live_tv_rounded,
+                  size: 20,
+                  color: ObsidianColors.primary,
+                ),
                 const SizedBox(width: 8),
-                Text('Airing Today & Monitored Next Up', style: ObsidianTypography.headlineMd()),
+                Text(
+                  'Airing Today & Monitored Next Up',
+                  style: ObsidianTypography.headlineMd(),
+                ),
               ],
             ),
             Row(
@@ -79,19 +94,35 @@ class DashboardAiringPosters extends StatelessWidget {
               children: [
                 Text(
                   'Auto-snatch: ',
-                  style: ObsidianTypography.monoCode(color: ObsidianColors.onSurfaceVariant, fontSize: 11),
+                  style: ObsidianTypography.monoCode(
+                    color: ObsidianColors.onSurfaceVariant,
+                    fontSize: 11,
+                  ),
                 ),
                 Text(
                   'ENABLED',
-                  style: ObsidianTypography.monoCode(color: ObsidianColors.tertiary, fontSize: 11, fontWeight: FontWeight.bold),
+                  style: ObsidianTypography.monoCode(
+                    color: ObsidianColors.tertiary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(width: 14),
                 InkWell(
                   onTap: () => state.selectPage(3), // Library
                   child: Row(
                     children: [
-                      Text('Full Catalog', style: ObsidianTypography.bodySm(color: ObsidianColors.primary)),
-                      const Icon(Icons.arrow_forward_rounded, size: 14, color: ObsidianColors.primary),
+                      Text(
+                        'Full Catalog',
+                        style: ObsidianTypography.bodySm(
+                          color: ObsidianColors.primary,
+                        ),
+                      ),
+                      const Icon(
+                        Icons.arrow_forward_rounded,
+                        size: 14,
+                        color: ObsidianColors.primary,
+                      ),
                     ],
                   ),
                 ),
@@ -107,9 +138,10 @@ class DashboardAiringPosters extends StatelessWidget {
             final columns = constraints.maxWidth > 1100
                 ? 5
                 : constraints.maxWidth > 750
-                    ? 3
-                    : 2;
-            final itemWidth = (constraints.maxWidth - (columns - 1) * 12) / columns;
+                ? 3
+                : 2;
+            final itemWidth =
+                (constraints.maxWidth - (columns - 1) * 12) / columns;
 
             return Wrap(
               spacing: 12,
@@ -120,7 +152,9 @@ class DashboardAiringPosters extends StatelessWidget {
                   child: DashboardPosterCard(
                     show: show,
                     onTap: () => state.openShowDetail(show),
-                    onOpenFolder: () => _openFileExplorer(show.folderPath ?? '/mnt/anime/TV/${show.title}'),
+                    onOpenFolder: () => _openFileExplorer(
+                      show.folderPath ?? '/mnt/anime/TV/${show.title}',
+                    ),
                     onRefreshMeta: () => state.forceSyncMal(),
                     onSearch: () {
                       state.selectPage(4);
@@ -174,7 +208,9 @@ class _DashboardPosterCardState extends State<DashboardPosterCard> {
             color: ObsidianColors.surfaceContainerLow,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: _isHovered ? ObsidianColors.primary.withOpacity(0.6) : ObsidianColors.border,
+              color: _isHovered
+                  ? ObsidianColors.primary.withOpacity(0.6)
+                  : ObsidianColors.border,
             ),
             boxShadow: _isHovered
                 ? [
@@ -200,7 +236,8 @@ class _DashboardPosterCardState extends State<DashboardPosterCard> {
                       Image.network(
                         show.posterUrl!,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _buildPosterPlaceholder(show),
+                        errorBuilder: (_, __, ___) =>
+                            _buildPosterPlaceholder(show),
                       )
                     else
                       _buildPosterPlaceholder(show),
@@ -226,15 +263,23 @@ class _DashboardPosterCardState extends State<DashboardPosterCard> {
                       top: 6,
                       left: 6,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 5,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
-                          color: ObsidianColors.surfaceContainerLowest.withOpacity(0.85),
+                          color: ObsidianColors.surfaceContainerLowest
+                              .withOpacity(0.85),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
-                          show.episodesDownloaded == show.episodesTotal ? 'Complete' : '1080p Remux',
+                          show.episodesDownloaded == show.episodesTotal
+                              ? 'Complete'
+                              : '1080p Remux',
                           style: ObsidianTypography.labelBadge(
-                            color: show.episodesDownloaded == show.episodesTotal ? ObsidianColors.success : ObsidianColors.tertiary,
+                            color: show.episodesDownloaded == show.episodesTotal
+                                ? ObsidianColors.success
+                                : ObsidianColors.tertiary,
                             fontSize: 9,
                           ),
                         ),
@@ -248,10 +293,15 @@ class _DashboardPosterCardState extends State<DashboardPosterCard> {
                         width: 22,
                         height: 22,
                         decoration: BoxDecoration(
-                          color: ObsidianColors.surfaceContainerLowest.withOpacity(0.85),
+                          color: ObsidianColors.surfaceContainerLowest
+                              .withOpacity(0.85),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.bookmark_rounded, size: 14, color: ObsidianColors.primary),
+                        child: const Icon(
+                          Icons.bookmark_rounded,
+                          size: 14,
+                          color: ObsidianColors.primary,
+                        ),
                       ),
                     ),
 
@@ -262,9 +312,13 @@ class _DashboardPosterCardState extends State<DashboardPosterCard> {
                         left: 10,
                         right: 10,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 4,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
-                            color: ObsidianColors.surfaceContainerLowest.withOpacity(0.92),
+                            color: ObsidianColors.surfaceContainerLowest
+                                .withOpacity(0.92),
                             borderRadius: BorderRadius.circular(6),
                             border: Border.all(color: ObsidianColors.border),
                           ),
@@ -273,15 +327,27 @@ class _DashboardPosterCardState extends State<DashboardPosterCard> {
                             children: [
                               InkWell(
                                 onTap: widget.onSearch,
-                                child: const Icon(Icons.search_rounded, size: 16, color: ObsidianColors.onSurface),
+                                child: const Icon(
+                                  Icons.search_rounded,
+                                  size: 16,
+                                  color: ObsidianColors.onSurface,
+                                ),
                               ),
                               InkWell(
                                 onTap: widget.onRefreshMeta,
-                                child: const Icon(Icons.refresh_rounded, size: 16, color: ObsidianColors.onSurface),
+                                child: const Icon(
+                                  Icons.refresh_rounded,
+                                  size: 16,
+                                  color: ObsidianColors.onSurface,
+                                ),
                               ),
                               InkWell(
                                 onTap: widget.onOpenFolder,
-                                child: const Icon(Icons.folder_open_rounded, size: 16, color: ObsidianColors.onSurface),
+                                child: const Icon(
+                                  Icons.folder_open_rounded,
+                                  size: 16,
+                                  color: ObsidianColors.onSurface,
+                                ),
                               ),
                             ],
                           ),
@@ -301,21 +367,39 @@ class _DashboardPosterCardState extends State<DashboardPosterCard> {
                             children: [
                               Text(
                                 'EP ${show.downloadedEpisodes} / ${show.totalEpisodes}',
-                                style: ObsidianTypography.monoMetric(color: ObsidianColors.tertiary, fontSize: 10),
+                                style: ObsidianTypography.monoMetric(
+                                  color: ObsidianColors.tertiary,
+                                  fontSize: 10,
+                                ),
                               ),
-                              Text('★ ${show.score.toStringAsFixed(1)}', style: ObsidianTypography.monoMetric(color: ObsidianColors.primary, fontSize: 10, fontWeight: FontWeight.bold)),
+                              Text(
+                                '★ ${show.score.toStringAsFixed(1)}',
+                                style: ObsidianTypography.monoMetric(
+                                  color: ObsidianColors.primary,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ],
                           ),
                           const SizedBox(height: 2),
                           Text(
                             show.title,
-                            style: ObsidianTypography.titleSm(color: Colors.white, fontSize: 12),
+                            style: ObsidianTypography.titleSm(
+                              color: Colors.white,
+                              fontSize: 12,
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                           Text(
-                            show.status == 'Airing' ? 'Airs weekly' : 'Complete',
-                            style: ObsidianTypography.monoCode(color: ObsidianColors.onSurfaceVariant, fontSize: 9),
+                            show.status == 'Airing'
+                                ? 'Airs weekly'
+                                : 'Complete',
+                            style: ObsidianTypography.monoCode(
+                              color: ObsidianColors.onSurfaceVariant,
+                              fontSize: 9,
+                            ),
                           ),
                         ],
                       ),

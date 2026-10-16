@@ -6,8 +6,11 @@ import '../models/system_status.dart';
 
 String formatShowStatus(String? raw) {
   if (raw == null) return 'Plan to Watch';
-  final lower =
-      raw.toLowerCase().replaceAll('_', ' ').replaceAll('-', ' ').trim();
+  final lower = raw
+      .toLowerCase()
+      .replaceAll('_', ' ')
+      .replaceAll('-', ' ')
+      .trim();
   switch (lower) {
     case 'watching':
       return 'Watching';
@@ -99,17 +102,20 @@ List<InboxItem> parseInboxItems(List<dynamic> list) {
       qt = QuestionType.fileExists;
       choices = const [
         InboxChoice(
-            key: 'replace',
-            label: 'Replace File',
-            description: 'Overwrite library copy with new release'),
+          key: 'replace',
+          label: 'Replace File',
+          description: 'Overwrite library copy with new release',
+        ),
         InboxChoice(
-            key: 'keep_both',
-            label: 'Keep Both',
-            description: 'Rename as duplicate'),
+          key: 'keep_both',
+          label: 'Keep Both',
+          description: 'Rename as duplicate',
+        ),
         InboxChoice(
-            key: 'keep',
-            label: 'Keep Existing',
-            description: 'Discard download and keep library file'),
+          key: 'keep',
+          label: 'Keep Existing',
+          description: 'Discard download and keep library file',
+        ),
       ];
     } else if (kind == 'low_seeds') {
       qt = QuestionType.thinSeeds;
@@ -180,7 +186,8 @@ LibraryShow parseShowDetail(Map<String, dynamic> m) {
       number: epNum,
       title: e['title']?.toString() ?? 'Episode $epNum',
       isDownloaded: e['is_downloaded'] == true,
-      state: e['state']?.toString().toLowerCase() ??
+      state:
+          e['state']?.toString().toLowerCase() ??
           (e['is_downloaded'] == true ? 'done' : 'missing'),
       filePath: e['file_path']?.toString(),
       sizeBytes: (e['size_bytes'] as num?)?.toInt(),
@@ -188,8 +195,7 @@ LibraryShow parseShowDetail(Map<String, dynamic> m) {
       group: e['group']?.toString() ?? 'Auto',
       container: e['container']?.toString() ?? 'Matroska (MKV)',
       videoTrack: e['video_track']?.toString() ?? '1080p BD Remux HEVC 10-bit',
-      primaryAudio:
-          e['primary_audio']?.toString() ?? 'FLAC 5.1ch 24-bit 48kHz',
+      primaryAudio: e['primary_audio']?.toString() ?? 'FLAC 5.1ch 24-bit 48kHz',
       subtitles: e['subtitles']?.toString() ?? 'ENG (PGS), JPN',
       crc32: e['crc32']?.toString() ?? '5E2A9D11',
       chapters: (e['chapters'] as num?)?.toInt() ?? 18,
@@ -197,8 +203,9 @@ LibraryShow parseShowDetail(Map<String, dynamic> m) {
     );
   }).toList();
 
-  final aliasesList =
-      (m['aliases'] as List<dynamic>? ?? []).map((a) => a.toString()).toList();
+  final aliasesList = (m['aliases'] as List<dynamic>? ?? [])
+      .map((a) => a.toString())
+      .toList();
 
   return LibraryShow(
     malId: (m['mal_id'] as num).toInt(),

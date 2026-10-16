@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../models/library_item.dart';
 import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
@@ -17,8 +18,12 @@ class ShowDetailSynopsis extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final status = show.metadataStatus;
-    final isFetching = status == 'fetching' || show.synopsis == '[Synopsis loading...]';
-    final isPendingOrFailed = status == 'pending' || status == 'failed' || show.synopsis.startsWith('[Synopsis unavailable');
+    final isFetching =
+        status == 'fetching' || show.synopsis == '[Synopsis loading...]';
+    final isPendingOrFailed =
+        status == 'pending' ||
+        status == 'failed' ||
+        show.synopsis.startsWith('[Synopsis unavailable');
 
     if (isFetching) {
       return Container(
@@ -34,12 +39,16 @@ class ShowDetailSynopsis extends StatelessWidget {
             const SizedBox(
               width: 14,
               height: 14,
-              child: CircularProgressIndicator(strokeWidth: 2, color: ObsidianColors.primary),
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: ObsidianColors.primary,
+              ),
             ),
             const SizedBox(width: 10),
             Text(
               'Synopsis loading...',
-              style: ObsidianTypography.bodyMd(color: ObsidianColors.outline).copyWith(fontStyle: FontStyle.italic),
+              style: ObsidianTypography.bodyMd(color: ObsidianColors.outline)
+                  .copyWith(fontStyle: FontStyle.italic),
             ),
           ],
         ),
@@ -47,7 +56,8 @@ class ShowDetailSynopsis extends StatelessWidget {
     }
 
     if (isPendingOrFailed) {
-      final errorMsg = show.metadataError ?? 'upstream rate limit or network unreachable';
+      final errorMsg =
+          show.metadataError ?? 'upstream rate limit or network unreachable';
       String retryNotice = 'Could not load, retrying';
       if (show.metadataNextRetryAt != null) {
         final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
@@ -62,34 +72,55 @@ class ShowDetailSynopsis extends StatelessWidget {
         decoration: BoxDecoration(
           color: ObsidianColors.surfaceContainerLow,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: ObsidianColors.errorContainer.withOpacity(0.5)),
+          border: Border.all(
+            color: ObsidianColors.errorContainer.withOpacity(0.5),
+          ),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const Icon(Icons.info_outline, size: 16, color: ObsidianColors.warning),
+            const Icon(
+              Icons.info_outline,
+              size: 16,
+              color: ObsidianColors.warning,
+            ),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
                 '$retryNotice ($errorMsg)',
-                style: ObsidianTypography.bodySm(color: ObsidianColors.onSurfaceVariant),
+                style: ObsidianTypography.bodySm(
+                  color: ObsidianColors.onSurfaceVariant,
+                ),
               ),
             ),
             const SizedBox(width: 12),
             FilledButton.tonal(
-              onPressed: () => state.refreshShowMetadata(show.malId, force: true),
+              onPressed: () =>
+                  state.refreshShowMetadata(show.malId, force: true),
               style: FilledButton.styleFrom(
                 backgroundColor: ObsidianColors.surfaceContainerHigh,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 minimumSize: Size.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.refresh_rounded, size: 14, color: ObsidianColors.primary),
+                  const Icon(
+                    Icons.refresh_rounded,
+                    size: 14,
+                    color: ObsidianColors.primary,
+                  ),
                   const SizedBox(width: 6),
-                  Text('Retry', style: ObsidianTypography.monoCode(color: ObsidianColors.primary)),
+                  Text(
+                    'Retry',
+                    style: ObsidianTypography.monoCode(
+                      color: ObsidianColors.primary,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -101,13 +132,15 @@ class ShowDetailSynopsis extends StatelessWidget {
     if (show.synopsis.isNotEmpty && !show.synopsis.startsWith('[')) {
       return Text(
         show.synopsis,
-        style: ObsidianTypography.bodyMd(color: ObsidianColors.onSurfaceVariant).copyWith(height: 1.55),
+        style: ObsidianTypography.bodyMd(color: ObsidianColors.onSurfaceVariant)
+            .copyWith(height: 1.55),
       );
     }
 
     return Text(
       'No synopsis available for this show.',
-      style: ObsidianTypography.bodyMd(color: ObsidianColors.outline).copyWith(fontStyle: FontStyle.italic),
+      style: ObsidianTypography.bodyMd(color: ObsidianColors.outline)
+          .copyWith(fontStyle: FontStyle.italic),
     );
   }
 }

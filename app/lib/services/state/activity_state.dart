@@ -19,12 +19,16 @@ mixin ActivityStateMixin on StateContext {
   Future<void> checkMetadataUpdates(List<ActivityItem> items) async {
     final currentShow = selectedShow;
     if (currentShow != null && currentShow.metadataStatus != 'ready') {
-      final hasMetadataUpdate = items.any((e) =>
-          (e.malId == currentShow.malId ||
-              e.message.contains('#${currentShow.malId}') ||
-              e.message.toLowerCase().contains(currentShow.title.toLowerCase())) &&
-          (e.message.toLowerCase().contains('metadata') ||
-              e.message.toLowerCase().contains('synopsis')));
+      final hasMetadataUpdate = items.any(
+        (e) =>
+            (e.malId == currentShow.malId ||
+                e.message.contains('#${currentShow.malId}') ||
+                e.message.toLowerCase().contains(
+                  currentShow.title.toLowerCase(),
+                )) &&
+            (e.message.toLowerCase().contains('metadata') ||
+                e.message.toLowerCase().contains('synopsis')),
+      );
       if (hasMetadataUpdate) {
         await loadShowDetail(currentShow.malId);
       }

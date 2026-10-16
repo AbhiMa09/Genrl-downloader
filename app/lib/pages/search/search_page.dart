@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
@@ -49,9 +50,9 @@ class _SearchPageState extends State<SearchPage> {
               'isBest': idx == 0,
               'title': it['title'] ?? 'Unknown Torrent',
               'hash': (it['info_hash'] ?? '--------').toString().substring(
-                  0,
-                  8.clamp(
-                      0, (it['info_hash'] ?? '').toString().length)),
+                0,
+                8.clamp(0, (it['info_hash'] ?? '').toString().length),
+              ),
               'indexer': 'Nyaa.si',
               'group': parsed['group'] ?? '-',
               'format': parsed['resolution'] ?? '1080p',
@@ -61,8 +62,7 @@ class _SearchPageState extends State<SearchPage> {
               'leech': it['leechers'] ?? 0,
               'age': '-',
               'matchScore': '${it['seeders'] ?? 0} seeds',
-              'matchTier':
-                  (it['trusted'] == true) ? 'Trusted' : 'Standard',
+              'matchTier': (it['trusted'] == true) ? 'Trusted' : 'Standard',
               'bonuses': (it['trusted'] == true)
                   ? ['+30 Trusted Uploader']
                   : <String>[],
@@ -81,13 +81,15 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   void _grabRelease(String title) {
-    final item = _searchResults.firstWhere((r) => r['title'] == title,
-        orElse: () => {});
+    final item = _searchResults.firstWhere(
+      (r) => r['title'] == title,
+      orElse: () => {},
+    );
     final target = (item['magnet'] as String?)?.isNotEmpty == true
         ? item['magnet'] as String
         : ((item['link'] as String?)?.isNotEmpty == true
-            ? item['link'] as String
-            : title);
+              ? item['link'] as String
+              : title);
     try {
       context.read<StateProvider>().bridge.grab(target);
     } catch (_) {}
@@ -164,14 +166,19 @@ class _SearchPageState extends State<SearchPage> {
       children: [
         Row(
           children: [
-            Text('Found ${_searchResults.length} releases',
-                style: ObsidianTypography.titleSm(fontSize: 12)),
+            Text(
+              'Found ${_searchResults.length} releases',
+              style: ObsidianTypography.titleSm(fontSize: 12),
+            ),
             const SizedBox(width: 6),
             Container(
-                width: 6,
-                height: 6,
-                decoration: const BoxDecoration(
-                    color: ObsidianColors.tertiary, shape: BoxShape.circle)),
+              width: 6,
+              height: 6,
+              decoration: const BoxDecoration(
+                color: ObsidianColors.tertiary,
+                shape: BoxShape.circle,
+              ),
+            ),
           ],
         ),
         Row(
@@ -222,11 +229,16 @@ class _SearchPageState extends State<SearchPage> {
       ),
       child: Column(
         children: [
-          const Icon(Icons.travel_explore_rounded,
-              size: 48, color: ObsidianColors.outline),
+          const Icon(
+            Icons.travel_explore_rounded,
+            size: 48,
+            color: ObsidianColors.outline,
+          ),
           const SizedBox(height: 12),
-          Text('No Torrent Results Found',
-              style: ObsidianTypography.headlineMd()),
+          Text(
+            'No Torrent Results Found',
+            style: ObsidianTypography.headlineMd(),
+          ),
           const SizedBox(height: 6),
           Text(
             'Try widening your size filter range, enabling non-trusted uploaders, or searching for an alternative title.',

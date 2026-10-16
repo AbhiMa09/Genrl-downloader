@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
@@ -7,11 +8,7 @@ class QueueToolbar extends StatelessWidget {
   final StateProvider state;
   final int count;
 
-  const QueueToolbar({
-    super.key,
-    required this.state,
-    required this.count,
-  });
+  const QueueToolbar({super.key, required this.state, required this.count});
 
   @override
   Widget build(BuildContext context) {
@@ -38,17 +35,27 @@ class QueueToolbar extends StatelessWidget {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('Ingestion Queue', style: ObsidianTypography.headlineMd()),
+                  Text(
+                    'Ingestion Queue',
+                    style: ObsidianTypography.headlineMd(),
+                  ),
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: ObsidianColors.surfaceContainer,
                       borderRadius: BorderRadius.circular(4),
                     ),
-                    child: Text('$count active jobs',
-                        style: ObsidianTypography.monoCode(
-                            color: ObsidianColors.onSurfaceVariant, fontSize: 11)),
+                    child: Text(
+                      '$count active jobs',
+                      style: ObsidianTypography.monoCode(
+                        color: ObsidianColors.onSurfaceVariant,
+                        fontSize: 11,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -56,9 +63,21 @@ class QueueToolbar extends StatelessWidget {
               Wrap(
                 spacing: 8,
                 children: [
-                  _buildPill('DL: ', status.downloadSpeedFormatted, ObsidianColors.primary),
-                  _buildPill('UL: ', status.uploadSpeedFormatted, ObsidianColors.tertiary),
-                  _buildPill('Free Space: ', '4.58 TB', ObsidianColors.onSurfaceVariant),
+                  _buildPill(
+                    'DL: ',
+                    status.downloadSpeedFormatted,
+                    ObsidianColors.primary,
+                  ),
+                  _buildPill(
+                    'UL: ',
+                    status.uploadSpeedFormatted,
+                    ObsidianColors.tertiary,
+                  ),
+                  _buildPill(
+                    'Free Space: ',
+                    '4.58 TB',
+                    ObsidianColors.onSurfaceVariant,
+                  ),
                 ],
               ),
             ],
@@ -72,48 +91,78 @@ class QueueToolbar extends StatelessWidget {
               OutlinedButton.icon(
                 onPressed: () => state.toggleAutomation(),
                 icon: Icon(
-                    state.status.automationOn
-                        ? Icons.pause_rounded
-                        : Icons.play_arrow_rounded,
-                    size: 14,
-                    color: ObsidianColors.outline),
+                  state.status.automationOn
+                      ? Icons.pause_rounded
+                      : Icons.play_arrow_rounded,
+                  size: 14,
+                  color: ObsidianColors.outline,
+                ),
                 label: Text(
-                    state.status.automationOn ? 'Pause Queue' : 'Resume Queue',
-                    style: ObsidianTypography.bodySm(
-                        color: ObsidianColors.onSurface, fontSize: 11)),
+                  state.status.automationOn ? 'Pause Queue' : 'Resume Queue',
+                  style: ObsidianTypography.bodySm(
+                    color: ObsidianColors.onSurface,
+                    fontSize: 11,
+                  ),
+                ),
                 style: OutlinedButton.styleFrom(
                   backgroundColor: ObsidianColors.surfaceContainer,
                   side: const BorderSide(color: ObsidianColors.border),
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               ),
               OutlinedButton.icon(
                 onPressed: () => state.refreshAll(),
-                icon: const Icon(Icons.restart_alt_rounded,
-                    size: 14, color: ObsidianColors.tertiary),
-                label: Text('Retry Failed',
-                    style: ObsidianTypography.bodySm(
-                        color: ObsidianColors.onSurface, fontSize: 11)),
+                icon: const Icon(
+                  Icons.restart_alt_rounded,
+                  size: 14,
+                  color: ObsidianColors.tertiary,
+                ),
+                label: Text(
+                  'Retry Failed',
+                  style: ObsidianTypography.bodySm(
+                    color: ObsidianColors.onSurface,
+                    fontSize: 11,
+                  ),
+                ),
                 style: OutlinedButton.styleFrom(
                   backgroundColor: ObsidianColors.surfaceContainer,
                   side: const BorderSide(color: ObsidianColors.border),
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               ),
               ElevatedButton.icon(
                 onPressed: () => state.selectPage(4),
                 icon: const Icon(Icons.add_rounded, size: 16),
-                label: Text('Manual Magnet',
-                    style: ObsidianTypography.titleSm(
-                        color: ObsidianColors.onPrimary, fontSize: 12)),
+                label: Text(
+                  'Manual Magnet',
+                  style: ObsidianTypography.titleSm(
+                    color: ObsidianColors.onPrimary,
+                    fontSize: 12,
+                  ),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: ObsidianColors.primary,
                   foregroundColor: ObsidianColors.onPrimary,
                   elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               ),
             ],
@@ -133,12 +182,21 @@ class QueueToolbar extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(label,
-              style: ObsidianTypography.monoCode(
-                  color: ObsidianColors.outline, fontSize: 10)),
-          Text(value,
-              style: ObsidianTypography.monoMetric(
-                  color: color, fontWeight: FontWeight.bold, fontSize: 10)),
+          Text(
+            label,
+            style: ObsidianTypography.monoCode(
+              color: ObsidianColors.outline,
+              fontSize: 10,
+            ),
+          ),
+          Text(
+            value,
+            style: ObsidianTypography.monoMetric(
+              color: color,
+              fontWeight: FontWeight.bold,
+              fontSize: 10,
+            ),
+          ),
         ],
       ),
     );

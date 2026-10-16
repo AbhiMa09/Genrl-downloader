@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
 import 'accounts_section.dart';
@@ -32,13 +33,21 @@ class _SettingsPageState extends State<SettingsPage> {
   int _activeSubtabIndex = 0; // 0: Accounts, 1: qBittorrent, 2: Folders, 3: Downloads, 4: Rate limits, 5: Appearance, 6: Notifications, 7: Backup
 
   // Input Controllers
-  final _qbitUrlController = TextEditingController(text: 'http://127.0.0.1:8080');
-  final _qbitCategoryController = TextEditingController(text: 'anime-automated');
+  final _qbitUrlController = TextEditingController(
+    text: 'http://127.0.0.1:8080',
+  );
+  final _qbitCategoryController = TextEditingController(
+    text: 'anime-automated',
+  );
   final _qbitUserController = TextEditingController(text: 'admin');
-  final _qbitPasswordController = TextEditingController(text: 'super_secure_qbittorrent_token');
+  final _qbitPasswordController = TextEditingController(
+    text: 'super_secure_qbittorrent_token',
+  );
 
   final _libraryFolderController = TextEditingController(text: '/mnt/anime/TV');
-  final _downloadFolderController = TextEditingController(text: '/mnt/nvme_pool/torrents/completed');
+  final _downloadFolderController = TextEditingController(
+    text: '/mnt/nvme_pool/torrents/completed',
+  );
   final _namingPatternController = TextEditingController(
     text: '{Series Title}/Season {Season:02d}/{Series Title} - S{Season:02d}E{Episode:02d} [{Resolution}] [{Group}].{Ext}',
   );
@@ -131,7 +140,8 @@ class _SettingsPageState extends State<SettingsPage> {
                           width: 220,
                           child: SettingsNavTree(
                             activeIndex: _activeSubtabIndex,
-                            onSelect: (idx) => setState(() => _activeSubtabIndex = idx),
+                            onSelect: (idx) =>
+                                setState(() => _activeSubtabIndex = idx),
                             state: state,
                           ),
                         ),
@@ -144,7 +154,8 @@ class _SettingsPageState extends State<SettingsPage> {
                       children: [
                         SettingsNavTree(
                           activeIndex: _activeSubtabIndex,
-                          onSelect: (idx) => setState(() => _activeSubtabIndex = idx),
+                          onSelect: (idx) =>
+                              setState(() => _activeSubtabIndex = idx),
                           state: state,
                         ),
                         const SizedBox(height: 16),
@@ -191,7 +202,8 @@ class _SettingsPageState extends State<SettingsPage> {
           downloadFolderController: _downloadFolderController,
           namingPatternController: _namingPatternController,
           ingestionStrategy: _ingestionStrategy,
-          onIngestionStrategyChanged: (val) => setState(() => _ingestionStrategy = val),
+          onIngestionStrategyChanged: (val) =>
+              setState(() => _ingestionStrategy = val),
         ),
         const SizedBox(height: 16),
 

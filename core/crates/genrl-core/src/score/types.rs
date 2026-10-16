@@ -86,29 +86,49 @@ pub struct Target<'a> {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Rejection {
     NoSeeders,
-    ResolutionBelowFloor { resolution: String, floor: String },
-    CodecBlocked { codec: String },
+    ResolutionBelowFloor {
+        resolution: String,
+        floor: String,
+    },
+    CodecBlocked {
+        codec: String,
+    },
     SizeOutOfRange {
         size_mb: u64,
         min_mb: u64,
         max_mb: u64,
     },
-    UploaderBlocked { uploader: String },
-    WrongEpisode { wanted: f64, found: f64 },
-    EpisodeOnAFeature { found: f64 },
-    TitleIsAnotherShow { name: String, ratio: f64 },
-    TypeMismatch { wanted: ShowType, found: ShowType },
-    SeasonConflict { wanted: i64, found: i64 },
+    UploaderBlocked {
+        uploader: String,
+    },
+    WrongEpisode {
+        wanted: f64,
+        found: f64,
+    },
+    EpisodeOnAFeature {
+        found: f64,
+    },
+    TitleIsAnotherShow {
+        name: String,
+        ratio: f64,
+    },
+    TypeMismatch {
+        wanted: ShowType,
+        found: ShowType,
+    },
+    SeasonConflict {
+        wanted: i64,
+        found: i64,
+    },
 }
 
 impl fmt::Display for Rejection {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Rejection::NoSeeders => write!(f, "no seeders"),
-            Rejection::ResolutionBelowFloor {
-                resolution,
-                floor,
-            } => write!(f, "resolution {resolution} is below your floor of {floor}"),
+            Rejection::ResolutionBelowFloor { resolution, floor } => {
+                write!(f, "resolution {resolution} is below your floor of {floor}")
+            }
             Rejection::CodecBlocked { codec } => write!(f, "codec {codec} is blocked"),
             Rejection::SizeOutOfRange {
                 size_mb,

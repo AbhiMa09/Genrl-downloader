@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
 import '../../widgets/loading/ingestion_progress.dart';
@@ -36,9 +37,13 @@ class _WizardPageState extends State<WizardPage> {
 
   final _malUserController = TextEditingController(text: 'ren_kurokawa');
   final _malClientIdController = TextEditingController();
-  final _qbitUrlController = TextEditingController(text: 'http://127.0.0.1:8080');
+  final _qbitUrlController = TextEditingController(
+    text: 'http://127.0.0.1:8080',
+  );
   final _qbitUserController = TextEditingController(text: 'admin');
-  final _qbitPasswordController = TextEditingController(text: 'super_secure_token');
+  final _qbitPasswordController = TextEditingController(
+    text: 'super_secure_token',
+  );
   final _rootPathController = TextEditingController(text: '/mnt/anime/TV');
 
   @override
@@ -58,7 +63,10 @@ class _WizardPageState extends State<WizardPage> {
     super.dispose();
   }
 
-  Future<void> _startIngestion(StateProvider state, {required bool automationOn}) async {
+  Future<void> _startIngestion(
+    StateProvider state, {
+    required bool automationOn,
+  }) async {
     setState(() => _isIngesting = true);
     await state.startIngestion(
       automationOn: automationOn,
@@ -132,7 +140,8 @@ class _WizardPageState extends State<WizardPage> {
                               widget.onComplete();
                               state.selectPage(5);
                             },
-                            onRetry: () => _startIngestion(state, automationOn: true),
+                            onRetry: () =>
+                                _startIngestion(state, automationOn: true),
                           )
                         : _buildStepBody(state),
                   ),
@@ -163,10 +172,7 @@ class _WizardPageState extends State<WizardPage> {
           state: state,
         );
       case 2:
-        return StepRootPath(
-          pathController: _rootPathController,
-          state: state,
-        );
+        return StepRootPath(pathController: _rootPathController, state: state);
       case 3:
         return const StepQualityGroups();
       case 4:
@@ -233,7 +239,10 @@ class _WizardPageState extends State<WizardPage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: ObsidianColors.primaryContainer,
                 foregroundColor: ObsidianColors.onPrimaryContainer,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
               ),
             )
           else

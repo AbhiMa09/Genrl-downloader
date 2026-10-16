@@ -157,7 +157,11 @@ mod tests {
 
         // The third waits ~100 ms.
         limiter.acquire().await;
-        assert!(started.elapsed() >= Duration::from_millis(90), "{:?}", started.elapsed());
+        assert!(
+            started.elapsed() >= Duration::from_millis(90),
+            "{:?}",
+            started.elapsed()
+        );
     }
 
     #[tokio::test(start_paused = true)]
@@ -175,7 +179,11 @@ mod tests {
         }
         // The 61st permit needs the minute bucket to refill (1/s).
         limiter.acquire().await;
-        assert!(started.elapsed() >= Duration::from_millis(900), "{:?}", started.elapsed());
+        assert!(
+            started.elapsed() >= Duration::from_millis(900),
+            "{:?}",
+            started.elapsed()
+        );
     }
 
     #[tokio::test(start_paused = true)]
@@ -190,6 +198,10 @@ mod tests {
         limiter.acquire().await;
         limiter.acquire().await;
         limiter.acquire().await;
-        assert!(started.elapsed() >= Duration::from_secs(4), "{:?}", started.elapsed());
+        assert!(
+            started.elapsed() >= Duration::from_secs(4),
+            "{:?}",
+            started.elapsed()
+        );
     }
 }

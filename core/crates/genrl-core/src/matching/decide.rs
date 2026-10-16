@@ -45,7 +45,9 @@ pub fn decide_verdict(
     settings: &Settings,
 ) -> Verdict {
     let Some(best) = ranked.first().cloned() else {
-        return Verdict::NotFound { rejections: rejected };
+        return Verdict::NotFound {
+            rejections: rejected,
+        };
     };
 
     if best.scored.signal < settings.score_threshold {
@@ -63,7 +65,9 @@ pub fn decide_verdict(
             && !runner_up.candidate.release.is_batch
             && rules.prefer_batch_when_finished;
 
-        if !batch_prefers_winner && best.scored.signal - runner_up.scored.signal < settings.score_margin {
+        if !batch_prefers_winner
+            && best.scored.signal - runner_up.scored.signal < settings.score_margin
+        {
             return Verdict::Ask {
                 reason: AskReason::TooClose {
                     best: best.scored.signal,
@@ -83,7 +87,10 @@ pub fn decide_verdict(
         SeedHealth::Dead => Verdict::NotFound {
             rejections: {
                 let mut reasons = rejected;
-                reasons.insert(0, (best.candidate.release.raw.clone(), Rejection::NoSeeders));
+                reasons.insert(
+                    0,
+                    (best.candidate.release.raw.clone(), Rejection::NoSeeders),
+                );
                 reasons
             },
         },

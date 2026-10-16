@@ -44,7 +44,11 @@ pub fn upsert_names(db: &Db, entry: &ListEntry) -> Result<()> {
         names.push((entry.title.clone(), NameSource::Mal, PRIORITY_MAIN));
     } else {
         for (index, name) in entry.names.iter().enumerate() {
-            let priority = if index == 0 { PRIORITY_MAIN } else { index.min(u8::MAX as usize) as u8 };
+            let priority = if index == 0 {
+                PRIORITY_MAIN
+            } else {
+                index.min(u8::MAX as usize) as u8
+            };
             names.push((name.clone(), NameSource::Mal, priority));
         }
     }
@@ -105,14 +109,13 @@ pub fn target_inputs(db: &Db, mal_id: i64) -> Result<TargetInputs> {
 /// Airing status for a show the sync wrote.
 pub fn airing_status_of(db: &Db, mal_id: i64) -> Result<AiringStatus> {
     db.with(|c| {
-        Ok(c
-            .query_row(
-                "SELECT status FROM shows WHERE mal_id = ?1",
-                [mal_id],
-                |r| r.get::<_, String>(0),
-            )
-            .ok()
-            .map(|s| AiringStatus::parse(&s))
-            .unwrap_or_default())
+        Ok(c.query_row(
+            "SELECT status FROM shows WHERE mal_id = ?1",
+            [mal_id],
+            |r| r.get::<_, String>(0),
+        )
+        .ok()
+        .map(|s| AiringStatus::parse(&s))
+        .unwrap_or_default())
     })
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
@@ -18,57 +19,66 @@ class TrayNotificationToasts extends StatelessWidget {
     return Column(
       children: [
         // TOAST 1: Download / Activity Toast
-        Builder(builder: (context) {
-          final latestDone =
-              state.events.isNotEmpty ? state.events.first : null;
-          final toastTitle = latestDone != null
-              ? latestDone.message
-              : (state.shows.isNotEmpty
-                  ? '${state.shows.first.title} up to date'
-                  : 'All monitored shows up to date');
-          final toastBody = latestDone != null
-              ? 'Event logged at ${latestDone.formattedTime}'
-              : 'Background scanner idle. No active transfers.';
+        Builder(
+          builder: (context) {
+            final latestDone = state.events.isNotEmpty
+                ? state.events.first
+                : null;
+            final toastTitle = latestDone != null
+                ? latestDone.message
+                : (state.shows.isNotEmpty
+                      ? '${state.shows.first.title} up to date'
+                      : 'All monitored shows up to date');
+            final toastBody = latestDone != null
+                ? 'Event logged at ${latestDone.formattedTime}'
+                : 'Background scanner idle. No active transfers.';
 
-          return _buildToast(
-            accentColor: ObsidianColors.tertiary,
-            icon: Icons.download_done_rounded,
-            iconColor: ObsidianColors.tertiary,
-            category: 'Genrl Downloader • Core',
-            title: toastTitle,
-            body: toastBody,
-            actions: [
-              ElevatedButton.icon(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                      content:
-                          Text('Playing episode in external player')));
-                },
-                icon: const Icon(Icons.play_arrow_rounded, size: 14),
-                label: const Text('Play file'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: ObsidianColors.surfaceContainerHigh,
-                  foregroundColor: ObsidianColors.onSurface,
-                  elevation: 0,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            return _buildToast(
+              accentColor: ObsidianColors.tertiary,
+              icon: Icons.download_done_rounded,
+              iconColor: ObsidianColors.tertiary,
+              category: 'Genrl Downloader • Core',
+              title: toastTitle,
+              body: toastBody,
+              actions: [
+                ElevatedButton.icon(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Playing episode in external player'),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.play_arrow_rounded, size: 14),
+                  label: const Text('Play file'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: ObsidianColors.surfaceContainerHigh,
+                    foregroundColor: ObsidianColors.onSurface,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 6),
-              OutlinedButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.folder_open_rounded, size: 14),
-                label: const Text('Show in folder'),
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: ObsidianColors.border),
-                  foregroundColor: ObsidianColors.onSurfaceVariant,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                const SizedBox(width: 6),
+                OutlinedButton.icon(
+                  onPressed: () {},
+                  icon: const Icon(Icons.folder_open_rounded, size: 14),
+                  label: const Text('Show in folder'),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: ObsidianColors.border),
+                    foregroundColor: ObsidianColors.onSurfaceVariant,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                  ),
                 ),
-              ),
-            ],
-          );
-        }),
+              ],
+            );
+          },
+        ),
         const SizedBox(height: 10),
 
         // TOAST 2: Inbox Triage Questions
@@ -80,8 +90,7 @@ class TrayNotificationToasts extends StatelessWidget {
             category: 'Inbox Triage • Action Required',
             title:
                 '${state.inboxCount} question${state.inboxCount > 1 ? 's' : ''} need your input',
-            body:
-                'Candidate ties or ambiguous match questions are waiting for resolution in your inbox.',
+            body: 'Candidate ties or ambiguous match questions are waiting for resolution in your inbox.',
             actions: [
               ElevatedButton.icon(
                 onPressed: () {
@@ -93,16 +102,22 @@ class TrayNotificationToasts extends StatelessWidget {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: ObsidianColors.primary,
                   foregroundColor: ObsidianColors.onPrimary,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                 ),
               ),
               const SizedBox(width: 6),
               TextButton(
                 onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
                       content: Text(
-                          'Auto-resolving inbox items based on rules')));
+                        'Auto-resolving inbox items based on rules',
+                      ),
+                    ),
+                  );
                 },
                 child: const Text('Auto-resolve with rules'),
               ),
@@ -118,8 +133,7 @@ class TrayNotificationToasts extends StatelessWidget {
           iconColor: ObsidianColors.error,
           category: 'RPC Bridge Failure • Urgent',
           title: 'qBittorrent is not reachable',
-          body:
-              'Connection refused at http://127.0.0.1:8080. Torrent downloads and magnet handoffs are temporarily queued locally.',
+          body: 'Connection refused at http://127.0.0.1:8080. Torrent downloads and magnet handoffs are temporarily queued locally.',
           actions: [
             ElevatedButton.icon(
               onPressed: () => state.refreshAll(),
@@ -129,8 +143,10 @@ class TrayNotificationToasts extends StatelessWidget {
                 backgroundColor: ObsidianColors.error.withOpacity(0.2),
                 foregroundColor: ObsidianColors.error,
                 elevation: 0,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
               ),
             ),
             const SizedBox(width: 6),
@@ -144,8 +160,10 @@ class TrayNotificationToasts extends StatelessWidget {
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: ObsidianColors.border),
                 foregroundColor: ObsidianColors.onSurfaceVariant,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
               ),
             ),
           ],
@@ -208,26 +226,38 @@ class TrayNotificationToasts extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(category,
-                                    style: ObsidianTypography.labelBadge(
-                                        color: ObsidianColors.outline)),
-                                Text(title,
-                                    style: ObsidianTypography.bodySm().copyWith(
-                                        fontWeight: FontWeight.bold)),
+                                Text(
+                                  category,
+                                  style: ObsidianTypography.labelBadge(
+                                    color: ObsidianColors.outline,
+                                  ),
+                                ),
+                                Text(
+                                  title,
+                                  style: ObsidianTypography.bodySm().copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.close_rounded,
-                                size: 16, color: ObsidianColors.outline),
+                            icon: const Icon(
+                              Icons.close_rounded,
+                              size: 16,
+                              color: ObsidianColors.outline,
+                            ),
                             onPressed: () {},
                           ),
                         ],
                       ),
                       const SizedBox(height: 6),
-                      Text(body,
-                          style: ObsidianTypography.labelBadge(
-                              color: ObsidianColors.onSurfaceVariant)),
+                      Text(
+                        body,
+                        style: ObsidianTypography.labelBadge(
+                          color: ObsidianColors.onSurfaceVariant,
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       Wrap(spacing: 6, runSpacing: 4, children: actions),
                     ],

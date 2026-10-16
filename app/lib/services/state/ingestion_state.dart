@@ -11,7 +11,8 @@ mixin IngestionStateMixin on StateContext {
   int _ingestionTotalCount = 0;
   int? _ingestionEtaSeconds;
   String? _ingestionError;
-  bool _firstRunCompleted = true; // Set to true after initial run or loaded from settings
+  bool _firstRunCompleted =
+      true; // Set to true after initial run or loaded from settings
 
   IngestionStage get ingestionStage => _ingestionStage;
   bool get isIngesting => _isIngesting;
@@ -76,12 +77,14 @@ mixin IngestionStateMixin on StateContext {
       _ingestionEtaSeconds = 40;
       notifyListeners();
 
-      addActivityEvent(ActivityItem(
-        id: DateTime.now().millisecondsSinceEpoch,
-        level: ActivityLevel.info,
-        message: 'Ingestion stage 1/4: MAL Sync started',
-        timestamp: DateTime.now(),
-      ));
+      addActivityEvent(
+        ActivityItem(
+          id: DateTime.now().millisecondsSinceEpoch,
+          level: ActivityLevel.info,
+          message: 'Ingestion stage 1/4: MAL Sync started',
+          timestamp: DateTime.now(),
+        ),
+      );
 
       final syncOk = await bridge.syncMal();
       if (!syncOk) {
@@ -94,12 +97,15 @@ mixin IngestionStateMixin on StateContext {
       _ingestionEtaSeconds = 28;
       notifyListeners();
 
-      addActivityEvent(ActivityItem(
-        id: DateTime.now().millisecondsSinceEpoch,
-        level: ActivityLevel.info,
-        message: 'Ingestion stage 2/4: Show metadata and poster synchronization',
-        timestamp: DateTime.now(),
-      ));
+      addActivityEvent(
+        ActivityItem(
+          id: DateTime.now().millisecondsSinceEpoch,
+          level: ActivityLevel.info,
+          message:
+              'Ingestion stage 2/4: Show metadata and poster synchronization',
+          timestamp: DateTime.now(),
+        ),
+      );
 
       // Refresh shows
       await refreshShows();
@@ -110,12 +116,14 @@ mixin IngestionStateMixin on StateContext {
       _ingestionEtaSeconds = 14;
       notifyListeners();
 
-      addActivityEvent(ActivityItem(
-        id: DateTime.now().millisecondsSinceEpoch,
-        level: ActivityLevel.info,
-        message: 'Ingestion stage 3/4: Queue planning & missing episode evaluation',
-        timestamp: DateTime.now(),
-      ));
+      addActivityEvent(
+        ActivityItem(
+          id: DateTime.now().millisecondsSinceEpoch,
+          level: ActivityLevel.info,
+          message: 'Ingestion stage 3/4: Queue planning & missing episode evaluation',
+          timestamp: DateTime.now(),
+        ),
+      );
 
       // Stage 4: Create Jobs
       _ingestionStage = IngestionStage.createJobs;
@@ -123,12 +131,14 @@ mixin IngestionStateMixin on StateContext {
       _ingestionEtaSeconds = 5;
       notifyListeners();
 
-      addActivityEvent(ActivityItem(
-        id: DateTime.now().millisecondsSinceEpoch,
-        level: ActivityLevel.info,
-        message: 'Ingestion stage 4/4: Confirming initial download jobs',
-        timestamp: DateTime.now(),
-      ));
+      addActivityEvent(
+        ActivityItem(
+          id: DateTime.now().millisecondsSinceEpoch,
+          level: ActivityLevel.info,
+          message: 'Ingestion stage 4/4: Confirming initial download jobs',
+          timestamp: DateTime.now(),
+        ),
+      );
 
       // Confirm planning
       await bridge.execute(['plan', '--confirm']);
@@ -146,24 +156,29 @@ mixin IngestionStateMixin on StateContext {
       _firstRunCompleted = true;
       _isIngesting = false;
 
-      addActivityEvent(ActivityItem(
-        id: DateTime.now().millisecondsSinceEpoch,
-        level: ActivityLevel.info,
-        message: 'Ingestion pipeline completed successfully. Pipeline active.',
-        timestamp: DateTime.now(),
-      ));
+      addActivityEvent(
+        ActivityItem(
+          id: DateTime.now().millisecondsSinceEpoch,
+          level: ActivityLevel.info,
+          message:
+              'Ingestion pipeline completed successfully. Pipeline active.',
+          timestamp: DateTime.now(),
+        ),
+      );
 
       notifyListeners();
     } catch (e) {
       _ingestionStage = IngestionStage.failed;
       _ingestionError = e.toString();
       _isIngesting = false;
-      addActivityEvent(ActivityItem(
-        id: DateTime.now().millisecondsSinceEpoch,
-        level: ActivityLevel.error,
-        message: 'Ingestion pipeline error: $e',
-        timestamp: DateTime.now(),
-      ));
+      addActivityEvent(
+        ActivityItem(
+          id: DateTime.now().millisecondsSinceEpoch,
+          level: ActivityLevel.error,
+          message: 'Ingestion pipeline error: $e',
+          timestamp: DateTime.now(),
+        ),
+      );
       notifyListeners();
     }
   }

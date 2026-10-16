@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../models/library_item.dart';
 import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
@@ -9,15 +10,15 @@ import '../../widgets/anime_poster.dart';
 class ShowDetailRelatedWorks extends StatelessWidget {
   final LibraryShow show;
 
-  const ShowDetailRelatedWorks({
-    super.key,
-    required this.show,
-  });
+  const ShowDetailRelatedWorks({super.key, required this.show});
 
   @override
   Widget build(BuildContext context) {
     final state = context.watch<StateProvider>();
-    final related = state.shows.where((s) => s.malId != show.malId).take(4).toList();
+    final related = state.shows
+        .where((s) => s.malId != show.malId)
+        .take(4)
+        .toList();
     if (related.isEmpty) return const SizedBox.shrink();
 
     return Column(
@@ -33,10 +34,15 @@ class ShowDetailRelatedWorks extends StatelessWidget {
               crossAxisAlignment: WrapCrossAlignment.center,
               spacing: 10,
               children: [
-                Text('Other Shows in Library', style: ObsidianTypography.titleSm()),
+                Text(
+                  'Other Shows in Library',
+                  style: ObsidianTypography.titleSm(),
+                ),
                 Text(
                   '${related.length} available',
-                  style: ObsidianTypography.monoCode(color: ObsidianColors.outline).copyWith(fontSize: 11),
+                  style: ObsidianTypography.monoCode(
+                    color: ObsidianColors.outline,
+                  ).copyWith(fontSize: 11),
                 ),
               ],
             ),
@@ -46,7 +52,9 @@ class ShowDetailRelatedWorks extends StatelessWidget {
               },
               child: Text(
                 'View All Shows →',
-                style: ObsidianTypography.monoCode(color: ObsidianColors.primary),
+                style: ObsidianTypography.monoCode(
+                  color: ObsidianColors.primary,
+                ),
               ),
             ),
           ],
@@ -66,7 +74,8 @@ class ShowDetailRelatedWorks extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                     child: _buildBentoCard(
                       title: s.title,
-                      year: '${s.startYear > 0 ? s.startYear : '-'} • In Library',
+                      year:
+                          '${s.startYear > 0 ? s.startYear : '-'} • In Library',
                       badge: s.mediaType.toUpperCase(),
                       posterUrl: s.posterUrl ?? '',
                     ),
@@ -114,12 +123,25 @@ class ShowDetailRelatedWorks extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: ObsidianTypography.titleSm().copyWith(fontSize: 12, fontWeight: FontWeight.bold),
+                  style: ObsidianTypography.titleSm().copyWith(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
                   overflow: TextOverflow.ellipsis,
                 ),
-                Text(year, style: ObsidianTypography.monoCode(color: ObsidianColors.outline).copyWith(fontSize: 10)),
+                Text(
+                  year,
+                  style: ObsidianTypography.monoCode(
+                    color: ObsidianColors.outline,
+                  ).copyWith(fontSize: 10),
+                ),
                 const SizedBox(height: 2),
-                Text(badge, style: ObsidianTypography.labelBadge(color: ObsidianColors.success).copyWith(fontSize: 9)),
+                Text(
+                  badge,
+                  style: ObsidianTypography.labelBadge(
+                    color: ObsidianColors.success,
+                  ).copyWith(fontSize: 9),
+                ),
               ],
             ),
           ),

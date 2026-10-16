@@ -29,7 +29,7 @@ use wiremock::matchers::{method, path, path_regex};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 use genrl_core::clock::FakeClock;
-use genrl_core::mal::{self, MemoryStore, MalClient, TokenStore};
+use genrl_core::mal::{self, MalClient, MemoryStore, TokenStore};
 use genrl_core::settings::Settings;
 use genrl_core::{Db, Gate};
 
@@ -127,10 +127,7 @@ async fn mount_token(server: &MockServer, access: &str) {
 async fn mount_list_single(server: &MockServer, entries: &[serde_json::Value]) {
     Mock::given(method("GET"))
         .and(path("/users/@me/animelist"))
-        .respond_with(
-            ResponseTemplate::new(200)
-                .set_body_json(list_page(entries, false)),
-        )
+        .respond_with(ResponseTemplate::new(200).set_body_json(list_page(entries, false)))
         .mount(server)
         .await;
 }
@@ -182,8 +179,7 @@ async fn expired_access_token_is_refreshed_before_the_list_is_fetched() {
     let server = MockServer::start().await;
 
     // The token endpoint is called at least once (refresh).
-    let (token_hits, token_fixed) =
-        common::Fixed::new(token_response("access_new"));
+    let (token_hits, token_fixed) = common::Fixed::new(token_response("access_new"));
     Mock::given(method("POST"))
         .and(path("/oauth2/token"))
         .respond_with(token_fixed)
@@ -275,21 +271,22 @@ async fn sequel_relation_links_two_entries_into_one_chain() {
     // id=100 has a sequel to id=200.
     Mock::given(method("GET"))
         .and(path("/anime/100"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(
-            relations_body(&[sequel_relation(200, "Kaguya S2")]),
-        ))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_json(relations_body(&[sequel_relation(200, "Kaguya S2")])),
+        )
         .mount(&server)
         .await;
 
     // id=200 has a prequel back (bilateral, common in MAL data).
     Mock::given(method("GET"))
         .and(path("/anime/200"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(
-            relations_body(&[serde_json::json!({
+        .respond_with(ResponseTemplate::new(200).set_body_json(relations_body(&[
+            serde_json::json!({
                 "node": { "id": 100, "title": "Kaguya S1" },
                 "relation_type": "prequel"
-            })]),
-        ))
+            }),
+        ])))
         .mount(&server)
         .await;
 
@@ -343,7 +340,8 @@ async fn sync_twice_gives_the_same_database_state() {
     let gate = Gate::with_policies(
         db.clone(),
         &[(genrl_core::http::Service::Mal, fast_mal_policy())],
-    ).unwrap();
+    )
+    .unwrap();
     let store = MemoryStore::with("rt");
     let clock = clock();
     let settings = settings_for(&server);
@@ -356,7 +354,10 @@ async fn sync_twice_gives_the_same_database_state() {
     // Second sync with the same data.
     let client2 = MalClient::new(&gate, settings, &store, &clock);
     let r2 = mal::sync(&client2).await.unwrap();
-    assert_eq!(r2.added, 0, "already stored; must not appear as added again");
+    assert_eq!(
+        r2.added, 0,
+        "already stored; must not appear as added again"
+    );
     assert_eq!(r2.unchanged, 1, "identical data → unchanged");
     assert_eq!(r2.updated, 0);
 }
@@ -376,7 +377,7 @@ async fn changed_watched_count_is_counted_as_updated() {
         .await;
 
     let entry_before = list_entry(42, "Bocchi", "watching", 3, 12);
-    let entry_after  = list_entry(42, "Bocchi", "watching", 6, 12); // watched 6 now
+    let entry_after = list_entry(42, "Bocchi", "watching", 6, 12); // watched 6 now
 
     let (sync_calls, seq) = common::Sequence::new(
         1,
@@ -395,15 +396,20 @@ async fn changed_watched_count_is_counted_as_updated() {
     let gate = Gate::with_policies(
         db.clone(),
         &[(genrl_core::http::Service::Mal, fast_mal_policy())],
-    ).unwrap();
+    )
+    .unwrap();
     let store = MemoryStore::with("rt");
     let clock = clock();
     let settings = settings_for(&server);
 
-    let r1 = mal::sync(&MalClient::new(&gate, settings.clone(), &store, &clock)).await.unwrap();
+    let r1 = mal::sync(&MalClient::new(&gate, settings.clone(), &store, &clock))
+        .await
+        .unwrap();
     assert_eq!(r1.added, 1);
 
-    let r2 = mal::sync(&MalClient::new(&gate, settings, &store, &clock)).await.unwrap();
+    let r2 = mal::sync(&MalClient::new(&gate, settings, &store, &clock))
+        .await
+        .unwrap();
     assert_eq!(r2.updated, 1, "a changed watched count must be detected");
     assert_eq!(r2.unchanged, 0);
     assert_eq!(sync_calls.load(Ordering::SeqCst), 2, "two list fetches");
@@ -429,11 +435,12 @@ async fn entry_absent_from_second_sync_is_removed() {
     // First sync: two entries.
     let (_hits, seq) = common::Sequence::new(
         1,
-        ResponseTemplate::new(200)
-            .set_body_json(list_page(&[entry_a, entry_b], false)),
+        ResponseTemplate::new(200).set_body_json(list_page(&[entry_a, entry_b], false)),
         // Second sync: only Show A remains.
-        ResponseTemplate::new(200)
-            .set_body_json(list_page(&[list_entry(10, "Show A", "watching", 2, 12)], false)),
+        ResponseTemplate::new(200).set_body_json(list_page(
+            &[list_entry(10, "Show A", "watching", 2, 12)],
+            false,
+        )),
     );
     Mock::given(method("GET"))
         .and(path("/users/@me/animelist"))
@@ -451,17 +458,22 @@ async fn entry_absent_from_second_sync_is_removed() {
     let gate = Gate::with_policies(
         db.clone(),
         &[(genrl_core::http::Service::Mal, fast_mal_policy())],
-    ).unwrap();
+    )
+    .unwrap();
     let store = MemoryStore::with("rt");
     let clock = clock();
     let settings = settings_for(&server);
 
     // First sync — both land.
-    let r1 = mal::sync(&MalClient::new(&gate, settings.clone(), &store, &clock)).await.unwrap();
+    let r1 = mal::sync(&MalClient::new(&gate, settings.clone(), &store, &clock))
+        .await
+        .unwrap();
     assert_eq!(r1.added, 2);
 
     // Second sync — Show B is gone.
-    let r2 = mal::sync(&MalClient::new(&gate, settings, &store, &clock)).await.unwrap();
+    let r2 = mal::sync(&MalClient::new(&gate, settings, &store, &clock))
+        .await
+        .unwrap();
     assert_eq!(r2.removed, 1, "one entry must be counted as removed");
 
     // Confirm the database mirrors the change.
@@ -472,13 +484,7 @@ async fn entry_absent_from_second_sync_is_removed() {
 
     // Show B's auto flag must be cleared.
     let auto_b: i64 = db
-        .with(|c| {
-            Ok(c.query_row(
-                "SELECT auto FROM shows WHERE mal_id = 20",
-                [],
-                |r| r.get(0),
-            )?)
-        })
+        .with(|c| Ok(c.query_row("SELECT auto FROM shows WHERE mal_id = 20", [], |r| r.get(0))?))
         .unwrap();
     assert_eq!(auto_b, 0, "auto must be turned off for the removed show");
 }
@@ -512,10 +518,7 @@ async fn list_429_is_retried_and_sync_succeeds() {
     // Fast policy so the test doesn't wait on real backoff.
     let gate = Gate::with_policies(
         db.clone(),
-        &[(
-            genrl_core::http::Service::Mal,
-            fast_mal_policy(),
-        )],
+        &[(genrl_core::http::Service::Mal, fast_mal_policy())],
     )
     .unwrap();
     let store = MemoryStore::with("rt");
@@ -571,7 +574,10 @@ async fn one_failed_relation_lookup_leaves_entry_as_singleton_chain() {
     let result = client.fetch().await.unwrap();
 
     assert_eq!(result.entries.len(), 2);
-    assert_eq!(result.relations_failed, 1, "one failed relation must be counted");
+    assert_eq!(
+        result.relations_failed, 1,
+        "one failed relation must be counted"
+    );
 
     // Show B must still come back, as its own one-season chain.
     let b = result.entries.iter().find(|e| e.mal_id() == 2).unwrap();
@@ -620,10 +626,7 @@ fn sync_if_due_respects_the_thirty_minute_cadence() {
 async fn mock_relations_for(server: &MockServer, id: i64, relations: &[serde_json::Value]) {
     Mock::given(method("GET"))
         .and(path(format!("/anime/{id}")))
-        .respond_with(
-            ResponseTemplate::new(200)
-                .set_body_json(relations_body(relations)),
-        )
+        .respond_with(ResponseTemplate::new(200).set_body_json(relations_body(relations)))
         .mount(server)
         .await;
 }
@@ -631,9 +634,9 @@ async fn mock_relations_for(server: &MockServer, id: i64, relations: &[serde_jso
 /// A MAL service policy with millisecond backoff so tests do not wait on
 /// the production 5 s / 30 s / 2 min schedule.
 fn fast_mal_policy() -> genrl_core::http::ServicePolicy {
-    use std::time::Duration;
-    use genrl_core::http::{RetryPolicy, ServicePolicy};
     use genrl_core::http::policy::RateSpec;
+    use genrl_core::http::{RetryPolicy, ServicePolicy};
+    use std::time::Duration;
 
     ServicePolicy {
         rate: RateSpec {
@@ -656,7 +659,6 @@ fn fast_mal_policy() -> genrl_core::http::ServicePolicy {
     }
 }
 
-
 // ---------------------------------------------------------------------------
 // 11. PKCE verifier/challenge generation & authorize URL
 // ---------------------------------------------------------------------------
@@ -670,7 +672,12 @@ fn pkce_plain_challenge_and_verifier_spec() {
     let challenge = mal::code_challenge(&verifier);
     assert_eq!(challenge, verifier);
 
-    let auth_url = mal::authorize_url("test_cid", "http://127.0.0.1:21445/callback", "state123", &challenge);
+    let auth_url = mal::authorize_url(
+        "test_cid",
+        "http://127.0.0.1:21445/callback",
+        "state123",
+        &challenge,
+    );
     assert!(auth_url.contains("code_challenge_method=plain"));
     assert!(auth_url.contains("code_challenge="));
     assert!(auth_url.contains("client_id=test_cid"));
@@ -713,7 +720,11 @@ async fn refresh_failure_keeps_cached_list() {
 
     // 1. Initial success: mount token and list
     mount_token(&server, "initial_access").await;
-    mount_list_single(&server, &[list_entry(100, "Cached Anime", "watching", 3, 12)]).await;
+    mount_list_single(
+        &server,
+        &[list_entry(100, "Cached Anime", "watching", 3, 12)],
+    )
+    .await;
     mock_relations_for(&server, 100, &[]).await;
 
     let db = db();
@@ -727,9 +738,15 @@ async fn refresh_failure_keeps_cached_list() {
     assert_eq!(sync1.added, 1);
 
     // Verify row in DB
-    let count: i64 = db.with(|c| {
-        Ok(c.query_row("SELECT COUNT(*) FROM mal_entries WHERE mal_id = 100", [], |r| r.get(0))?)
-    }).unwrap();
+    let count: i64 = db
+        .with(|c| {
+            Ok(c.query_row(
+                "SELECT COUNT(*) FROM mal_entries WHERE mal_id = 100",
+                [],
+                |r| r.get(0),
+            )?)
+        })
+        .unwrap();
     assert_eq!(count, 1);
 
     // 2. Next time: token refresh fails (server returns 401 token expired / invalid_grant)
@@ -754,13 +771,24 @@ async fn refresh_failure_keeps_cached_list() {
     assert!(res.is_err(), "sync must fail on bad refresh token");
 
     // But cached database entries remain intact!
-    let count_after: i64 = db.with(|c| {
-        Ok(c.query_row("SELECT COUNT(*) FROM mal_entries WHERE mal_id = 100", [], |r| r.get(0))?)
-    }).unwrap();
-    assert_eq!(count_after, 1, "cached list entries must survive refresh failure");
+    let count_after: i64 = db
+        .with(|c| {
+            Ok(c.query_row(
+                "SELECT COUNT(*) FROM mal_entries WHERE mal_id = 100",
+                [],
+                |r| r.get(0),
+            )?)
+        })
+        .unwrap();
+    assert_eq!(
+        count_after, 1,
+        "cached list entries must survive refresh failure"
+    );
 
     // mal_status shows token_expired
-    let status_res = mal::mal_status(&db, &g2, &settings2, &store, &clock_later).await.unwrap();
+    let status_res = mal::mal_status(&db, &g2, &settings2, &store, &clock_later)
+        .await
+        .unwrap();
     assert_eq!(status_res.status, "token_expired");
     assert_eq!(status_res.counts.watching, 1);
 }
@@ -807,14 +835,20 @@ fn jikan_fallback_parsing_from_fixture() {
     let fma = &entries[0];
     assert_eq!(fma.mal_id(), 5114);
     assert_eq!(fma.entry.title, "Fullmetal Alchemist: Brotherhood");
-    assert_eq!(fma.entry.list_status, genrl_core::models::ListStatus::Completed);
+    assert_eq!(
+        fma.entry.list_status,
+        genrl_core::models::ListStatus::Completed
+    );
     assert_eq!(fma.entry.watched_count, 64);
     assert_eq!(fma.score, Some(10));
     assert_eq!(fma.source, "jikan");
 
     let frieren = &entries[1];
     assert_eq!(frieren.mal_id(), 52991);
-    assert_eq!(frieren.entry.list_status, genrl_core::models::ListStatus::Watching);
+    assert_eq!(
+        frieren.entry.list_status,
+        genrl_core::models::ListStatus::Watching
+    );
     assert!(frieren.entry.auto, "watching show is auto by default");
     assert_eq!(frieren.source, "jikan");
 }

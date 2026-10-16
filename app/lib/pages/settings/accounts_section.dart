@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
@@ -23,7 +24,9 @@ class SettingsAccountsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isMalAuth = state.isMalAuthenticated;
-    final username = isMalAuth ? (state.malUsername ?? 'ren_kurokawa') : 'Not Connected';
+    final username = isMalAuth
+        ? (state.malUsername ?? 'ren_kurokawa')
+        : 'Not Connected';
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -47,15 +50,29 @@ class SettingsAccountsSection extends StatelessWidget {
                         color: ObsidianColors.surfaceContainerHigh,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.badge_rounded, size: 20, color: ObsidianColors.primary),
+                      child: const Icon(
+                        Icons.badge_rounded,
+                        size: 20,
+                        color: ObsidianColors.primary,
+                      ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Tracker & Indexer Accounts', style: ObsidianTypography.titleSm(), overflow: TextOverflow.ellipsis),
-                          Text('Synchronize watchlists, scrobble completed downloads, and update release status', style: ObsidianTypography.bodySm(color: ObsidianColors.outline), overflow: TextOverflow.ellipsis),
+                          Text(
+                            'Tracker & Indexer Accounts',
+                            style: ObsidianTypography.titleSm(),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            'Synchronize watchlists, scrobble completed downloads, and update release status',
+                            style: ObsidianTypography.bodySm(
+                              color: ObsidianColors.outline,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ],
                       ),
                     ),
@@ -69,7 +86,12 @@ class SettingsAccountsSection extends StatelessWidget {
                   color: ObsidianColors.surfaceContainerHigh,
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: Text('OAuth 2.0 PKCE', style: ObsidianTypography.labelBadge(color: ObsidianColors.onSurfaceVariant)),
+                child: Text(
+                  'OAuth 2.0 PKCE',
+                  style: ObsidianTypography.labelBadge(
+                    color: ObsidianColors.onSurfaceVariant,
+                  ),
+                ),
               ),
             ],
           ),
@@ -96,7 +118,11 @@ class SettingsAccountsSection extends StatelessWidget {
                         color: ObsidianColors.surfaceContainerHigh,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.person_outline_rounded, size: 24, color: ObsidianColors.primary),
+                      child: const Icon(
+                        Icons.person_outline_rounded,
+                        size: 24,
+                        color: ObsidianColors.primary,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -108,21 +134,41 @@ class SettingsAccountsSection extends StatelessWidget {
                             spacing: 8,
                             runSpacing: 4,
                             children: [
-                              Text(username, style: ObsidianTypography.titleSm().copyWith(fontWeight: FontWeight.bold)),
+                              Text(
+                                username,
+                                style: ObsidianTypography.titleSm().copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 1.5,
+                                ),
                                 decoration: BoxDecoration(
                                   color: ObsidianColors.surfaceContainerHighest,
                                   borderRadius: BorderRadius.circular(4),
                                 ),
-                                child: Text('MyAnimeList', style: ObsidianTypography.labelBadge(color: ObsidianColors.primary)),
+                                child: Text(
+                                  'MyAnimeList',
+                                  style: ObsidianTypography.labelBadge(
+                                    color: ObsidianColors.primary,
+                                  ),
+                                ),
                               ),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 1.5,
+                                ),
                                 decoration: BoxDecoration(
                                   color: isMalAuth
-                                      ? ObsidianColors.tertiary.withOpacity(0.18)
-                                      : ObsidianColors.warning.withOpacity(0.18),
+                                      ? ObsidianColors.tertiary.withOpacity(
+                                          0.18,
+                                        )
+                                      : ObsidianColors.warning.withOpacity(
+                                          0.18,
+                                        ),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Row(
@@ -133,14 +179,18 @@ class SettingsAccountsSection extends StatelessWidget {
                                       height: 6,
                                       decoration: BoxDecoration(
                                         shape: BoxShape.circle,
-                                        color: isMalAuth ? ObsidianColors.tertiary : ObsidianColors.warning,
+                                        color: isMalAuth
+                                            ? ObsidianColors.tertiary
+                                            : ObsidianColors.warning,
                                       ),
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
                                       isMalAuth ? 'Connected' : 'Not Connected',
                                       style: ObsidianTypography.labelBadge(
-                                        color: isMalAuth ? ObsidianColors.tertiary : ObsidianColors.warning,
+                                        color: isMalAuth
+                                            ? ObsidianColors.tertiary
+                                            : ObsidianColors.warning,
                                       ),
                                     ),
                                   ],
@@ -149,7 +199,13 @@ class SettingsAccountsSection extends StatelessWidget {
                             ],
                           ),
                           const SizedBox(height: 4),
-                          Text('Auto-sync every 30m • Credentials secured in local encrypted keyring', style: ObsidianTypography.labelBadge(color: ObsidianColors.outline), overflow: TextOverflow.ellipsis),
+                          Text(
+                            'Auto-sync every 30m • Credentials secured in local encrypted keyring',
+                            style: ObsidianTypography.labelBadge(
+                              color: ObsidianColors.outline,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ],
                       ),
                     ),
@@ -162,7 +218,8 @@ class SettingsAccountsSection extends StatelessWidget {
                           icon: const Icon(Icons.sync_rounded, size: 16),
                           label: const Text('Sync Now'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: ObsidianColors.surfaceContainerHigh,
+                            backgroundColor:
+                                ObsidianColors.surfaceContainerHigh,
                             foregroundColor: ObsidianColors.onSurface,
                             elevation: 0,
                           ),
@@ -170,19 +227,31 @@ class SettingsAccountsSection extends StatelessWidget {
                         OutlinedButton.icon(
                           onPressed: () => state.loginMal(),
                           icon: const Icon(Icons.key_rounded, size: 16),
-                          label: Text(isMalAuth ? 'Reconnect' : 'Connect via Browser (PKCE)'),
+                          label: Text(
+                            isMalAuth
+                                ? 'Reconnect'
+                                : 'Connect via Browser (PKCE)',
+                          ),
                           style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: ObsidianColors.border),
+                            side: const BorderSide(
+                              color: ObsidianColors.border,
+                            ),
                             foregroundColor: ObsidianColors.onSurface,
                           ),
                         ),
                         if (isMalAuth)
                           OutlinedButton.icon(
                             onPressed: () => state.disconnectMal(),
-                            icon: const Icon(Icons.link_off_rounded, size: 16, color: ObsidianColors.error),
+                            icon: const Icon(
+                              Icons.link_off_rounded,
+                              size: 16,
+                              color: ObsidianColors.error,
+                            ),
                             label: const Text('Disconnect'),
                             style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: ObsidianColors.border),
+                              side: const BorderSide(
+                                color: ObsidianColors.border,
+                              ),
                               foregroundColor: ObsidianColors.error,
                             ),
                           ),
@@ -195,13 +264,29 @@ class SettingsAccountsSection extends StatelessWidget {
                 // Metrics Quick Strip
                 Row(
                   children: [
-                    _buildAccountMetric('MONITORED SERIES', '${state.trackedShows.length}', ObsidianColors.primary),
+                    _buildAccountMetric(
+                      'MONITORED SERIES',
+                      '${state.trackedShows.length}',
+                      ObsidianColors.primary,
+                    ),
                     const SizedBox(width: 8),
-                    _buildAccountMetric('PLAN TO WATCH', '${state.planToWatchCount}', ObsidianColors.onSurface),
+                    _buildAccountMetric(
+                      'PLAN TO WATCH',
+                      '${state.planToWatchCount}',
+                      ObsidianColors.onSurface,
+                    ),
                     const SizedBox(width: 8),
-                    _buildAccountMetric('SCROBBLE SUCCESS', '99.8%', ObsidianColors.tertiary),
+                    _buildAccountMetric(
+                      'SCROBBLE SUCCESS',
+                      '99.8%',
+                      ObsidianColors.tertiary,
+                    ),
                     const SizedBox(width: 8),
-                    _buildAccountMetric('RATE LIMIT BUDGET', '420/500', ObsidianColors.onSurface),
+                    _buildAccountMetric(
+                      'RATE LIMIT BUDGET',
+                      '420/500',
+                      ObsidianColors.onSurface,
+                    ),
                   ],
                 ),
               ],
@@ -226,7 +311,11 @@ class SettingsAccountsSection extends StatelessWidget {
                       color: ObsidianColors.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(Icons.cloud_off_rounded, size: 20, color: ObsidianColors.outline),
+                    child: const Icon(
+                      Icons.cloud_off_rounded,
+                      size: 20,
+                      color: ObsidianColors.outline,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -235,19 +324,35 @@ class SettingsAccountsSection extends StatelessWidget {
                       children: [
                         Row(
                           children: [
-                            Text(legacySecondaryTitle ?? '', style: ObsidianTypography.titleSm()),
+                            Text(
+                              legacySecondaryTitle ?? '',
+                              style: ObsidianTypography.titleSm(),
+                            ),
                             const SizedBox(width: 6),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 5,
+                                vertical: 1,
+                              ),
                               decoration: BoxDecoration(
                                 color: ObsidianColors.surfaceContainerHighest,
                                 borderRadius: BorderRadius.circular(4),
                               ),
-                              child: Text('Inactive', style: ObsidianTypography.labelBadge(color: ObsidianColors.outline)),
+                              child: Text(
+                                'Inactive',
+                                style: ObsidianTypography.labelBadge(
+                                  color: ObsidianColors.outline,
+                                ),
+                              ),
                             ),
                           ],
                         ),
-                        Text(legacySecondarySubtitle ?? '', style: ObsidianTypography.bodySm(color: ObsidianColors.outline)),
+                        Text(
+                          legacySecondarySubtitle ?? '',
+                          style: ObsidianTypography.bodySm(
+                            color: ObsidianColors.outline,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -281,15 +386,27 @@ class SettingsAccountsSection extends StatelessWidget {
                       color: ObsidianColors.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(Icons.auto_fix_high_rounded, size: 20, color: ObsidianColors.tertiary),
+                    child: const Icon(
+                      Icons.auto_fix_high_rounded,
+                      size: 20,
+                      color: ObsidianColors.tertiary,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Initial Setup Wizard', style: ObsidianTypography.titleSm()),
-                        Text('Re-run initial onboarding to reconfigure accounts, client, and library root.', style: ObsidianTypography.bodySm(color: ObsidianColors.outline)),
+                        Text(
+                          'Initial Setup Wizard',
+                          style: ObsidianTypography.titleSm(),
+                        ),
+                        Text(
+                          'Re-run initial onboarding to reconfigure accounts, client, and library root.',
+                          style: ObsidianTypography.bodySm(
+                            color: ObsidianColors.outline,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -325,9 +442,19 @@ class SettingsAccountsSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: ObsidianTypography.labelBadge(color: ObsidianColors.outline), overflow: TextOverflow.ellipsis),
+            Text(
+              label,
+              style: ObsidianTypography.labelBadge(
+                color: ObsidianColors.outline,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
             const SizedBox(height: 2),
-            Text(value, style: ObsidianTypography.headlineMd(color: color), overflow: TextOverflow.ellipsis),
+            Text(
+              value,
+              style: ObsidianTypography.headlineMd(color: color),
+              overflow: TextOverflow.ellipsis,
+            ),
           ],
         ),
       ),

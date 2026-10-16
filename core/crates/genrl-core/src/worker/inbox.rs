@@ -144,10 +144,7 @@ pub fn apply_answer(
 
     let opts = MoveOptions {
         reset_attempts: matches!(next, JobState::Search),
-        clear_torrent: matches!(
-            answer.choice,
-            Choice::PickAnother | Choice::NoneOfThese
-        ),
+        clear_torrent: matches!(answer.choice, Choice::PickAnother | Choice::NoneOfThese),
         blocked_from: None,
         count_attempt: false,
     };

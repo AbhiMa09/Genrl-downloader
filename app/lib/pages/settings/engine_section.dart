@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
@@ -43,15 +44,29 @@ class SettingsEngineSection extends StatelessWidget {
                         color: ObsidianColors.surfaceContainerHigh,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.tune_rounded, size: 20, color: ObsidianColors.primary),
+                      child: const Icon(
+                        Icons.tune_rounded,
+                        size: 20,
+                        color: ObsidianColors.primary,
+                      ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Download Engine & Concurrency', style: ObsidianTypography.titleSm(), overflow: TextOverflow.ellipsis),
-                          Text('Manage active task caps, network buffer quotas, and daily automation throttle limits', style: ObsidianTypography.bodySm(color: ObsidianColors.outline), overflow: TextOverflow.ellipsis),
+                          Text(
+                            'Download Engine & Concurrency',
+                            style: ObsidianTypography.titleSm(),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            'Manage active task caps, network buffer quotas, and daily automation throttle limits',
+                            style: ObsidianTypography.bodySm(
+                              color: ObsidianColors.outline,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ],
                       ),
                     ),
@@ -65,7 +80,12 @@ class SettingsEngineSection extends StatelessWidget {
                   color: ObsidianColors.surfaceContainerHigh,
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: Text('Scheduler Active', style: ObsidianTypography.labelBadge(color: ObsidianColors.tertiary)),
+                child: Text(
+                  'Scheduler Active',
+                  style: ObsidianTypography.labelBadge(
+                    color: ObsidianColors.tertiary,
+                  ),
+                ),
               ),
             ],
           ),
@@ -88,29 +108,50 @@ class SettingsEngineSection extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Expanded(
-                            child: Text('Simultaneous Active Downloads', style: ObsidianTypography.titleSm(), overflow: TextOverflow.ellipsis),
+                            child: Text(
+                              'Simultaneous Active Downloads',
+                              style: ObsidianTypography.titleSm(),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                           const SizedBox(width: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 1.5,
+                            ),
                             decoration: BoxDecoration(
                               color: ObsidianColors.primary.withOpacity(0.2),
                               borderRadius: BorderRadius.circular(4),
                             ),
-                            child: Text('IO Priority', style: ObsidianTypography.labelBadge(color: ObsidianColors.primary)),
+                            child: Text(
+                              'IO Priority',
+                              style: ObsidianTypography.labelBadge(
+                                color: ObsidianColors.primary,
+                              ),
+                            ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 4),
-                      Text('Queue throttles additional snatches to preserve bandwidth priority and avoid ISP congestion flags.', style: ObsidianTypography.bodySm(color: ObsidianColors.outline)),
+                      Text(
+                        'Queue throttles additional snatches to preserve bandwidth priority and avoid ISP congestion flags.',
+                        style: ObsidianTypography.bodySm(
+                          color: ObsidianColors.outline,
+                        ),
+                      ),
                       const SizedBox(height: 12),
                       Row(
                         children: [
                           IconButton(
                             onPressed: () {
-                              if (concurrency > 1) onConcurrencyChanged(concurrency - 1);
+                              if (concurrency > 1) {
+                                onConcurrencyChanged(concurrency - 1);
+                              }
                             },
-                            icon: const Icon(Icons.remove_circle_outline_rounded),
+                            icon: const Icon(
+                              Icons.remove_circle_outline_rounded,
+                            ),
                             color: ObsidianColors.outline,
                           ),
                           Container(
@@ -121,17 +162,29 @@ class SettingsEngineSection extends StatelessWidget {
                               borderRadius: BorderRadius.circular(6),
                             ),
                             alignment: Alignment.center,
-                            child: Text('$concurrency', style: ObsidianTypography.headlineMd(color: ObsidianColors.primary)),
+                            child: Text(
+                              '$concurrency',
+                              style: ObsidianTypography.headlineMd(
+                                color: ObsidianColors.primary,
+                              ),
+                            ),
                           ),
                           IconButton(
                             onPressed: () {
-                              if (concurrency < 16) onConcurrencyChanged(concurrency + 1);
+                              if (concurrency < 16) {
+                                onConcurrencyChanged(concurrency + 1);
+                              }
                             },
                             icon: const Icon(Icons.add_circle_outline_rounded),
                             color: ObsidianColors.outline,
                           ),
                           const Spacer(),
-                          Text('Default: 2 streams', style: ObsidianTypography.labelBadge(color: ObsidianColors.onSurfaceVariant)),
+                          Text(
+                            'Default: 2 streams',
+                            style: ObsidianTypography.labelBadge(
+                              color: ObsidianColors.onSurfaceVariant,
+                            ),
+                          ),
                         ],
                       ),
                     ],
@@ -155,21 +208,38 @@ class SettingsEngineSection extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Expanded(
-                            child: Text('Daily Download Limit (Episodes)', style: ObsidianTypography.titleSm(), overflow: TextOverflow.ellipsis),
+                            child: Text(
+                              'Daily Download Limit (Episodes)',
+                              style: ObsidianTypography.titleSm(),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                           const SizedBox(width: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 1.5,
+                            ),
                             decoration: BoxDecoration(
                               color: ObsidianColors.tertiary.withOpacity(0.2),
                               borderRadius: BorderRadius.circular(4),
                             ),
-                            child: Text('Tracker Safety', style: ObsidianTypography.labelBadge(color: ObsidianColors.tertiary)),
+                            child: Text(
+                              'Tracker Safety',
+                              style: ObsidianTypography.labelBadge(
+                                color: ObsidianColors.tertiary,
+                              ),
+                            ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 4),
-                      Text('Maximum automated episode downloads allowed within a 24-hour rolling window to preserve account ratios.', style: ObsidianTypography.bodySm(color: ObsidianColors.outline)),
+                      Text(
+                        'Maximum automated episode downloads allowed within a 24-hour rolling window to preserve account ratios.',
+                        style: ObsidianTypography.bodySm(
+                          color: ObsidianColors.outline,
+                        ),
+                      ),
                       const SizedBox(height: 12),
                       Row(
                         children: [
@@ -177,7 +247,9 @@ class SettingsEngineSection extends StatelessWidget {
                             onPressed: () {
                               if (dailyCap > 5) onDailyCapChanged(dailyCap - 5);
                             },
-                            icon: const Icon(Icons.remove_circle_outline_rounded),
+                            icon: const Icon(
+                              Icons.remove_circle_outline_rounded,
+                            ),
                             color: ObsidianColors.outline,
                           ),
                           Container(
@@ -188,17 +260,29 @@ class SettingsEngineSection extends StatelessWidget {
                               borderRadius: BorderRadius.circular(6),
                             ),
                             alignment: Alignment.center,
-                            child: Text('$dailyCap', style: ObsidianTypography.headlineMd(color: ObsidianColors.tertiary)),
+                            child: Text(
+                              '$dailyCap',
+                              style: ObsidianTypography.headlineMd(
+                                color: ObsidianColors.tertiary,
+                              ),
+                            ),
                           ),
                           IconButton(
                             onPressed: () {
-                              if (dailyCap < 200) onDailyCapChanged(dailyCap + 5);
+                              if (dailyCap < 200) {
+                                onDailyCapChanged(dailyCap + 5);
+                              }
                             },
                             icon: const Icon(Icons.add_circle_outline_rounded),
                             color: ObsidianColors.outline,
                           ),
                           const Spacer(),
-                          Text('Default: 30 eps/day', style: ObsidianTypography.labelBadge(color: ObsidianColors.onSurfaceVariant)),
+                          Text(
+                            'Default: 30 eps/day',
+                            style: ObsidianTypography.labelBadge(
+                              color: ObsidianColors.onSurfaceVariant,
+                            ),
+                          ),
                         ],
                       ),
                     ],
@@ -222,12 +306,18 @@ class SettingsEngineSection extends StatelessWidget {
                 Expanded(
                   child: Row(
                     children: [
-                      const Icon(Icons.info_outline_rounded, size: 16, color: ObsidianColors.primary),
+                      const Icon(
+                        Icons.info_outline_rounded,
+                        size: 16,
+                        color: ObsidianColors.primary,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           'All changes take effect immediately on local daemon via UNIX socket: /run/genrl/core.sock',
-                          style: ObsidianTypography.monoCode(color: ObsidianColors.outline),
+                          style: ObsidianTypography.monoCode(
+                            color: ObsidianColors.outline,
+                          ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -235,7 +325,12 @@ class SettingsEngineSection extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                Text('Last written: 14:22:09 UTC', style: ObsidianTypography.labelBadge(color: ObsidianColors.onSurfaceVariant)),
+                Text(
+                  'Last written: 14:22:09 UTC',
+                  style: ObsidianTypography.labelBadge(
+                    color: ObsidianColors.onSurfaceVariant,
+                  ),
+                ),
               ],
             ),
           ),

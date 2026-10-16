@@ -1,5 +1,5 @@
-use std::sync::OnceLock;
 use regex::Regex;
+use std::sync::OnceLock;
 
 fn re(pattern: &str) -> &'static Regex {
     use std::collections::HashMap;
@@ -10,7 +10,9 @@ fn re(pattern: &str) -> &'static Regex {
     if let Some(rx) = map.get(pattern) {
         return rx;
     }
-    let rx = Box::leak(Box::new(Regex::new(pattern).expect("static regex is valid")));
+    let rx = Box::leak(Box::new(
+        Regex::new(pattern).expect("static regex is valid"),
+    ));
     map.insert(pattern.to_string(), rx);
     rx
 }

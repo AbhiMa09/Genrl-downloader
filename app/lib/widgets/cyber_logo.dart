@@ -1,5 +1,7 @@
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+
 import '../theme/colors.dart';
 
 /// Genrl Downloader Cybernetic Emblem & Official Logo.
@@ -88,7 +90,8 @@ class _CyberLogoState extends State<CyberLogo>
             AnimatedBuilder(
               animation: _controller,
               builder: (context, _) {
-                final pulse = 0.5 + 0.5 * math.sin(_controller.value * 2 * math.pi);
+                final pulse =
+                    0.5 + 0.5 * math.sin(_controller.value * 2 * math.pi);
                 return Container(
                   width: s,
                   height: s,

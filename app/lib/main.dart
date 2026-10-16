@@ -48,14 +48,16 @@ void main(List<String> args) {
     }
   }
 
-  runApp(GenrlApp(
-    initialPage: initialPage,
-    initialShowId: initialShowId,
-    isWizard: isWizard,
-    isTray: isTray,
-    isLogo: isLogo,
-    isGallery: isGallery,
-  ));
+  runApp(
+    GenrlApp(
+      initialPage: initialPage,
+      initialShowId: initialShowId,
+      isWizard: isWizard,
+      isTray: isTray,
+      isLogo: isLogo,
+      isGallery: isGallery,
+    ),
+  );
 }
 
 class GenrlApp extends StatelessWidget {
@@ -82,23 +84,26 @@ class GenrlApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) {
-          final sp = stateProvider ?? StateProvider();
-          if (initialPage > 0) {
-            sp.selectPage(initialPage);
-          }
-          if (initialShowId != null) {
-            sp.loadShowDetail(initialShowId!);
-          }
-          return sp;
-        }),
+        ChangeNotifierProvider(
+          create: (_) {
+            final sp = stateProvider ?? StateProvider();
+            if (initialPage > 0) {
+              sp.selectPage(initialPage);
+            }
+            if (initialShowId != null) {
+              sp.loadShowDetail(initialShowId!);
+            }
+            return sp;
+          },
+        ),
       ],
       child: MaterialApp(
         title: 'Genrl Downloader',
         debugShowCheckedModeBanner: false,
         theme: ObsidianTheme.darkTheme,
         routes: {
-          if (kDebugMode) '/debug/loading-gallery': (ctx) => const LoadingGalleryPage(),
+          if (kDebugMode)
+            '/debug/loading-gallery': (ctx) => const LoadingGalleryPage(),
         },
         home: Consumer<StateProvider>(
           builder: (context, sp, _) {
@@ -115,7 +120,9 @@ class GenrlApp extends StatelessWidget {
             if (isTray) {
               return Scaffold(
                 backgroundColor: ObsidianColors.surface,
-                body: Center(child: SystemTrayNotificationOverlay(onClose: () {})),
+                body: Center(
+                  child: SystemTrayNotificationOverlay(onClose: () {}),
+                ),
               );
             }
             if (isLogo) {
@@ -188,9 +195,7 @@ class MainShell extends StatelessWidget {
                 const ConnectionBanner(),
 
                 // Main Page Content
-                Expanded(
-                  child: currentPage,
-                ),
+                Expanded(child: currentPage),
 
                 // Bottom Status Strip
                 const StatusStrip(),

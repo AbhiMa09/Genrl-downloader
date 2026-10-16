@@ -117,7 +117,7 @@ pub fn base64url(bytes: &[u8]) -> String {
             out.push(TABLE[(n >> 6) as usize & 63] as char);
         }
         if chunk.len() > 2 {
-            out.push(TABLE[(n >> 0) as usize & 63] as char);
+            out.push(TABLE[n as usize & 63] as char);
         }
     }
     out

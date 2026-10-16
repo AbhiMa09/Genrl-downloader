@@ -107,9 +107,11 @@ impl Db {
         )?;
 
         let current: i64 = conn
-            .query_row("SELECT COALESCE(MAX(version), 0) FROM schema_migrations", [], |r| {
-                r.get(0)
-            })
+            .query_row(
+                "SELECT COALESCE(MAX(version), 0) FROM schema_migrations",
+                [],
+                |r| r.get(0),
+            )
             .unwrap_or(0);
 
         let latest = migrations::MIGRATIONS

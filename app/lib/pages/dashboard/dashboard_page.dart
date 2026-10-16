@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../services/state_provider.dart';
 import '../../widgets/state_views.dart';
 import 'dashboard_airing_posters.dart';
@@ -32,9 +33,14 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget build(BuildContext context) {
     final state = context.watch<StateProvider>();
 
-    if (state.isLoadingStatus && state.queue.isEmpty && state.shows.isEmpty && state.coreError == null) {
+    if (state.isLoadingStatus &&
+        state.queue.isEmpty &&
+        state.shows.isEmpty &&
+        state.coreError == null) {
       return const Center(
-        child: LoadingStateView(message: 'Querying system telemetry from genrl core...'),
+        child: LoadingStateView(
+          message: 'Querying system telemetry from genrl core...',
+        ),
       );
     }
 
@@ -68,7 +74,10 @@ class _DashboardPageState extends State<DashboardPage> {
           const SizedBox(height: 16),
 
           // 3. KPI Metric Strip (4 Cards)
-          DashboardKpiMetrics(state: state, referenceTime: widget.referenceTime),
+          DashboardKpiMetrics(
+            state: state,
+            referenceTime: widget.referenceTime,
+          ),
           const SizedBox(height: 20),
 
           // 4. Daemon Pipeline & Active Ingestion Table

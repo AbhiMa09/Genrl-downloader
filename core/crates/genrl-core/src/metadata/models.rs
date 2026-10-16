@@ -166,9 +166,7 @@ pub fn clean_plain_text(s: &str) -> String {
 /// Strip all control characters AND newlines for single-line headers or filenames.
 pub fn clean_single_line(s: &str) -> String {
     clean_plain_text(s)
-        .replace('\r', " ")
-        .replace('\n', " ")
-        .replace('\t', " ")
+        .replace(['\r', '\n', '\t'], " ")
         .split_whitespace()
         .collect::<Vec<_>>()
         .join(" ")

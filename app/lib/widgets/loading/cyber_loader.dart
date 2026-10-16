@@ -1,5 +1,7 @@
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+
 import '../../theme/colors.dart';
 
 /// Concentric rings cyber loader matching the Stitch design tokens.
@@ -9,11 +11,7 @@ class CyberLoader extends StatefulWidget {
   final double size;
   final bool isAnimating;
 
-  const CyberLoader({
-    super.key,
-    this.size = 200,
-    this.isAnimating = true,
-  });
+  const CyberLoader({super.key, this.size = 200, this.isAnimating = true});
 
   @override
   State<CyberLoader> createState() => _CyberLoaderState();
@@ -193,7 +191,12 @@ class _CyberLoaderPainter extends CustomPainter {
   }
 
   void _drawDashedCircle(
-      Canvas canvas, Offset center, double radius, int dashes, Paint paint) {
+    Canvas canvas,
+    Offset center,
+    double radius,
+    int dashes,
+    Paint paint,
+  ) {
     const sweep = 2 * math.pi;
     final dashAngle = sweep / dashes;
     for (int i = 0; i < dashes; i++) {

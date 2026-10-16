@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
 
@@ -31,48 +32,81 @@ class SearchResultsTable extends StatelessWidget {
             child: Row(
               children: [
                 Expanded(
-                    flex: 6,
-                    child: Text('TORRENT / RELEASE SPECIFICATION',
-                        style: ObsidianTypography.labelBadge(
-                            color: ObsidianColors.outline))),
+                  flex: 6,
+                  child: Text(
+                    'TORRENT / RELEASE SPECIFICATION',
+                    style: ObsidianTypography.labelBadge(
+                      color: ObsidianColors.outline,
+                    ),
+                  ),
+                ),
                 Expanded(
-                    flex: 2,
-                    child: Text('GROUP',
-                        style: ObsidianTypography.labelBadge(
-                            color: ObsidianColors.outline))),
+                  flex: 2,
+                  child: Text(
+                    'GROUP',
+                    style: ObsidianTypography.labelBadge(
+                      color: ObsidianColors.outline,
+                    ),
+                  ),
+                ),
                 Expanded(
-                    flex: 2,
-                    child: Text('FORMAT',
-                        style: ObsidianTypography.labelBadge(
-                            color: ObsidianColors.outline))),
+                  flex: 2,
+                  child: Text(
+                    'FORMAT',
+                    style: ObsidianTypography.labelBadge(
+                      color: ObsidianColors.outline,
+                    ),
+                  ),
+                ),
                 Expanded(
-                    flex: 2,
-                    child: Text('SIZE',
-                        textAlign: TextAlign.right,
-                        style: ObsidianTypography.labelBadge(
-                            color: ObsidianColors.outline))),
+                  flex: 2,
+                  child: Text(
+                    'SIZE',
+                    textAlign: TextAlign.right,
+                    style: ObsidianTypography.labelBadge(
+                      color: ObsidianColors.outline,
+                    ),
+                  ),
+                ),
                 Expanded(
-                    flex: 2,
-                    child: Text('SWARM (S/L)',
-                        textAlign: TextAlign.center,
-                        style: ObsidianTypography.labelBadge(
-                            color: ObsidianColors.outline))),
+                  flex: 2,
+                  child: Text(
+                    'SWARM (S/L)',
+                    textAlign: TextAlign.center,
+                    style: ObsidianTypography.labelBadge(
+                      color: ObsidianColors.outline,
+                    ),
+                  ),
+                ),
                 Expanded(
-                    flex: 1,
-                    child: Text('AGE',
-                        style: ObsidianTypography.labelBadge(
-                            color: ObsidianColors.outline))),
+                  flex: 1,
+                  child: Text(
+                    'AGE',
+                    style: ObsidianTypography.labelBadge(
+                      color: ObsidianColors.outline,
+                    ),
+                  ),
+                ),
                 Expanded(
-                    flex: 2,
-                    child: Text('SCORE',
-                        style: ObsidianTypography.labelBadge(
-                            color: ObsidianColors.outline))),
+                  flex: 2,
+                  child: Text(
+                    'SCORE',
+                    style: ObsidianTypography.labelBadge(
+                      color: ObsidianColors.outline,
+                    ),
+                  ),
+                ),
                 const SizedBox(
-                    width: 80,
-                    child: Text('ACTION',
-                        textAlign: TextAlign.right,
-                        style:
-                            TextStyle(fontSize: 10, color: ObsidianColors.outline))),
+                  width: 80,
+                  child: Text(
+                    'ACTION',
+                    textAlign: TextAlign.right,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: ObsidianColors.outline,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -89,15 +123,18 @@ class SearchResultsTable extends StatelessWidget {
               final isBest = r['isBest'] as bool;
 
               return Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: isBest
                       ? ObsidianColors.surfaceContainer.withOpacity(0.8)
                       : Colors.transparent,
                   border: isBest
                       ? Border.all(
-                          color: ObsidianColors.primary.withOpacity(0.4))
+                          color: ObsidianColors.primary.withOpacity(0.4),
+                        )
                       : null,
                 ),
                 child: Row(
@@ -113,21 +150,29 @@ class SearchResultsTable extends StatelessWidget {
                               if (isBest) ...[
                                 Container(
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 5, vertical: 1.5),
+                                    horizontal: 5,
+                                    vertical: 1.5,
+                                  ),
                                   decoration: BoxDecoration(
-                                      color: ObsidianColors.primary,
-                                      borderRadius: BorderRadius.circular(4)),
+                                    color: ObsidianColors.primary,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      const Icon(Icons.star_rounded,
-                                          size: 10,
-                                          color: ObsidianColors.onPrimary),
+                                      const Icon(
+                                        Icons.star_rounded,
+                                        size: 10,
+                                        color: ObsidianColors.onPrimary,
+                                      ),
                                       const SizedBox(width: 3),
-                                      Text('Best Rule Match',
-                                          style: ObsidianTypography.labelBadge(
-                                              color: ObsidianColors.onPrimary,
-                                              fontSize: 8)),
+                                      Text(
+                                        'Best Rule Match',
+                                        style: ObsidianTypography.labelBadge(
+                                          color: ObsidianColors.onPrimary,
+                                          fontSize: 8,
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -153,19 +198,29 @@ class SearchResultsTable extends StatelessWidget {
                           Wrap(
                             spacing: 8,
                             children: [
-                              Text(r['hash'] as String,
-                                  style: ObsidianTypography.monoCode(
-                                      color: ObsidianColors.primary,
-                                      fontSize: 9)),
-                              ...(r['bonuses'] as List<String>).map((b) => Text(
+                              Text(
+                                r['hash'] as String,
+                                style: ObsidianTypography.monoCode(
+                                  color: ObsidianColors.primary,
+                                  fontSize: 9,
+                                ),
+                              ),
+                              ...(r['bonuses'] as List<String>).map(
+                                (b) => Text(
                                   b,
                                   style: ObsidianTypography.monoCode(
-                                      color: ObsidianColors.tertiary,
-                                      fontSize: 9))),
-                              Text(r['indexer'] as String,
-                                  style: ObsidianTypography.monoCode(
-                                      color: ObsidianColors.outline,
-                                      fontSize: 9)),
+                                    color: ObsidianColors.tertiary,
+                                    fontSize: 9,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                r['indexer'] as String,
+                                style: ObsidianTypography.monoCode(
+                                  color: ObsidianColors.outline,
+                                  fontSize: 9,
+                                ),
+                              ),
                             ],
                           ),
                         ],
@@ -177,15 +232,22 @@ class SearchResultsTable extends StatelessWidget {
                       flex: 2,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
-                            color: ObsidianColors.surfaceContainerHighest,
-                            borderRadius: BorderRadius.circular(4)),
-                        child: Text(r['group'] as String,
-                            style: ObsidianTypography.monoCode(
-                                color: ObsidianColors.primary, fontSize: 10),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis),
+                          color: ObsidianColors.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          r['group'] as String,
+                          style: ObsidianTypography.monoCode(
+                            color: ObsidianColors.primary,
+                            fontSize: 10,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ),
 
@@ -195,14 +257,21 @@ class SearchResultsTable extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(r['format'] as String,
-                              style: ObsidianTypography.monoMetric(
-                                  color: ObsidianColors.onSurface,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 10)),
-                          Text(r['codec'] as String,
-                              style: ObsidianTypography.monoCode(
-                                  color: ObsidianColors.outline, fontSize: 9)),
+                          Text(
+                            r['format'] as String,
+                            style: ObsidianTypography.monoMetric(
+                              color: ObsidianColors.onSurface,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 10,
+                            ),
+                          ),
+                          Text(
+                            r['codec'] as String,
+                            style: ObsidianTypography.monoCode(
+                              color: ObsidianColors.outline,
+                              fontSize: 9,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -210,10 +279,14 @@ class SearchResultsTable extends StatelessWidget {
                     // 4. Size
                     Expanded(
                       flex: 2,
-                      child: Text(r['size'] as String,
-                          textAlign: TextAlign.right,
-                          style: ObsidianTypography.monoMetric(
-                              color: ObsidianColors.onSurface, fontSize: 10)),
+                      child: Text(
+                        r['size'] as String,
+                        textAlign: TextAlign.right,
+                        style: ObsidianTypography.monoMetric(
+                          color: ObsidianColors.onSurface,
+                          fontSize: 10,
+                        ),
+                      ),
                     ),
 
                     // 5. Swarm
@@ -223,18 +296,23 @@ class SearchResultsTable extends StatelessWidget {
                         '${r['seeds']} / ${r['leech']}',
                         textAlign: TextAlign.center,
                         style: ObsidianTypography.monoMetric(
-                            color: ObsidianColors.tertiary,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 10),
+                          color: ObsidianColors.tertiary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 10,
+                        ),
                       ),
                     ),
 
                     // 6. Age
                     Expanded(
                       flex: 1,
-                      child: Text(r['age'] as String,
-                          style: ObsidianTypography.monoCode(
-                              color: ObsidianColors.outline, fontSize: 10)),
+                      child: Text(
+                        r['age'] as String,
+                        style: ObsidianTypography.monoCode(
+                          color: ObsidianColors.outline,
+                          fontSize: 10,
+                        ),
+                      ),
                     ),
 
                     // 7. Score
@@ -243,16 +321,23 @@ class SearchResultsTable extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(r['matchScore'] as String,
-                              style: ObsidianTypography.monoMetric(
-                                  color: isBest
-                                      ? ObsidianColors.primary
-                                      : ObsidianColors.onSurface,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 10)),
-                          Text(r['matchTier'] as String,
-                              style: ObsidianTypography.labelBadge(
-                                  color: ObsidianColors.outline, fontSize: 8)),
+                          Text(
+                            r['matchScore'] as String,
+                            style: ObsidianTypography.monoMetric(
+                              color: isBest
+                                  ? ObsidianColors.primary
+                                  : ObsidianColors.onSurface,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 10,
+                            ),
+                          ),
+                          Text(
+                            r['matchTier'] as String,
+                            style: ObsidianTypography.labelBadge(
+                              color: ObsidianColors.outline,
+                              fontSize: 8,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -263,12 +348,15 @@ class SearchResultsTable extends StatelessWidget {
                       child: ElevatedButton.icon(
                         onPressed: () => onGrabRelease(r['title'] as String),
                         icon: const Icon(Icons.download_rounded, size: 12),
-                        label: Text(isBest ? 'Grab' : 'Queue',
-                            style: ObsidianTypography.titleSm(
-                                color: isBest
-                                    ? ObsidianColors.onPrimary
-                                    : ObsidianColors.onSurface,
-                                fontSize: 10)),
+                        label: Text(
+                          isBest ? 'Grab' : 'Queue',
+                          style: ObsidianTypography.titleSm(
+                            color: isBest
+                                ? ObsidianColors.onPrimary
+                                : ObsidianColors.onSurface,
+                            fontSize: 10,
+                          ),
+                        ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: isBest
                               ? ObsidianColors.primary
@@ -278,9 +366,12 @@ class SearchResultsTable extends StatelessWidget {
                               : ObsidianColors.onSurface,
                           elevation: 0,
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(6)),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
                         ),
                       ),
                     ),

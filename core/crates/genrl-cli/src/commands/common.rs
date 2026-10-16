@@ -1,6 +1,6 @@
-use std::path::Path;
 use anyhow::{Context, Result};
 use genrl_core::Db;
+use std::path::Path;
 
 pub fn open_db(data_dir: &Path) -> Result<Db> {
     let path = data_dir.join("genrl.db");

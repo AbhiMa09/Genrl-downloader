@@ -145,7 +145,10 @@ impl Rules {
         })
     }
 
-    fn read(db: &Db, mal_id: Option<i64>) -> Result<Option<serde_json::Map<String, serde_json::Value>>> {
+    fn read(
+        db: &Db,
+        mal_id: Option<i64>,
+    ) -> Result<Option<serde_json::Map<String, serde_json::Value>>> {
         db.with(|c| {
             let mut stmt =
                 c.prepare("SELECT key, value FROM rules WHERE mal_id IS ?1 ORDER BY key")?;
@@ -166,9 +169,9 @@ impl Rules {
     fn from_map(map: Option<serde_json::Map<String, serde_json::Value>>) -> Result<Option<Rules>> {
         match map {
             None => Ok(None),
-            Some(map) => Ok(Some(serde_json::from_value(
-                serde_json::Value::Object(map),
-            )?)),
+            Some(map) => Ok(Some(serde_json::from_value(serde_json::Value::Object(
+                map,
+            ))?)),
         }
     }
 
@@ -179,7 +182,10 @@ impl Rules {
             .ok_or_else(|| crate::Error::Other("rules did not serialize".into()))?;
         db.with(|c| {
             let tx = c.unchecked_transaction()?;
-            tx.execute("DELETE FROM rules WHERE mal_id IS ?1", rusqlite::params![mal_id])?;
+            tx.execute(
+                "DELETE FROM rules WHERE mal_id IS ?1",
+                rusqlite::params![mal_id],
+            )?;
             for (key, val) in map {
                 tx.execute(
                     "INSERT INTO rules (mal_id, key, value) VALUES (?1, ?2, ?3)",
@@ -388,7 +394,11 @@ mod tests {
         let show = Rules::for_show(&db, 123).unwrap();
         assert_eq!(show.min_resolution, "1080p");
         assert_eq!(show.seed_auto_threshold, 20);
-        assert_eq!(show.groups, vec!["SubsPlease"], "unset keys fall back to global");
+        assert_eq!(
+            show.groups,
+            vec!["SubsPlease"],
+            "unset keys fall back to global"
+        );
 
         let other = Rules::for_show(&db, 456).unwrap();
         assert_eq!(other.min_resolution, "720p");
@@ -429,7 +439,14 @@ mod tests {
         assert_eq!(r.preferred_resolution, "1080p");
 
         // Update global rule
-        update_rule(&db, None, "preferred_resolution", serde_json::json!("720p"), &log).unwrap();
+        update_rule(
+            &db,
+            None,
+            "preferred_resolution",
+            serde_json::json!("720p"),
+            &log,
+        )
+        .unwrap();
         update_rule(&db, None, "seed_ratio_target", serde_json::json!(2.5), &log).unwrap();
         let updated = get_rules(&db, None).unwrap();
         assert_eq!(updated.preferred_resolution, "720p");
@@ -440,10 +457,21 @@ mod tests {
         assert!(invalid.is_err(), "must reject invalid seed ask min > max");
 
         // Override on show
-        update_rule(&db, Some(999), "preferred_resolution", serde_json::json!("2160p"), &log).unwrap();
+        update_rule(
+            &db,
+            Some(999),
+            "preferred_resolution",
+            serde_json::json!("2160p"),
+            &log,
+        )
+        .unwrap();
         let show_rules = get_rules(&db, Some(999)).unwrap();
         assert_eq!(show_rules.preferred_resolution, "2160p");
-        assert_eq!(show_rules.seed_ratio_target, Some(2.5), "inherits global ratio target");
+        assert_eq!(
+            show_rules.seed_ratio_target,
+            Some(2.5),
+            "inherits global ratio target"
+        );
 
         // Reset show override
         reset_rule(&db, Some(999), Some("preferred_resolution"), &log).unwrap();

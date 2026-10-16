@@ -49,10 +49,13 @@ class QueueItem {
 
   String get title => showTitle;
   String get downloadSpeed => formattedSpeed;
-  String get uploadSpeed => uploadSpeedBytes > 0 ? '${(uploadSpeedBytes / 1024).toStringAsFixed(1)} KB/s' : '0 B/s';
+  String get uploadSpeed => uploadSpeedBytes > 0
+      ? '${(uploadSpeedBytes / 1024).toStringAsFixed(1)} KB/s'
+      : '0 B/s';
   String get eta => formattedEta;
 
-  String get episodeLabel => 'S${season.toString().padLeft(2, '0')}E${episode.toString().padLeft(2, '0')}';
+  String get episodeLabel =>
+      'S${season.toString().padLeft(2, '0')}E${episode.toString().padLeft(2, '0')}';
 
   String get formattedSpeed {
     if (progress >= 1.0 || speedBytes <= 0) return '0 B/s';

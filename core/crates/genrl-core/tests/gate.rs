@@ -56,13 +56,7 @@ struct Fixed {
 impl Fixed {
     fn new(template: ResponseTemplate) -> (Arc<AtomicUsize>, Fixed) {
         let hits = Arc::new(AtomicUsize::new(0));
-        (
-            hits.clone(),
-            Fixed {
-                hits,
-                template,
-            },
-        )
+        (hits.clone(), Fixed { hits, template })
     }
 }
 
@@ -153,7 +147,8 @@ async fn retries_a_429_and_honors_retry_after() {
 #[tokio::test]
 async fn persistent_429_raises_rate_limited_then_opens_the_breaker() {
     let server = MockServer::start().await;
-    let (hits, responder) = Fixed::new(ResponseTemplate::new(429).insert_header("Retry-After", "0"));
+    let (hits, responder) =
+        Fixed::new(ResponseTemplate::new(429).insert_header("Retry-After", "0"));
     Mock::given(method("GET"))
         .respond_with(responder)
         .mount(&server)
@@ -358,7 +353,11 @@ async fn serves_fresh_responses_from_cache() {
     let second = gate.get(Service::Jikan, &url).await.unwrap();
     assert!(second.from_cache, "second call must be served from cache");
     assert_eq!(second.text().unwrap(), "cached-body");
-    assert_eq!(hits.load(Ordering::SeqCst), 1, "one request reached the server");
+    assert_eq!(
+        hits.load(Ordering::SeqCst),
+        1,
+        "one request reached the server"
+    );
 }
 
 #[tokio::test]
@@ -449,10 +448,8 @@ async fn does_not_retry_client_errors() {
 #[tokio::test]
 async fn refuses_oversized_bodies() {
     let server = MockServer::start().await;
-    let (hits, responder) = Fixed::new(ResponseTemplate::new(200).set_body_raw(
-        vec![b'x'; 64 * 1024],
-        "text/plain",
-    ));
+    let (hits, responder) =
+        Fixed::new(ResponseTemplate::new(200).set_body_raw(vec![b'x'; 64 * 1024], "text/plain"));
     Mock::given(method("GET"))
         .respond_with(responder)
         .mount(&server)
@@ -470,7 +467,11 @@ async fn refuses_oversized_bodies() {
         matches!(err, genrl_core::Error::BodyTooLarge { cap: 1024, .. }),
         "got {err:?}"
     );
-    assert_eq!(hits.load(Ordering::SeqCst), 1, "an oversized body is not retried");
+    assert_eq!(
+        hits.load(Ordering::SeqCst),
+        1,
+        "an oversized body is not retried"
+    );
 }
 
 #[tokio::test]
@@ -492,7 +493,11 @@ async fn skips_the_cache_on_request() {
     };
     gate.get_with(Service::Jikan, &url, &opts).await.unwrap();
 
-    assert_eq!(hits.load(Ordering::SeqCst), 2, "skip_cache must reach the server");
+    assert_eq!(
+        hits.load(Ordering::SeqCst),
+        2,
+        "skip_cache must reach the server"
+    );
     // …and the refresh replaces the cached copy.
     let third = gate.get(Service::Jikan, &url).await.unwrap();
     assert!(third.from_cache);
@@ -513,9 +518,11 @@ async fn nyaa_budget_is_one_request_per_two_seconds() {
         .await;
 
     let db = Db::open_in_memory().unwrap();
-    let gate =
-        Gate::with_policies(db, &[(Service::Nyaa, ServicePolicy::for_service(Service::Nyaa))])
-            .unwrap();
+    let gate = Gate::with_policies(
+        db,
+        &[(Service::Nyaa, ServicePolicy::for_service(Service::Nyaa))],
+    )
+    .unwrap();
 
     // The first request fits in the burst allowance…
     let url = format!("{}/rss?q=0", server.uri());

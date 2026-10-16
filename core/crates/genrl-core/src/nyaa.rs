@@ -93,7 +93,11 @@ pub fn feed_url(base: &str, query: &SearchQuery) -> String {
 }
 
 /// Search Nyaa. Falls back to the configured mirrors when the primary fails.
-pub async fn search(gate: &Gate, settings: &Settings, query: &SearchQuery) -> Result<Vec<FeedItem>> {
+pub async fn search(
+    gate: &Gate,
+    settings: &Settings,
+    query: &SearchQuery,
+) -> Result<Vec<FeedItem>> {
     let mut bases = vec![settings.nyaa_base_url.clone()];
     bases.extend(settings.nyaa_mirrors.iter().cloned());
 
@@ -110,7 +114,7 @@ pub async fn search(gate: &Gate, settings: &Settings, query: &SearchQuery) -> Re
                 .and_then(|text| parse_feed(&text))
                 .map(|mut items| {
                     items.retain(|i| i.seeders >= query.min_seeders);
-                    items.sort_by(|a, b| b.seeders.cmp(&a.seeders));
+                    items.sort_by_key(|a| std::cmp::Reverse(a.seeders));
                     if items.len() > query.limit {
                         items.truncate(query.limit);
                     }
@@ -308,7 +312,10 @@ fn month_index(name: &str) -> Option<i64> {
         "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec",
     ];
     let lower = name.to_ascii_lowercase();
-    MONTHS.iter().position(|m| lower.starts_with(m)).map(|i| i as i64 + 1)
+    MONTHS
+        .iter()
+        .position(|m| lower.starts_with(m))
+        .map(|i| i as i64 + 1)
 }
 
 fn parse_offset(field: Option<&&str>) -> i64 {
@@ -371,7 +378,11 @@ mod tests {
         assert_eq!(first.leechers, 2);
         assert_eq!(first.info_hash, "ef3e7ad1b12bdd9fc341691d8866cd1fa8374a4b");
         assert_eq!(first.category_id, "1_2");
-        assert!(first.size_bytes > 6 * 1024 * 1024 * 1024, "{}", first.size_bytes);
+        assert!(
+            first.size_bytes > 6 * 1024 * 1024 * 1024,
+            "{}",
+            first.size_bytes
+        );
         assert!(!first.trusted);
         assert!(first.published_at > 1_700_000_000, "pubDate parsed");
     }
@@ -381,7 +392,11 @@ mod tests {
         let items = parse_feed(SAMPLE).unwrap();
         for item in &items {
             assert!(!item.title.is_empty());
-            assert!(item.link.starts_with("https://nyaa.si/download/"), "{}", item.link);
+            assert!(
+                item.link.starts_with("https://nyaa.si/download/"),
+                "{}",
+                item.link
+            );
             assert_eq!(item.info_hash.len(), 40, "hash for {}", item.title);
             assert!(item.size_bytes > 0, "size for {}", item.title);
         }
@@ -389,7 +404,10 @@ mod tests {
 
     #[test]
     fn magnets_only_carry_bittorrent_hashes() {
-        let m = magnet_from("ef3e7ad1b12bdd9fc341691d8866cd1fa8374a4b", "Sousou no Frieren - 01");
+        let m = magnet_from(
+            "ef3e7ad1b12bdd9fc341691d8866cd1fa8374a4b",
+            "Sousou no Frieren - 01",
+        );
         assert!(m.starts_with("magnet:?xt=urn:btih:"));
         assert!(m.contains("dn=Sousou+no+Frieren"));
         assert!(crate::http::is_acceptable_link(&m));
@@ -403,7 +421,11 @@ mod tests {
             url,
             "https://nyaa.si/?page=rss&q=sousou+no+frieren+1080p&f=0&c=1_2&s=seeders&o=desc"
         );
-        assert_eq!(feed_url("https://nyaa.si/", &q), url, "trailing slash tolerated");
+        assert_eq!(
+            feed_url("https://nyaa.si/", &q),
+            url,
+            "trailing slash tolerated"
+        );
     }
 
     #[test]
@@ -436,6 +458,10 @@ mod tests {
         }
         xml.push_str("</channel></rss>");
         let items = parse_feed(&xml).unwrap();
-        assert!(items.len() <= 1000, "item count capped, got {}", items.len());
+        assert!(
+            items.len() <= 1000,
+            "item count capped, got {}",
+            items.len()
+        );
     }
 }

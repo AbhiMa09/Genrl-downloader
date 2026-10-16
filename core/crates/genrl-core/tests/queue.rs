@@ -24,7 +24,7 @@ use wiremock::{Mock, MockServer, Request, Respond, ResponseTemplate};
 use genrl_core::clock::{Clock, FakeClock};
 use genrl_core::http::{policy::RateSpec, RetryPolicy, ServicePolicy};
 use genrl_core::models::{JobKind, JobState, ListStatus, QuestionKind};
-use genrl_core::planner::{self, MalList, ListEntry, PlanOutcome};
+use genrl_core::planner::{self, ListEntry, MalList, PlanOutcome};
 use genrl_core::qbit::magnet_info_hash;
 use genrl_core::questions::{Answer, Choice, Payload, QuestionStore};
 use genrl_core::queue::Scheduler;
@@ -430,8 +430,9 @@ impl World {
 
     fn engine_with(&self, disk: Arc<dyn DiskProbe>) -> Engine {
         let clock: Arc<dyn Clock> = Arc::new(self.clock.clone());
-        let gate = Gate::with_policies(self.db.clone(), &[fast(Service::Nyaa), fast(Service::Qbit)])
-            .expect("gate");
+        let gate =
+            Gate::with_policies(self.db.clone(), &[fast(Service::Nyaa), fast(Service::Qbit)])
+                .expect("gate");
         Engine::new(
             self.db.clone(),
             Arc::new(gate),
@@ -512,11 +513,11 @@ fn state_of(db: &Db, job_id: i64) -> JobState {
 
 fn episode_state(db: &Db) -> String {
     db.with(|c| {
-        Ok(c.query_row(
-            "SELECT state FROM episodes ORDER BY id LIMIT 1",
-            [],
-            |r| r.get::<_, String>(0),
-        )?)
+        Ok(
+            c.query_row("SELECT state FROM episodes ORDER BY id LIMIT 1", [], |r| {
+                r.get::<_, String>(0)
+            })?,
+        )
     })
     .expect("episode row")
 }
@@ -531,7 +532,10 @@ async fn drive(engine: &Engine, job_id: i64) -> JobState {
         }
         engine.step(job_id).await.expect("step");
     }
-    panic!("job {job_id} never settled: {}", state_of(engine.db(), job_id));
+    panic!(
+        "job {job_id} never settled: {}",
+        state_of(engine.db(), job_id)
+    );
 }
 
 /// Run the steps until the transition *into* `stop` is on disk: the moment the
@@ -609,7 +613,10 @@ async fn killed_at(stop: JobState) -> (Outcome, String) {
 
     // At these five kill points reconcile never has to *jump* a state: it
     // either leaves the job for the scheduler or re-runs the step itself.
-    assert!(report.resumed.is_empty(), "reconcile never jumped at {stop:?}");
+    assert!(
+        report.resumed.is_empty(),
+        "reconcile never jumped at {stop:?}"
+    );
     match stop {
         JobState::Search | JobState::Choose | JobState::Monitor => {
             assert_eq!(
@@ -652,7 +659,9 @@ async fn killed_at(stop: JobState) -> (Outcome, String) {
         // asserted above is the whole recovery for this kill point.
         JobState::Monitor => {}
         JobState::Add => assert!(
-            messages.iter().any(|m| m.contains("added ") && m.contains("to qBittorrent")),
+            messages
+                .iter()
+                .any(|m| m.contains("added ") && m.contains("to qBittorrent")),
             "the missing torrent is re-added by magnet: {messages:#?}"
         ),
         JobState::Finalize => assert!(
@@ -667,12 +676,16 @@ async fn killed_at(stop: JobState) -> (Outcome, String) {
         JobState::Search | JobState::Choose => format!(
             "launch found it in {stop:?}; the scheduler re-ran the step and the job finished"
         ),
-        JobState::Monitor => "stall timer restarted from launch; monitoring resumed and finished"
-            .to_string(),
-        JobState::Add => "the missing torrent was re-added by magnet (one add, one hash), then finished"
-            .to_string(),
-        JobState::Finalize => "finalize re-ran, the file verified, and the episode was filed"
-            .to_string(),
+        JobState::Monitor => {
+            "stall timer restarted from launch; monitoring resumed and finished".to_string()
+        }
+        JobState::Add => {
+            "the missing torrent was re-added by magnet (one add, one hash), then finished"
+                .to_string()
+        }
+        JobState::Finalize => {
+            "finalize re-ran, the file verified, and the episode was filed".to_string()
+        }
         other => panic!("{other:?} is not one of the five states"),
     };
     (outcome(&world, state), note)
@@ -684,7 +697,11 @@ async fn killed_at(stop: JobState) -> (Outcome, String) {
 #[tokio::test]
 async fn killed_at_every_state_recovers_to_the_same_final_state() {
     let baseline = uninterrupted().await;
-    assert_eq!(baseline.state, JobState::Done, "the uninterrupted run finishes");
+    assert_eq!(
+        baseline.state,
+        JobState::Done,
+        "the uninterrupted run finishes"
+    );
     assert_eq!(baseline.episode_state, "done");
     assert_eq!(
         baseline.adds,
@@ -748,11 +765,18 @@ async fn a_stalled_torrent_falls_through_the_candidates_and_asks_when_they_run_o
     world.clock.advance(TWENTY_MINUTES);
     engine.step(job).await.expect("poll 2 stalls");
     let stalled = jobs::get(&world.db, job).expect("job").expect("job exists");
-    assert_eq!(stalled.state, JobState::Search, "back for the next candidate");
+    assert_eq!(
+        stalled.state,
+        JobState::Search,
+        "back for the next candidate"
+    );
     assert_eq!(stalled.attempts, 1, "one candidate tried");
     assert_eq!(stalled.torrent_id, None, "the stalled candidate is dropped");
     assert!(
-        world.messages().iter().any(|m| m.contains("no progress for 20 minutes")),
+        world
+            .messages()
+            .iter()
+            .any(|m| m.contains("no progress for 20 minutes")),
         "the stall reason is in the Activity log"
     );
     {
@@ -770,19 +794,34 @@ async fn a_stalled_torrent_falls_through_the_candidates_and_asks_when_they_run_o
     world.clock.advance(TWENTY_MINUTES);
     engine.step(job).await.expect("poll 2 of B stalls");
     let stalled = jobs::get(&world.db, job).expect("job").expect("job exists");
-    assert_eq!(stalled.state, JobState::Search, "the second candidate is out too");
+    assert_eq!(
+        stalled.state,
+        JobState::Search,
+        "the second candidate is out too"
+    );
     assert_eq!(stalled.attempts, 2);
-    assert!(world.qbit().present.is_empty(), "both torrents were removed");
+    assert!(
+        world.qbit().present.is_empty(),
+        "both torrents were removed"
+    );
 
     // Third round: both candidates are rejected, so the chooser has nothing
     // left to offer and the job fails — with a question.
     engine.step(job).await.expect("search the third time");
     engine.step(job).await.expect("find no candidates");
     let failed = jobs::get(&world.db, job).expect("job").expect("job exists");
-    assert_eq!(failed.state, JobState::Failed, "three candidates tried, three stalls");
+    assert_eq!(
+        failed.state,
+        JobState::Failed,
+        "three candidates tried, three stalls"
+    );
     assert_eq!(failed.attempts, 3);
     assert!(
-        failed.last_error.as_deref().unwrap_or_default().contains("no candidates"),
+        failed
+            .last_error
+            .as_deref()
+            .unwrap_or_default()
+            .contains("no candidates"),
         "the row says why it stopped: {:?}",
         failed.last_error
     );
@@ -792,9 +831,8 @@ async fn a_stalled_torrent_falls_through_the_candidates_and_asks_when_they_run_o
         "each candidate was added once, never twice"
     );
 
-    let questions =
-        QuestionStore::of_kind(&world.db, QuestionKind::AllFailed, world.clock.now())
-            .expect("questions");
+    let questions = QuestionStore::of_kind(&world.db, QuestionKind::AllFailed, world.clock.now())
+        .expect("questions");
     assert_eq!(questions.len(), 1, "a failed job raises a question");
     assert_eq!(questions[0].job_id, Some(job));
     match &questions[0].payload {
@@ -814,7 +852,11 @@ async fn a_stalled_torrent_falls_through_the_candidates_and_asks_when_they_run_o
     let next = apply_answer(&world.db, &world.clock, &question, &answer).expect("applied");
     assert_eq!(next, Some(JobState::Search));
     let retried = jobs::get(&world.db, job).expect("job").expect("job exists");
-    assert_eq!(retried.state, JobState::Search, "failed → search on a retry");
+    assert_eq!(
+        retried.state,
+        JobState::Search,
+        "failed → search on a retry"
+    );
     assert_eq!(retried.attempts, 0, "a user-initiated retry starts clean");
     assert_eq!(
         QuestionStore::open_count(&world.db, world.clock.now()).expect("count"),
@@ -842,7 +884,11 @@ async fn disk_full_pauses_the_queue_until_space_returns() {
 
     let blocked = jobs::get(&world.db, job).expect("job").expect("job exists");
     assert_eq!(blocked.state, JobState::Blocked);
-    assert_eq!(blocked.blocked_from, Some(JobState::Add), "it returns to add");
+    assert_eq!(
+        blocked.blocked_from,
+        Some(JobState::Add),
+        "it returns to add"
+    );
     let reason = blocked.last_error.as_deref().unwrap_or_default();
     assert!(reason.contains("space"), "the row says why: {reason}");
     assert!(
@@ -852,7 +898,10 @@ async fn disk_full_pauses_the_queue_until_space_returns() {
 
     // The resource stops the scheduler as a whole.
     let report = scheduler.tick().await.expect("tick");
-    assert!(!report.paused, "workers are not paused, the resource is out");
+    assert!(
+        !report.paused,
+        "workers are not paused, the resource is out"
+    );
     let paused = report.resource_reason.expect("the queue waits on the disk");
     assert!(paused.contains("floor"), "{paused}");
     assert!(report.dispatched.is_empty());
@@ -866,7 +915,11 @@ async fn disk_full_pauses_the_queue_until_space_returns() {
     assert_eq!(report.resumed, vec![(job, JobState::Add)]);
     assert_eq!(report.dispatched, vec![(JobKind::Add, job)]);
     scheduler.settle().await;
-    assert_eq!(state_of(&world.db, job), JobState::Monitor, "the add went through");
+    assert_eq!(
+        state_of(&world.db, job),
+        JobState::Monitor,
+        "the add went through"
+    );
     assert_eq!(world.qbit().adds, vec![HASH_A]);
 
     let state = drive(&engine, job).await;
@@ -898,7 +951,9 @@ async fn a_missing_download_folder_blocks_the_add_until_it_exists() {
     assert!(reason.contains("folder"), "the row says why: {reason}");
 
     let report = scheduler.tick().await.expect("tick");
-    let paused = report.resource_reason.expect("the queue waits on the folder");
+    let paused = report
+        .resource_reason
+        .expect("the queue waits on the folder");
     assert!(paused.contains("missing"), "{paused}");
     assert!(report.dispatched.is_empty());
 
@@ -930,11 +985,18 @@ async fn an_open_breaker_blocks_the_search_instead_of_failing_the_job() {
 
     engine.step(job).await.expect("search against a dead Nyaa");
     let blocked = jobs::get(&world.db, job).expect("job").expect("job exists");
-    assert_eq!(blocked.state, JobState::Blocked, "a dead service parks, it does not fail");
+    assert_eq!(
+        blocked.state,
+        JobState::Blocked,
+        "a dead service parks, it does not fail"
+    );
     assert_eq!(blocked.blocked_from, Some(JobState::Search));
     assert_eq!(blocked.attempts, 0, "a blocked job never burns an attempt");
     let reason = blocked.last_error.as_deref().unwrap_or_default();
-    assert!(reason.contains("Nyaa"), "the row says which service: {reason}");
+    assert!(
+        reason.contains("Nyaa"),
+        "the row says which service: {reason}"
+    );
     assert_eq!(
         QuestionStore::open_count(&world.db, world.clock.now()).expect("count"),
         0,
@@ -982,7 +1044,12 @@ async fn the_pause_switch_stops_the_scheduler_but_never_the_downloads() {
     drive_until(&engine, job, JobState::Monitor).await;
     engine.step(job).await.expect("one poll");
     assert_eq!(world.qbit().present.len(), 1);
-    let seen_while_running = world.server.received_requests().await.expect("requests").len();
+    let seen_while_running = world
+        .server
+        .received_requests()
+        .await
+        .expect("requests")
+        .len();
 
     let mut settings = Settings::load(&world.db).expect("settings");
     settings.automation_on = false;
@@ -999,7 +1066,12 @@ async fn the_pause_switch_stops_the_scheduler_but_never_the_downloads() {
     );
     assert_eq!(world.qbit().present.len(), 1, "the download keeps going");
     assert_eq!(
-        world.server.received_requests().await.expect("requests").len(),
+        world
+            .server
+            .received_requests()
+            .await
+            .expect("requests")
+            .len(),
         seen_while_running,
         "a paused scheduler touches nothing"
     );
@@ -1045,11 +1117,20 @@ async fn the_first_sync_previews_confirms_once_and_replans_without_duplicating()
         PlanOutcome::Preview(preview) => preview,
         PlanOutcome::Applied { .. } => panic!("the first sync must preview, not apply"),
     };
-    assert!(preview.awaiting_confirmation, "one confirmation is required");
-    assert_eq!(preview.episodes.len(), 2, "both shows are wanted at episode 5");
+    assert!(
+        preview.awaiting_confirmation,
+        "one confirmation is required"
+    );
+    assert_eq!(
+        preview.episodes.len(),
+        2,
+        "both shows are wanted at episode 5"
+    );
     assert_eq!(job_count(&world), 0, "a preview queues nothing");
     assert!(
-        planner::pending_preview(&world.db).expect("pending").is_some(),
+        planner::pending_preview(&world.db)
+            .expect("pending")
+            .is_some(),
         "the preview is waiting for the wizard"
     );
 
@@ -1057,10 +1138,15 @@ async fn the_first_sync_previews_confirms_once_and_replans_without_duplicating()
     let mut settings = Settings::load(&world.db).expect("settings");
     settings.first_sync_cap = 1;
     settings.save(&world.db).expect("settings");
-    assert_eq!(planner::confirm(&world.db, &world.clock, &list).expect("confirm"), 1);
+    assert_eq!(
+        planner::confirm(&world.db, &world.clock, &list).expect("confirm"),
+        1
+    );
     assert_eq!(job_count(&world), 1, "the cap held");
     assert!(
-        planner::pending_preview(&world.db).expect("pending").is_none(),
+        planner::pending_preview(&world.db)
+            .expect("pending")
+            .is_none(),
         "one confirmation only; a second one is a no-op"
     );
 
@@ -1082,8 +1168,7 @@ async fn the_first_sync_previews_confirms_once_and_replans_without_duplicating()
 
     // Enqueuing the same episode again hands back the job that exists.
     let rows = jobs::list(&world.db, None, 10).expect("jobs");
-    let again = jobs::enqueue_search(&world.db, &world.clock, rows[0].episode_id)
-        .expect("enqueue");
+    let again = jobs::enqueue_search(&world.db, &world.clock, rows[0].episode_id).expect("enqueue");
     assert_eq!(again, rows[0].id, "idempotent by episode");
     assert_eq!(job_count(&world), 2, "still two jobs");
 }
@@ -1102,7 +1187,10 @@ async fn the_daily_cap_stops_a_bad_sync_from_flooding_the_client() {
         PlanOutcome::Applied { queued, preview } => {
             assert_eq!(queued, 1, "the cap holds");
             assert_eq!(preview.cap, 1);
-            assert_eq!(preview.over_cap, 1, "the preview reports what the cap dropped");
+            assert_eq!(
+                preview.over_cap, 1,
+                "the preview reports what the cap dropped"
+            );
         }
         other => panic!("expected an applied plan, got {other:?}"),
     }

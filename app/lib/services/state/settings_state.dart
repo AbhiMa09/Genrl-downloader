@@ -167,7 +167,10 @@ mixin SettingsStateMixin on StateContext {
     return res != null && (res['is_valid'] == true);
   }
 
-  Future<void> updateLocations({String? downloadDir, String? libraryDir}) async {
+  Future<void> updateLocations({
+    String? downloadDir,
+    String? libraryDir,
+  }) async {
     if (downloadDir != null && downloadDir.isNotEmpty) {
       await saveLocation('download_dir', downloadDir);
     }
@@ -183,8 +186,9 @@ mixin SettingsStateMixin on StateContext {
 
     final res = await bridge.migrateLibrary(from, to);
     _isMigrating = false;
-    _migrationResult =
-        res.exitCode == 0 ? res.stdout.toString() : 'Error: ${res.stderr}';
+    _migrationResult = res.exitCode == 0
+        ? res.stdout.toString()
+        : 'Error: ${res.stderr}';
     await refreshLocations();
 
     addActivityEvent(

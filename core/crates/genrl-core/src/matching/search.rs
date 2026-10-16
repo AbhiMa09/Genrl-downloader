@@ -46,7 +46,7 @@ pub async fn search_candidates(
     }
 
     // Best seeders first so the cap below keeps the healthiest candidates.
-    found.sort_by(|a, b| b.seeders.cmp(&a.seeders));
+    found.sort_by_key(|a| std::cmp::Reverse(a.seeders));
     found.truncate(stop_after.max(1));
     Ok(found)
 }
@@ -70,8 +70,7 @@ pub async fn run(
 ) -> Result<Verdict> {
     let settings = Settings::load(db)?;
     let rules = Rules::for_show(db, inputs.mal_id)?;
-    let candidates =
-        search_candidates(gate, &settings, &inputs.names, 50, 25).await?;
+    let candidates = search_candidates(gate, &settings, &inputs.names, 50, 25).await?;
     let (ranked, rejected) = rank(candidates, inputs, wanted_episode, &rules, &settings, now);
     Ok(decide_verdict(ranked, rejected, inputs, &rules, &settings))
 }
@@ -109,9 +108,8 @@ pub(crate) fn load_show(db: &Db, mal_id: i64) -> Result<Option<Show>> {
 /// Every name of every *other* show: the reject set.
 pub(crate) fn other_show_names(db: &Db, exclude_mal_id: i64) -> Result<Vec<String>> {
     db.with(|c| {
-        let mut stmt = c.prepare(
-            "SELECT DISTINCT normalized FROM show_names WHERE mal_id != ?1",
-        )?;
+        let mut stmt =
+            c.prepare("SELECT DISTINCT normalized FROM show_names WHERE mal_id != ?1")?;
         let rows = stmt.query_map([exclude_mal_id], |r| r.get::<_, String>(0))?;
         let mut out = Vec::new();
         for row in rows {

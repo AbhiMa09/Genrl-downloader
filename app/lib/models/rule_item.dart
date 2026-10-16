@@ -31,16 +31,23 @@ class RuleItem {
     this.isGlobal = false,
   });
 
-  String get preferredGroup => groups.isNotEmpty ? groups.join(', ') : 'Any / Highest seed';
+  String get preferredGroup =>
+      groups.isNotEmpty ? groups.join(', ') : 'Any / Highest seed';
 
-  factory RuleItem.fromJson(Map<String, dynamic> json, {int? malId, String? showTitle}) {
+  factory RuleItem.fromJson(
+    Map<String, dynamic> json, {
+    int? malId,
+    String? showTitle,
+  }) {
     final groupsRaw = json['groups'] as List<dynamic>? ?? [];
     final blockedRaw = json['blocked_uploaders'] as List<dynamic>? ?? [];
 
     return RuleItem(
       id: malId ?? 0,
       malId: malId,
-      showTitle: showTitle ?? (malId == null ? 'Global Default Rules' : 'Show #$malId'),
+      showTitle:
+          showTitle ??
+          (malId == null ? 'Global Default Rules' : 'Show #$malId'),
       groups: groupsRaw.map((e) => e.toString()).toList(),
       preferredResolution: json['preferred_resolution'] as String? ?? '1080p',
       minResolution: json['min_resolution'] as String? ?? '720p',
@@ -70,4 +77,3 @@ class RuleItem {
     };
   }
 }
-

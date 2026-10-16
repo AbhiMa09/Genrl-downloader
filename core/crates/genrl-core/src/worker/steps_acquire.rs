@@ -38,21 +38,14 @@ impl Engine {
             search_names = batch_queries;
         }
 
-        let candidates = match matching::search_candidates(
-            &self.gate,
-            &settings,
-            &search_names,
-            50,
-            25,
-        )
-        .await
-        {
-            Ok(candidates) => candidates,
-            Err(err) if err.is_transient() || err.is_connection_failure() => {
-                return self.block(job, &format!("Nyaa unreachable: {err}"));
-            }
-            Err(err) => return self.fail_or_reschedule(job, &format!("search failed: {err}")),
-        };
+        let candidates =
+            match matching::search_candidates(&self.gate, &settings, &search_names, 50, 25).await {
+                Ok(candidates) => candidates,
+                Err(err) if err.is_transient() || err.is_connection_failure() => {
+                    return self.block(job, &format!("Nyaa unreachable: {err}"));
+                }
+                Err(err) => return self.fail_or_reschedule(job, &format!("search failed: {err}")),
+            };
 
         if candidates.is_empty() {
             return self.fail_or_reschedule(job, "no candidates on any of the show's names");
@@ -135,7 +128,9 @@ impl Engine {
         }
 
         // Only batches available while the show is still airing: ask.
-        if !inputs.fully_aired && !ranked.is_empty() && ranked.iter().all(|r| r.candidate.release.is_batch)
+        if !inputs.fully_aired
+            && !ranked.is_empty()
+            && ranked.iter().all(|r| r.candidate.release.is_batch)
         {
             let best = &ranked[0];
             let payload = Payload::BatchOnly {
@@ -154,7 +149,11 @@ impl Engine {
                     "chose {} (score {:.0}){}",
                     chosen.candidate.release.raw,
                     chosen.scored.signal,
-                    if thin { " with thin seeds, flagged" } else { "" }
+                    if thin {
+                        " with thin seeds, flagged"
+                    } else {
+                        ""
+                    }
                 );
                 jobs::transition(
                     &self.db,
@@ -177,7 +176,12 @@ impl Engine {
                     magnet: best.candidate.magnet.clone(),
                     auto_list: inputs.auto,
                 };
-                self.ask(job, context.mal_id, payload, &format!("only {seeders} seeders"))?;
+                self.ask(
+                    job,
+                    context.mal_id,
+                    payload,
+                    &format!("only {seeders} seeders"),
+                )?;
                 jobs::transition(
                     &self.db,
                     self.clock.as_ref(),
@@ -253,17 +257,28 @@ impl Engine {
         };
 
         let dl_str = if settings.download_folder.trim().is_empty() {
-            crate::locations::default_download_dir().display().to_string()
+            crate::locations::default_download_dir()
+                .display()
+                .to_string()
         } else {
             settings.download_folder.clone()
         };
         let download_path = crate::locations::resolve_home_dir(&dl_str);
         if !download_path.exists() {
-            return self.block(job, &format!("download folder '{}' is missing", download_path.display()));
+            return self.block(
+                job,
+                &format!("download folder '{}' is missing", download_path.display()),
+            );
         }
         let check = crate::locations::check_directory(&download_path.to_string_lossy(), false);
         if !check.writable {
-            return self.block(job, &format!("download folder '{}' is not writable", download_path.display()));
+            return self.block(
+                job,
+                &format!(
+                    "download folder '{}' is not writable",
+                    download_path.display()
+                ),
+            );
         }
         let floor_bytes = settings.disk_floor_gb.saturating_mul(1024 * 1024 * 1024);
         let torrent_bytes = torrent.size_bytes.max(0) as u64;
@@ -286,7 +301,7 @@ impl Engine {
         match client
             .add(
                 &self.gate,
-                &[torrent.magnet.clone()],
+                std::slice::from_ref(&torrent.magnet),
                 Some(&dl_save_path),
                 Some(CATEGORY),
             )
@@ -326,10 +341,7 @@ impl Engine {
         crate::events::EventLog::new(self.db.clone()).info(
             Some(job.id),
             Some(context.mal_id),
-            format!(
-                "added {} to qBittorrent {}",
-                torrent.name, health.version
-            ),
+            format!("added {} to qBittorrent {}", torrent.name, health.version),
         )?;
 
         jobs::transition(

@@ -6,7 +6,9 @@ use crate::error::Result;
 use crate::events::EventLog;
 use crate::http::Gate;
 
-use super::models::{clean_plain_text, clean_single_line, JikanFullData, MalApiAnimeDetailResponse};
+use super::models::{
+    clean_plain_text, clean_single_line, JikanFullData, MalApiAnimeDetailResponse,
+};
 use super::poster::download_poster_to_file;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -30,6 +32,7 @@ pub enum MetadataOutcome {
     },
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) async fn apply_jikan_metadata(
     db: &Db,
     gate: &Gate,
@@ -45,15 +48,31 @@ pub(crate) async fn apply_jikan_metadata(
     let now = clock.now();
     let log = EventLog::new(db.clone());
 
-    let clean_syn = data.synopsis.as_deref().map(clean_plain_text).unwrap_or_default();
+    let clean_syn = data
+        .synopsis
+        .as_deref()
+        .map(clean_plain_text)
+        .unwrap_or_default();
 
     // Determine poster URL (large JPG -> JPG -> large WebP -> WebP) or existing remote URL
-    let poster_url = data.images.as_ref().and_then(|imgs| {
-        imgs.jpg.as_ref().and_then(|j| j.large_image_url.clone().or_else(|| j.image_url.clone()))
-            .or_else(|| imgs.webp.as_ref().and_then(|w| w.large_image_url.clone().or_else(|| w.image_url.clone())))
-    }).or_else(|| {
-        existing_poster.filter(|p| p.starts_with("http")).map(|s| s.to_string())
-    });
+    let poster_url = data
+        .images
+        .as_ref()
+        .and_then(|imgs| {
+            imgs.jpg
+                .as_ref()
+                .and_then(|j| j.large_image_url.clone().or_else(|| j.image_url.clone()))
+                .or_else(|| {
+                    imgs.webp
+                        .as_ref()
+                        .and_then(|w| w.large_image_url.clone().or_else(|| w.image_url.clone()))
+                })
+        })
+        .or_else(|| {
+            existing_poster
+                .filter(|p| p.starts_with("http"))
+                .map(|s| s.to_string())
+        });
 
     let local_poster_path = match poster_url {
         Some(ref url) => download_poster_to_file(gate, data_dir, mal_id, url)
@@ -63,7 +82,11 @@ pub(crate) async fn apply_jikan_metadata(
     };
 
     let start_year = data.year.or_else(|| {
-        data.aired.as_ref().and_then(|a| a.prop.as_ref().and_then(|p| p.from.as_ref().and_then(|f| f.year)))
+        data.aired.as_ref().and_then(|a| {
+            a.prop
+                .as_ref()
+                .and_then(|p| p.from.as_ref().and_then(|f| f.year))
+        })
     });
 
     let english_title = data.title_english.as_deref().or(current_english);
@@ -140,6 +163,7 @@ pub(crate) async fn apply_jikan_metadata(
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) async fn apply_mal_metadata(
     db: &Db,
     gate: &Gate,
@@ -155,10 +179,21 @@ pub(crate) async fn apply_mal_metadata(
     let now = clock.now();
     let log = EventLog::new(db.clone());
 
-    let clean_syn = data.synopsis.as_deref().map(clean_plain_text).unwrap_or_default();
+    let clean_syn = data
+        .synopsis
+        .as_deref()
+        .map(clean_plain_text)
+        .unwrap_or_default();
 
-    let poster_url = data.main_picture.as_ref().and_then(|p| p.large.clone().or_else(|| p.medium.clone()))
-        .or_else(|| existing_poster.filter(|p| p.starts_with("http")).map(|s| s.to_string()));
+    let poster_url = data
+        .main_picture
+        .as_ref()
+        .and_then(|p| p.large.clone().or_else(|| p.medium.clone()))
+        .or_else(|| {
+            existing_poster
+                .filter(|p| p.starts_with("http"))
+                .map(|s| s.to_string())
+        });
 
     let local_poster_path = match poster_url {
         Some(ref url) => download_poster_to_file(gate, data_dir, mal_id, url)
@@ -168,7 +203,11 @@ pub(crate) async fn apply_mal_metadata(
     };
 
     let start_year = data.start_season.as_ref().and_then(|s| s.year);
-    let en_title = data.alternative_titles.as_ref().and_then(|a| a.en.clone()).or_else(|| current_english.map(|s| s.to_string()));
+    let en_title = data
+        .alternative_titles
+        .as_ref()
+        .and_then(|a| a.en.clone())
+        .or_else(|| current_english.map(|s| s.to_string()));
     let ja_title = data.alternative_titles.as_ref().and_then(|a| a.ja.clone());
 
     db.with(|c| {
@@ -232,7 +271,10 @@ pub(crate) async fn apply_mal_metadata(
     let _ = log.info(
         None,
         Some(mal_id),
-        format!("Metadata updated from MAL API fallback for \"{}\" (mal_id: {mal_id})", data.title),
+        format!(
+            "Metadata updated from MAL API fallback for \"{}\" (mal_id: {mal_id})",
+            data.title
+        ),
     );
 
     Ok(MetadataOutcome::Updated {

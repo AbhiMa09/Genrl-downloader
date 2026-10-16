@@ -242,10 +242,7 @@ enum Command {
     },
 
     /// Set episode number offset for a show.
-    Offset {
-        mal_id: i64,
-        offset: i64,
-    },
+    Offset { mal_id: i64, offset: i64 },
 
     /// Ingest and manage show metadata (Jikan/MAL, synopsis, posters, retry queue).
     Metadata {
@@ -254,9 +251,7 @@ enum Command {
     },
 
     /// Step a single job directly through the engine.
-    Step {
-        job_id: i64,
-    },
+    Step { job_id: i64 },
 }
 
 #[tokio::main]
@@ -270,7 +265,11 @@ async fn main() -> Result<()> {
     match cli.command {
         Command::Init => init(&data_dir),
         Command::Settings { command } => settings_cmd(&data_dir, command),
-        Command::Events { limit, errors_only, json } => events(&data_dir, limit, errors_only, json),
+        Command::Events {
+            limit,
+            errors_only,
+            json,
+        } => events(&data_dir, limit, errors_only, json),
         Command::Search {
             query,
             min_seeders,
@@ -284,8 +283,20 @@ async fn main() -> Result<()> {
             category,
             timeout,
             no_watch,
-        } => grab(&data_dir, &source, to.as_deref(), &category, timeout, no_watch).await,
-        Command::Torrents { filter, json } => torrents_cmd(&data_dir, filter.as_deref(), json).await,
+        } => {
+            grab(
+                &data_dir,
+                &source,
+                to.as_deref(),
+                &category,
+                timeout,
+                no_watch,
+            )
+            .await
+        }
+        Command::Torrents { filter, json } => {
+            torrents_cmd(&data_dir, filter.as_deref(), json).await
+        }
         Command::Rm {
             target,
             delete_files,
@@ -313,13 +324,40 @@ async fn main() -> Result<()> {
             from_mal,
             mal_id,
             episode,
-        } => plan_cmd(&data_dir, file.as_deref(), dry_run, confirm, from_mal, mal_id, episode).await,
+        } => {
+            plan_cmd(
+                &data_dir,
+                file.as_deref(),
+                dry_run,
+                confirm,
+                from_mal,
+                mal_id,
+                episode,
+            )
+            .await
+        }
         Command::Mal { command } => match command {
-            MalCommand::Login { client_id, client_secret, no_open } => {
-                mal_login_cmd(&data_dir, client_id, client_secret, None, None, no_open).await
-            }
-            MalCommand::Connect { client_id, client_secret, port, redirect_uri, no_open } => {
-                mal_login_cmd(&data_dir, client_id, client_secret, port, redirect_uri, no_open).await
+            MalCommand::Login {
+                client_id,
+                client_secret,
+                no_open,
+            } => mal_login_cmd(&data_dir, client_id, client_secret, None, None, no_open).await,
+            MalCommand::Connect {
+                client_id,
+                client_secret,
+                port,
+                redirect_uri,
+                no_open,
+            } => {
+                mal_login_cmd(
+                    &data_dir,
+                    client_id,
+                    client_secret,
+                    port,
+                    redirect_uri,
+                    no_open,
+                )
+                .await
             }
             MalCommand::Disconnect => mal_disconnect_cmd(&data_dir),
             MalCommand::PublicProfile { username } => mal_public_profile_cmd(&data_dir, &username),
@@ -328,25 +366,37 @@ async fn main() -> Result<()> {
         },
         Command::Rules { command } => match command {
             RulesCommand::Get { mal_id, .. } => rules_get_cmd(&data_dir, mal_id),
-            RulesCommand::Set { key, value, mal_id } => rules_set_cmd(&data_dir, &key, &value, mal_id),
-            RulesCommand::Reset { key, mal_id } => rules_reset_cmd(&data_dir, key.as_deref(), mal_id),
+            RulesCommand::Set { key, value, mal_id } => {
+                rules_set_cmd(&data_dir, &key, &value, mal_id)
+            }
+            RulesCommand::Reset { key, mal_id } => {
+                rules_reset_cmd(&data_dir, key.as_deref(), mal_id)
+            }
         },
         Command::Library { command } => match command {
             LibraryCommand::Rescan => library_rescan_cmd(&data_dir),
         },
         Command::Locations { command } => match command {
             LocationsCommand::Get { json } => locations_get_cmd(&data_dir, json),
-            LocationsCommand::Set { key, path, mal_id } => locations_set_cmd(&data_dir, &key, &path, mal_id),
+            LocationsCommand::Set { key, path, mal_id } => {
+                locations_set_cmd(&data_dir, &key, &path, mal_id)
+            }
             LocationsCommand::Check { path, json } => locations_check_cmd(&path, json),
-            LocationsCommand::GetShow { mal_id, json } => locations_get_show_cmd(&data_dir, mal_id, json),
-            LocationsCommand::Migrate { from, to, confirm } => locations_migrate_cmd(&data_dir, &from, &to, confirm),
+            LocationsCommand::GetShow { mal_id, json } => {
+                locations_get_show_cmd(&data_dir, mal_id, json)
+            }
+            LocationsCommand::Migrate { from, to, confirm } => {
+                locations_migrate_cmd(&data_dir, &from, &to, confirm)
+            }
         },
         Command::Alias { command } => alias_cmd(&data_dir, command),
         Command::Offset { mal_id, offset } => offset_cmd(&data_dir, mal_id, offset),
         Command::Metadata { command } => match command {
-            MetadataCommand::Fetch { mal_id, force, json } => {
-                metadata_fetch_cmd(&data_dir, mal_id, force, json).await
-            }
+            MetadataCommand::Fetch {
+                mal_id,
+                force,
+                json,
+            } => metadata_fetch_cmd(&data_dir, mal_id, force, json).await,
             MetadataCommand::Sync { limit, json } => {
                 metadata_sync_cmd(&data_dir, limit, json).await
             }

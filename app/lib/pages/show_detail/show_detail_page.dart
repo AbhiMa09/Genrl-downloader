@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../models/library_item.dart';
 import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
@@ -18,10 +19,7 @@ export 'tab_bar.dart' show ShowDetailTab;
 class ShowDetailPage extends StatefulWidget {
   final LibraryShow show;
 
-  const ShowDetailPage({
-    super.key,
-    required this.show,
-  });
+  const ShowDetailPage({super.key, required this.show});
 
   @override
   State<ShowDetailPage> createState() => _ShowDetailPageState();
@@ -45,11 +43,17 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
 
     final onDiskString = show.onDiskBytes > 0
         ? formatBytes(show.onDiskBytes)
-        : (show.downloadedEpisodes > 0 ? '${(show.downloadedEpisodes * 1.4).toStringAsFixed(2)} GiB' : '0 B');
+        : (show.downloadedEpisodes > 0
+              ? '${(show.downloadedEpisodes * 1.4).toStringAsFixed(2)} GiB'
+              : '0 B');
 
     final isMovie = show.mediaType.toLowerCase() == 'movie';
-    final formatLabel = isMovie ? 'Movie (1 Part)' : 'TV Series (${show.totalEpisodes} Parts)';
-    final durationLabel = isMovie ? 'Feature Film' : '${show.totalEpisodes} eps';
+    final formatLabel = isMovie
+        ? 'Movie (1 Part)'
+        : 'TV Series (${show.totalEpisodes} Parts)';
+    final durationLabel = isMovie
+        ? 'Feature Film'
+        : '${show.totalEpisodes} eps';
     final premieredLabel = show.startYear > 0 ? '${show.startYear}' : '-';
     final isFinished = show.airingStatus.toLowerCase().contains('finish');
 
@@ -59,7 +63,8 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
         ? show.aliases
         : [
             show.title,
-            if (show.englishTitle != null && show.englishTitle != show.title) show.englishTitle!,
+            if (show.englishTitle != null && show.englishTitle != show.title)
+              show.englishTitle!,
             if (show.japaneseTitle != null) show.japaneseTitle!,
             if (show.startYear > 0) '${show.title} (${show.startYear})',
           ];
@@ -69,10 +74,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
       child: Column(
         children: [
           // Sub-Header & Breadcrumb Bar
-          ShowDetailSubHeader(
-            show: show,
-            isMovie: isMovie,
-          ),
+          ShowDetailSubHeader(show: show, isMovie: isMovie),
 
           // Main Scrollable Area
           Expanded(

@@ -6,23 +6,23 @@
 /// Matches assets/obsidian_violet_media_core/DESIGN.md exactly.
 class ObsidianSpacing {
   // Spacing Scale
-  static const double space2xs = 2.0;    // 0.125rem
-  static const double spaceXs = 4.0;     // 0.25rem
-  static const double spaceSm = 8.0;     // 0.5rem
-  static const double gutter = 12.0;     // 0.75rem
-  static const double spaceMd = 12.0;    // 0.75rem
-  static const double margin = 16.0;     // 1.0rem
-  static const double spaceLg = 16.0;    // 1.0rem
-  static const double spaceXl = 24.0;    // 1.5rem
-  static const double space2xl = 32.0;   // 2.0rem
+  static const double space2xs = 2.0; // 0.125rem
+  static const double spaceXs = 4.0; // 0.25rem
+  static const double spaceSm = 8.0; // 0.5rem
+  static const double gutter = 12.0; // 0.75rem
+  static const double spaceMd = 12.0; // 0.75rem
+  static const double margin = 16.0; // 1.0rem
+  static const double spaceLg = 16.0; // 1.0rem
+  static const double spaceXl = 24.0; // 1.5rem
+  static const double space2xl = 32.0; // 2.0rem
 }
 
 class ObsidianRadius {
   // Corner Radii Scale
-  static const double sm = 4.0;          // 0.25rem
+  static const double sm = 4.0; // 0.25rem
   static const double defaultRadius = 8.0; // 0.5rem (DEFAULT)
-  static const double md = 12.0;         // 0.75rem
-  static const double lg = 16.0;         // 1.0rem
-  static const double xl = 24.0;         // 1.5rem
-  static const double full = 9999.0;     // 9999px
+  static const double md = 12.0; // 0.75rem
+  static const double lg = 16.0; // 1.0rem
+  static const double xl = 24.0; // 1.5rem
+  static const double full = 9999.0; // 9999px
 }

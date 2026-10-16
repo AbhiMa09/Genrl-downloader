@@ -3,7 +3,7 @@
 
 mod common;
 
-use common::{Sequence, Fixed};
+use common::{Fixed, Sequence};
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
@@ -84,7 +84,11 @@ async fn first_call_logs_in_then_carries_the_session_cookie() {
     assert_eq!(torrents[0].hash, "abc123");
     assert_eq!(torrents[0].progress, 0.5);
     assert!(torrents[0].content_path.starts_with('/'));
-    assert_eq!(hits.load(std::sync::atomic::Ordering::SeqCst), 2, "403 then retry");
+    assert_eq!(
+        hits.load(std::sync::atomic::Ordering::SeqCst),
+        2,
+        "403 then retry"
+    );
 
     // Exactly one login, and the retried request carried the SID.
     let requests = server.received_requests().await.unwrap();
@@ -116,11 +120,7 @@ async fn add_sends_magnets_and_save_path_as_a_form() {
     let server = MockServer::start().await;
     mount_login(&server, login_ok()).await;
 
-    let (hits, sequence) = Sequence::new(
-        1,
-        ResponseTemplate::new(403),
-        ResponseTemplate::new(200),
-    );
+    let (hits, sequence) = Sequence::new(1, ResponseTemplate::new(403), ResponseTemplate::new(200));
     Mock::given(method("POST"))
         .and(path("/api/v2/torrents/add"))
         .respond_with(sequence)
@@ -145,7 +145,10 @@ async fn add_sends_magnets_and_save_path_as_a_form() {
         .expect("add was called");
     // The second (authenticated) attempt is the one that must carry the form.
     let body = String::from_utf8_lossy(&add.body);
-    assert!(body.contains("urls=magnet%3A%3Fxt%3Durn%3Abtih%3A"), "{body}");
+    assert!(
+        body.contains("urls=magnet%3A%3Fxt%3Durn%3Abtih%3A"),
+        "{body}"
+    );
     assert!(body.contains("savepath=%2Fdownloads%2Fanime"), "{body}");
     assert!(body.contains("category=genrl"), "{body}");
 }
@@ -160,11 +163,8 @@ async fn control_paths_depend_on_the_api_generation() {
         .respond_with(ResponseTemplate::new(200).set_body_string("v5.2.4"))
         .mount(&server)
         .await;
-    let (hits5, sequence5) = Sequence::new(
-        1,
-        ResponseTemplate::new(403),
-        ResponseTemplate::new(200),
-    );
+    let (hits5, sequence5) =
+        Sequence::new(1, ResponseTemplate::new(403), ResponseTemplate::new(200));
     Mock::given(method("POST"))
         .and(path("/api/v2/torrents/stop"))
         .respond_with(sequence5)
@@ -187,11 +187,8 @@ async fn control_paths_depend_on_the_api_generation() {
         .respond_with(ResponseTemplate::new(200).set_body_string("v4.6.4"))
         .mount(&v4_server)
         .await;
-    let (hits4, sequence4) = Sequence::new(
-        1,
-        ResponseTemplate::new(403),
-        ResponseTemplate::new(200),
-    );
+    let (hits4, sequence4) =
+        Sequence::new(1, ResponseTemplate::new(403), ResponseTemplate::new(200));
     Mock::given(method("POST"))
         .and(path("/api/v2/torrents/pause"))
         .respond_with(sequence4)
@@ -204,7 +201,9 @@ async fn control_paths_depend_on_the_api_generation() {
 
     let requests = v4_server.received_requests().await.unwrap();
     assert!(
-        requests.iter().any(|r| r.url.path() == "/api/v2/torrents/pause"),
+        requests
+            .iter()
+            .any(|r| r.url.path() == "/api/v2/torrents/pause"),
         "4.x uses pause"
     );
 }
@@ -246,7 +245,11 @@ async fn the_5_2_cookie_dance_is_carried_back_verbatim() {
 #[tokio::test]
 async fn a_401_login_is_an_auth_error_with_the_fix() {
     let server = MockServer::start().await;
-    mount_login(&server, ResponseTemplate::new(401).set_body_string("Unauthorized")).await;
+    mount_login(
+        &server,
+        ResponseTemplate::new(401).set_body_string("Unauthorized"),
+    )
+    .await;
     Mock::given(method("GET"))
         .and(path("/api/v2/torrents/info"))
         .respond_with(ResponseTemplate::new(403))
@@ -258,7 +261,10 @@ async fn a_401_login_is_an_auth_error_with_the_fix() {
 
     let message = err.to_string();
     assert!(message.contains("authentication failed"), "{message}");
-    assert!(message.contains("HTTP 401"), "the status is named: {message}");
+    assert!(
+        message.contains("HTTP 401"),
+        "the status is named: {message}"
+    );
     assert!(message.contains("genrl qbit password"), "{message}");
     assert!(!message.contains("nope"), "the password is never echoed");
 }
@@ -266,7 +272,11 @@ async fn a_401_login_is_an_auth_error_with_the_fix() {
 #[tokio::test]
 async fn a_rejected_login_names_the_way_to_fix_it() {
     let server = MockServer::start().await;
-    mount_login(&server, ResponseTemplate::new(200).set_body_string("Fails.")).await;
+    mount_login(
+        &server,
+        ResponseTemplate::new(200).set_body_string("Fails."),
+    )
+    .await;
     Mock::given(method("GET"))
         .and(path("/api/v2/torrents/info"))
         .respond_with(ResponseTemplate::new(403))
@@ -282,7 +292,10 @@ async fn a_rejected_login_names_the_way_to_fix_it() {
         message.contains("genrl qbit password") || message.contains("GENRL_QBIT_PASSWORD"),
         "the error must say how to set the password: {message}"
     );
-    assert!(!message.contains("wrong"), "the password itself is never echoed");
+    assert!(
+        !message.contains("wrong"),
+        "the password itself is never echoed"
+    );
 }
 
 #[tokio::test]
@@ -306,11 +319,7 @@ async fn remove_and_speeds_go_through_the_gate() {
     let server = MockServer::start().await;
     mount_login(&server, login_ok()).await;
 
-    let (hits, sequence) = Sequence::new(
-        1,
-        ResponseTemplate::new(403),
-        ResponseTemplate::new(200),
-    );
+    let (hits, sequence) = Sequence::new(1, ResponseTemplate::new(403), ResponseTemplate::new(200));
     Mock::given(method("POST"))
         .and(path("/api/v2/torrents/delete"))
         .respond_with(sequence)
@@ -339,7 +348,10 @@ async fn remove_and_speeds_go_through_the_gate() {
         .find(|r| r.url.path() == "/api/v2/torrents/delete")
         .unwrap();
     let body = String::from_utf8_lossy(&delete.body);
-    assert!(body.contains("hashes=ABC123"), "hashes are upper-cased: {body}");
+    assert!(
+        body.contains("hashes=ABC123"),
+        "hashes are upper-cased: {body}"
+    );
     assert!(body.contains("deleteFiles=false"), "{body}");
 }
 

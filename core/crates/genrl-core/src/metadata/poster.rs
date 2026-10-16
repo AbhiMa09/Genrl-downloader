@@ -23,7 +23,10 @@ pub async fn download_poster_to_file(
         }
     }
 
-    match gate.get_with(Service::Images, url, &GetOptions::default()).await {
+    match gate
+        .get_with(Service::Images, url, &GetOptions::default())
+        .await
+    {
         Ok(fetched) => {
             if !fetched.body.is_empty() && fs::write(&dst, &fetched.body).is_ok() {
                 Some(dst)

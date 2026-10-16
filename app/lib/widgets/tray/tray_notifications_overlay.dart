@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../services/state_provider.dart';
 import 'tray_menu_popup.dart';
 import 'tray_notification_toasts.dart';
@@ -44,7 +45,10 @@ class SystemTrayNotificationOverlay extends StatelessWidget {
                   // RIGHT: Desktop Notification Toasts (Stack of 3)
                   SizedBox(
                     width: 420,
-                    child: TrayNotificationToasts(state: state, onClose: onClose),
+                    child: TrayNotificationToasts(
+                      state: state,
+                      onClose: onClose,
+                    ),
                   ),
                 ],
               ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../models/queue_item.dart';
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
@@ -35,37 +36,62 @@ class QueueTable extends StatelessWidget {
             child: Row(
               children: [
                 Expanded(
-                    flex: 5,
-                    child: Text('ANIME & EPISODE',
-                        style: ObsidianTypography.labelBadge(
-                            color: ObsidianColors.outline))),
+                  flex: 5,
+                  child: Text(
+                    'ANIME & EPISODE',
+                    style: ObsidianTypography.labelBadge(
+                      color: ObsidianColors.outline,
+                    ),
+                  ),
+                ),
                 Expanded(
-                    flex: 3,
-                    child: Text('STATE / PHASE',
-                        style: ObsidianTypography.labelBadge(
-                            color: ObsidianColors.outline))),
+                  flex: 3,
+                  child: Text(
+                    'STATE / PHASE',
+                    style: ObsidianTypography.labelBadge(
+                      color: ObsidianColors.outline,
+                    ),
+                  ),
+                ),
                 Expanded(
-                    flex: 2,
-                    child: Text('SEEDERS',
-                        style: ObsidianTypography.labelBadge(
-                            color: ObsidianColors.outline))),
+                  flex: 2,
+                  child: Text(
+                    'SEEDERS',
+                    style: ObsidianTypography.labelBadge(
+                      color: ObsidianColors.outline,
+                    ),
+                  ),
+                ),
                 Expanded(
-                    flex: 3,
-                    child: Text('PROGRESS & SPEED',
-                        style: ObsidianTypography.labelBadge(
-                            color: ObsidianColors.outline))),
+                  flex: 3,
+                  child: Text(
+                    'PROGRESS & SPEED',
+                    style: ObsidianTypography.labelBadge(
+                      color: ObsidianColors.outline,
+                    ),
+                  ),
+                ),
                 Expanded(
-                    flex: 2,
-                    child: Text('ETA',
-                        textAlign: TextAlign.right,
-                        style: ObsidianTypography.labelBadge(
-                            color: ObsidianColors.outline))),
+                  flex: 2,
+                  child: Text(
+                    'ETA',
+                    textAlign: TextAlign.right,
+                    style: ObsidianTypography.labelBadge(
+                      color: ObsidianColors.outline,
+                    ),
+                  ),
+                ),
                 const SizedBox(
-                    width: 60,
-                    child: Text('ACTIONS',
-                        textAlign: TextAlign.center,
-                        style:
-                            TextStyle(fontSize: 10, color: ObsidianColors.outline))),
+                  width: 60,
+                  child: Text(
+                    'ACTIONS',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: ObsidianColors.outline,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -84,8 +110,10 @@ class QueueTable extends StatelessWidget {
               return InkWell(
                 onTap: () => onSelectItem(item),
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: isSelected
                         ? ObsidianColors.surfaceContainer.withOpacity(0.9)
@@ -93,7 +121,10 @@ class QueueTable extends StatelessWidget {
                     border: isSelected
                         ? const Border(
                             left: BorderSide(
-                                color: ObsidianColors.primary, width: 3))
+                              color: ObsidianColors.primary,
+                              width: 3,
+                            ),
+                          )
                         : null,
                   ),
                   child: Row(
@@ -111,8 +142,11 @@ class QueueTable extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               clipBehavior: Clip.antiAlias,
-                              child: const Icon(Icons.movie_filter_rounded,
-                                  size: 16, color: ObsidianColors.outline),
+                              child: const Icon(
+                                Icons.movie_filter_rounded,
+                                size: 16,
+                                color: ObsidianColors.outline,
+                              ),
                             ),
                             const SizedBox(width: 10),
                             Expanded(
@@ -141,8 +175,9 @@ class QueueTable extends StatelessWidget {
                                   Text(
                                     '${item.episodeLabel} · ${item.releaseName.isNotEmpty ? item.releaseName : item.group}',
                                     style: ObsidianTypography.monoCode(
-                                        color: ObsidianColors.outline,
-                                        fontSize: 10),
+                                      color: ObsidianColors.outline,
+                                      fontSize: 10,
+                                    ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -179,9 +214,11 @@ class QueueTable extends StatelessWidget {
                                 ),
                               ),
                               TextSpan(
-                                  text: ' (${item.leechers} leech)',
-                                  style: const TextStyle(
-                                      color: ObsidianColors.outline)),
+                                text: ' (${item.leechers} leech)',
+                                style: const TextStyle(
+                                  color: ObsidianColors.outline,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -204,8 +241,8 @@ class QueueTable extends StatelessWidget {
                                   item.state == QueueState.stalled
                                       ? ObsidianColors.error
                                       : (item.state == QueueState.finalizing
-                                          ? ObsidianColors.tertiary
-                                          : ObsidianColors.primary),
+                                            ? ObsidianColors.tertiary
+                                            : ObsidianColors.primary),
                                 ),
                               ),
                             ),
@@ -217,8 +254,9 @@ class QueueTable extends StatelessWidget {
                                   child: Text(
                                     item.downloadSpeed,
                                     style: ObsidianTypography.monoCode(
-                                        color: ObsidianColors.primary,
-                                        fontSize: 10),
+                                      color: ObsidianColors.primary,
+                                      fontSize: 10,
+                                    ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
@@ -227,8 +265,9 @@ class QueueTable extends StatelessWidget {
                                   child: Text(
                                     item.formattedSize,
                                     style: ObsidianTypography.monoCode(
-                                        color: ObsidianColors.outline,
-                                        fontSize: 9),
+                                      color: ObsidianColors.outline,
+                                      fontSize: 9,
+                                    ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
@@ -263,16 +302,22 @@ class QueueTable extends StatelessWidget {
                               onTap: () {},
                               child: const Padding(
                                 padding: EdgeInsets.all(4.0),
-                                child: Icon(Icons.pause_rounded,
-                                    size: 16, color: ObsidianColors.outline),
+                                child: Icon(
+                                  Icons.pause_rounded,
+                                  size: 16,
+                                  color: ObsidianColors.outline,
+                                ),
                               ),
                             ),
                             InkWell(
                               onTap: () {},
                               child: const Padding(
                                 padding: EdgeInsets.all(4.0),
-                                child: Icon(Icons.delete_outline_rounded,
-                                    size: 16, color: ObsidianColors.outline),
+                                child: Icon(
+                                  Icons.delete_outline_rounded,
+                                  size: 16,
+                                  color: ObsidianColors.outline,
+                                ),
                               ),
                             ),
                           ],
@@ -297,24 +342,33 @@ class QueueTable extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     text: TextSpan(
                       style: ObsidianTypography.monoCode(
-                          color: ObsidianColors.outline, fontSize: 10),
+                        color: ObsidianColors.outline,
+                        fontSize: 10,
+                      ),
                       children: [
                         const TextSpan(text: 'Selected: '),
                         TextSpan(
-                            text: activeItem?.title ?? 'None',
-                            style: const TextStyle(
-                                color: ObsidianColors.primary,
-                                fontWeight: FontWeight.bold)),
+                          text: activeItem?.title ?? 'None',
+                          style: const TextStyle(
+                            color: ObsidianColors.primary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                         const TextSpan(
-                            text: ' | qBittorrent Slot Allocation: 4/12'),
+                          text: ' | qBittorrent Slot Allocation: 4/12',
+                        ),
                       ],
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
-                Text('Sort: Priority · Descending',
-                    style: ObsidianTypography.monoCode(
-                        color: ObsidianColors.outline, fontSize: 10)),
+                Text(
+                  'Sort: Priority · Descending',
+                  style: ObsidianTypography.monoCode(
+                    color: ObsidianColors.outline,
+                    fontSize: 10,
+                  ),
+                ),
               ],
             ),
           ),
@@ -352,8 +406,10 @@ class QueueTable extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration:
-          BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -365,7 +421,10 @@ class QueueTable extends StatelessWidget {
             child: Text(
               label,
               style: ObsidianTypography.monoCode(
-                  color: fg, fontSize: 10, fontWeight: FontWeight.w500),
+                color: fg,
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
+              ),
               overflow: TextOverflow.ellipsis,
             ),
           ),

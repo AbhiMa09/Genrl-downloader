@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
 
@@ -35,9 +36,19 @@ class RulesBlacklistCard extends StatelessWidget {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.block_rounded, size: 20, color: ObsidianColors.error),
+                  const Icon(
+                    Icons.block_rounded,
+                    size: 20,
+                    color: ObsidianColors.error,
+                  ),
                   const SizedBox(width: 8),
-                  Flexible(child: Text('Blocked Uploaders & Blacklist', style: ObsidianTypography.titleSm(), overflow: TextOverflow.ellipsis)),
+                  Flexible(
+                    child: Text(
+                      'Blocked Uploaders & Blacklist',
+                      style: ObsidianTypography.titleSm(),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
                 ],
               ),
               Container(
@@ -46,14 +57,21 @@ class RulesBlacklistCard extends StatelessWidget {
                   color: ObsidianColors.error.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: Text('Silent Drop', style: ObsidianTypography.labelBadge(color: ObsidianColors.error)),
+                child: Text(
+                  'Silent Drop',
+                  style: ObsidianTypography.labelBadge(
+                    color: ObsidianColors.error,
+                  ),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 4),
           Text(
             'Torrents matching these regex patterns, uploader signatures, or bad trackers are immediately suppressed from all feeds.',
-            style: ObsidianTypography.bodySm(color: ObsidianColors.onSurfaceVariant),
+            style: ObsidianTypography.bodySm(
+              color: ObsidianColors.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 12),
 
@@ -71,10 +89,15 @@ class RulesBlacklistCard extends StatelessWidget {
                   ),
                   child: TextField(
                     controller: blacklistInputController,
-                    style: ObsidianTypography.monoCode(color: ObsidianColors.onSurface),
+                    style: ObsidianTypography.monoCode(
+                      color: ObsidianColors.onSurface,
+                    ),
                     decoration: InputDecoration(
-                      hintText: r'Add tag, uploader name, or regex: \b(CAM|TS)\b...',
-                      hintStyle: ObsidianTypography.monoCode(color: ObsidianColors.outline),
+                      hintText:
+                          r'Add tag, uploader name, or regex: \b(CAM|TS)\b...',
+                      hintStyle: ObsidianTypography.monoCode(
+                        color: ObsidianColors.outline,
+                      ),
                       border: InputBorder.none,
                       isDense: true,
                       contentPadding: const EdgeInsets.symmetric(vertical: 8),
@@ -87,7 +110,9 @@ class RulesBlacklistCard extends StatelessWidget {
                 onPressed: () {
                   final text = blacklistInputController.text.trim();
                   if (text.isNotEmpty) {
-                    final updated = List<Map<String, dynamic>>.from(blacklistItems);
+                    final updated = List<Map<String, dynamic>>.from(
+                      blacklistItems,
+                    );
                     updated.insert(0, {
                       'name': text,
                       'type': 'Custom Block',
@@ -103,7 +128,9 @@ class RulesBlacklistCard extends StatelessWidget {
                   backgroundColor: ObsidianColors.surfaceContainerHigh,
                   foregroundColor: ObsidianColors.error,
                   elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               ),
             ],
@@ -119,7 +146,10 @@ class RulesBlacklistCard extends StatelessWidget {
               final item = blacklistItems[index];
               return Container(
                 margin: const EdgeInsets.only(bottom: 6),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: ObsidianColors.surfaceContainer,
                   borderRadius: BorderRadius.circular(8),
@@ -142,26 +172,50 @@ class RulesBlacklistCard extends StatelessWidget {
                         children: [
                           Row(
                             children: [
-                              Text(item['name'], style: ObsidianTypography.monoCode().copyWith(fontWeight: FontWeight.bold)),
+                              Text(
+                                item['name']?.toString() ?? '',
+                                style: ObsidianTypography.monoCode().copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                               const SizedBox(width: 6),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                  vertical: 1,
+                                ),
                                 decoration: BoxDecoration(
                                   color: ObsidianColors.surfaceContainerHighest,
                                   borderRadius: BorderRadius.circular(4),
                                 ),
-                                child: Text(item['type'], style: ObsidianTypography.labelBadge(color: ObsidianColors.outline)),
+                                child: Text(
+                                  item['type']?.toString() ?? '',
+                                  style: ObsidianTypography.labelBadge(
+                                    color: ObsidianColors.outline,
+                                  ),
+                                ),
                               ),
                             ],
                           ),
-                          Text(item['meta'], style: ObsidianTypography.labelBadge(color: ObsidianColors.outline)),
+                          Text(
+                            item['meta']?.toString() ?? '',
+                            style: ObsidianTypography.labelBadge(
+                              color: ObsidianColors.outline,
+                            ),
+                          ),
                         ],
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close_rounded, size: 16, color: ObsidianColors.outline),
+                      icon: const Icon(
+                        Icons.close_rounded,
+                        size: 16,
+                        color: ObsidianColors.outline,
+                      ),
                       onPressed: () {
-                        final updated = List<Map<String, dynamic>>.from(blacklistItems);
+                        final updated = List<Map<String, dynamic>>.from(
+                          blacklistItems,
+                        );
                         updated.removeAt(index);
                         onBlacklistChanged(updated);
                       },

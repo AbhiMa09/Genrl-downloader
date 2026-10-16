@@ -46,7 +46,7 @@ class ObsidianColors {
   // Functional Semantic Accents
   static const Color success = Color(0xFF10B981); // Emerald
   static const Color warning = Color(0xFFF59E0B); // Amber
-  static const Color error = Color(0xFFFFB4AB);   // Rose
+  static const Color error = Color(0xFFFFB4AB); // Rose
   static const Color errorContainer = Color(0xFF93000A);
   static const Color onError = Color(0xFF690005);
   static const Color onErrorContainer = Color(0xFFFFDAD6);

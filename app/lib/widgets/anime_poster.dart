@@ -1,5 +1,7 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
+
 import '../theme/colors.dart';
 
 import 'loading/skeleton_poster_card.dart';

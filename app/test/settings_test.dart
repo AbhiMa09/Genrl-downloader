@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:genrl_downloader/pages/settings_page.dart';
 import 'package:genrl_downloader/services/state_provider.dart';
 import 'package:genrl_downloader/theme/theme.dart';
+
 import 'fake_core_bridge.dart';
 
 Widget createTestApp(StateProvider stateProvider) {
@@ -21,33 +22,38 @@ void main() {
     TestWidgetsFlutterBinding.ensureInitialized();
   });
 
-  testWidgets('Settings Page renders profile card, MAL connection, and storage locations', (tester) async {
-    tester.view.physicalSize = const Size(1280, 1000);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(() => tester.view.resetPhysicalSize());
+  testWidgets(
+    'Settings Page renders profile card, MAL connection, and storage locations',
+    (tester) async {
+      tester.view.physicalSize = const Size(1280, 1000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
 
-    final fakeBridge = FakeCoreBridge(mode: FakeMode.data);
-    final state = StateProvider(bridge: fakeBridge, startPolling: false);
-    await state.refreshAll();
+      final fakeBridge = FakeCoreBridge(mode: FakeMode.data);
+      final state = StateProvider(bridge: fakeBridge, startPolling: false);
+      await state.refreshAll();
 
-    await tester.pumpWidget(createTestApp(state));
-    await tester.pump();
+      await tester.pumpWidget(createTestApp(state));
+      await tester.pump();
 
-    // Verify Profile Card
-    expect(find.text('Settings & System Integration'), findsOneWidget);
-    expect(find.text('TestOtaku'), findsOneWidget);
-    expect(find.text('MONITORED SERIES'), findsOneWidget);
-    expect(find.text('PLAN TO WATCH'), findsOneWidget);
+      // Verify Profile Card
+      expect(find.text('Settings & System Integration'), findsOneWidget);
+      expect(find.text('TestOtaku'), findsOneWidget);
+      expect(find.text('MONITORED SERIES'), findsOneWidget);
+      expect(find.text('PLAN TO WATCH'), findsOneWidget);
 
-    // Verify MAL Account Section & Buttons
-    expect(find.text('Disconnect'), findsOneWidget);
-    expect(find.text('Sync Now'), findsOneWidget);
+      // Verify MAL Account Section & Buttons
+      expect(find.text('Disconnect'), findsOneWidget);
+      expect(find.text('Sync Now'), findsOneWidget);
 
-    // Verify Storage Locations
-    expect(find.text('Hardlink'), findsOneWidget);
-  });
+      // Verify Storage Locations
+      expect(find.text('Hardlink'), findsOneWidget);
+    },
+  );
 
-  testWidgets('Settings Page renders not connected state when unlinked', (tester) async {
+  testWidgets('Settings Page renders not connected state when unlinked', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(1280, 1000);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());

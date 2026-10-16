@@ -442,7 +442,10 @@ mod tests {
     #[test]
     fn mal_strings_parse() {
         assert_eq!(ShowType::parse("Movie"), ShowType::Movie);
-        assert_eq!(AiringStatus::parse("Currently Airing"), AiringStatus::Airing);
+        assert_eq!(
+            AiringStatus::parse("Currently Airing"),
+            AiringStatus::Airing
+        );
         assert_eq!(ListStatus::parse("plan_to_watch"), ListStatus::PlanToWatch);
     }
 }

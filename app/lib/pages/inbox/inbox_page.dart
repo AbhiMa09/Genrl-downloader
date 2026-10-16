@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
 import '../../widgets/state_views.dart';
@@ -64,8 +65,7 @@ class _InboxPageState extends State<InboxPage> {
           padding: EdgeInsets.all(24.0),
           child: EmptyStateView(
             title: 'All Caught Up!',
-            description:
-                'No pending questions in your Inbox. Automation policies are handling your library seamlessly.',
+            description: 'No pending questions in your Inbox. Automation policies are handling your library seamlessly.',
           ),
         ),
       );
@@ -81,8 +81,7 @@ class _InboxPageState extends State<InboxPage> {
           padding: EdgeInsets.all(24.0),
           child: EmptyStateView(
             title: 'All Caught Up!',
-            description:
-                'No pending questions in your Inbox. Automation policies are handling your library seamlessly.',
+            description: 'No pending questions in your Inbox. Automation policies are handling your library seamlessly.',
           ),
         ),
       );
@@ -112,9 +111,11 @@ class _InboxPageState extends State<InboxPage> {
               });
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                    content: Text(
-                        'All decisions batch resolved with top-ranked algorithms!'),
-                    backgroundColor: ObsidianColors.success),
+                  content: Text(
+                    'All decisions batch resolved with top-ranked algorithms!',
+                  ),
+                  backgroundColor: ObsidianColors.success,
+                ),
               );
             },
           ),
@@ -129,14 +130,16 @@ class _InboxPageState extends State<InboxPage> {
           const SizedBox(height: 20),
 
           // 3. Dynamic Decision Stack Cards
-          ...dynamicItems.map((item) => Padding(
-                padding: const EdgeInsets.only(bottom: 20),
-                child: InboxDynamicCard(
-                  item: item,
-                  state: state,
-                  onResolve: _resolveCard,
-                ),
-              )),
+          ...dynamicItems.map(
+            (item) => Padding(
+              padding: const EdgeInsets.only(bottom: 20),
+              child: InboxDynamicCard(
+                item: item,
+                state: state,
+                onResolve: _resolveCard,
+              ),
+            ),
+          ),
         ],
       ),
     );

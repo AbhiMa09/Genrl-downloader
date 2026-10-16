@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
@@ -25,7 +26,9 @@ class StepRootPath extends StatelessWidget {
         const SizedBox(height: 6),
         Text(
           'Select the root storage folder where your anime collection is organized and indexed.',
-          style: ObsidianTypography.bodySm(color: ObsidianColors.onSurfaceVariant),
+          style: ObsidianTypography.bodySm(
+            color: ObsidianColors.onSurfaceVariant,
+          ),
         ),
         const SizedBox(height: 20),
         TextField(
@@ -46,12 +49,18 @@ class StepRootPath extends StatelessWidget {
           ),
           child: Row(
             children: [
-              const Icon(Icons.storage_rounded, size: 18, color: ObsidianColors.tertiary),
+              const Icon(
+                Icons.storage_rounded,
+                size: 18,
+                color: ObsidianColors.tertiary,
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   'Available capacity: ${state.status.freeDiskSpaceGb} GB free (of ${state.status.totalDiskSpaceGb} GB pool)',
-                  style: ObsidianTypography.bodySm(color: ObsidianColors.onSurface),
+                  style: ObsidianTypography.bodySm(
+                    color: ObsidianColors.onSurface,
+                  ),
                 ),
               ),
             ],

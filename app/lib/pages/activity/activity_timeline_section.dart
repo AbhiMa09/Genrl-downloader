@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../models/activity_item.dart';
 import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
@@ -27,12 +28,16 @@ class ActivityTimelineSection extends StatelessWidget {
         child: Center(
           child: Column(
             children: [
-              const Icon(Icons.notes_rounded,
-                  size: 36, color: ObsidianColors.outline),
+              const Icon(
+                Icons.notes_rounded,
+                size: 36,
+                color: ObsidianColors.outline,
+              ),
               const SizedBox(height: 12),
-              Text('No events match the selected criteria',
-                  style:
-                      ObsidianTypography.bodyMd(color: ObsidianColors.outline)),
+              Text(
+                'No events match the selected criteria',
+                style: ObsidianTypography.bodyMd(color: ObsidianColors.outline),
+              ),
             ],
           ),
         ),
@@ -52,11 +57,16 @@ class ActivityTimelineSection extends StatelessWidget {
           ),
           child: Row(
             children: [
-              const Icon(Icons.calendar_today_rounded,
-                  size: 16, color: ObsidianColors.primary),
+              const Icon(
+                Icons.calendar_today_rounded,
+                size: 16,
+                color: ObsidianColors.primary,
+              ),
               const SizedBox(width: 8),
-              Text('Today — Recorded Pipeline Events',
-                  style: ObsidianTypography.titleSm()),
+              Text(
+                'Today — Recorded Pipeline Events',
+                style: ObsidianTypography.titleSm(),
+              ),
               const Spacer(),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -64,9 +74,12 @@ class ActivityTimelineSection extends StatelessWidget {
                   color: ObsidianColors.surfaceContainerHigh,
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: Text('${events.length} events logged',
-                    style: ObsidianTypography.labelBadge(
-                        color: ObsidianColors.outline)),
+                child: Text(
+                  '${events.length} events logged',
+                  style: ObsidianTypography.labelBadge(
+                    color: ObsidianColors.outline,
+                  ),
+                ),
               ),
             ],
           ),
@@ -118,8 +131,9 @@ class ActivityTimelineSection extends StatelessWidget {
     // Try finding matching show poster if available
     String? posterUrl;
     if (event.malId != null) {
-      final match =
-          state.trackedShows.where((s) => s.id == event.malId).firstOrNull;
+      final match = state.trackedShows
+          .where((s) => s.id == event.malId)
+          .firstOrNull;
       posterUrl = match?.posterUrl;
     }
 
@@ -153,8 +167,11 @@ class ActivityTimelineSection extends StatelessWidget {
               child: Image.network(
                 posterUrl,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const Icon(Icons.movie_rounded,
-                    size: 20, color: ObsidianColors.outline),
+                errorBuilder: (_, __, ___) => const Icon(
+                  Icons.movie_rounded,
+                  size: 20,
+                  color: ObsidianColors.outline,
+                ),
               ),
             )
           else
@@ -176,13 +193,18 @@ class ActivityTimelineSection extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Text(event.formattedTime,
-                        style: ObsidianTypography.monoCode(
-                            color: ObsidianColors.outline)),
+                    Text(
+                      event.formattedTime,
+                      style: ObsidianTypography.monoCode(
+                        color: ObsidianColors.outline,
+                      ),
+                    ),
                     const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 1.5),
+                        horizontal: 6,
+                        vertical: 1.5,
+                      ),
                       decoration: BoxDecoration(
                         color: levelColor.withOpacity(0.18),
                         borderRadius: BorderRadius.circular(4),
@@ -196,7 +218,9 @@ class ActivityTimelineSection extends StatelessWidget {
                     if (event.jobId != null)
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 1.5),
+                          horizontal: 6,
+                          vertical: 1.5,
+                        ),
                         decoration: BoxDecoration(
                           color: ObsidianColors.surfaceContainerHighest,
                           borderRadius: BorderRadius.circular(4),
@@ -204,7 +228,8 @@ class ActivityTimelineSection extends StatelessWidget {
                         child: Text(
                           'Job #${event.jobId}',
                           style: ObsidianTypography.labelBadge(
-                              color: ObsidianColors.onSurfaceVariant),
+                            color: ObsidianColors.onSurfaceVariant,
+                          ),
                         ),
                       ),
                   ],
@@ -212,8 +237,9 @@ class ActivityTimelineSection extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(
                   event.message,
-                  style:
-                      ObsidianTypography.bodyMd(color: ObsidianColors.onSurface),
+                  style: ObsidianTypography.bodyMd(
+                    color: ObsidianColors.onSurface,
+                  ),
                 ),
               ],
             ),
@@ -225,8 +251,7 @@ class ActivityTimelineSection extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
                   color: ObsidianColors.surfaceContainerLowest,
                   borderRadius: BorderRadius.circular(4),
@@ -247,14 +272,22 @@ class ActivityTimelineSection extends StatelessWidget {
               if (event.level == ActivityLevel.error)
                 TextButton.icon(
                   onPressed: () => state.refreshAll(),
-                  icon: const Icon(Icons.refresh_rounded,
-                      size: 14, color: ObsidianColors.error),
-                  label: Text('Retry',
-                      style: ObsidianTypography.labelBadge(
-                          color: ObsidianColors.error)),
+                  icon: const Icon(
+                    Icons.refresh_rounded,
+                    size: 14,
+                    color: ObsidianColors.error,
+                  ),
+                  label: Text(
+                    'Retry',
+                    style: ObsidianTypography.labelBadge(
+                      color: ObsidianColors.error,
+                    ),
+                  ),
                   style: TextButton.styleFrom(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
@@ -264,20 +297,29 @@ class ActivityTimelineSection extends StatelessWidget {
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content:
-                            Text('Inspecting event details: ${event.message}'),
+                        content: Text(
+                          'Inspecting event details: ${event.message}',
+                        ),
                         backgroundColor: ObsidianColors.surfaceContainerHigh,
                       ),
                     );
                   },
-                  icon: const Icon(Icons.arrow_forward_rounded,
-                      size: 14, color: ObsidianColors.primary),
-                  label: Text('Inspect',
-                      style: ObsidianTypography.labelBadge(
-                          color: ObsidianColors.primary)),
+                  icon: const Icon(
+                    Icons.arrow_forward_rounded,
+                    size: 14,
+                    color: ObsidianColors.primary,
+                  ),
+                  label: Text(
+                    'Inspect',
+                    style: ObsidianTypography.labelBadge(
+                      color: ObsidianColors.primary,
+                    ),
+                  ),
                   style: TextButton.styleFrom(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
@@ -30,27 +31,36 @@ class SearchHeader extends StatelessWidget {
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text('Manual Indexer Search',
-                        style: ObsidianTypography.headlineLg()),
+                    Text(
+                      'Manual Indexer Search',
+                      style: ObsidianTypography.headlineLg(),
+                    ),
                     const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 2),
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: ObsidianColors.primary.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: Text('V2.4 CORE',
-                          style: ObsidianTypography.labelBadge(
-                              color: ObsidianColors.primary, fontSize: 10)),
+                      child: Text(
+                        'V2.4 CORE',
+                        style: ObsidianTypography.labelBadge(
+                          color: ObsidianColors.primary,
+                          fontSize: 10,
+                        ),
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Direct query via Prowlarr / Nyaa.si API with automatic rule scoring and hash inspection',
-                  style:
-                      ObsidianTypography.bodySm(color: ObsidianColors.outline),
+                  style: ObsidianTypography.bodySm(
+                    color: ObsidianColors.outline,
+                  ),
                 ),
               ],
             ),
@@ -95,12 +105,19 @@ class SearchHeader extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.history_rounded,
-                  size: 14, color: ObsidianColors.outline),
+              const Icon(
+                Icons.history_rounded,
+                size: 14,
+                color: ObsidianColors.outline,
+              ),
               const SizedBox(width: 4),
-              Text('PRESETS: ',
-                  style: ObsidianTypography.labelBadge(
-                      color: ObsidianColors.outline, fontSize: 9)),
+              Text(
+                'PRESETS: ',
+                style: ObsidianTypography.labelBadge(
+                  color: ObsidianColors.outline,
+                  fontSize: 9,
+                ),
+              ),
             ],
           ),
           const SizedBox(width: 6),
@@ -111,17 +128,25 @@ class SearchHeader extends StatelessWidget {
                 onTap: () => onSelectPreset(p),
                 borderRadius: BorderRadius.circular(6),
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: ObsidianColors.surfaceContainerHigh,
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(
-                        color: ObsidianColors.border, width: 0.5),
+                      color: ObsidianColors.border,
+                      width: 0.5,
+                    ),
                   ),
-                  child: Text(p,
-                      style: ObsidianTypography.monoCode(
-                          color: ObsidianColors.onSurface, fontSize: 10)),
+                  child: Text(
+                    p,
+                    style: ObsidianTypography.monoCode(
+                      color: ObsidianColors.onSurface,
+                      fontSize: 10,
+                    ),
+                  ),
                 ),
               ),
             );
@@ -143,18 +168,23 @@ class SearchHeader extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-              width: 6,
-              height: 6,
-              decoration: BoxDecoration(
-                  color: dotColor, shape: BoxShape.circle)),
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
+          ),
           const SizedBox(width: 6),
-          Text(name,
-              style: ObsidianTypography.monoCode(
-                  color: ObsidianColors.onSurface, fontSize: 10)),
+          Text(
+            name,
+            style: ObsidianTypography.monoCode(
+              color: ObsidianColors.onSurface,
+              fontSize: 10,
+            ),
+          ),
           const SizedBox(width: 4),
-          Text(status,
-              style: ObsidianTypography.monoCode(
-                  color: dotColor, fontSize: 9)),
+          Text(
+            status,
+            style: ObsidianTypography.monoCode(color: dotColor, fontSize: 9),
+          ),
         ],
       ),
     );

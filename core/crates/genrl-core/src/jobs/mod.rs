@@ -32,12 +32,12 @@ pub use transitions::*;
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::time::Duration;
     use crate::clock::{Clock, FakeClock};
     use crate::db::Db;
     use crate::error::Error;
     use crate::events::EventLog;
     use crate::models::{JobKind, JobState};
+    use std::time::Duration;
 
     fn db() -> Db {
         Db::open_in_memory().unwrap()
@@ -139,7 +139,11 @@ mod tests {
         // The transition and its Activity line are one fact.
         let events = EventLog::new(db.clone()).recent(5).unwrap();
         assert_eq!(events.len(), 2, "queued, then the move");
-        assert!(events[0].message.contains("search → choose"), "{:?}", events[0]);
+        assert!(
+            events[0].message.contains("search → choose"),
+            "{:?}",
+            events[0]
+        );
         assert!(events[1].message.contains("queued"), "{:?}", events[1]);
     }
 
@@ -179,7 +183,15 @@ mod tests {
             JobState::Finalize,
             JobState::Done,
         ] {
-            transition(&db, &clock, job, to, "walk it home", &MoveOptions::default()).unwrap();
+            transition(
+                &db,
+                &clock,
+                job,
+                to,
+                "walk it home",
+                &MoveOptions::default(),
+            )
+            .unwrap();
         }
         assert_eq!(state_of(&db, job), JobState::Done);
         let err = transition(
@@ -201,8 +213,24 @@ mod tests {
         let episode = episode(&db, &clock);
         let job = enqueue_search(&db, &clock, episode).unwrap();
 
-        transition(&db, &clock, job, JobState::Choose, "candidates", &MoveOptions::default()).unwrap();
-        transition(&db, &clock, job, JobState::Add, "added", &MoveOptions::default()).unwrap();
+        transition(
+            &db,
+            &clock,
+            job,
+            JobState::Choose,
+            "candidates",
+            &MoveOptions::default(),
+        )
+        .unwrap();
+        transition(
+            &db,
+            &clock,
+            job,
+            JobState::Add,
+            "added",
+            &MoveOptions::default(),
+        )
+        .unwrap();
         transition(
             &db,
             &clock,
@@ -219,7 +247,15 @@ mod tests {
         // The kind follows the step, so the download limiter still applies.
         assert_eq!(stored.kind, JobKind::Add);
 
-        transition(&db, &clock, job, JobState::Add, "back again", &MoveOptions::default()).unwrap();
+        transition(
+            &db,
+            &clock,
+            job,
+            JobState::Add,
+            "back again",
+            &MoveOptions::default(),
+        )
+        .unwrap();
         assert_eq!(get(&db, job).unwrap().unwrap().blocked_from, None);
     }
 
@@ -256,12 +292,53 @@ mod tests {
         let episode = episode(&db, &clock);
         let job = enqueue_search(&db, &clock, episode).unwrap();
 
-        transition(&db, &clock, job, JobState::Failed, "no candidates", &MoveOptions { count_attempt: true, ..Default::default() }).unwrap();
+        transition(
+            &db,
+            &clock,
+            job,
+            JobState::Failed,
+            "no candidates",
+            &MoveOptions {
+                count_attempt: true,
+                ..Default::default()
+            },
+        )
+        .unwrap();
         assert_eq!(get(&db, job).unwrap().unwrap().attempts, 1);
-        transition(&db, &clock, job, JobState::Search, "retry", &MoveOptions::default()).unwrap();
-        transition(&db, &clock, job, JobState::Failed, "again", &MoveOptions { count_attempt: true, ..Default::default() }).unwrap();
+        transition(
+            &db,
+            &clock,
+            job,
+            JobState::Search,
+            "retry",
+            &MoveOptions::default(),
+        )
+        .unwrap();
+        transition(
+            &db,
+            &clock,
+            job,
+            JobState::Failed,
+            "again",
+            &MoveOptions {
+                count_attempt: true,
+                ..Default::default()
+            },
+        )
+        .unwrap();
         assert_eq!(get(&db, job).unwrap().unwrap().attempts, 2);
-        transition(&db, &clock, job, JobState::Search, "fresh attempt", &MoveOptions { reset_attempts: true, ..Default::default() }).unwrap();
+        transition(
+            &db,
+            &clock,
+            job,
+            JobState::Search,
+            "fresh attempt",
+            &MoveOptions {
+                reset_attempts: true,
+                ..Default::default()
+            },
+        )
+        .unwrap();
         assert_eq!(get(&db, job).unwrap().unwrap().attempts, 0);
     }
 
@@ -286,7 +363,13 @@ mod tests {
         let clock = clock();
         let episode = episode(&db, &clock);
         let job = enqueue_search(&db, &clock, episode).unwrap();
-        for to in [JobState::Choose, JobState::Add, JobState::Monitor, JobState::Finalize, JobState::Done] {
+        for to in [
+            JobState::Choose,
+            JobState::Add,
+            JobState::Monitor,
+            JobState::Finalize,
+            JobState::Done,
+        ] {
             transition(&db, &clock, job, to, "run", &MoveOptions::default()).unwrap();
         }
         let replanned = enqueue_search(&db, &clock, episode).unwrap();

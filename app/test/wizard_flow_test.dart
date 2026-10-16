@@ -6,6 +6,7 @@ import 'package:genrl_downloader/pages/wizard_page.dart';
 import 'package:genrl_downloader/services/state_provider.dart';
 import 'package:genrl_downloader/theme/theme.dart';
 import 'package:genrl_downloader/widgets/loading/ingestion_progress.dart';
+
 import 'fake_core_bridge.dart';
 
 void main() {
@@ -22,112 +23,117 @@ void main() {
   Widget createTestApp({required Widget home}) {
     return ChangeNotifierProvider<StateProvider>.value(
       value: state,
-      child: MaterialApp(
-        theme: ObsidianTheme.darkTheme,
-        home: home,
-      ),
+      child: MaterialApp(theme: ObsidianTheme.darkTheme, home: home),
     );
   }
 
-  testWidgets('Wizard flow: launch -> step navigation -> launch ingestion -> done -> complete callback', (tester) async {
-    tester.view.physicalSize = const Size(1600, 1000);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(() => tester.view.resetPhysicalSize());
+  testWidgets(
+    'Wizard flow: launch -> step navigation -> launch ingestion -> done -> complete callback',
+    (tester) async {
+      tester.view.physicalSize = const Size(1600, 1000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
 
-    bool isComplete = false;
+      bool isComplete = false;
 
-    await tester.pumpWidget(createTestApp(
-      home: WizardPage(
-        initialStep: 4,
-        onComplete: () => isComplete = true,
-      ),
-    ));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
-
-    expect(find.byType(WizardPage), findsOneWidget);
-    final turnOnFinder = find.text('Turn automation on');
-    expect(turnOnFinder, findsOneWidget);
-    expect(find.text('Start with automation off'), findsOneWidget);
-
-    await tester.ensureVisible(turnOnFinder);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
-
-    // Launch with automation ON
-    await tester.tap(turnOnFinder);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
-
-    // Now IngestionProgress should be displayed inside the wizard
-    expect(find.byType(IngestionProgress), findsOneWidget);
-
-    // Pump frames to let async stages finish
-    for (int i = 0; i < 20; i++) {
+      await tester.pumpWidget(
+        createTestApp(
+          home: WizardPage(initialStep: 4, onComplete: () => isComplete = true),
+        ),
+      );
+      await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
-    }
 
-    // On completion, onComplete should be called
-    expect(isComplete, isTrue);
-  });
+      expect(find.byType(WizardPage), findsOneWidget);
+      final turnOnFinder = find.text('Turn automation on');
+      expect(turnOnFinder, findsOneWidget);
+      expect(find.text('Start with automation off'), findsOneWidget);
 
-  testWidgets('Wizard backgrounding: clicking Run in background completes wizard immediately', (tester) async {
-    tester.view.physicalSize = const Size(1600, 1000);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(() => tester.view.resetPhysicalSize());
+      await tester.ensureVisible(turnOnFinder);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
-    bool isComplete = false;
+      // Launch with automation ON
+      await tester.tap(turnOnFinder);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
-    await tester.pumpWidget(createTestApp(
-      home: WizardPage(
-        initialStep: 4,
-        onComplete: () => isComplete = true,
-      ),
-    ));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
+      // Now IngestionProgress should be displayed inside the wizard
+      expect(find.byType(IngestionProgress), findsOneWidget);
 
-    final startOffFinder = find.text('Start with automation off');
-    expect(startOffFinder, findsOneWidget);
-    await tester.ensureVisible(startOffFinder);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
+      // Pump frames to let async stages finish
+      for (int i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
 
-    // Launch
-    await tester.tap(startOffFinder);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
+      // On completion, onComplete should be called
+      expect(isComplete, isTrue);
+    },
+  );
 
-    expect(find.byType(IngestionProgress), findsOneWidget);
+  testWidgets(
+    'Wizard backgrounding: clicking Run in background completes wizard immediately',
+    (tester) async {
+      tester.view.physicalSize = const Size(1600, 1000);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
 
-    // Tap "Run in background"
-    final bgFinder = find.text('Run in background (Ctrl+B)');
-    expect(bgFinder, findsOneWidget);
-    await tester.ensureVisible(bgFinder);
-    await tester.pump();
-    await tester.tap(bgFinder);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
+      bool isComplete = false;
 
-    expect(isComplete, isTrue);
-  });
+      await tester.pumpWidget(
+        createTestApp(
+          home: WizardPage(initialStep: 4, onComplete: () => isComplete = true),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
-  testWidgets('Ingestion stage failure displays error and Retry Stage button', (tester) async {
+      final startOffFinder = find.text('Start with automation off');
+      expect(startOffFinder, findsOneWidget);
+      await tester.ensureVisible(startOffFinder);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // Launch
+      await tester.tap(startOffFinder);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.byType(IngestionProgress), findsOneWidget);
+
+      // Tap "Run in background"
+      final bgFinder = find.text('Run in background (Ctrl+B)');
+      expect(bgFinder, findsOneWidget);
+      await tester.ensureVisible(bgFinder);
+      await tester.pump();
+      await tester.tap(bgFinder);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(isComplete, isTrue);
+    },
+  );
+
+  testWidgets('Ingestion stage failure displays error and Retry Stage button', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(1280, 800);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
 
     bool retried = false;
 
-    await tester.pumpWidget(createTestApp(
-      home: Scaffold(
-        body: IngestionProgress(
-          stage: IngestionStage.failed,
-          errorMessage: 'Tracker connection timed out',
-          onRetry: () => retried = true,
+    await tester.pumpWidget(
+      createTestApp(
+        home: Scaffold(
+          body: IngestionProgress(
+            stage: IngestionStage.failed,
+            errorMessage: 'Tracker connection timed out',
+            onRetry: () => retried = true,
+          ),
         ),
       ),
-    ));
+    );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
@@ -139,7 +145,9 @@ void main() {
     expect(retried, isTrue);
   });
 
-  testWidgets('first_run_completed gating controls WizardPage vs MainShell', (tester) async {
+  testWidgets('first_run_completed gating controls WizardPage vs MainShell', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(1280, 800);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
@@ -147,9 +155,7 @@ void main() {
     // When firstRunCompleted is false, app displays WizardPage
     state.setFirstRunCompleted(false);
 
-    await tester.pumpWidget(GenrlApp(
-      stateProvider: state,
-    ));
+    await tester.pumpWidget(GenrlApp(stateProvider: state));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 

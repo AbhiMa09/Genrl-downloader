@@ -1,5 +1,3 @@
-use std::path::Path;
-use std::sync::Arc;
 use anyhow::Result;
 use genrl_core::clock::{Clock, SystemClock};
 use genrl_core::http::Gate;
@@ -7,6 +5,8 @@ use genrl_core::models::JobState;
 use genrl_core::questions::QuestionStore;
 use genrl_core::worker::{Engine, FsDiskProbe};
 use genrl_core::{jobs, qbit, queue, settings, EventLog, Settings};
+use std::path::Path;
+use std::sync::Arc;
 
 use super::common::{human_bytes, open_db};
 
@@ -17,15 +17,32 @@ pub async fn status_cmd(data_dir: &Path, json: bool) -> Result<()> {
     let client = qbit::Qbit::from_settings(&settings)?;
 
     // Probe qBit
-    let (qbit_connected, qbit_version, dlspeed, upspeed, active_torrents) = match client.health(&gate).await {
-        Ok(health) => {
-            let speeds = client.speeds(&gate).await.unwrap_or(genrl_core::qbit::TransferSpeeds { download: 0, upload: 0 });
-            let torrents = client.list(&gate, None).await.unwrap_or_default();
-            let active = torrents.iter().filter(|t| t.dlspeed > 0 || t.upspeed > 0).count();
-            (true, health.version, speeds.download.max(0) as u64, speeds.upload.max(0) as u64, active as u32)
-        }
-        Err(_) => (false, "disconnected".to_string(), 0, 0, 0),
-    };
+    let (qbit_connected, qbit_version, dlspeed, upspeed, active_torrents) =
+        match client.health(&gate).await {
+            Ok(health) => {
+                let speeds =
+                    client
+                        .speeds(&gate)
+                        .await
+                        .unwrap_or(genrl_core::qbit::TransferSpeeds {
+                            download: 0,
+                            upload: 0,
+                        });
+                let torrents = client.list(&gate, None).await.unwrap_or_default();
+                let active = torrents
+                    .iter()
+                    .filter(|t| t.dlspeed > 0 || t.upspeed > 0)
+                    .count();
+                (
+                    true,
+                    health.version,
+                    speeds.download.max(0) as u64,
+                    speeds.upload.max(0) as u64,
+                    active as u32,
+                )
+            }
+            Err(_) => (false, "disconnected".to_string(), 0, 0, 0),
+        };
 
     // Storage info
     let locations = genrl_core::locations::get_locations(&db)?;
@@ -33,10 +50,16 @@ pub async fn status_cmd(data_dir: &Path, json: bool) -> Result<()> {
 
     // Counts from database
     let total_shows: i64 = db.with(|c| {
-        c.query_row("SELECT COUNT(*) FROM shows", [], |r| r.get(0)).or(Ok(0))
+        c.query_row("SELECT COUNT(*) FROM shows", [], |r| r.get(0))
+            .or(Ok(0))
     })?;
     let total_episodes: i64 = db.with(|c| {
-        c.query_row("SELECT COUNT(*) FROM episodes WHERE state = 'done'", [], |r| r.get(0)).or(Ok(0))
+        c.query_row(
+            "SELECT COUNT(*) FROM episodes WHERE state = 'done'",
+            [],
+            |r| r.get(0),
+        )
+        .or(Ok(0))
     })?;
     let open_questions = QuestionStore::open_count(&db, SystemClock.now())?;
 
@@ -64,10 +87,32 @@ pub async fn status_cmd(data_dir: &Path, json: bool) -> Result<()> {
         println!("{}", serde_json::to_string_pretty(&report)?);
     } else {
         println!("Genrl System Status:");
-        println!("  Automation: {}", if settings.automation_on { "ON" } else { "PAUSED" });
-        println!("  qBittorrent: {} ({})", if qbit_connected { "Connected" } else { "Offline" }, qbit_version);
-        println!("  Speeds: {} down, {} up", human_bytes(dlspeed), human_bytes(upspeed));
-        println!("  Shows: {} | Episodes Done: {}", total_shows, total_episodes);
+        println!(
+            "  Automation: {}",
+            if settings.automation_on {
+                "ON"
+            } else {
+                "PAUSED"
+            }
+        );
+        println!(
+            "  qBittorrent: {} ({})",
+            if qbit_connected {
+                "Connected"
+            } else {
+                "Offline"
+            },
+            qbit_version
+        );
+        println!(
+            "  Speeds: {} down, {} up",
+            human_bytes(dlspeed),
+            human_bytes(upspeed)
+        );
+        println!(
+            "  Shows: {} | Episodes Done: {}",
+            total_shows, total_episodes
+        );
         println!("  Free Disk Space: {} GiB", free_disk_space_gb);
     }
     Ok(())
@@ -90,7 +135,7 @@ pub fn queue_cmd(data_dir: &Path, json: bool) -> Result<()> {
                  JOIN shows s ON s.mal_id = e.mal_id
                  LEFT JOIN torrents t ON t.id = j.torrent_id
                  WHERE j.state != 'done'
-                 ORDER BY j.created_at"
+                 ORDER BY j.created_at",
             )?;
             let rows = stmt.query_map([], |r| {
                 Ok(serde_json::json!({
@@ -121,7 +166,11 @@ pub fn queue_cmd(data_dir: &Path, json: bool) -> Result<()> {
 
     println!(
         "automation: {}",
-        if settings.automation_on { "on" } else { "paused" }
+        if settings.automation_on {
+            "on"
+        } else {
+            "paused"
+        }
     );
     println!("due now  : {}", status.due);
     println!("questions: {}", status.open_questions);
@@ -180,8 +229,15 @@ pub fn inbox_cmd(data_dir: &Path, json: bool) -> Result<()> {
             .map(|q| {
                 let show_title: Option<String> = q.mal_id.and_then(|id| {
                     db.with(|c| {
-                        Ok(c.query_row("SELECT title FROM shows WHERE mal_id = ?1", [id], |r| r.get(0)).ok())
-                    }).ok().flatten()
+                        Ok(
+                            c.query_row("SELECT title FROM shows WHERE mal_id = ?1", [id], |r| {
+                                r.get(0)
+                            })
+                            .ok(),
+                        )
+                    })
+                    .ok()
+                    .flatten()
                 });
                 serde_json::json!({
                     "id": q.id,
@@ -225,23 +281,28 @@ pub fn answer_cmd(data_dir: &Path, id: i64, choice_str: &str, always: bool) -> R
         "none_of_these" => genrl_core::questions::Choice::NoneOfThese,
         other => {
             if other.len() == 40 && other.chars().all(|c| c.is_ascii_hexdigit()) {
-                genrl_core::questions::Choice::UseThis { info_hash: other.to_string() }
+                genrl_core::questions::Choice::UseThis {
+                    info_hash: other.to_string(),
+                }
             } else {
-                genrl_core::questions::Choice::Alias { name: choice_str.to_string() }
+                genrl_core::questions::Choice::Alias {
+                    name: choice_str.to_string(),
+                }
             }
         }
     };
-    let ans = genrl_core::questions::Answer {
-        choice,
-        always,
-    };
+    let ans = genrl_core::questions::Answer { choice, always };
     QuestionStore::answer(&db, id, &ans)?;
     if let Ok(Some(q)) = QuestionStore::get(&db, id) {
         let clock = genrl_core::clock::SystemClock;
         let _ = genrl_core::worker::apply_answer(&db, &clock, &q, &ans);
     }
     let log = EventLog::new(db);
-    log.info(None, None, format!("answered question #{id} with choice '{choice_str}' (always: {always})"))?;
+    log.info(
+        None,
+        None,
+        format!("answered question #{id} with choice '{choice_str}' (always: {always})"),
+    )?;
     println!("Answered question #{id}");
     Ok(())
 }
@@ -317,7 +378,10 @@ pub async fn step_cmd(data_dir: &Path, job_id: i64) -> Result<()> {
     println!("Stepping job {job_id}...");
     match engine.step(job_id).await {
         Ok(outcome) => {
-            println!("Job {job_id} stepped successfully: {:?} -> {:?}", outcome.from, outcome.to);
+            println!(
+                "Job {job_id} stepped successfully: {:?} -> {:?}",
+                outcome.from, outcome.to
+            );
         }
         Err(err) => {
             println!("Step failed with error: {err:?}");

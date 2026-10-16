@@ -95,9 +95,15 @@ mod tests {
         assert!(preview.summary().contains("1 episode across 1 show"));
 
         // Nothing written: no shows, no episodes, no jobs.
-        let shows: i64 = db.with(|c| Ok(c.query_row("SELECT COUNT(*) FROM shows", [], |r| r.get(0))?)).unwrap();
-        let episodes: i64 = db.with(|c| Ok(c.query_row("SELECT COUNT(*) FROM episodes", [], |r| r.get(0))?)).unwrap();
-        let jobs: i64 = db.with(|c| Ok(c.query_row("SELECT COUNT(*) FROM jobs", [], |r| r.get(0))?)).unwrap();
+        let shows: i64 = db
+            .with(|c| Ok(c.query_row("SELECT COUNT(*) FROM shows", [], |r| r.get(0))?))
+            .unwrap();
+        let episodes: i64 = db
+            .with(|c| Ok(c.query_row("SELECT COUNT(*) FROM episodes", [], |r| r.get(0))?))
+            .unwrap();
+        let jobs: i64 = db
+            .with(|c| Ok(c.query_row("SELECT COUNT(*) FROM jobs", [], |r| r.get(0))?))
+            .unwrap();
         assert_eq!((shows, episodes, jobs), (0, 0, 0));
 
         // The preview waits in settings for the one confirmation.
@@ -112,7 +118,10 @@ mod tests {
     fn confirming_a_second_time_does_nothing() {
         let db = Db::open_in_memory().unwrap();
         let clock = clock();
-        assert!(matches!(plan(&db, &clock, &list(), false).unwrap(), PlanOutcome::Preview(_)));
+        assert!(matches!(
+            plan(&db, &clock, &list(), false).unwrap(),
+            PlanOutcome::Preview(_)
+        ));
         assert_eq!(confirm(&db, &clock, &list()).unwrap(), 1);
         assert_eq!(confirm(&db, &clock, &list()).unwrap(), 0, "no preview left");
     }
@@ -134,7 +143,9 @@ mod tests {
             matches!(&again, PlanOutcome::Applied { queued: 0, .. }),
             "the weekly re-check must be a no-op: {again:?}"
         );
-        let jobs: i64 = db.with(|c| Ok(c.query_row("SELECT COUNT(*) FROM jobs", [], |r| r.get(0))?)).unwrap();
+        let jobs: i64 = db
+            .with(|c| Ok(c.query_row("SELECT COUNT(*) FROM jobs", [], |r| r.get(0))?))
+            .unwrap();
         assert_eq!(jobs, 1, "duplicate enqueue is a no-op");
     }
 
@@ -144,7 +155,10 @@ mod tests {
         let clock = clock();
         first_sync_done(&db);
 
-        assert!(matches!(plan(&db, &clock, &list(), false).unwrap(), PlanOutcome::Applied { .. }));
+        assert!(matches!(
+            plan(&db, &clock, &list(), false).unwrap(),
+            PlanOutcome::Applied { .. }
+        ));
         // Mark S2E5 owned so the next plan has nothing new to offer.
         db.with(|c| {
             c.execute("UPDATE episodes SET state = 'done' WHERE number = 5", [])?;
@@ -166,7 +180,10 @@ mod tests {
 
         clock.advance(6 * 24 * 3600);
         let forced = plan(&db, &clock, &list(), true).unwrap();
-        assert!(matches!(forced, PlanOutcome::Applied { .. }), "force ignores the cadence");
+        assert!(
+            matches!(forced, PlanOutcome::Applied { .. }),
+            "force ignores the cadence"
+        );
     }
 
     #[test]
@@ -180,8 +197,16 @@ mod tests {
             panic!("first sync previews");
         };
         assert!(preview.episodes.is_empty());
-        assert_eq!(preview.skipped.len(), 2, "every entry in the chain is reported");
-        assert!(preview.skipped[1].reason.contains("plan to watch"), "{:?}", preview.skipped);
+        assert_eq!(
+            preview.skipped.len(),
+            2,
+            "every entry in the chain is reported"
+        );
+        assert!(
+            preview.skipped[1].reason.contains("plan to watch"),
+            "{:?}",
+            preview.skipped
+        );
     }
 
     #[test]
@@ -193,11 +218,15 @@ mod tests {
         // S2 has five aired; the user has watched none of them: only 1 is next.
         planned.entries[1].watched_count = 0;
         planned.entries[1].total_episodes = Some(5);
-        let PlanOutcome::Applied { queued, preview } = plan(&db, &clock, &planned, false).unwrap() else {
+        let PlanOutcome::Applied { queued, preview } = plan(&db, &clock, &planned, false).unwrap()
+        else {
             panic!("applies");
         };
         assert_eq!(queued, 1);
-        assert_eq!(preview.episodes[0].episode, 1.0, "next unwatched, never the whole season");
+        assert_eq!(
+            preview.episodes[0].episode, 1.0,
+            "next unwatched, never the whole season"
+        );
     }
 
     #[test]
@@ -228,7 +257,8 @@ mod tests {
                 })
                 .collect(),
         };
-        let PlanOutcome::Applied { queued, preview } = plan(&db, &clock, &many, false).unwrap() else {
+        let PlanOutcome::Applied { queued, preview } = plan(&db, &clock, &many, false).unwrap()
+        else {
             panic!("applies");
         };
         assert_eq!(queued, 3, "the cap holds");

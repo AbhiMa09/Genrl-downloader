@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:genrl_downloader/main.dart';
 import 'package:genrl_downloader/services/state_provider.dart';
+
 import 'fake_core_bridge.dart';
 
 void main() {
-  testWidgets('Genrl Downloader desktop app shell smoke test', (WidgetTester tester) async {
+  testWidgets('Genrl Downloader desktop app shell smoke test', (
+    WidgetTester tester,
+  ) async {
     // Set desktop screen resolution
     tester.view.physicalSize = const Size(1280, 800);
     tester.view.devicePixelRatio = 1.0;

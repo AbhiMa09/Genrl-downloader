@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
 
@@ -28,39 +29,44 @@ class WizardStepper extends StatelessWidget {
         child: Row(
           children: [
             _buildStepItem(
-                stepNum: 1,
-                title: 'MAL Account',
-                subtitle: step1Done ? 'ren_kurokawa' : 'Configure',
-                isDone: step1Done,
-                isActive: step1Active),
+              stepNum: 1,
+              title: 'MAL Account',
+              subtitle: step1Done ? 'ren_kurokawa' : 'Configure',
+              isDone: step1Done,
+              isActive: step1Active,
+            ),
             _buildStepDivider(isDone: step1Done),
             _buildStepItem(
-                stepNum: 2,
-                title: 'qBittorrent',
-                subtitle: step2Done ? ':8080 OK' : 'Connect',
-                isDone: step2Done,
-                isActive: step2Active),
+              stepNum: 2,
+              title: 'qBittorrent',
+              subtitle: step2Done ? ':8080 OK' : 'Connect',
+              isDone: step2Done,
+              isActive: step2Active,
+            ),
             _buildStepDivider(isDone: step2Done),
             _buildStepItem(
-                stepNum: 3,
-                title: 'Root Path',
-                subtitle: step3Done ? '/mnt/anime/TV' : 'Destination',
-                isDone: step3Done,
-                isActive: step3Active),
+              stepNum: 3,
+              title: 'Root Path',
+              subtitle: step3Done ? '/mnt/anime/TV' : 'Destination',
+              isDone: step3Done,
+              isActive: step3Active,
+            ),
             _buildStepDivider(isDone: step3Done),
             _buildStepItem(
-                stepNum: 4,
-                title: 'Quality / Groups',
-                subtitle: step4Done ? '1080p • 5 Groups' : 'Preferences',
-                isDone: step4Done,
-                isActive: step4Active),
+              stepNum: 4,
+              title: 'Quality / Groups',
+              subtitle: step4Done ? '1080p • 5 Groups' : 'Preferences',
+              isDone: step4Done,
+              isActive: step4Active,
+            ),
             _buildStepDivider(isDone: step4Done),
             _buildStepItem(
-                stepNum: 5,
-                title: 'Review & Launch',
-                subtitle: 'Ready',
-                isDone: step5Done,
-                isActive: step5Active),
+              stepNum: 5,
+              title: 'Review & Launch',
+              subtitle: 'Ready',
+              isDone: step5Done,
+              isActive: step5Active,
+            ),
           ],
         ),
       ),
@@ -85,12 +91,15 @@ class WizardStepper extends StatelessWidget {
             color: isActive
                 ? ObsidianColors.primary
                 : (isDone
-                    ? ObsidianColors.tertiary.withOpacity(0.2)
-                    : ObsidianColors.surfaceContainerHigh),
+                      ? ObsidianColors.tertiary.withOpacity(0.2)
+                      : ObsidianColors.surfaceContainerHigh),
           ),
           child: isDone
-              ? const Icon(Icons.check_rounded,
-                  size: 14, color: ObsidianColors.tertiary)
+              ? const Icon(
+                  Icons.check_rounded,
+                  size: 14,
+                  color: ObsidianColors.tertiary,
+                )
               : Center(
                   child: Text(
                     '$stepNum',
@@ -109,17 +118,21 @@ class WizardStepper extends StatelessWidget {
           children: [
             Text(
               title,
-              style: ObsidianTypography.labelBadge(
-                color: isActive
-                    ? ObsidianColors.primary
-                    : ObsidianColors.onSurface,
-              ).copyWith(
-                  fontWeight: isActive ? FontWeight.bold : FontWeight.normal),
+              style:
+                  ObsidianTypography.labelBadge(
+                    color: isActive
+                        ? ObsidianColors.primary
+                        : ObsidianColors.onSurface,
+                  ).copyWith(
+                    fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                  ),
             ),
             Text(
               subtitle,
               style: ObsidianTypography.labelBadge(
-                color: isDone ? ObsidianColors.tertiary : ObsidianColors.outline,
+                color: isDone
+                    ? ObsidianColors.tertiary
+                    : ObsidianColors.outline,
               ),
             ),
           ],

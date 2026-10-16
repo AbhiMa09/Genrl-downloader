@@ -225,7 +225,8 @@ async fn full_end_to_end_flow_from_planning_to_library_and_rescan() {
     std::fs::create_dir_all(&download_dir).expect("create downloads");
     std::fs::create_dir_all(&library_dir).expect("create library");
 
-    let finished_file = download_dir.join("[SubsPlease] Sousou no Frieren - 02 (1080p) [A1B2C3D4].mkv");
+    let finished_file =
+        download_dir.join("[SubsPlease] Sousou no Frieren - 02 (1080p) [A1B2C3D4].mkv");
     // Write 1 MB dummy video file
     std::fs::write(&finished_file, vec![0x42u8; 1_048_576]).expect("write dummy video");
 
@@ -245,25 +246,33 @@ async fn full_end_to_end_flow_from_planning_to_library_and_rescan() {
 
     Mock::given(method("POST"))
         .and(path("/api/v2/auth/login"))
-        .respond_with(ResponseTemplate::new(204).insert_header("Set-Cookie", "QBT_SID=mock_sid; path=/"))
+        .respond_with(
+            ResponseTemplate::new(204).insert_header("Set-Cookie", "QBT_SID=mock_sid; path=/"),
+        )
         .mount(&server)
         .await;
 
     Mock::given(method("GET"))
         .and(path("/api/v2/torrents/info"))
-        .respond_with(TorrentsInfo { state: Arc::clone(&qbit_state) })
+        .respond_with(TorrentsInfo {
+            state: Arc::clone(&qbit_state),
+        })
         .mount(&server)
         .await;
 
     Mock::given(method("POST"))
         .and(path("/api/v2/torrents/add"))
-        .respond_with(TorrentsAdd { state: Arc::clone(&qbit_state) })
+        .respond_with(TorrentsAdd {
+            state: Arc::clone(&qbit_state),
+        })
         .mount(&server)
         .await;
 
     Mock::given(method("POST"))
         .and(path("/api/v2/torrents/delete"))
-        .respond_with(TorrentsDelete { state: Arc::clone(&qbit_state) })
+        .respond_with(TorrentsDelete {
+            state: Arc::clone(&qbit_state),
+        })
         .mount(&server)
         .await;
 
@@ -304,11 +313,11 @@ async fn full_end_to_end_flow_from_planning_to_library_and_rescan() {
 
     // 4. Mount image poster endpoint with valid 1x1 PNG
     let valid_png: Vec<u8> = vec![
-        0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D, 0x49, 0x48,
-        0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x06, 0x00, 0x00,
-        0x00, 0x1F, 0x15, 0xC4, 0x89, 0x00, 0x00, 0x00, 0x0D, 0x49, 0x44, 0x41, 0x54, 0x78,
-        0x9C, 0x63, 0xF8, 0xCF, 0xC0, 0x00, 0x00, 0x03, 0x01, 0x01, 0x00, 0x18, 0xDD, 0x8D,
-        0xB0, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82,
+        0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44,
+        0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x06, 0x00, 0x00, 0x00, 0x1F,
+        0x15, 0xC4, 0x89, 0x00, 0x00, 0x00, 0x0D, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9C, 0x63, 0xF8,
+        0xCF, 0xC0, 0x00, 0x00, 0x03, 0x01, 0x01, 0x00, 0x18, 0xDD, 0x8D, 0xB0, 0x00, 0x00, 0x00,
+        0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82,
     ];
     Mock::given(method("GET"))
         .and(path("/poster.jpg"))
@@ -347,11 +356,16 @@ async fn full_end_to_end_flow_from_planning_to_library_and_rescan() {
         start_year: Some(2023),
         auto: true,
         episode_offset: 0,
-        names: vec!["Sousou no Frieren".to_string(), "Frieren: Beyond Journey's End".to_string()],
+        names: vec![
+            "Sousou no Frieren".to_string(),
+            "Frieren: Beyond Journey's End".to_string(),
+        ],
         franchise: 52991,
         season: 1,
     };
-    let mal_list = MalList { entries: vec![list_entry] };
+    let mal_list = MalList {
+        entries: vec![list_entry],
+    };
 
     let outcome = planner::plan(&db, clock.as_ref(), &mal_list, true).expect("plan");
     let queued = match outcome {
@@ -387,13 +401,7 @@ async fn full_end_to_end_flow_from_planning_to_library_and_rescan() {
         temp.path().to_path_buf(),
     ));
 
-    let engine = Engine::new(
-        db.clone(),
-        gate,
-        clock.clone(),
-        finalizer,
-        disk,
-    );
+    let engine = Engine::new(db.clone(), gate, clock.clone(), finalizer, disk);
 
     // 8. Run Engine steps
     // Step 1: Search -> Choose
@@ -432,11 +440,19 @@ async fn full_end_to_end_flow_from_planning_to_library_and_rescan() {
 
     // 9. Verify Library Output on Filesystem
     let show_dir = library_dir.join("Sousou no Frieren (2023)");
-    assert!(show_dir.exists(), "show directory was created: {:?}", show_dir);
+    assert!(
+        show_dir.exists(),
+        "show directory was created: {:?}",
+        show_dir
+    );
 
     // Video file moved/organized
     let expected_video = show_dir.join("Sousou no Frieren - S01E02.mkv");
-    assert!(expected_video.exists(), "episode video exists at {:?}", expected_video);
+    assert!(
+        expected_video.exists(),
+        "episode video exists at {:?}",
+        expected_video
+    );
     assert_eq!(
         std::fs::metadata(&expected_video).unwrap().len(),
         1_048_576,
@@ -464,7 +480,10 @@ async fn full_end_to_end_flow_from_planning_to_library_and_rescan() {
     // Torrent removed from client as remove_when_finished was true
     {
         let guard = qbit_state.lock().unwrap();
-        assert!(!guard.present.contains(HASH_FRIEREN), "torrent was cleaned from qBittorrent");
+        assert!(
+            !guard.present.contains(HASH_FRIEREN),
+            "torrent was cleaned from qBittorrent"
+        );
     }
 
     // 10. Run Library Rescan over library folder
@@ -477,7 +496,9 @@ async fn full_end_to_end_flow_from_planning_to_library_and_rescan() {
     assert!(!events.is_empty(), "event log recorded actions");
     let messages: Vec<String> = events.into_iter().map(|e| e.message).collect();
     assert!(
-        messages.iter().any(|m| m.contains("Sousou no Frieren") || m.contains("library")),
+        messages
+            .iter()
+            .any(|m| m.contains("Sousou no Frieren") || m.contains("library")),
         "activity log contains show entries: {:?}",
         messages
     );

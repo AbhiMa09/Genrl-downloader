@@ -62,7 +62,10 @@ pub fn normalize_alias(input: &str) -> String {
 /// expansion poisons matching for that show, so growth needs care.
 const ABBREVIATIONS: &[(&str, &str)] = &[
     ("knk", "kumo no mukou yami nakutemo"),
-    ("oregairu", "yahari ore no seishun love come wa machigatteiru"),
+    (
+        "oregairu",
+        "yahari ore no seishun love come wa machigatteiru",
+    ),
     ("snk", "shingeki no kyojin"),
     ("aot", "shingeki no kyojin"),
     ("mha", "boku no hero academia"),
@@ -135,7 +138,11 @@ impl NameSet {
     /// Used by the MAL sync: names come back from the API in a known order
     /// (main, English, Japanese, synonyms), so the whole set is rewritten with
     /// the right priorities. User aliases are preserved — MAL does not own them.
-    pub fn replace_from_sync(db: &Db, mal_id: i64, names: &[(String, NameSource, u8)]) -> Result<()> {
+    pub fn replace_from_sync(
+        db: &Db,
+        mal_id: i64,
+        names: &[(String, NameSource, u8)],
+    ) -> Result<()> {
         db.with(|c| {
             let tx = c.unchecked_transaction()?;
             tx.execute(
@@ -189,11 +196,7 @@ impl NameSet {
 
     /// Normalized names in search order: romaji/main first, user last.
     pub fn search_order(&self) -> Vec<String> {
-        let mut names: Vec<String> = self
-            .entries
-            .iter()
-            .map(|e| e.normalized.clone())
-            .collect();
+        let mut names: Vec<String> = self.entries.iter().map(|e| e.normalized.clone()).collect();
         names.dedup();
         names
     }
@@ -259,12 +262,18 @@ mod tests {
         // Season words go; the season number stays (it identifies the season).
         assert_eq!(normalize_alias("Frieren 2nd Season"), "frieren 2");
         // "Kimi no Todoke" is a *different* show and must stay different.
-        assert_ne!(normalize_alias("Kimi no Na wa"), normalize_alias("Kimi no Todoke"));
+        assert_ne!(
+            normalize_alias("Kimi no Na wa"),
+            normalize_alias("Kimi no Todoke")
+        );
     }
 
     #[test]
     fn known_abbreviations_expand() {
-        assert_eq!(normalize_alias("Oregairu"), "yahari ore no seishun love come wa machigatteiru");
+        assert_eq!(
+            normalize_alias("Oregairu"),
+            "yahari ore no seishun love come wa machigatteiru"
+        );
         assert_eq!(normalize_alias("SnK"), "shingeki no kyojin");
         // Not in the table: normalization only, never invented.
         assert_eq!(normalize_alias("Some Show"), "some show");
@@ -280,7 +289,10 @@ mod tests {
         assert!(!NameSet::add(&db, 10, "your name", NameSource::Mal, PRIORITY_MAIN).unwrap());
 
         let set = NameSet::load(&db, 10).unwrap();
-        assert_eq!(set.search_order().first().map(String::as_str), Some("kimi no na wa"));
+        assert_eq!(
+            set.search_order().first().map(String::as_str),
+            Some("kimi no na wa")
+        );
         assert!(set.contains("kimi no na wa"));
         assert!(!set.contains("kimi no todoke"));
         assert_eq!(set.summary(), "3 name(s) (romaji, translated, synonym)");
@@ -289,11 +301,26 @@ mod tests {
     #[test]
     fn sync_rewrites_mal_names_but_keeps_user_aliases() {
         let db = db_with_show(21);
-        NameSet::add(&db, 21, "the name I know it by", NameSource::User, PRIORITY_USER).unwrap();
+        NameSet::add(
+            &db,
+            21,
+            "the name I know it by",
+            NameSource::User,
+            PRIORITY_USER,
+        )
+        .unwrap();
 
         let names = vec![
-            ("Sousou no Frieren".to_string(), NameSource::Mal, PRIORITY_MAIN),
-            ("Frieren: Beyond Journey's End".to_string(), NameSource::Jikan, PRIORITY_TRANSLATED),
+            (
+                "Sousou no Frieren".to_string(),
+                NameSource::Mal,
+                PRIORITY_MAIN,
+            ),
+            (
+                "Frieren: Beyond Journey's End".to_string(),
+                NameSource::Jikan,
+                PRIORITY_TRANSLATED,
+            ),
         ];
         NameSet::replace_from_sync(&db, 21, &names).unwrap();
 
@@ -306,7 +333,10 @@ mod tests {
                 "name i know it by".to_string(), // "the" is a season word
             ]
         );
-        assert_eq!(NameSet::user_aliases(&db, 21).unwrap(), vec!["the name I know it by".to_string()]);
+        assert_eq!(
+            NameSet::user_aliases(&db, 21).unwrap(),
+            vec!["the name I know it by".to_string()]
+        );
 
         // A re-sync is idempotent.
         NameSet::replace_from_sync(&db, 21, &names).unwrap();

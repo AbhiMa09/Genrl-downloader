@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::models::QuestionKind;
+use serde::{Deserialize, Serialize};
 
 /// The show the app expected, on the left of a Match Review card.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -62,7 +62,11 @@ pub enum Payload {
     /// All candidates failed.
     AllFailed { candidates_tried: u32 },
     /// MAL merged, split or renamed the entry.
-    EntryChanged { mal_id: i64, title: String, detail: String },
+    EntryChanged {
+        mal_id: i64,
+        title: String,
+        detail: String,
+    },
     /// A service needs attention: one notice, not one per job.
     ServiceNotice { service: String, detail: String },
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
@@ -27,7 +28,9 @@ class StepMalAccount extends StatelessWidget {
         const SizedBox(height: 6),
         Text(
           'Sync your anime watching, plan-to-watch, and completed library states.',
-          style: ObsidianTypography.bodySm(color: ObsidianColors.onSurfaceVariant),
+          style: ObsidianTypography.bodySm(
+            color: ObsidianColors.onSurfaceVariant,
+          ),
         ),
         const SizedBox(height: 20),
         TextField(
@@ -58,9 +61,13 @@ class StepMalAccount extends StatelessWidget {
           child: Row(
             children: [
               Icon(
-                state.isMalConnected ? Icons.check_circle_rounded : Icons.info_outline_rounded,
+                state.isMalConnected
+                    ? Icons.check_circle_rounded
+                    : Icons.info_outline_rounded,
                 size: 18,
-                color: state.isMalConnected ? ObsidianColors.tertiary : ObsidianColors.primary,
+                color: state.isMalConnected
+                    ? ObsidianColors.tertiary
+                    : ObsidianColors.primary,
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -68,7 +75,9 @@ class StepMalAccount extends StatelessWidget {
                   state.isMalConnected
                       ? 'Connected as ${state.malUsername ?? userController.text}'
                       : 'Unlinked — public profile scraping fallback is enabled by default.',
-                  style: ObsidianTypography.bodySm(color: ObsidianColors.onSurface),
+                  style: ObsidianTypography.bodySm(
+                    color: ObsidianColors.onSurface,
+                  ),
                 ),
               ),
             ],

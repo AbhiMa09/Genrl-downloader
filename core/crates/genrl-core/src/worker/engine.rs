@@ -97,7 +97,9 @@ impl Engine {
     /// because a running download is not ours to stop.
     pub fn blocking_reason(&self, settings: &Settings) -> Option<String> {
         let folder = if settings.download_folder.trim().is_empty() {
-            crate::locations::default_download_dir().display().to_string()
+            crate::locations::default_download_dir()
+                .display()
+                .to_string()
         } else {
             settings.download_folder.clone()
         };
@@ -150,7 +152,13 @@ impl Engine {
                  FROM episodes e JOIN shows s ON s.mal_id = e.mal_id
                  WHERE e.id = ?1",
                 [job.episode_id],
-                |r| Ok((r.get::<_, i64>(0)?, r.get::<_, f64>(1)?, r.get::<_, String>(2)?)),
+                |r| {
+                    Ok((
+                        r.get::<_, i64>(0)?,
+                        r.get::<_, f64>(1)?,
+                        r.get::<_, String>(2)?,
+                    ))
+                },
             )?)
         })?;
         Ok(JobContext {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
@@ -22,14 +23,13 @@ class StepQbittorrent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'qBittorrent Integration',
-          style: ObsidianTypography.headlineMd(),
-        ),
+        Text('qBittorrent Integration', style: ObsidianTypography.headlineMd()),
         const SizedBox(height: 6),
         Text(
           'Connect to local or remote qBittorrent WebUI daemon for automated queue management.',
-          style: ObsidianTypography.bodySm(color: ObsidianColors.onSurfaceVariant),
+          style: ObsidianTypography.bodySm(
+            color: ObsidianColors.onSurfaceVariant,
+          ),
         ),
         const SizedBox(height: 20),
         TextField(
@@ -78,9 +78,13 @@ class StepQbittorrent extends StatelessWidget {
           child: Row(
             children: [
               Icon(
-                state.status.qbitConnected ? Icons.check_circle_rounded : Icons.info_outline_rounded,
+                state.status.qbitConnected
+                    ? Icons.check_circle_rounded
+                    : Icons.info_outline_rounded,
                 size: 18,
-                color: state.status.qbitConnected ? ObsidianColors.tertiary : ObsidianColors.outline,
+                color: state.status.qbitConnected
+                    ? ObsidianColors.tertiary
+                    : ObsidianColors.outline,
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -88,7 +92,9 @@ class StepQbittorrent extends StatelessWidget {
                   state.status.qbitConnected
                       ? 'Daemon online • qBittorrent ${state.status.qbitVersion} responding'
                       : 'Endpoint reachable. Credentials verified.',
-                  style: ObsidianTypography.bodySm(color: ObsidianColors.onSurface),
+                  style: ObsidianTypography.bodySm(
+                    color: ObsidianColors.onSurface,
+                  ),
                 ),
               ),
             ],

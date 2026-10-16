@@ -31,7 +31,10 @@ impl Engine {
         let info = match client.get_torrent(&self.gate, &torrent.info_hash).await {
             Ok(info) => info,
             Err(err) if err.is_transient() || err.is_connection_failure() => {
-                return self.block(job, &format!("qBittorrent unreachable while monitoring: {err}"));
+                return self.block(
+                    job,
+                    &format!("qBittorrent unreachable while monitoring: {err}"),
+                );
             }
             Err(err) => return self.fail_or_reschedule(job, &format!("monitor failed: {err}")),
         };
@@ -68,15 +71,17 @@ impl Engine {
                 let _ = client.remove(&self.gate, &torrent.info_hash, false).await;
                 jobs::reject_candidate(&self.db, &torrent.info_hash)?;
                 let reason = if info.num_seeds == 0 {
-                    format!("0 seeders detected for {}; switched to next candidate/single episodes", info.name)
+                    format!(
+                        "0 seeders detected for {}; switched to next candidate/single episodes",
+                        info.name
+                    )
                 } else {
-                    format!("no progress for {} minutes; removed {} and trying the next candidate", settings.stall_timeout_min, info.name)
+                    format!(
+                        "no progress for {} minutes; removed {} and trying the next candidate",
+                        settings.stall_timeout_min, info.name
+                    )
                 };
-                return self.next_candidate(
-                    job,
-                    context.mal_id,
-                    &reason,
-                );
+                return self.next_candidate(job, context.mal_id, &reason);
             }
         }
 
@@ -85,11 +90,7 @@ impl Engine {
             self.clock.as_ref(),
             job.id,
             self.now() + MONITOR_POLL_SECS,
-            &format!(
-                "{} at {:.0}%",
-                info.state,
-                info.progress * 100.0
-            ),
+            &format!("{} at {:.0}%", info.state, info.progress * 100.0),
         )?;
         Ok(JobState::Monitor)
     }
@@ -114,7 +115,10 @@ impl Engine {
         let info = match client.get_torrent(&self.gate, &torrent.info_hash).await {
             Ok(info) => info,
             Err(err) if err.is_transient() || err.is_connection_failure() => {
-                return self.block(job, &format!("qBittorrent unreachable while verifying: {err}"));
+                return self.block(
+                    job,
+                    &format!("qBittorrent unreachable while verifying: {err}"),
+                );
             }
             Err(err) => return self.fail_or_reschedule(job, &format!("verify failed: {err}")),
         };
@@ -122,9 +126,7 @@ impl Engine {
         // The file on disk is the fact that matters; qBittorrent forgetting the
         // torrent must not lose a finished download.
         let (content_path, size_bytes) = match &info {
-            Some(info) if info.is_complete() => {
-                (info.content_path.clone(), info.size.max(0))
-            }
+            Some(info) if info.is_complete() => (info.content_path.clone(), info.size.max(0)),
             Some(_) => {
                 return jobs::reschedule(
                     &self.db,
@@ -138,9 +140,7 @@ impl Engine {
             None => {
                 let path = Path::new(&settings.download_folder).join(&torrent.name);
                 match std::fs::metadata(&path) {
-                    Ok(meta) if meta.len() > 0 => {
-                        (path.display().to_string(), meta.len() as i64)
-                    }
+                    Ok(meta) if meta.len() > 0 => (path.display().to_string(), meta.len() as i64),
                     _ => {
                         return jobs::transition(
                             &self.db,
@@ -158,7 +158,9 @@ impl Engine {
         // Verify: size matches, and the extension is a video type.
         let path = Path::new(&content_path);
         let verified = if path.is_dir() {
-            std::fs::read_dir(path).map(|mut d| d.next().is_some()).unwrap_or(false)
+            std::fs::read_dir(path)
+                .map(|mut d| d.next().is_some())
+                .unwrap_or(false)
         } else {
             std::fs::metadata(&content_path)
                 .map(|meta| meta.len() as i64 == size_bytes.max(0) || size_bytes == 0)
@@ -193,23 +195,38 @@ impl Engine {
 
         if !dest_show_dir.exists() {
             if let Err(e) = std::fs::create_dir_all(&dest_show_dir) {
-                return self.block(job, &format!("destination folder '{}' could not be created: {e}", dest_show_dir.display()));
+                return self.block(
+                    job,
+                    &format!(
+                        "destination folder '{}' could not be created: {e}",
+                        dest_show_dir.display()
+                    ),
+                );
             }
         }
         let check = crate::locations::check_directory(&dest_show_dir.to_string_lossy(), false);
         if !check.writable {
-            return self.block(job, &format!("destination folder '{}' is not writable", dest_show_dir.display()));
+            return self.block(
+                job,
+                &format!(
+                    "destination folder '{}' is not writable",
+                    dest_show_dir.display()
+                ),
+            );
         }
         let floor_bytes = settings.disk_floor_gb.saturating_mul(1024 * 1024 * 1024);
         let required_bytes = (size_bytes.max(0) as u64).saturating_add(floor_bytes);
         if let Some(free) = self.disk.free_bytes(&dest_show_dir) {
             if free < required_bytes {
-                return self.block(job, &format!(
+                return self.block(
+                    job,
+                    &format!(
                     "destination folder '{}' has insufficient space: need {} bytes, free {} bytes",
                     dest_show_dir.display(),
                     required_bytes,
                     free
-                ));
+                ),
+                );
             }
         }
 

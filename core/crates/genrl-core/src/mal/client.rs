@@ -106,8 +106,7 @@ impl<'a> MalClient<'a> {
         if id.is_empty() {
             return Err(Error::Auth {
                 service: "mal".to_string(),
-                message: "no MAL client id is set; add one to settings.mal_client_id"
-                    .to_string(),
+                message: "no MAL client id is set; add one to settings.mal_client_id".to_string(),
             });
         }
         Ok(id)
@@ -197,10 +196,15 @@ impl<'a> MalClient<'a> {
 
     /// Token endpoint, hosted on myanimelist.net (not the api host).
     async fn token_request(&self, url: &str, form: &[(String, String)]) -> Result<Tokens> {
-        let body_result = self.gate.post_form(Service::Mal, url, form, &GetOptions::default()).await;
+        let body_result = self
+            .gate
+            .post_form(Service::Mal, url, form, &GetOptions::default())
+            .await;
         let fetched = match body_result {
             Ok(fetched) => fetched,
-            Err(Error::Status { status, url, body, .. }) => {
+            Err(Error::Status {
+                status, url, body, ..
+            }) => {
                 let reason = body.unwrap_or_default();
                 let detail = if reason.is_empty() {
                     format!("token endpoint returned HTTP {status} for {url}")
@@ -252,7 +256,7 @@ impl<'a> MalClient<'a> {
     pub async fn account(&self) -> Result<Account> {
         let url = format!("{}/users/@me", self.base());
         let fetched = self.get(&url).await?;
-        Ok(fetched.json()?)
+        fetched.json()
     }
 
     /// The whole list, paged, with chains built from MAL relations.
@@ -313,11 +317,7 @@ impl<'a> MalClient<'a> {
             }
             out.extend(page.data.iter().map(to_mal_entry));
             offset += n;
-            let has_more = page
-                .paging
-                .as_ref()
-                .and_then(|p| p.next.as_ref())
-                .is_some();
+            let has_more = page.paging.as_ref().and_then(|p| p.next.as_ref()).is_some();
             if !has_more {
                 break;
             }
@@ -326,10 +326,7 @@ impl<'a> MalClient<'a> {
     }
 
     async fn relations(&self, mal_id: i64) -> Result<Vec<Relation>> {
-        let url = format!(
-            "{}/anime/{mal_id}?fields={RELATIONS_FIELD}",
-            self.base(),
-        );
+        let url = format!("{}/anime/{mal_id}?fields={RELATIONS_FIELD}", self.base(),);
         let fetched = self.get(&url).await?;
         let detail: AnimeDetail = fetched.json()?;
         Ok(detail.related_anime)

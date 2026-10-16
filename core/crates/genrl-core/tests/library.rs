@@ -45,8 +45,8 @@ use genrl_core::clock::FakeClock;
 use genrl_core::db::Db;
 use genrl_core::http::Gate;
 use genrl_core::library::{
-    apply_folder_icon, format_synopsis, rescan_library, LibraryFinalizer,
-    DIRECTORY_FILE, FOLDER_ICON_FILE, MARKER_FILE, SYNOPSIS_FILE,
+    apply_folder_icon, format_synopsis, rescan_library, LibraryFinalizer, DIRECTORY_FILE,
+    FOLDER_ICON_FILE, MARKER_FILE, SYNOPSIS_FILE,
 };
 use genrl_core::models::{Job, JobKind, JobState};
 use genrl_core::questions::{Answer, Choice, QuestionStore};
@@ -344,7 +344,10 @@ async fn ten_real_shows_are_filed_correctly() {
             size_bytes: 21,
         };
 
-        let outcome = finalizer.finalize(&ctx).await.expect("finalize must succeed");
+        let outcome = finalizer
+            .finalize(&ctx)
+            .await
+            .expect("finalize must succeed");
         let dest_path = match outcome {
             FinalizeOutcome::Done(res) => res.destination_path,
             other => panic!("expected Done for {}, got {:?}", s.title, other),
@@ -352,11 +355,19 @@ async fn ten_real_shows_are_filed_correctly() {
 
         // Verification for each show
         let show_dir = library_dir.join(s.expected_folder);
-        assert!(show_dir.exists(), "folder {} must exist", show_dir.display());
+        assert!(
+            show_dir.exists(),
+            "folder {} must exist",
+            show_dir.display()
+        );
 
         // 1. Marker file
         let marker = show_dir.join(MARKER_FILE);
-        assert!(marker.exists(), "marker must exist in {}", show_dir.display());
+        assert!(
+            marker.exists(),
+            "marker must exist in {}",
+            show_dir.display()
+        );
         let marker_content = fs::read_to_string(&marker).unwrap();
         assert_eq!(marker_content.trim(), s.mal_id.to_string());
 
@@ -467,7 +478,13 @@ async fn jikan_offline_writes_placeholder_synopsis_without_failing() {
         breaker_threshold: 5,
         breaker_cooldown: std::time::Duration::from_secs(60),
     };
-    let gate = Arc::new(Gate::with_policies(database.clone(), &[(genrl_core::http::Service::Jikan, fast_policy)]).unwrap());
+    let gate = Arc::new(
+        Gate::with_policies(
+            database.clone(),
+            &[(genrl_core::http::Service::Jikan, fast_policy)],
+        )
+        .unwrap(),
+    );
     let finalizer = LibraryFinalizer::new(database.clone(), gate, clk.clone(), data_dir);
 
     insert_show(&database, 1234, "Offline Show", None, "tv", Some(2024), 1);
@@ -484,7 +501,10 @@ async fn jikan_offline_writes_placeholder_synopsis_without_failing() {
         size_bytes: 7,
     };
 
-    let outcome = finalizer.finalize(&ctx).await.expect("must succeed even if Jikan is offline");
+    let outcome = finalizer
+        .finalize(&ctx)
+        .await
+        .expect("must succeed even if Jikan is offline");
     assert!(matches!(outcome, FinalizeOutcome::Done(_)));
 
     let show_dir = library_dir.join("Offline Show (2024)");
@@ -522,7 +542,15 @@ async fn folder_renaming_preserves_show_identity_via_marker() {
     let gate = Arc::new(Gate::with_policies(database.clone(), &[]).unwrap());
     let finalizer = LibraryFinalizer::new(database.clone(), gate, clk.clone(), data_dir);
 
-    insert_show(&database, 52991, "Sousou no Frieren", None, "tv", Some(2023), 1);
+    insert_show(
+        &database,
+        52991,
+        "Sousou no Frieren",
+        None,
+        "tv",
+        Some(2023),
+        1,
+    );
 
     // Episode 1 files into default folder "Sousou no Frieren (2023)"
     let (ep1_id, job1) = insert_episode_and_job(&database, 52991, 1.0);
@@ -561,7 +589,10 @@ async fn folder_renaming_preserves_show_identity_via_marker() {
 
     // Episode 2 should be in the renamed directory, not a newly created initial_dir!
     assert!(renamed_dir.join("Sousou no Frieren - S01E02.mkv").exists());
-    assert!(!initial_dir.exists(), "should not have recreated initial folder");
+    assert!(
+        !initial_dir.exists(),
+        "should not have recreated initial folder"
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -761,8 +792,13 @@ async fn move_modes_work_as_configured() {
     finalizer.finalize(&ctx).await.unwrap();
 
     // Source must be moved (no longer in downloads)
-    assert!(!down.exists(), "source file should have been removed by Move");
-    assert!(library_dir.join("Move Show (2024)/Move Show - S01E01.mkv").exists());
+    assert!(
+        !down.exists(),
+        "source file should have been removed by Move"
+    );
+    assert!(library_dir
+        .join("Move Show (2024)/Move Show - S01E01.mkv")
+        .exists());
 }
 
 // ---------------------------------------------------------------------------

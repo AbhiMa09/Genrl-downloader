@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../models/activity_item.dart';
 import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
@@ -28,19 +29,24 @@ class _ActivityPageState extends State<ActivityPage> {
 
     // Synthetic metrics & calculations based on actual state
     final totalEvents = state.events.length;
-    final infoCount =
-        state.events.where((e) => e.level == ActivityLevel.info).length;
-    final warnCount =
-        state.events.where((e) => e.level == ActivityLevel.warn).length;
-    final errorCount =
-        state.events.where((e) => e.level == ActivityLevel.error).length;
+    final infoCount = state.events
+        .where((e) => e.level == ActivityLevel.info)
+        .length;
+    final warnCount = state.events
+        .where((e) => e.level == ActivityLevel.warn)
+        .length;
+    final errorCount = state.events
+        .where((e) => e.level == ActivityLevel.error)
+        .length;
     // We treat events mentioning committed/hardlinked as committed
     final committedCount = state.events
-        .where((e) =>
-            e.message.toLowerCase().contains('hardlink') ||
-            e.message.toLowerCase().contains('committed') ||
-            e.message.toLowerCase().contains('completed') ||
-            e.message.toLowerCase().contains('moved'))
+        .where(
+          (e) =>
+              e.message.toLowerCase().contains('hardlink') ||
+              e.message.toLowerCase().contains('committed') ||
+              e.message.toLowerCase().contains('completed') ||
+              e.message.toLowerCase().contains('moved'),
+        )
         .length;
 
     // Filter events
@@ -106,10 +112,7 @@ class _ActivityPageState extends State<ActivityPage> {
               const SizedBox(height: 24),
 
               // Timeline Streams
-              ActivityTimelineSection(
-                events: filteredEvents,
-                state: state,
-              ),
+              ActivityTimelineSection(events: filteredEvents, state: state),
               const SizedBox(height: 24),
 
               // Pagination & Stream footer
@@ -140,25 +143,31 @@ class _ActivityPageState extends State<ActivityPage> {
             children: [
               const IconButton(
                 onPressed: null,
-                icon: Icon(Icons.chevron_left_rounded,
-                    color: ObsidianColors.outline),
+                icon: Icon(
+                  Icons.chevron_left_rounded,
+                  color: ObsidianColors.outline,
+                ),
                 iconSize: 20,
               ),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: ObsidianColors.surfaceContainerHigh,
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: Text('1 / 1',
-                    style: ObsidianTypography.labelBadge(
-                        color: ObsidianColors.primary)),
+                child: Text(
+                  '1 / 1',
+                  style: ObsidianTypography.labelBadge(
+                    color: ObsidianColors.primary,
+                  ),
+                ),
               ),
               const IconButton(
                 onPressed: null,
-                icon: Icon(Icons.chevron_right_rounded,
-                    color: ObsidianColors.outline),
+                icon: Icon(
+                  Icons.chevron_right_rounded,
+                  color: ObsidianColors.outline,
+                ),
                 iconSize: 20,
               ),
             ],

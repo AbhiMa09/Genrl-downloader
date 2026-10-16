@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../theme/colors.dart';
 import '../theme/typography.dart';
 
@@ -26,7 +27,10 @@ class ErrorStateView extends StatelessWidget {
       decoration: BoxDecoration(
         color: ObsidianColors.errorContainer.withOpacity(0.18),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: ObsidianColors.error.withOpacity(0.4), width: 1),
+        border: Border.all(
+          color: ObsidianColors.error.withOpacity(0.4),
+          width: 1,
+        ),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -40,7 +44,9 @@ class ErrorStateView extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             title,
-            style: ObsidianTypography.headlineMd().copyWith(color: ObsidianColors.error),
+            style: ObsidianTypography.headlineMd().copyWith(
+              color: ObsidianColors.error,
+            ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
@@ -48,7 +54,9 @@ class ErrorStateView extends StatelessWidget {
             constraints: const BoxConstraints(maxWidth: 600),
             child: Text(
               message,
-              style: ObsidianTypography.monoCode(color: ObsidianColors.onSurfaceVariant),
+              style: ObsidianTypography.monoCode(
+                color: ObsidianColors.onSurfaceVariant,
+              ),
               textAlign: TextAlign.center,
             ),
           ),
@@ -63,7 +71,9 @@ class ErrorStateView extends StatelessWidget {
               elevation: 0,
               side: const BorderSide(color: ObsidianColors.border),
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
           ),
         ],
@@ -149,10 +159,7 @@ class EmptyStateView extends StatelessWidget {
                 style: ObsidianTypography.bodySm(color: ObsidianColors.outline),
               ),
             ),
-            if (action != null) ...[
-              const SizedBox(height: 18),
-              action!,
-            ],
+            if (action != null) ...[const SizedBox(height: 18), action!],
           ],
         ),
       ),

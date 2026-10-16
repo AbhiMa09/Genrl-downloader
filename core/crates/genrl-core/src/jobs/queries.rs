@@ -12,9 +12,7 @@ pub fn due_jobs(db: &Db, now: i64, kinds: &[JobKind], limit: usize) -> Result<Ve
     // The kind placeholders must be numbered `?3…`: a bare `?` here would be
     // assigned index 2 by SQLite — the same slot `LIMIT ?2` already owns — and
     // the statement would silently accept one parameter fewer than it needs.
-    let placeholders: Vec<String> = (0..kinds.len())
-        .map(|i| format!("?{}", i + 3))
-        .collect();
+    let placeholders: Vec<String> = (0..kinds.len()).map(|i| format!("?{}", i + 3)).collect();
     let kind_filter = if kinds.is_empty() {
         String::new()
     } else {
@@ -33,9 +31,7 @@ pub fn due_jobs(db: &Db, now: i64, kinds: &[JobKind], limit: usize) -> Result<Ve
     }
     db.with_rusqlite(|c| {
         let mut stmt = c.prepare(&sql)?;
-        let rows = stmt.query_map(rusqlite::params_from_iter(params.iter()), |r| {
-            Ok(job_from_row(r)?)
-        })?;
+        let rows = stmt.query_map(rusqlite::params_from_iter(params.iter()), job_from_row)?;
         let mut out = Vec::new();
         for row in rows {
             out.push(row?);
@@ -52,7 +48,7 @@ pub fn non_terminal_jobs(db: &Db) -> Result<Vec<Job>> {
                     created_at, updated_at, progress, last_progress_at, blocked_from
              FROM jobs WHERE state != 'done' ORDER BY id",
         )?;
-        let rows = stmt.query_map([], |r| Ok(job_from_row(r)?))?;
+        let rows = stmt.query_map([], job_from_row)?;
         let mut out = Vec::new();
         for row in rows {
             out.push(row?);
@@ -63,15 +59,14 @@ pub fn non_terminal_jobs(db: &Db) -> Result<Vec<Job>> {
 
 pub fn get(db: &Db, job_id: i64) -> Result<Option<Job>> {
     db.with_rusqlite(|c| {
-        Ok(c
-            .query_row(
-                "SELECT id, episode_id, kind, state, attempts, next_run_at, last_error, torrent_id,
-                        created_at, updated_at, progress, last_progress_at, blocked_from
-                 FROM jobs WHERE id = ?1",
-                [job_id],
-                |r| Ok(job_from_row(r)?),
-            )
-            .optional()?)
+        c.query_row(
+            "SELECT id, episode_id, kind, state, attempts, next_run_at, last_error, torrent_id,
+                    created_at, updated_at, progress, last_progress_at, blocked_from
+             FROM jobs WHERE id = ?1",
+            [job_id],
+            job_from_row,
+        )
+        .optional()
     })
 }
 
@@ -83,7 +78,7 @@ pub fn list(db: &Db, state: Option<JobState>, limit: usize) -> Result<Vec<Job>> 
                 "SELECT id, episode_id, kind, state, attempts, next_run_at, last_error, torrent_id,
                         created_at, updated_at, progress, last_progress_at, blocked_from
                  FROM jobs WHERE state = '{}' ORDER BY created_at LIMIT ?1",
-                sql_text(&state.as_str().to_string())
+                sql_text(state.as_str())
             ),
             vec![limit.to_string()],
         ),
@@ -97,9 +92,7 @@ pub fn list(db: &Db, state: Option<JobState>, limit: usize) -> Result<Vec<Job>> 
     };
     db.with_rusqlite(|c| {
         let mut stmt = c.prepare(&sql)?;
-        let rows = stmt.query_map(rusqlite::params_from_iter(filter.iter()), |r| {
-            Ok(job_from_row(r)?)
-        })?;
+        let rows = stmt.query_map(rusqlite::params_from_iter(filter.iter()), job_from_row)?;
         let mut out = Vec::new();
         for row in rows {
             out.push(row?);
@@ -154,6 +147,9 @@ pub fn job_from_row(r: &rusqlite::Row<'_>) -> rusqlite::Result<Job> {
         updated_at: r.get(9)?,
         progress: r.get(10)?,
         last_progress_at: r.get(11)?,
-        blocked_from: r.get::<_, Option<String>>(12)?.as_deref().map(JobState::parse),
+        blocked_from: r
+            .get::<_, Option<String>>(12)?
+            .as_deref()
+            .map(JobState::parse),
     })
 }

@@ -42,10 +42,7 @@ pub enum Error {
     },
 
     #[error("circuit breaker open for {service}; next probe in {retry_in_secs}s")]
-    BreakerOpen {
-        service: String,
-        retry_in_secs: u64,
-    },
+    BreakerOpen { service: String, retry_in_secs: u64 },
 
     #[error("response from {url} is {got} bytes, over the {cap} byte cap")]
     BodyTooLarge { url: String, got: usize, cap: usize },
@@ -78,9 +75,7 @@ impl Error {
     /// True when the failure is worth retrying after a delay.
     pub fn is_transient(&self) -> bool {
         match self {
-            Error::Timeout { .. }
-            | Error::RateLimited { .. }
-            | Error::BreakerOpen { .. } => true,
+            Error::Timeout { .. } | Error::RateLimited { .. } | Error::BreakerOpen { .. } => true,
             Error::Status { status, .. } => (500..=599).contains(status),
             Error::Http(e) => e.is_connect() || e.is_timeout() || e.is_request(),
             _ => false,

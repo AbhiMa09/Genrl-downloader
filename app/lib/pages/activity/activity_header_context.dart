@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
@@ -22,11 +23,15 @@ class ActivityHeaderContext extends StatelessWidget {
                 spacing: 10,
                 runSpacing: 4,
                 children: [
-                  Text('Activity & Decision Log',
-                      style: ObsidianTypography.headlineLg()),
+                  Text(
+                    'Activity & Decision Log',
+                    style: ObsidianTypography.headlineLg(),
+                  ),
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: ObsidianColors.primary.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(4),
@@ -34,8 +39,8 @@ class ActivityHeaderContext extends StatelessWidget {
                     child: Text(
                       'AUDIT STREAM',
                       style: ObsidianTypography.monoCode(
-                              color: ObsidianColors.primary)
-                          .copyWith(fontWeight: FontWeight.bold),
+                        color: ObsidianColors.primary,
+                      ).copyWith(fontWeight: FontWeight.bold),
                     ),
                   ),
                 ],
@@ -68,13 +73,19 @@ class ActivityHeaderContext extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Text('Auto-tail: ACTIVE',
-                      style: ObsidianTypography.monoCode(
-                          color: ObsidianColors.onSurface)),
+                  Text(
+                    'Auto-tail: ACTIVE',
+                    style: ObsidianTypography.monoCode(
+                      color: ObsidianColors.onSurface,
+                    ),
+                  ),
                   const SizedBox(width: 6),
-                  Text('500ms',
-                      style: ObsidianTypography.labelBadge(
-                          color: ObsidianColors.outline)),
+                  Text(
+                    '500ms',
+                    style: ObsidianTypography.labelBadge(
+                      color: ObsidianColors.outline,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -83,14 +94,18 @@ class ActivityHeaderContext extends StatelessWidget {
               onPressed: () {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content:
-                        Text('Audit log exported to /tmp/genrl-activity.log'),
+                    content: Text(
+                      'Audit log exported to /tmp/genrl-activity.log',
+                    ),
                     backgroundColor: ObsidianColors.surfaceContainerHigh,
                   ),
                 );
               },
-              icon: const Icon(Icons.ios_share_rounded,
-                  size: 16, color: ObsidianColors.primary),
+              icon: const Icon(
+                Icons.ios_share_rounded,
+                size: 16,
+                color: ObsidianColors.primary,
+              ),
               label: const Text('Export'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: ObsidianColors.surfaceContainer,
@@ -112,14 +127,18 @@ class ActivityHeaderContext extends StatelessWidget {
                   ),
                 );
               },
-              icon: const Icon(Icons.delete_sweep_rounded,
-                  size: 16, color: ObsidianColors.outline),
+              icon: const Icon(
+                Icons.delete_sweep_rounded,
+                size: 16,
+                color: ObsidianColors.outline,
+              ),
               label: const Text('Purge > 30d'),
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: ObsidianColors.border),
                 foregroundColor: ObsidianColors.onSurfaceVariant,
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
             ),
           ],

@@ -33,7 +33,11 @@ import 'package:genrl_downloader/widgets/tray_notifications_overlay.dart';
 
 import 'fake_core_bridge.dart';
 
-Widget wrapPage(Widget page, StateProvider state, {Size size = const Size(1280, 800)}) {
+Widget wrapPage(
+  Widget page,
+  StateProvider state, {
+  Size size = const Size(1280, 800),
+}) {
   return MaterialApp(
     theme: ObsidianTheme.darkTheme,
     debugShowCheckedModeBanner: false,
@@ -67,10 +71,19 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
 
-    await tester.pumpWidget(wrapPage(DashboardPage(referenceTime: DateTime(2026, 10, 15, 22, 0)), state, size: const Size(1593, 1000)));
+    await tester.pumpWidget(
+      wrapPage(
+        DashboardPage(referenceTime: DateTime(2026, 10, 15, 22, 0)),
+        state,
+        size: const Size(1593, 1000),
+      ),
+    );
     await tester.pumpAndSettle();
 
-    await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/dashboard_page.png'));
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/dashboard_page.png'),
+    );
   });
 
   testWidgets('Golden Test - Inbox Page', (tester) async {
@@ -78,10 +91,15 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
 
-    await tester.pumpWidget(wrapPage(const InboxPage(), state, size: const Size(893, 1000)));
+    await tester.pumpWidget(
+      wrapPage(const InboxPage(), state, size: const Size(893, 1000)),
+    );
     await tester.pumpAndSettle();
 
-    await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/inbox_page.png'));
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/inbox_page.png'),
+    );
   });
 
   testWidgets('Golden Test - Queue Page', (tester) async {
@@ -89,10 +107,15 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
 
-    await tester.pumpWidget(wrapPage(const QueuePage(), state, size: const Size(1600, 1000)));
+    await tester.pumpWidget(
+      wrapPage(const QueuePage(), state, size: const Size(1600, 1000)),
+    );
     await tester.pumpAndSettle();
 
-    await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/queue_page.png'));
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/queue_page.png'),
+    );
   });
 
   testWidgets('Golden Test - Library Page', (tester) async {
@@ -100,10 +123,15 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
 
-    await tester.pumpWidget(wrapPage(const LibraryPage(), state, size: const Size(1600, 1000)));
+    await tester.pumpWidget(
+      wrapPage(const LibraryPage(), state, size: const Size(1600, 1000)),
+    );
     await tester.pumpAndSettle();
 
-    await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/library_page.png'));
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/library_page.png'),
+    );
   });
 
   testWidgets('Golden Test - Search Page', (tester) async {
@@ -111,10 +139,15 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
 
-    await tester.pumpWidget(wrapPage(const SearchPage(), state, size: const Size(1600, 1000)));
+    await tester.pumpWidget(
+      wrapPage(const SearchPage(), state, size: const Size(1600, 1000)),
+    );
     await tester.pumpAndSettle();
 
-    await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/search_page.png'));
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/search_page.png'),
+    );
   });
 
   testWidgets('Golden Test - Activity Page', (tester) async {
@@ -122,10 +155,15 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
 
-    await tester.pumpWidget(wrapPage(const ActivityPage(), state, size: const Size(1454, 1000)));
+    await tester.pumpWidget(
+      wrapPage(const ActivityPage(), state, size: const Size(1454, 1000)),
+    );
     await tester.pumpAndSettle();
 
-    await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/activity_page.png'));
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/activity_page.png'),
+    );
   });
 
   testWidgets('Golden Test - Rules Page', (tester) async {
@@ -133,10 +171,15 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
 
-    await tester.pumpWidget(wrapPage(const RulesPage(), state, size: const Size(1600, 1000)));
+    await tester.pumpWidget(
+      wrapPage(const RulesPage(), state, size: const Size(1600, 1000)),
+    );
     await tester.pumpAndSettle();
 
-    await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/rules_page.png'));
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/rules_page.png'),
+    );
   });
 
   testWidgets('Golden Test - Settings Page', (tester) async {
@@ -144,19 +187,24 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
 
-    await tester.pumpWidget(wrapPage(
-      const SettingsPage(
-        isGoldenTest: true,
-        legacySecondaryTitle: 'AniList GraphQL Sync',
-        legacySecondarySubtitle: 'Enable simultaneous dual-scrobbling to your secondary AniList profile',
-        legacySecondaryButton: 'Connect AniList',
+    await tester.pumpWidget(
+      wrapPage(
+        const SettingsPage(
+          isGoldenTest: true,
+          legacySecondaryTitle: 'AniList GraphQL Sync',
+          legacySecondarySubtitle: 'Enable simultaneous dual-scrobbling to your secondary AniList profile',
+          legacySecondaryButton: 'Connect AniList',
+        ),
+        state,
+        size: const Size(1214, 1000),
       ),
-      state,
-      size: const Size(1214, 1000),
-    ));
+    );
     await tester.pumpAndSettle();
 
-    await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/settings_page.png'));
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/settings_page.png'),
+    );
   });
 
   testWidgets('Golden Test - Show Detail Page', (tester) async {
@@ -166,10 +214,15 @@ void main() {
 
     final show = state.shows.first;
     await state.loadShowDetail(show.malId);
-    await tester.pumpWidget(wrapPage(ShowDetailPage(show: show), state, size: const Size(1600, 1000)));
+    await tester.pumpWidget(
+      wrapPage(ShowDetailPage(show: show), state, size: const Size(1600, 1000)),
+    );
     await tester.pumpAndSettle();
 
-    await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/show_detail_page.png'));
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/show_detail_page.png'),
+    );
   });
 
   testWidgets('Golden Test - Setup Wizard Page', (tester) async {
@@ -177,10 +230,19 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
 
-    await tester.pumpWidget(wrapPage(WizardPage(onComplete: () {}, useLegacyLaunchButton: true), state, size: const Size(1600, 1000)));
+    await tester.pumpWidget(
+      wrapPage(
+        WizardPage(onComplete: () {}, useLegacyLaunchButton: true),
+        state,
+        size: const Size(1600, 1000),
+      ),
+    );
     await tester.pumpAndSettle();
 
-    await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/wizard_page.png'));
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/wizard_page.png'),
+    );
   });
 
   testWidgets('Golden Test - Tray Notifications Overlay', (tester) async {
@@ -188,10 +250,19 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
 
-    await tester.pumpWidget(wrapPage(SystemTrayNotificationOverlay(onClose: () {}), state, size: const Size(1280, 898)));
+    await tester.pumpWidget(
+      wrapPage(
+        SystemTrayNotificationOverlay(onClose: () {}),
+        state,
+        size: const Size(1280, 898),
+      ),
+    );
     await tester.pumpAndSettle();
 
-    await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/tray_overlay.png'));
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/tray_overlay.png'),
+    );
   });
 
   testWidgets('Golden Test - Cyber Logo', (tester) async {
@@ -199,9 +270,18 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
 
-    await tester.pumpWidget(wrapPage(const Center(child: CyberLogo(size: 256)), state, size: const Size(512, 520)));
+    await tester.pumpWidget(
+      wrapPage(
+        const Center(child: CyberLogo(size: 256)),
+        state,
+        size: const Size(512, 520),
+      ),
+    );
     await tester.pump(const Duration(milliseconds: 200));
 
-    await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/cyber_logo.png'));
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/cyber_logo.png'),
+    );
   });
 }

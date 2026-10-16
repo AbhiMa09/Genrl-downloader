@@ -53,7 +53,10 @@ pub async fn start_login(settings: &Settings) -> Result<Login> {
 }
 
 /// Start login with an optional explicit port override.
-pub async fn start_login_with_port(settings: &Settings, override_port: Option<u16>) -> Result<Login> {
+pub async fn start_login_with_port(
+    settings: &Settings,
+    override_port: Option<u16>,
+) -> Result<Login> {
     start_login_with_options(settings, override_port, None).await
 }
 
@@ -63,10 +66,7 @@ pub async fn start_login_with_options(
     override_port: Option<u16>,
     override_redirect_uri: Option<&str>,
 ) -> Result<Login> {
-    let client_id = settings
-        .mal_client_id
-        .trim()
-        .to_string();
+    let client_id = settings.mal_client_id.trim().to_string();
     if client_id.is_empty() {
         return Err(Error::Auth {
             service: "mal".to_string(),
@@ -90,7 +90,12 @@ pub async fn start_login_with_options(
         .unwrap_or_else(|| format!("http://127.0.0.1:{port}/callback"));
     let verifier = pkce_verifier();
     let state = random_token(32);
-    let url = authorize_url(&client_id, &redirect_uri, &state, &code_challenge(&verifier));
+    let url = authorize_url(
+        &client_id,
+        &redirect_uri,
+        &state,
+        &code_challenge(&verifier),
+    );
     Ok(Login {
         listener,
         redirect_uri,
@@ -158,7 +163,9 @@ pub async fn redirect_code(
             .unwrap_or("/");
 
         if target.starts_with("/favicon") {
-            let _ = stream.write_all(b"HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n").await;
+            let _ = stream
+                .write_all(b"HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n")
+                .await;
             let _ = stream.shutdown().await;
             continue;
         }
@@ -166,13 +173,20 @@ pub async fn redirect_code(
         let query = target.split_once('?').map(|(_, q)| q).unwrap_or("");
         let params = parse_query(query);
 
-        let code = params.iter().find(|(k, _)| k == "code").map(|(_, v)| v.clone());
-        let state = params.iter().find(|(k, _)| k == "state").map(|(_, v)| v.clone());
-        let error = params.iter().find(|(k, _)| k == "error").map(|(_, v)| v.clone());
+        let code = params
+            .iter()
+            .find(|(k, _)| k == "code")
+            .map(|(_, v)| v.clone());
+        let state = params
+            .iter()
+            .find(|(k, _)| k == "state")
+            .map(|(_, v)| v.clone());
+        let error = params
+            .iter()
+            .find(|(k, _)| k == "error")
+            .map(|(_, v)| v.clone());
 
-        let ok = code.is_some()
-            && state.as_deref() == Some(expected_state)
-            && error.is_none();
+        let ok = code.is_some() && state.as_deref() == Some(expected_state) && error.is_none();
         let page = if ok {
             "<!doctype html><meta charset=\"utf-8\"><title>Genrl</title><p>You can close this tab now.</p>"
                 .to_string()
@@ -189,15 +203,19 @@ pub async fn redirect_code(
         let _ = stream.shutdown().await;
 
         match (code, state, error) {
-            (_, _, Some(denied)) => return Err(Error::Auth {
-                service: "mal".to_string(),
-                message: format!("MyAnimeList denied the login: {denied}"),
-            }),
+            (_, _, Some(denied)) => {
+                return Err(Error::Auth {
+                    service: "mal".to_string(),
+                    message: format!("MyAnimeList denied the login: {denied}"),
+                })
+            }
             (Some(code), Some(state), None) if state == expected_state => return Ok(code),
-            _ => return Err(Error::Auth {
-                service: "mal".to_string(),
-                message: "the redirect state did not match; refusing the code".to_string(),
-            }),
+            _ => {
+                return Err(Error::Auth {
+                    service: "mal".to_string(),
+                    message: "the redirect state did not match; refusing the code".to_string(),
+                })
+            }
         }
     }
 }

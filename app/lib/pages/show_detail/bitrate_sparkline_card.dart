@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
+
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
 
 class BitrateSparklineCard extends StatelessWidget {
   final String durationLabel;
 
-  const BitrateSparklineCard({
-    super.key,
-    required this.durationLabel,
-  });
+  const BitrateSparklineCard({super.key, required this.durationLabel});
 
   @override
   Widget build(BuildContext context) {
@@ -27,14 +25,18 @@ class BitrateSparklineCard extends StatelessWidget {
               Flexible(
                 child: Text(
                   'BITRATE PROFILE ($durationLabel)',
-                  style: ObsidianTypography.monoCode(color: ObsidianColors.outline).copyWith(fontSize: 9),
+                  style: ObsidianTypography.monoCode(
+                    color: ObsidianColors.outline,
+                  ).copyWith(fontSize: 9),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
               const SizedBox(width: 4),
               Text(
                 'Avg 18.7 Mbps',
-                style: ObsidianTypography.monoMetric(color: ObsidianColors.tertiary).copyWith(fontSize: 10),
+                style: ObsidianTypography.monoMetric(
+                  color: ObsidianColors.tertiary,
+                ).copyWith(fontSize: 10),
               ),
             ],
           ),
@@ -49,19 +51,31 @@ class BitrateSparklineCard extends StatelessWidget {
               color: ObsidianColors.surfaceContainerLowest,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: CustomPaint(
-              painter: _BitrateSparklinePainter(),
-            ),
+            child: CustomPaint(painter: _BitrateSparklinePainter()),
           ),
           const SizedBox(height: 6),
 
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('00:00', style: ObsidianTypography.monoCode(color: ObsidianColors.outline).copyWith(fontSize: 9)),
-              Text('Bitrate Sparkline', style: ObsidianTypography.monoCode(color: ObsidianColors.outline).copyWith(fontSize: 9)),
-              Text(durationLabel,
-                  style: ObsidianTypography.monoCode(color: ObsidianColors.outline).copyWith(fontSize: 9)),
+              Text(
+                '00:00',
+                style: ObsidianTypography.monoCode(
+                  color: ObsidianColors.outline,
+                ).copyWith(fontSize: 9),
+              ),
+              Text(
+                'Bitrate Sparkline',
+                style: ObsidianTypography.monoCode(
+                  color: ObsidianColors.outline,
+                ).copyWith(fontSize: 9),
+              ),
+              Text(
+                durationLabel,
+                style: ObsidianTypography.monoCode(
+                  color: ObsidianColors.outline,
+                ).copyWith(fontSize: 9),
+              ),
             ],
           ),
         ],

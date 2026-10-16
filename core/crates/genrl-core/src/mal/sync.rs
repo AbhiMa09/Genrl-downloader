@@ -42,7 +42,10 @@ impl SyncReport {
             ));
         }
         if self.metadata_jobs_queued > 0 {
-            s.push_str(&format!(", {} metadata refresh jobs queued", self.metadata_jobs_queued));
+            s.push_str(&format!(
+                ", {} metadata refresh jobs queued",
+                self.metadata_jobs_queued
+            ));
         }
         s
     }
@@ -94,28 +97,35 @@ pub async fn sync(client: &MalClient<'_>) -> Result<SyncReport> {
         crate::planner::upsert_names(&db, &m.entry)?;
 
         let prev_title: Option<String> = db.with(|c| {
-            Ok(c.query_row(
-                "SELECT title FROM shows WHERE mal_id = ?1",
-                [id],
-                |r| r.get::<_, String>(0),
+            Ok(
+                c.query_row("SELECT title FROM shows WHERE mal_id = ?1", [id], |r| {
+                    r.get::<_, String>(0)
+                })
+                .ok(),
             )
-            .ok())
         })?;
 
         match load_mal_entry(&db, id)? {
             None => {
                 save_mal_entry(&db, m)?;
                 report.added += 1;
-                let _ = log.info(None, Some(id), format!("MAL sync: added \"{}\"", m.entry.title));
+                let _ = log.info(
+                    None,
+                    Some(id),
+                    format!("MAL sync: added \"{}\"", m.entry.title),
+                );
             }
             Some(stored) => {
                 if let Some(old) = prev_title {
                     if old != m.entry.title {
                         report.renamed.push(m.entry.title.clone());
-                        let detail =
-                            format!("MAL renamed this entry from \"{old}\" to \"{}\"", m.entry.title);
+                        let detail = format!(
+                            "MAL renamed this entry from \"{old}\" to \"{}\"",
+                            m.entry.title
+                        );
                         let expires = i64::from(settings.question_expiry_hours) * 3600;
-                        if raise_entry_changed(&db, now, id, &m.entry.title, detail, Some(expires))? {
+                        if raise_entry_changed(&db, now, id, &m.entry.title, detail, Some(expires))?
+                        {
                             let _ = log.warn(
                                 None,
                                 Some(id),
@@ -169,7 +179,11 @@ pub async fn sync(client: &MalClient<'_>) -> Result<SyncReport> {
         None,
         format!(
             "MAL sync: {} new, {} updated, {} unchanged, {} removed, {} metadata refresh queued",
-            report.added, report.updated, report.unchanged, report.removed, report.metadata_jobs_queued
+            report.added,
+            report.updated,
+            report.unchanged,
+            report.removed,
+            report.metadata_jobs_queued
         ),
     );
     Ok(report)
@@ -329,9 +343,7 @@ pub async fn sync_if_due(
         Ok(true) => {}
         _ => return None,
     }
-    if store.refresh_token().ok().flatten().is_none() {
-        return None;
-    }
+    store.refresh_token().ok().flatten()?;
     let client = MalClient::new(gate, settings, store, clock);
     match sync(&client).await {
         Ok(report) => Some(report),

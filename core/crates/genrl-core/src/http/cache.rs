@@ -100,7 +100,10 @@ pub fn prune(db: &Db, keep: u64) -> Result<usize> {
 /// Drop expired rows (called on startup and periodically).
 pub fn purge_expired(db: &Db) -> Result<usize> {
     db.with(|c| {
-        c.execute("DELETE FROM http_cache WHERE fetched_at + ttl < ?1", [now_unix()])?;
+        c.execute(
+            "DELETE FROM http_cache WHERE fetched_at + ttl < ?1",
+            [now_unix()],
+        )?;
         Ok(c.changes() as usize)
     })
 }

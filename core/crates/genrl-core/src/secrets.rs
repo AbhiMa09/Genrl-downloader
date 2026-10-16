@@ -130,7 +130,10 @@ mod tests {
     #[test]
     fn secrets_have_distinct_identities() {
         assert_ne!(Secret::QbitPassword.key(), Secret::MalRefreshToken.key());
-        assert_ne!(Secret::QbitPassword.env_var(), Secret::MalRefreshToken.env_var());
+        assert_ne!(
+            Secret::QbitPassword.env_var(),
+            Secret::MalRefreshToken.env_var()
+        );
         assert_eq!(Secret::QbitPassword.key(), "qbit_password");
     }
 

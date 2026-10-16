@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
@@ -47,14 +48,20 @@ class SearchCard extends StatelessWidget {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text('QUERY STRING / TORZNAB QUERY',
-                                style: ObsidianTypography.labelBadge(
-                                    color: ObsidianColors.outline,
-                                    fontSize: 9)),
-                            Text('Auto-Sanitizing CRC32 hashes',
-                                style: ObsidianTypography.monoCode(
-                                    color: ObsidianColors.outline,
-                                    fontSize: 9)),
+                            Text(
+                              'QUERY STRING / TORZNAB QUERY',
+                              style: ObsidianTypography.labelBadge(
+                                color: ObsidianColors.outline,
+                                fontSize: 9,
+                              ),
+                            ),
+                            Text(
+                              'Auto-Sanitizing CRC32 hashes',
+                              style: ObsidianTypography.monoCode(
+                                color: ObsidianColors.outline,
+                                fontSize: 9,
+                              ),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 6),
@@ -68,21 +75,25 @@ class SearchCard extends StatelessWidget {
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.search_rounded,
-                                  size: 20, color: ObsidianColors.outline),
+                              const Icon(
+                                Icons.search_rounded,
+                                size: 20,
+                                color: ObsidianColors.outline,
+                              ),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: TextField(
                                   controller: searchController,
                                   style: ObsidianTypography.monoCode(
-                                      color: ObsidianColors.onSurface,
-                                      fontSize: 12),
+                                    color: ObsidianColors.onSurface,
+                                    fontSize: 12,
+                                  ),
                                   decoration: InputDecoration(
-                                    hintText:
-                                        'Search anime release or torrent hash...',
+                                    hintText: 'Search anime release or torrent hash...',
                                     hintStyle: ObsidianTypography.monoCode(
-                                        color: ObsidianColors.outline,
-                                        fontSize: 12),
+                                      color: ObsidianColors.outline,
+                                      fontSize: 12,
+                                    ),
                                     border: InputBorder.none,
                                     isDense: true,
                                   ),
@@ -90,8 +101,11 @@ class SearchCard extends StatelessWidget {
                                 ),
                               ),
                               IconButton(
-                                icon: const Icon(Icons.close_rounded,
-                                    size: 16, color: ObsidianColors.outline),
+                                icon: const Icon(
+                                  Icons.close_rounded,
+                                  size: 16,
+                                  color: ObsidianColors.outline,
+                                ),
                                 onPressed: onReset,
                                 padding: EdgeInsets.zero,
                                 constraints: const BoxConstraints(),
@@ -99,16 +113,20 @@ class SearchCard extends StatelessWidget {
                               const SizedBox(width: 6),
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 6, vertical: 2),
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
-                                  color:
-                                      ObsidianColors.surfaceContainerHighest,
+                                  color: ObsidianColors.surfaceContainerHighest,
                                   borderRadius: BorderRadius.circular(4),
                                 ),
-                                child: Text('ENTER',
-                                    style: ObsidianTypography.monoCode(
-                                        color: ObsidianColors.outline,
-                                        fontSize: 9)),
+                                child: Text(
+                                  'ENTER',
+                                  style: ObsidianTypography.monoCode(
+                                    color: ObsidianColors.outline,
+                                    fontSize: 9,
+                                  ),
+                                ),
                               ),
                             ],
                           ),
@@ -130,14 +148,20 @@ class SearchCard extends StatelessWidget {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text('LIBRARY TARGET BINDING',
-                                style: ObsidianTypography.labelBadge(
-                                    color: ObsidianColors.outline,
-                                    fontSize: 9)),
-                            Text('Linked',
-                                style: ObsidianTypography.monoCode(
-                                    color: ObsidianColors.tertiary,
-                                    fontSize: 9)),
+                            Text(
+                              'LIBRARY TARGET BINDING',
+                              style: ObsidianTypography.labelBadge(
+                                color: ObsidianColors.outline,
+                                fontSize: 9,
+                              ),
+                            ),
+                            Text(
+                              'Linked',
+                              style: ObsidianTypography.monoCode(
+                                color: ObsidianColors.tertiary,
+                                fontSize: 9,
+                              ),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 6),
@@ -155,12 +179,12 @@ class SearchCard extends StatelessWidget {
                                 width: 28,
                                 height: 32,
                                 decoration: BoxDecoration(
-                                  color: ObsidianColors
-                                      .surfaceContainerHighest,
+                                  color: ObsidianColors.surfaceContainerHighest,
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 clipBehavior: Clip.antiAlias,
-                                child: (state.selectedShow?.posterUrl ??
+                                child:
+                                    (state.selectedShow?.posterUrl ??
                                             (state.shows.isNotEmpty
                                                 ? state.shows.first.posterUrl
                                                 : null)) !=
@@ -170,21 +194,23 @@ class SearchCard extends StatelessWidget {
                                             state.shows.first.posterUrl)!,
                                         fit: BoxFit.cover,
                                         errorBuilder: (_, __, ___) =>
-                                            const Icon(Icons.movie_rounded,
-                                                size: 14,
-                                                color: ObsidianColors.outline),
+                                            const Icon(
+                                              Icons.movie_rounded,
+                                              size: 14,
+                                              color: ObsidianColors.outline,
+                                            ),
                                       )
-                                    : const Icon(Icons.movie_rounded,
+                                    : const Icon(
+                                        Icons.movie_rounded,
                                         size: 14,
-                                        color: ObsidianColors.outline),
+                                        color: ObsidianColors.outline,
+                                      ),
                               ),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Text(
                                       state.selectedShow?.title ??
@@ -192,7 +218,8 @@ class SearchCard extends StatelessWidget {
                                               ? state.shows.first.title
                                               : 'No Target Bound'),
                                       style: ObsidianTypography.titleSm(
-                                          fontSize: 11),
+                                        fontSize: 11,
+                                      ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
@@ -201,14 +228,18 @@ class SearchCard extends StatelessWidget {
                                           ? 'S01 • Monitored'
                                           : 'Manual Indexer Search',
                                       style: ObsidianTypography.monoCode(
-                                          color: ObsidianColors.outline,
-                                          fontSize: 9),
+                                        color: ObsidianColors.outline,
+                                        fontSize: 9,
+                                      ),
                                     ),
                                   ],
                                 ),
                               ),
-                              const Icon(Icons.unfold_more_rounded,
-                                  size: 16, color: ObsidianColors.outline),
+                              const Icon(
+                                Icons.unfold_more_rounded,
+                                size: 16,
+                                color: ObsidianColors.outline,
+                              ),
                             ],
                           ),
                         ),
@@ -228,15 +259,21 @@ class SearchCard extends StatelessWidget {
               Row(
                 children: [
                   Container(
-                      width: 6,
-                      height: 6,
-                      decoration: const BoxDecoration(
-                          color: ObsidianColors.primary,
-                          shape: BoxShape.circle)),
+                    width: 6,
+                    height: 6,
+                    decoration: const BoxDecoration(
+                      color: ObsidianColors.primary,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
                   const SizedBox(width: 6),
-                  Text('Auto-categorized as: Anime / 1080p Web-DL',
-                      style: ObsidianTypography.monoCode(
-                          color: ObsidianColors.outline, fontSize: 10)),
+                  Text(
+                    'Auto-categorized as: Anime / 1080p Web-DL',
+                    style: ObsidianTypography.monoCode(
+                      color: ObsidianColors.outline,
+                      fontSize: 10,
+                    ),
+                  ),
                 ],
               ),
               Row(
@@ -244,12 +281,16 @@ class SearchCard extends StatelessWidget {
                   OutlinedButton.icon(
                     onPressed: onReset,
                     icon: const Icon(Icons.restart_alt_rounded, size: 14),
-                    label: Text('Reset Query',
-                        style: ObsidianTypography.bodySm(fontSize: 11)),
+                    label: Text(
+                      'Reset Query',
+                      style: ObsidianTypography.bodySm(fontSize: 11),
+                    ),
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: ObsidianColors.border),
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 6),
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -260,18 +301,26 @@ class SearchCard extends StatelessWidget {
                             width: 14,
                             height: 14,
                             child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: ObsidianColors.onPrimary))
+                              strokeWidth: 2,
+                              color: ObsidianColors.onPrimary,
+                            ),
+                          )
                         : const Icon(Icons.travel_explore_rounded, size: 16),
-                    label: Text('Search Indexers',
-                        style: ObsidianTypography.titleSm(
-                            color: ObsidianColors.onPrimary, fontSize: 11)),
+                    label: Text(
+                      'Search Indexers',
+                      style: ObsidianTypography.titleSm(
+                        color: ObsidianColors.onPrimary,
+                        fontSize: 11,
+                      ),
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: ObsidianColors.primary,
                       foregroundColor: ObsidianColors.onPrimary,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 8),
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
                     ),
                   ),
                 ],

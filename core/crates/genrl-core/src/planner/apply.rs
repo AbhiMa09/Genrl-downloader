@@ -12,12 +12,7 @@ use super::preview::{build_preview, store_pending, PlanOutcome, PlanPreview};
 pub const RECHECK_SECS: i64 = 7 * 24 * 3600;
 
 /// Plan from a list. `force` ignores the weekly cadence.
-pub fn plan(
-    db: &Db,
-    clock: &dyn Clock,
-    list: &MalList,
-    force: bool,
-) -> Result<PlanOutcome> {
+pub fn plan(db: &Db, clock: &dyn Clock, list: &MalList, force: bool) -> Result<PlanOutcome> {
     let settings = Settings::load(db)?;
     let now = clock.now();
 
@@ -25,14 +20,13 @@ pub fn plan(
     // from becoming "re-plan every launch".
     if !force {
         let last: Option<i64> = db.with(|c| {
-            Ok(c
-                .query_row(
-                    "SELECT value FROM settings WHERE key = 'state.last_plan_at'",
-                    [],
-                    |r| r.get::<_, String>(0),
-                )
-                .ok()
-                .and_then(|raw| serde_json::from_str::<i64>(&raw).ok()))
+            Ok(c.query_row(
+                "SELECT value FROM settings WHERE key = 'state.last_plan_at'",
+                [],
+                |r| r.get::<_, String>(0),
+            )
+            .ok()
+            .and_then(|raw| serde_json::from_str::<i64>(&raw).ok()))
         })?;
         if let Some(last) = last {
             if now - last < RECHECK_SECS {
@@ -70,14 +64,13 @@ pub fn plan(
 /// Apply the stored first-sync preview, capped at the (tighter) first-sync cap.
 pub fn confirm(db: &Db, clock: &dyn Clock, list: &MalList) -> Result<usize> {
     let pending: Option<PlanPreview> = db.with(|c| {
-        Ok(c
-            .query_row(
-                "SELECT value FROM settings WHERE key = 'state.pending_plan'",
-                [],
-                |r| r.get::<_, String>(0),
-            )
-            .ok()
-            .and_then(|raw| serde_json::from_str(&raw).ok()))
+        Ok(c.query_row(
+            "SELECT value FROM settings WHERE key = 'state.pending_plan'",
+            [],
+            |r| r.get::<_, String>(0),
+        )
+        .ok()
+        .and_then(|raw| serde_json::from_str(&raw).ok()))
     })?;
     let Some(preview) = pending else {
         return Ok(0);
@@ -197,7 +190,13 @@ pub(crate) fn apply_preview(
     preview: &PlanPreview,
 ) -> Result<usize> {
     let settings = Settings::load(db)?;
-    apply_preview_capped(db, clock, list, preview, settings.daily_torrent_cap as usize)
+    apply_preview_capped(
+        db,
+        clock,
+        list,
+        preview,
+        settings.daily_torrent_cap as usize,
+    )
 }
 
 pub(crate) fn apply_preview_capped(

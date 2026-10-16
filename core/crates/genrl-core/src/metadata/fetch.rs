@@ -10,7 +10,9 @@ use crate::http::{Gate, GetOptions, Service};
 use crate::settings::{self, Settings};
 
 use super::apply::{apply_jikan_metadata, apply_mal_metadata, MetadataOutcome};
-use super::models::{calculate_backoff, JikanFullData, JikanFullResponse, MalApiAnimeDetailResponse};
+use super::models::{
+    calculate_backoff, JikanFullData, JikanFullResponse, MalApiAnimeDetailResponse,
+};
 
 /// Fetch metadata for a show through the Gate.
 /// 1. Check 7-day cache: if fresh and !force, returns Cached.
@@ -55,11 +57,20 @@ pub async fn fetch_show_metadata(
         .map_err(Into::into)
     });
 
-    let (title, english_title, existing_syn, existing_poster, meta_status, updated_at, next_retry, retry_count, folder_path) =
-        match show_row {
-            Ok(data) => data,
-            Err(e) => return Err(e),
-        };
+    let (
+        title,
+        english_title,
+        existing_syn,
+        existing_poster,
+        meta_status,
+        updated_at,
+        next_retry,
+        retry_count,
+        folder_path,
+    ) = match show_row {
+        Ok(data) => data,
+        Err(e) => return Err(e),
+    };
 
     let meta_status_str = meta_status.unwrap_or_else(|| "pending".into());
     let retry_cnt = retry_count.unwrap_or(0) as u32;
@@ -74,7 +85,10 @@ pub async fn fetch_show_metadata(
     if !force && meta_status_str == "ready" {
         if let Some(ts) = updated_at {
             if now - ts < 7 * 86400 {
-                let syn_ok = existing_syn.as_deref().map(|s| !s.trim().is_empty()).unwrap_or(false);
+                let syn_ok = existing_syn
+                    .as_deref()
+                    .map(|s| !s.trim().is_empty())
+                    .unwrap_or(false);
                 if syn_ok && poster_is_local_file {
                     return Ok(MetadataOutcome::Cached { mal_id });
                 }
@@ -156,10 +170,18 @@ pub async fn fetch_show_metadata(
         if let Some(syn) = data.synopsis.as_ref() {
             if !syn.trim().is_empty() {
                 return apply_jikan_metadata(
-                    db, gate, data_dir, clock, mal_id, &title,
-                    english_title.as_deref(), folder_path.as_deref(),
-                    existing_poster.as_deref(), data,
-                ).await;
+                    db,
+                    gate,
+                    data_dir,
+                    clock,
+                    mal_id,
+                    &title,
+                    english_title.as_deref(),
+                    folder_path.as_deref(),
+                    existing_poster.as_deref(),
+                    data,
+                )
+                .await;
             }
         }
     }
@@ -184,10 +206,18 @@ pub async fn fetch_show_metadata(
                         if let Some(ref syn) = mal_data.synopsis {
                             if !syn.trim().is_empty() {
                                 return apply_mal_metadata(
-                                    db, gate, data_dir, clock, mal_id, &title,
-                                    english_title.as_deref(), folder_path.as_deref(),
-                                    existing_poster.as_deref(), &mal_data,
-                                ).await;
+                                    db,
+                                    gate,
+                                    data_dir,
+                                    clock,
+                                    mal_id,
+                                    &title,
+                                    english_title.as_deref(),
+                                    folder_path.as_deref(),
+                                    existing_poster.as_deref(),
+                                    &mal_data,
+                                )
+                                .await;
                             }
                         }
                     }
@@ -205,10 +235,18 @@ pub async fn fetch_show_metadata(
     // If Jikan had metadata (e.g. title/score/images) but no synopsis, apply what it had
     if let Some(data) = jikan_fetched_data {
         return apply_jikan_metadata(
-            db, gate, data_dir, clock, mal_id, &title,
-            english_title.as_deref(), folder_path.as_deref(),
-            existing_poster.as_deref(), &data,
-        ).await;
+            db,
+            gate,
+            data_dir,
+            clock,
+            mal_id,
+            &title,
+            english_title.as_deref(),
+            folder_path.as_deref(),
+            existing_poster.as_deref(),
+            &data,
+        )
+        .await;
     }
 
     // 6. Failure handling:
@@ -224,11 +262,7 @@ pub async fn fetch_show_metadata(
                     metadata_retry_count = ?1,
                     metadata_error = ?2
                  WHERE mal_id = ?3",
-                rusqlite::params![
-                    retry_cnt + 1,
-                    err_str,
-                    mal_id,
-                ],
+                rusqlite::params![retry_cnt + 1, err_str, mal_id,],
             )?;
             Ok(())
         });
@@ -238,7 +272,10 @@ pub async fn fetch_show_metadata(
             let folder_p = Path::new(folder);
             if folder_p.is_dir() {
                 let syn_file = folder_p.join("synopsis.txt");
-                let _ = fs::write(syn_file, format!("[Synopsis unavailable: show #{mal_id} returned 404 Not Found]\n"));
+                let _ = fs::write(
+                    syn_file,
+                    format!("[Synopsis unavailable: show #{mal_id} returned 404 Not Found]\n"),
+                );
             }
         }
 
@@ -258,7 +295,8 @@ pub async fn fetch_show_metadata(
     let new_retry_count = retry_cnt + 1;
     let backoff_secs = calculate_backoff(new_retry_count);
     let next_run_at = now + backoff_secs;
-    let err_str = last_error.unwrap_or_else(|| "Failed to fetch metadata from Jikan or MAL".to_string());
+    let err_str =
+        last_error.unwrap_or_else(|| "Failed to fetch metadata from Jikan or MAL".to_string());
 
     let _ = db.with(|c| {
         c.execute(
@@ -269,12 +307,7 @@ pub async fn fetch_show_metadata(
                 metadata_retry_count = ?2,
                 metadata_error = ?3
              WHERE mal_id = ?4",
-            rusqlite::params![
-                next_run_at,
-                new_retry_count,
-                err_str,
-                mal_id,
-            ],
+            rusqlite::params![next_run_at, new_retry_count, err_str, mal_id,],
         )?;
         Ok(())
     });
@@ -284,14 +317,19 @@ pub async fn fetch_show_metadata(
         let folder_p = Path::new(folder);
         if folder_p.is_dir() {
             let syn_file = folder_p.join("synopsis.txt");
-            let _ = fs::write(syn_file, format!("[Synopsis pending metadata sync for show #{mal_id}]\n"));
+            let _ = fs::write(
+                syn_file,
+                format!("[Synopsis pending metadata sync for show #{mal_id}]\n"),
+            );
         }
     }
 
     let _ = log.warn(
         None,
         Some(mal_id),
-        format!("Metadata fetch failed for show #{mal_id}: {err_str}. Retrying in {backoff_secs}s."),
+        format!(
+            "Metadata fetch failed for show #{mal_id}: {err_str}. Retrying in {backoff_secs}s."
+        ),
     );
 
     Ok(MetadataOutcome::PendingRetry {

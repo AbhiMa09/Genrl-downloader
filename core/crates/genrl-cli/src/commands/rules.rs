@@ -1,7 +1,7 @@
-use std::path::Path;
 use anyhow::Result;
 use clap::Subcommand;
 use genrl_core::EventLog;
+use std::path::Path;
 
 use super::common::open_db;
 
@@ -44,12 +44,7 @@ pub fn rules_get_cmd(data_dir: &Path, mal_id: Option<i64>) -> Result<()> {
     Ok(())
 }
 
-pub fn rules_set_cmd(
-    data_dir: &Path,
-    key: &str,
-    val_str: &str,
-    mal_id: Option<i64>,
-) -> Result<()> {
+pub fn rules_set_cmd(data_dir: &Path, key: &str, val_str: &str, mal_id: Option<i64>) -> Result<()> {
     let db = open_db(data_dir)?;
     let log = EventLog::new(db.clone());
     let value: serde_json::Value = serde_json::from_str(val_str)
@@ -66,11 +61,7 @@ pub fn rules_set_cmd(
     Ok(())
 }
 
-pub fn rules_reset_cmd(
-    data_dir: &Path,
-    key: Option<&str>,
-    mal_id: Option<i64>,
-) -> Result<()> {
+pub fn rules_reset_cmd(data_dir: &Path, key: Option<&str>, mal_id: Option<i64>) -> Result<()> {
     let db = open_db(data_dir)?;
     let log = EventLog::new(db.clone());
     genrl_core::rules::reset_rule(&db, mal_id, key, &log)?;

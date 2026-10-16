@@ -7,12 +7,15 @@ pub fn sanitize_component(name: &str) -> String {
     let mut out = String::with_capacity(name.len());
     for c in name.chars() {
         // Disallow path separators and unsafe filename characters
-        if matches!(c, '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|' | '\0') {
+        if matches!(
+            c,
+            '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|' | '\0'
+        ) {
             out.push('-');
             continue;
         }
         // Disallow control characters
-        if c < ' ' || (c >= '\x7f' && c <= '\u{9F}') {
+        if c < ' ' || ('\x7f'..='\u{9F}').contains(&c) {
             continue;
         }
         // Disallow Unicode bidi overrides (Threat model §2)
@@ -66,6 +69,7 @@ pub fn is_video_file(path: &Path) -> bool {
 }
 
 /// Format the synopsis.txt contents according to the design specification.
+#[allow(clippy::too_many_arguments)]
 pub fn format_synopsis(
     title: &str,
     english_title: Option<&str>,
@@ -113,8 +117,13 @@ pub fn format_synopsis(
         let clean_genres: Vec<String> = genres.iter().map(|g| sanitize_single_line(g)).collect();
         out.push_str(&format!("Genres: {}\n", clean_genres.join(", ")));
     }
-    out.push_str(&format!("MAL URL: https://myanimelist.net/anime/{mal_id}\n"));
-    out.push_str(&format!("Date written: {}\n\n", sanitize_single_line(date_written)));
+    out.push_str(&format!(
+        "MAL URL: https://myanimelist.net/anime/{mal_id}\n"
+    ));
+    out.push_str(&format!(
+        "Date written: {}\n\n",
+        sanitize_single_line(date_written)
+    ));
 
     out.push_str("Synopsis:\n");
     match synopsis_text {

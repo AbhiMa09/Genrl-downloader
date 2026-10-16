@@ -1,10 +1,10 @@
-use std::path::Path;
 use anyhow::{bail, Result};
 use clap::Subcommand;
 use genrl_core::clock::{Clock, SystemClock};
 use genrl_core::http::Gate;
 use genrl_core::mal::{self, KeyringStore, MalClient, TokenStore};
 use genrl_core::{settings, Settings};
+use std::path::Path;
 
 use super::common::open_db;
 
@@ -90,11 +90,15 @@ pub async fn mal_login_cmd(
     println!("Authorize URL:\n\n  {}\n", login.url());
     println!("Listening on: {}", login.redirect_uri());
     if !no_open {
-        let _ = std::process::Command::new("xdg-open").arg(login.url()).spawn();
+        let _ = std::process::Command::new("xdg-open")
+            .arg(login.url())
+            .spawn();
     }
     println!("waiting for the redirect on 127.0.0.1 (up to 5 minutes)...");
     let client = MalClient::new(&gate, settings, &store, &clock);
-    login.finish(&client, std::time::Duration::from_secs(300)).await?;
+    login
+        .finish(&client, std::time::Duration::from_secs(300))
+        .await?;
     let account = client.account().await?;
     settings::write_state(&db, "mal_account", &account.name)?;
     settings::write_state(&db, mal::ACCOUNT_SOURCE_STATE_KEY, "mal")?;
@@ -140,7 +144,11 @@ pub async fn mal_status_cmd(data_dir: &Path, json: bool) -> Result<()> {
     let client_id = settings.mal_client_id.trim();
     println!(
         "client id   : {}",
-        if client_id.is_empty() { "(unset)" } else { client_id }
+        if client_id.is_empty() {
+            "(unset)"
+        } else {
+            client_id
+        }
     );
     println!("total anime : {}", res.counts.total);
     println!("  watching  : {}", res.counts.watching);

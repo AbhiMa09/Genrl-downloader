@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../models/inbox_item.dart';
 import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
@@ -66,7 +67,9 @@ class InboxDynamicCard extends StatelessWidget {
             child: Text(
               item.details,
               style: ObsidianTypography.bodySm(
-                  color: ObsidianColors.onSurfaceVariant, fontSize: 11),
+                color: ObsidianColors.onSurfaceVariant,
+                fontSize: 11,
+              ),
             ),
           ),
           const SizedBox(height: 14),
@@ -78,7 +81,9 @@ class InboxDynamicCard extends StatelessWidget {
               return ElevatedButton(
                 onPressed: () {
                   onResolve(
-                      'item-${item.id}', '${choice.label} for ${item.title}');
+                    'item-${item.id}',
+                    '${choice.label} for ${item.title}',
+                  );
                   state.answerInboxQuestion(item.id, choice.key);
                 },
                 style: ElevatedButton.styleFrom(
@@ -92,9 +97,12 @@ class InboxDynamicCard extends StatelessWidget {
                       ? BorderSide.none
                       : const BorderSide(color: ObsidianColors.border),
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 10),
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
                 child: Text(
                   choice.label,

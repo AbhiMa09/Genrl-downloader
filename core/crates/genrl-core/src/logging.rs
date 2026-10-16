@@ -158,8 +158,8 @@ impl<'a> tracing_subscriber::fmt::MakeWriter<'a> for MultiWriter {
 pub fn init(config: &LogConfig) -> Result<()> {
     use tracing_subscriber::EnvFilter;
 
-    let filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new(config.level.clone()));
+    let filter =
+        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(config.level.clone()));
 
     let mut sinks: Vec<Mutex<Box<dyn Write + Send + Sync>>> =
         vec![Mutex::new(Box::new(RotatingWriter::open(config)?))];
@@ -244,7 +244,10 @@ mod tests {
 
         write_bytes(&mut writer, 600); // rotate again -> .1 becomes .2
         assert!(numbered(&path, 2).exists());
-        assert!(numbered(&path, 3).exists() == false, "keep = 2 caps the chain");
+        assert!(
+            numbered(&path, 3).exists() == false,
+            "keep = 2 caps the chain"
+        );
     }
 
     #[test]

@@ -1,9 +1,9 @@
-use std::path::Path;
 use anyhow::{bail, Result};
 use clap::Subcommand;
 use genrl_core::http::{is_acceptable_link, Gate, Service};
 use genrl_core::nyaa::SearchQuery;
 use genrl_core::{filename, nyaa, qbit, secrets, EventLog, Settings};
+use std::path::Path;
 
 use super::common::{fmt_eta, human_bytes, open_db, truncate_text};
 
@@ -84,8 +84,8 @@ pub async fn search_cmd(
     }
 
     println!(
-        "{:>3}  {:>4}  {:>7}  {:<12}  {:>4}  {:<5}  {:<50}  {}",
-        "#", "SEE", "SIZE", "GROUP", "EP", "RES", "TITLE", "LINK"
+        "{:>3}  {:>4}  {:>7}  {:<12}  {:>4}  {:<5}  {:<50}  LINK",
+        "#", "SEE", "SIZE", "GROUP", "EP", "RES", "TITLE"
     );
     for (index, item) in items.iter().enumerate() {
         let release = filename::parse_release(&item.title);
@@ -250,8 +250,8 @@ pub async fn torrents_cmd(data_dir: &Path, filter: Option<&str>, json: bool) -> 
         return Ok(());
     }
     println!(
-        "{:>6}  {:<14}  {:>6}  {:>9}  {:>9}  {:>8}  {}",
-        "PROG", "STATE", "SEEDS", "DOWN", "UP", "ETA", "NAME"
+        "{:>6}  {:<14}  {:>6}  {:>9}  {:>9}  {:>8}  NAME",
+        "PROG", "STATE", "SEEDS", "DOWN", "UP", "ETA"
     );
     for torrent in &torrents {
         println!(
@@ -315,10 +315,7 @@ pub async fn qbit_cmd(data_dir: &Path, command: QbitCommand) -> Result<()> {
             let speeds = client.speeds(&gate).await?;
             println!("url       : {}", settings.qbit_url);
             println!("login     : ok (as {})", settings.qbit_username);
-            println!(
-                "version   : {} (API {:?})",
-                health.version, health.gen
-            );
+            println!("version   : {} (API {:?})", health.version, health.gen);
             println!("breaker   : {:?}", gate.breaker_state(Service::Qbit));
             println!(
                 "speeds    : {} down, {} up",

@@ -158,6 +158,7 @@ class LibraryShow {
     );
   }
 
-  double get downloadPercentage =>
-      totalEpisodes > 0 ? (downloadedEpisodes / totalEpisodes).clamp(0.0, 1.0) : 0.0;
+  double get downloadPercentage => totalEpisodes > 0
+      ? (downloadedEpisodes / totalEpisodes).clamp(0.0, 1.0)
+      : 0.0;
 }

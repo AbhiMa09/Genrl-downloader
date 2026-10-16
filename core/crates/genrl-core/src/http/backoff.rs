@@ -47,7 +47,11 @@ mod tests {
         assert_eq!(delay_for(3, &schedule), Duration::from_secs(120));
         assert_eq!(delay_for(4, &schedule), Duration::from_secs(600));
         assert_eq!(delay_for(5, &schedule), Duration::from_secs(3600));
-        assert_eq!(delay_for(6, &schedule), Duration::from_secs(3600), "repeats the last step");
+        assert_eq!(
+            delay_for(6, &schedule),
+            Duration::from_secs(3600),
+            "repeats the last step"
+        );
     }
 
     #[test]
@@ -55,7 +59,10 @@ mod tests {
         let d = Duration::from_secs(10);
         for _ in 0..200 {
             let j = jitter(d);
-            assert!(j >= Duration::from_secs(9) && j <= Duration::from_secs(11), "{j:?}");
+            assert!(
+                j >= Duration::from_secs(9) && j <= Duration::from_secs(11),
+                "{j:?}"
+            );
         }
     }
 
@@ -63,7 +70,10 @@ mod tests {
     fn parses_retry_after_seconds() {
         assert_eq!(parse_retry_after(Some("42")), Some(Duration::from_secs(42)));
         assert_eq!(parse_retry_after(Some(" 7 ")), Some(Duration::from_secs(7)));
-        assert_eq!(parse_retry_after(Some("Wed, 21 Oct 2026 07:28:00 GMT")), None);
+        assert_eq!(
+            parse_retry_after(Some("Wed, 21 Oct 2026 07:28:00 GMT")),
+            None
+        );
         assert_eq!(parse_retry_after(None), None);
     }
 }

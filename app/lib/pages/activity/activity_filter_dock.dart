@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
@@ -49,19 +50,39 @@ class ActivityFilterDock extends StatelessWidget {
             children: [
               // Category chips
               _buildCategoryChip(
-                  'ALL', totalCount, ObsidianColors.primary, null),
+                'ALL',
+                totalCount,
+                ObsidianColors.primary,
+                null,
+              ),
               const SizedBox(width: 8),
-              _buildCategoryChip('INFO', infoCount, ObsidianColors.tertiary,
-                  ObsidianColors.tertiary),
+              _buildCategoryChip(
+                'INFO',
+                infoCount,
+                ObsidianColors.tertiary,
+                ObsidianColors.tertiary,
+              ),
               const SizedBox(width: 8),
-              _buildCategoryChip('COMMITTED', committedCount,
-                  ObsidianColors.secondary, ObsidianColors.secondary),
+              _buildCategoryChip(
+                'COMMITTED',
+                committedCount,
+                ObsidianColors.secondary,
+                ObsidianColors.secondary,
+              ),
               const SizedBox(width: 8),
-              _buildCategoryChip('WARN', warnCount, ObsidianColors.warning,
-                  ObsidianColors.warning),
+              _buildCategoryChip(
+                'WARN',
+                warnCount,
+                ObsidianColors.warning,
+                ObsidianColors.warning,
+              ),
               const SizedBox(width: 8),
-              _buildCategoryChip('ERROR', errorCount, ObsidianColors.error,
-                  ObsidianColors.error),
+              _buildCategoryChip(
+                'ERROR',
+                errorCount,
+                ObsidianColors.error,
+                ObsidianColors.error,
+              ),
 
               const SizedBox(width: 16),
               // Search input
@@ -76,19 +97,24 @@ class ActivityFilterDock extends StatelessWidget {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.filter_alt_rounded,
-                          size: 16, color: ObsidianColors.outline),
+                      const Icon(
+                        Icons.filter_alt_rounded,
+                        size: 16,
+                        color: ObsidianColors.outline,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: TextField(
                           onChanged: onSearchChanged,
                           style: ObsidianTypography.bodySm(
-                              color: ObsidianColors.onSurface),
+                            color: ObsidianColors.onSurface,
+                          ),
                           decoration: InputDecoration(
                             hintText:
                                 'Filter message, hash, rule ID, indexer...',
                             hintStyle: ObsidianTypography.bodySm(
-                                color: ObsidianColors.outline),
+                              color: ObsidianColors.outline,
+                            ),
                             border: InputBorder.none,
                             isDense: true,
                             contentPadding: EdgeInsets.zero,
@@ -97,14 +123,19 @@ class ActivityFilterDock extends StatelessWidget {
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 5, vertical: 1.5),
+                          horizontal: 5,
+                          vertical: 1.5,
+                        ),
                         decoration: BoxDecoration(
                           color: ObsidianColors.surfaceContainerHighest,
                           borderRadius: BorderRadius.circular(4),
                         ),
-                        child: Text('Ctrl+F',
-                            style: ObsidianTypography.labelBadge(
-                                color: ObsidianColors.outline)),
+                        child: Text(
+                          'Ctrl+F',
+                          style: ObsidianTypography.labelBadge(
+                            color: ObsidianColors.outline,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -122,35 +153,45 @@ class ActivityFilterDock extends StatelessWidget {
                   border: Border.all(color: ObsidianColors.border),
                 ),
                 child: DropdownButtonHideUnderline(
-                  child: Builder(builder: (context) {
-                    final state = context.watch<StateProvider>();
-                    final showTitles =
-                        state.shows.map((s) => s.title).toList();
-                    final currentVal = (showTitles.contains(selectedShow) ||
-                            selectedShow == 'All Monitored Shows')
-                        ? selectedShow
-                        : 'All Monitored Shows';
-                    return DropdownButton<String>(
-                      value: currentVal,
-                      dropdownColor: ObsidianColors.surfaceContainerHigh,
-                      icon: const Icon(Icons.expand_more_rounded,
-                          size: 16, color: ObsidianColors.outline),
-                      style: ObsidianTypography.bodySm(
-                          color: ObsidianColors.onSurface),
-                      items: [
-                        const DropdownMenuItem(
+                  child: Builder(
+                    builder: (context) {
+                      final state = context.watch<StateProvider>();
+                      final showTitles = state.shows
+                          .map((s) => s.title)
+                          .toList();
+                      final currentVal =
+                          (showTitles.contains(selectedShow) ||
+                              selectedShow == 'All Monitored Shows')
+                          ? selectedShow
+                          : 'All Monitored Shows';
+                      return DropdownButton<String>(
+                        value: currentVal,
+                        dropdownColor: ObsidianColors.surfaceContainerHigh,
+                        icon: const Icon(
+                          Icons.expand_more_rounded,
+                          size: 16,
+                          color: ObsidianColors.outline,
+                        ),
+                        style: ObsidianTypography.bodySm(
+                          color: ObsidianColors.onSurface,
+                        ),
+                        items: [
+                          const DropdownMenuItem(
                             value: 'All Monitored Shows',
-                            child: Text('All Monitored Shows')),
-                        ...showTitles.map((t) =>
-                            DropdownMenuItem(value: t, child: Text(t))),
-                      ],
-                      onChanged: (val) {
-                        if (val != null) {
-                          onSelectShow(val);
-                        }
-                      },
-                    );
-                  }),
+                            child: Text('All Monitored Shows'),
+                          ),
+                          ...showTitles.map(
+                            (t) => DropdownMenuItem(value: t, child: Text(t)),
+                          ),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) {
+                            onSelectShow(val);
+                          }
+                        },
+                      );
+                    },
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
@@ -168,19 +209,28 @@ class ActivityFilterDock extends StatelessWidget {
                   child: DropdownButton<String>(
                     value: selectedTimeRange,
                     dropdownColor: ObsidianColors.surfaceContainerHigh,
-                    icon: const Icon(Icons.schedule_rounded,
-                        size: 16, color: ObsidianColors.outline),
+                    icon: const Icon(
+                      Icons.schedule_rounded,
+                      size: 16,
+                      color: ObsidianColors.outline,
+                    ),
                     style: ObsidianTypography.bodySm(
-                        color: ObsidianColors.onSurface),
+                      color: ObsidianColors.onSurface,
+                    ),
                     items: const [
                       DropdownMenuItem(
-                          value: 'Last 7 Days', child: Text('Last 7 Days')),
+                        value: 'Last 7 Days',
+                        child: Text('Last 7 Days'),
+                      ),
+                      DropdownMenuItem(value: 'Today', child: Text('Today')),
                       DropdownMenuItem(
-                          value: 'Today', child: Text('Today')),
+                        value: 'Yesterday',
+                        child: Text('Yesterday'),
+                      ),
                       DropdownMenuItem(
-                          value: 'Yesterday', child: Text('Yesterday')),
-                      DropdownMenuItem(
-                          value: 'Last 30 Days', child: Text('Last 30 Days')),
+                        value: 'Last 30 Days',
+                        child: Text('Last 30 Days'),
+                      ),
                     ],
                     onChanged: (val) {
                       if (val != null) {
@@ -198,7 +248,11 @@ class ActivityFilterDock extends StatelessWidget {
   }
 
   Widget _buildCategoryChip(
-      String label, int count, Color color, Color? dotColor) {
+    String label,
+    int count,
+    Color color,
+    Color? dotColor,
+  ) {
     final isSelected = selectedLevel == label;
     return InkWell(
       onTap: () => onSelectLevel(label),
@@ -208,8 +262,8 @@ class ActivityFilterDock extends StatelessWidget {
         decoration: BoxDecoration(
           color: isSelected
               ? (label == 'ALL'
-                  ? ObsidianColors.primaryContainer
-                  : color.withOpacity(0.18))
+                    ? ObsidianColors.primaryContainer
+                    : color.withOpacity(0.18))
               : ObsidianColors.surfaceContainer,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
@@ -235,8 +289,8 @@ class ActivityFilterDock extends StatelessWidget {
               style: ObsidianTypography.monoCode(
                 color: isSelected
                     ? (label == 'ALL'
-                        ? ObsidianColors.onPrimaryContainer
-                        : color)
+                          ? ObsidianColors.onPrimaryContainer
+                          : color)
                     : ObsidianColors.onSurfaceVariant,
               ).copyWith(fontWeight: FontWeight.bold),
             ),
@@ -252,8 +306,8 @@ class ActivityFilterDock extends StatelessWidget {
                 style: ObsidianTypography.labelBadge(
                   color: isSelected
                       ? (label == 'ALL'
-                          ? ObsidianColors.onPrimaryContainer
-                          : color)
+                            ? ObsidianColors.onPrimaryContainer
+                            : color)
                       : ObsidianColors.outline,
                 ),
               ),

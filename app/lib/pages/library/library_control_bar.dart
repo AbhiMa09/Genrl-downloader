@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
 import 'poster_density.dart';
@@ -76,18 +77,23 @@ class LibraryControlBar extends StatelessWidget {
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.filter_list_rounded,
-                            size: 16, color: ObsidianColors.outline),
+                        const Icon(
+                          Icons.filter_list_rounded,
+                          size: 16,
+                          color: ObsidianColors.outline,
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: TextField(
                             controller: searchController,
                             style: ObsidianTypography.bodySm(
-                                color: ObsidianColors.onSurface),
+                              color: ObsidianColors.onSurface,
+                            ),
                             decoration: InputDecoration(
                               hintText: 'Filter library... (Ctrl+F)',
                               hintStyle: ObsidianTypography.bodySm(
-                                  color: ObsidianColors.outline),
+                                color: ObsidianColors.outline,
+                              ),
                               border: InputBorder.none,
                               isDense: true,
                             ),
@@ -96,15 +102,20 @@ class LibraryControlBar extends StatelessWidget {
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 4, vertical: 1.5),
+                            horizontal: 4,
+                            vertical: 1.5,
+                          ),
                           decoration: BoxDecoration(
                             color: ObsidianColors.surfaceContainerHighest,
                             borderRadius: BorderRadius.circular(4),
                           ),
-                          child: Text('Ctrl+F',
-                              style: ObsidianTypography.monoCode(
-                                  color: ObsidianColors.onSurfaceVariant,
-                                  fontSize: 9)),
+                          child: Text(
+                            'Ctrl+F',
+                            style: ObsidianTypography.monoCode(
+                              color: ObsidianColors.onSurfaceVariant,
+                              fontSize: 9,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -112,14 +123,23 @@ class LibraryControlBar extends StatelessWidget {
 
                   // Filter Chips
                   _buildChip('All', '$totalCount'),
-                  _buildChip('Watching', '$watchingCount',
-                      activeColor: ObsidianColors.tertiary),
+                  _buildChip(
+                    'Watching',
+                    '$watchingCount',
+                    activeColor: ObsidianColors.tertiary,
+                  ),
                   _buildChip('Plan to Watch', '$planCount'),
-                  _buildChip('On Hold', '$onHoldCount',
-                      activeColor: ObsidianColors.warning),
+                  _buildChip(
+                    'On Hold',
+                    '$onHoldCount',
+                    activeColor: ObsidianColors.warning,
+                  ),
                   _buildChip('Completed', '$completedCount'),
-                  _buildChip('Dropped', '$droppedCount',
-                      activeColor: ObsidianColors.outline),
+                  _buildChip(
+                    'Dropped',
+                    '$droppedCount',
+                    activeColor: ObsidianColors.outline,
+                  ),
                 ],
               ),
 
@@ -141,28 +161,38 @@ class LibraryControlBar extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text('SORT: ',
-                            style: ObsidianTypography.labelBadge(
-                                color: ObsidianColors.outline, fontSize: 9)),
+                        Text(
+                          'SORT: ',
+                          style: ObsidianTypography.labelBadge(
+                            color: ObsidianColors.outline,
+                            fontSize: 9,
+                          ),
+                        ),
                         DropdownButtonHideUnderline(
                           child: DropdownButton<String>(
                             value: selectedSort,
                             dropdownColor: ObsidianColors.surfaceContainerHigh,
                             style: ObsidianTypography.bodySm(
-                                color: ObsidianColors.onSurface, fontSize: 11),
+                              color: ObsidianColors.onSurface,
+                              fontSize: 11,
+                            ),
                             items: const [
                               DropdownMenuItem(
-                                  value: 'updated',
-                                  child: Text('Last Updated')),
+                                value: 'updated',
+                                child: Text('Last Updated'),
+                              ),
                               DropdownMenuItem(
-                                  value: 'title',
-                                  child: Text('Title (A-Z)')),
+                                value: 'title',
+                                child: Text('Title (A-Z)'),
+                              ),
                               DropdownMenuItem(
-                                  value: 'score',
-                                  child: Text('Community Score')),
+                                value: 'score',
+                                child: Text('Community Score'),
+                              ),
                               DropdownMenuItem(
-                                  value: 'progress',
-                                  child: Text('Completion Progress')),
+                                value: 'progress',
+                                child: Text('Completion Progress'),
+                              ),
                             ],
                             onChanged: (val) {
                               if (val != null) {
@@ -197,35 +227,52 @@ class LibraryControlBar extends StatelessWidget {
                   // Rescan & Add Series Buttons
                   OutlinedButton.icon(
                     onPressed: onRescan,
-                    icon: const Icon(Icons.autorenew_rounded,
-                        size: 16, color: ObsidianColors.tertiary),
-                    label: Text('Rescan folders',
-                        style: ObsidianTypography.bodySm(
-                            color: ObsidianColors.onSurface, fontSize: 11)),
+                    icon: const Icon(
+                      Icons.autorenew_rounded,
+                      size: 16,
+                      color: ObsidianColors.tertiary,
+                    ),
+                    label: Text(
+                      'Rescan folders',
+                      style: ObsidianTypography.bodySm(
+                        color: ObsidianColors.onSurface,
+                        fontSize: 11,
+                      ),
+                    ),
                     style: OutlinedButton.styleFrom(
                       backgroundColor: ObsidianColors.surfaceContainer,
                       side: const BorderSide(color: ObsidianColors.border),
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 8),
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                   ),
 
                   ElevatedButton.icon(
                     onPressed: onAddSeries,
                     icon: const Icon(Icons.add_rounded, size: 16),
-                    label: Text('Add Series',
-                        style: ObsidianTypography.titleSm(
-                            color: ObsidianColors.onPrimary, fontSize: 12)),
+                    label: Text(
+                      'Add Series',
+                      style: ObsidianTypography.titleSm(
+                        color: ObsidianColors.onPrimary,
+                        fontSize: 12,
+                      ),
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: ObsidianColors.primary,
                       foregroundColor: ObsidianColors.onPrimary,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 8),
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                   ),
                 ],

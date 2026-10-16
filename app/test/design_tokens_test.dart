@@ -76,51 +76,54 @@ void main() {
       expect(ObsidianRadius.full, equals(9999.0));
     });
 
-    test('Typography tokens match DESIGN.md font family, size and letter spacing', () {
-      final hXl = ObsidianTypography.headlineXl();
-      expect(hXl.fontSize, equals(32.0));
-      expect(hXl.fontWeight, equals(FontWeight.w700));
-      expect(hXl.letterSpacing, closeTo(-0.64, 0.01));
+    test(
+      'Typography tokens match DESIGN.md font family, size and letter spacing',
+      () {
+        final hXl = ObsidianTypography.headlineXl();
+        expect(hXl.fontSize, equals(32.0));
+        expect(hXl.fontWeight, equals(FontWeight.w700));
+        expect(hXl.letterSpacing, closeTo(-0.64, 0.01));
 
-      final hLg = ObsidianTypography.headlineLg();
-      expect(hLg.fontSize, equals(24.0));
-      expect(hLg.fontWeight, equals(FontWeight.w600));
-      expect(hLg.letterSpacing, closeTo(-0.36, 0.01));
+        final hLg = ObsidianTypography.headlineLg();
+        expect(hLg.fontSize, equals(24.0));
+        expect(hLg.fontWeight, equals(FontWeight.w600));
+        expect(hLg.letterSpacing, closeTo(-0.36, 0.01));
 
-      final hMd = ObsidianTypography.headlineMd();
-      expect(hMd.fontSize, equals(20.0));
-      expect(hMd.fontWeight, equals(FontWeight.w600));
-      expect(hMd.letterSpacing, closeTo(-0.2, 0.01));
+        final hMd = ObsidianTypography.headlineMd();
+        expect(hMd.fontSize, equals(20.0));
+        expect(hMd.fontWeight, equals(FontWeight.w600));
+        expect(hMd.letterSpacing, closeTo(-0.2, 0.01));
 
-      final titleSm = ObsidianTypography.titleSm();
-      expect(titleSm.fontSize, equals(15.0));
-      expect(titleSm.fontWeight, equals(FontWeight.w600));
-      expect(titleSm.letterSpacing, equals(0.0));
+        final titleSm = ObsidianTypography.titleSm();
+        expect(titleSm.fontSize, equals(15.0));
+        expect(titleSm.fontWeight, equals(FontWeight.w600));
+        expect(titleSm.letterSpacing, equals(0.0));
 
-      final bodyMd = ObsidianTypography.bodyMd();
-      expect(bodyMd.fontSize, equals(14.0));
-      expect(bodyMd.fontWeight, equals(FontWeight.w400));
-      expect(bodyMd.letterSpacing, equals(0.0));
+        final bodyMd = ObsidianTypography.bodyMd();
+        expect(bodyMd.fontSize, equals(14.0));
+        expect(bodyMd.fontWeight, equals(FontWeight.w400));
+        expect(bodyMd.letterSpacing, equals(0.0));
 
-      final bodySm = ObsidianTypography.bodySm();
-      expect(bodySm.fontSize, equals(13.0));
-      expect(bodySm.fontWeight, equals(FontWeight.w400));
-      expect(bodySm.letterSpacing, equals(0.0));
+        final bodySm = ObsidianTypography.bodySm();
+        expect(bodySm.fontSize, equals(13.0));
+        expect(bodySm.fontWeight, equals(FontWeight.w400));
+        expect(bodySm.letterSpacing, equals(0.0));
 
-      final monoMetric = ObsidianTypography.monoMetric();
-      expect(monoMetric.fontSize, equals(13.0));
-      expect(monoMetric.fontWeight, equals(FontWeight.w500));
-      expect(monoMetric.letterSpacing, closeTo(-0.26, 0.01));
+        final monoMetric = ObsidianTypography.monoMetric();
+        expect(monoMetric.fontSize, equals(13.0));
+        expect(monoMetric.fontWeight, equals(FontWeight.w500));
+        expect(monoMetric.letterSpacing, closeTo(-0.26, 0.01));
 
-      final monoCode = ObsidianTypography.monoCode();
-      expect(monoCode.fontSize, equals(12.0));
-      expect(monoCode.fontWeight, equals(FontWeight.w400));
-      expect(monoCode.letterSpacing, equals(0.0));
+        final monoCode = ObsidianTypography.monoCode();
+        expect(monoCode.fontSize, equals(12.0));
+        expect(monoCode.fontWeight, equals(FontWeight.w400));
+        expect(monoCode.letterSpacing, equals(0.0));
 
-      final labelBadge = ObsidianTypography.labelBadge();
-      expect(labelBadge.fontSize, equals(11.0));
-      expect(labelBadge.fontWeight, equals(FontWeight.w600));
-      expect(labelBadge.letterSpacing, closeTo(0.44, 0.01));
-    });
+        final labelBadge = ObsidianTypography.labelBadge();
+        expect(labelBadge.fontSize, equals(11.0));
+        expect(labelBadge.fontWeight, equals(FontWeight.w600));
+        expect(labelBadge.letterSpacing, closeTo(0.44, 0.01));
+      },
+    );
   });
 }

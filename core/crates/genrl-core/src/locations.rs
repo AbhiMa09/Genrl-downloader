@@ -366,15 +366,16 @@ pub fn set_location(
 
 /// Get folder path override for a specific show.
 pub fn get_show_folder(db: &Db, mal_id: i64) -> Result<ShowFolderInfo> {
-    let (title, folder_path): (String, Option<String>) = db.with(|c| {
-        Ok(c.query_row(
-            "SELECT title, folder_path FROM shows WHERE mal_id = ?1",
-            [mal_id],
-            |r| Ok((r.get(0)?, r.get(1)?)),
-        )
-        .optional()?)
-    })?
-    .ok_or_else(|| Error::Other(format!("show with MAL id {mal_id} not found")))?;
+    let (title, folder_path): (String, Option<String>) = db
+        .with(|c| {
+            Ok(c.query_row(
+                "SELECT title, folder_path FROM shows WHERE mal_id = ?1",
+                [mal_id],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .optional()?)
+        })?
+        .ok_or_else(|| Error::Other(format!("show with MAL id {mal_id} not found")))?;
 
     let check = folder_path.as_deref().map(|p| check_directory(p, false));
 

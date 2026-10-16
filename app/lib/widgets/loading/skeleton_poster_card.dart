@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../theme/colors.dart';
 
 /// 2:3 aspect ratio skeleton card with gradient shimmer sweep.
@@ -77,7 +78,9 @@ class _SkeletonPosterCardState extends State<SkeletonPosterCard>
                   height: 12,
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    color: ObsidianColors.surfaceContainerLowest.withOpacity(0.5),
+                    color: ObsidianColors.surfaceContainerLowest.withOpacity(
+                      0.5,
+                    ),
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
@@ -87,7 +90,9 @@ class _SkeletonPosterCardState extends State<SkeletonPosterCard>
                   height: 10,
                   width: 70,
                   decoration: BoxDecoration(
-                    color: ObsidianColors.surfaceContainerLowest.withOpacity(0.4),
+                    color: ObsidianColors.surfaceContainerLowest.withOpacity(
+                      0.4,
+                    ),
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
@@ -106,9 +111,6 @@ class _SkeletonPosterCardState extends State<SkeletonPosterCard>
       );
     }
 
-    return AspectRatio(
-      aspectRatio: widget.aspectRatio,
-      child: cardBody,
-    );
+    return AspectRatio(aspectRatio: widget.aspectRatio, child: cardBody);
   }
 }

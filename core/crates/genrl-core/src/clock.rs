@@ -72,7 +72,9 @@ mod tests {
         assert_eq!(clock.now(), 2_000);
 
         let shared = clock.clone();
-        std::thread::spawn(move || shared.advance(5)).join().unwrap();
+        std::thread::spawn(move || shared.advance(5))
+            .join()
+            .unwrap();
         assert_eq!(clock.now(), 2_005, "handles are shared, not copied values");
     }
 

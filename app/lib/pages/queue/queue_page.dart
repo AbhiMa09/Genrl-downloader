@@ -1,6 +1,8 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../models/queue_item.dart';
 import '../../services/state_provider.dart';
 import '../../widgets/state_views.dart';
@@ -57,8 +59,7 @@ class _QueuePageState extends State<QueuePage> {
           padding: EdgeInsets.all(24.0),
           child: EmptyStateView(
             title: 'No Transfers In Queue',
-            description:
-                'Active downloads and jobs will appear here live as they are processed.',
+            description: 'Active downloads and jobs will appear here live as they are processed.',
           ),
         ),
       );
@@ -101,17 +102,15 @@ class _QueuePageState extends State<QueuePage> {
     }).toList();
 
     final activeItem =
-        _selectedItem ?? (filteredItems.isNotEmpty ? filteredItems.first : null);
+        _selectedItem ??
+        (filteredItems.isNotEmpty ? filteredItems.first : null);
 
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // 1. Queue Header & Command Toolbar
-          QueueToolbar(
-            state: state,
-            count: queueItems.length,
-          ),
+          QueueToolbar(state: state, count: queueItems.length),
 
           // 2. Filter Tabs & Quick Search Bar
           QueueFilterBar(

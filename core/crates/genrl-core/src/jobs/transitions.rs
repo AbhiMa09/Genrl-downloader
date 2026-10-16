@@ -110,11 +110,9 @@ pub fn transition(
     let outcome = db.with(|c| {
         let tx = c.unchecked_transaction()?;
         let current: Option<String> = tx
-            .query_row(
-                "SELECT state FROM jobs WHERE id = ?1",
-                [job_id],
-                |r| r.get(0),
-            )
+            .query_row("SELECT state FROM jobs WHERE id = ?1", [job_id], |r| {
+                r.get(0)
+            })
             .optional()?;
         let Some(current) = current else {
             return Err(Error::Other(format!("no job with id {job_id}")));
@@ -126,33 +124,25 @@ pub fn transition(
             )));
         }
         if from != to && !is_allowed(from, to) {
-            return Err(Error::IllegalTransition {
-                from,
-                to,
-                job_id,
-            });
+            return Err(Error::IllegalTransition { from, to, job_id });
         }
 
-        let current_kind_string: String = tx.query_row(
-            "SELECT kind FROM jobs WHERE id = ?1",
-            [job_id],
-            |r| r.get(0),
-        )?;
+        let current_kind_string: String =
+            tx.query_row("SELECT kind FROM jobs WHERE id = ?1", [job_id], |r| {
+                r.get(0)
+            })?;
         let current_kind = JobKind::parse(&current_kind_string);
 
         let attempts = if opts.reset_attempts {
             0
         } else {
-            tx.query_row(
-                "SELECT attempts FROM jobs WHERE id = ?1",
-                [job_id],
-                |r| r.get::<_, i64>(0),
-            )? + i64::from(opts.count_attempt)
+            tx.query_row("SELECT attempts FROM jobs WHERE id = ?1", [job_id], |r| {
+                r.get::<_, i64>(0)
+            })? + i64::from(opts.count_attempt)
         };
 
-        let mut sql = String::from(
-            "UPDATE jobs SET state = ?2, updated_at = ?3, attempts = ?4, kind = ?5",
-        );
+        let mut sql =
+            String::from("UPDATE jobs SET state = ?2, updated_at = ?3, attempts = ?4, kind = ?5");
         if opts.clear_torrent {
             // A new candidate starts its own download: the previous one's
             // progress and stall timestamp must not carry over, or the next
@@ -160,10 +150,7 @@ pub fn transition(
             sql.push_str(", torrent_id = NULL, progress = 0, last_progress_at = NULL");
         }
         if let Some(from) = opts.blocked_from {
-            sql.push_str(&format!(
-                ", blocked_from = '{}'",
-                sql_text(from.as_str())
-            ));
+            sql.push_str(&format!(", blocked_from = '{}'", sql_text(from.as_str())));
         } else if to != JobState::Blocked {
             sql.push_str(", blocked_from = NULL");
         }
@@ -206,7 +193,11 @@ pub fn transition(
         let message = if from == to {
             format!("job {job_id}: {reason}")
         } else {
-            format!("job {job_id}: {} → {} ({reason})", from.as_str(), to.as_str())
+            format!(
+                "job {job_id}: {} → {} ({reason})",
+                from.as_str(),
+                to.as_str()
+            )
         };
         events::record_in(&tx, Level::Info, Some(job_id), mal_id, &message, at)?;
         tx.commit()?;
@@ -219,13 +210,7 @@ pub fn transition(
 ///
 /// Used for backoff and for "not due yet" — never a state change, so it is not
 /// a transition, but it still records the reason in the log.
-pub fn reschedule(
-    db: &Db,
-    clock: &dyn Clock,
-    job_id: i64,
-    at: i64,
-    reason: &str,
-) -> Result<()> {
+pub fn reschedule(db: &Db, clock: &dyn Clock, job_id: i64, at: i64, reason: &str) -> Result<()> {
     let now = clock.now();
     db.with(|c| {
         let tx = c.unchecked_transaction()?;

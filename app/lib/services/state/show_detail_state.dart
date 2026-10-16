@@ -70,7 +70,8 @@ mixin ShowDetailStateMixin on StateContext {
       ActivityItem(
         id: DateTime.now().millisecondsSinceEpoch,
         level: ActivityLevel.info,
-        message: 'Dispatched download for episode $episodeNumber of show #$malId',
+        message:
+            'Dispatched download for episode $episodeNumber of show #$malId',
         timestamp: DateTime.now(),
         malId: malId,
       ),

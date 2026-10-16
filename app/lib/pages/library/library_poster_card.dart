@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../models/library_item.dart';
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
@@ -108,28 +109,34 @@ class _LibraryPosterCardState extends State<LibraryPosterCard> {
                         children: [
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 5, vertical: 2),
+                              horizontal: 5,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: ObsidianColors.secondaryContainer
                                   .withOpacity(0.9),
                               borderRadius: BorderRadius.circular(4),
                             ),
-                            child: Text('AUTO',
-                                style: ObsidianTypography.labelBadge(
-                                    color: ObsidianColors
-                                        .onSecondaryContainer,
-                                    fontSize: 8)),
+                            child: Text(
+                              'AUTO',
+                              style: ObsidianTypography.labelBadge(
+                                color: ObsidianColors.onSecondaryContainer,
+                                fontSize: 8,
+                              ),
+                            ),
                           ),
                           const SizedBox(width: 4),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 5, vertical: 2),
+                              horizontal: 5,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: show.status == 'Completed'
                                   ? ObsidianColors.surfaceContainerHighest
-                                      .withOpacity(0.85)
+                                        .withOpacity(0.85)
                                   : ObsidianColors.tertiaryContainer
-                                      .withOpacity(0.85),
+                                        .withOpacity(0.85),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
@@ -166,20 +173,22 @@ class _LibraryPosterCardState extends State<LibraryPosterCard> {
                                 onTap: widget.onOpenFolder,
                                 child: const Padding(
                                   padding: EdgeInsets.all(3.0),
-                                  child: Icon(Icons.folder_open_rounded,
-                                      size: 14,
-                                      color: ObsidianColors
-                                          .onSurfaceVariant),
+                                  child: Icon(
+                                    Icons.folder_open_rounded,
+                                    size: 14,
+                                    color: ObsidianColors.onSurfaceVariant,
+                                  ),
                                 ),
                               ),
                               InkWell(
                                 onTap: widget.onToggleAuto,
                                 child: const Padding(
                                   padding: EdgeInsets.all(3.0),
-                                  child: Icon(Icons.bolt_rounded,
-                                      size: 14,
-                                      color: ObsidianColors
-                                          .onSurfaceVariant),
+                                  child: Icon(
+                                    Icons.bolt_rounded,
+                                    size: 14,
+                                    color: ObsidianColors.onSurfaceVariant,
+                                  ),
                                 ),
                               ),
                             ],
@@ -195,9 +204,10 @@ class _LibraryPosterCardState extends State<LibraryPosterCard> {
                       child: Text(
                         '1080p HEVC · Erai',
                         style: ObsidianTypography.monoCode(
-                            color: ObsidianColors.tertiary,
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold),
+                          color: ObsidianColors.tertiary,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ],
@@ -213,9 +223,10 @@ class _LibraryPosterCardState extends State<LibraryPosterCard> {
                     Text(
                       show.title,
                       style: ObsidianTypography.titleSm(
-                          fontSize: widget.density == PosterDensity.compact
-                              ? 11
-                              : 13),
+                        fontSize: widget.density == PosterDensity.compact
+                            ? 11
+                            : 13,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -223,7 +234,9 @@ class _LibraryPosterCardState extends State<LibraryPosterCard> {
                     Text(
                       'Season ${show.season} · ${show.studio ?? "Anime"}',
                       style: ObsidianTypography.monoCode(
-                          color: ObsidianColors.outline, fontSize: 10),
+                        color: ObsidianColors.outline,
+                        fontSize: 10,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -233,15 +246,21 @@ class _LibraryPosterCardState extends State<LibraryPosterCard> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('$downloaded / $total eps',
-                            style: ObsidianTypography.monoCode(
-                                color: ObsidianColors.onSurfaceVariant,
-                                fontSize: 10)),
-                        Text('$percentInt%',
-                            style: ObsidianTypography.monoMetric(
-                                color: ObsidianColors.tertiary,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 10)),
+                        Text(
+                          '$downloaded / $total eps',
+                          style: ObsidianTypography.monoCode(
+                            color: ObsidianColors.onSurfaceVariant,
+                            fontSize: 10,
+                          ),
+                        ),
+                        Text(
+                          '$percentInt%',
+                          style: ObsidianTypography.monoMetric(
+                            color: ObsidianColors.tertiary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 10,
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 4),
@@ -250,10 +269,10 @@ class _LibraryPosterCardState extends State<LibraryPosterCard> {
                       child: LinearProgressIndicator(
                         value: percent,
                         minHeight: 4,
-                        backgroundColor:
-                            ObsidianColors.surfaceContainerHighest,
+                        backgroundColor: ObsidianColors.surfaceContainerHighest,
                         valueColor: const AlwaysStoppedAnimation(
-                            ObsidianColors.primary),
+                          ObsidianColors.primary,
+                        ),
                       ),
                     ),
                   ],
@@ -272,8 +291,7 @@ class _LibraryPosterCardState extends State<LibraryPosterCard> {
       child: Center(
         child: Text(
           show.title.isNotEmpty ? show.title[0] : '?',
-          style: ObsidianTypography.headlineLg(
-              color: ObsidianColors.outline),
+          style: ObsidianTypography.headlineLg(color: ObsidianColors.outline),
         ),
       ),
     );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
 
@@ -25,11 +26,20 @@ class SettingsInputField extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Expanded(
-              child: Text(label, style: ObsidianTypography.monoCode(), overflow: TextOverflow.ellipsis),
+              child: Text(
+                label,
+                style: ObsidianTypography.monoCode(),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
             if (sublabel != null) ...[
               const SizedBox(width: 8),
-              Text(sublabel!, style: ObsidianTypography.labelBadge(color: ObsidianColors.outline)),
+              Text(
+                sublabel!,
+                style: ObsidianTypography.labelBadge(
+                  color: ObsidianColors.outline,
+                ),
+              ),
             ],
           ],
         ),
@@ -50,7 +60,11 @@ class SettingsInputField extends StatelessWidget {
                 child: TextField(
                   controller: controller,
                   style: ObsidianTypography.monoCode(),
-                  decoration: const InputDecoration(border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.zero),
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
+                  ),
                 ),
               ),
             ],

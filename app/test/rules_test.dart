@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:genrl_downloader/pages/rules_page.dart';
 import 'package:genrl_downloader/services/state_provider.dart';
 import 'package:genrl_downloader/theme/theme.dart';
+
 import 'fake_core_bridge.dart';
 
 Widget createTestApp(StateProvider stateProvider) {
@@ -21,7 +22,9 @@ void main() {
     TestWidgetsFlutterBinding.ensureInitialized();
   });
 
-  testWidgets('Rules Page renders editable global rules and controls', (tester) async {
+  testWidgets('Rules Page renders editable global rules and controls', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(1280, 800);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
@@ -43,7 +46,9 @@ void main() {
     await tester.pump();
   });
 
-  testWidgets('Rules Page displays error message and Retry button on error', (tester) async {
+  testWidgets('Rules Page displays error message and Retry button on error', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(1280, 800);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
@@ -59,7 +64,10 @@ void main() {
     await tester.pump();
 
     expect(find.text('Rules Fetch Error'), findsOneWidget);
-    expect(find.textContaining('Failed to read rules from SQLite config'), findsOneWidget);
+    expect(
+      find.textContaining('Failed to read rules from SQLite config'),
+      findsOneWidget,
+    );
     expect(find.text('Retry Rules Query'), findsOneWidget);
 
     // Switch to data and tap Retry

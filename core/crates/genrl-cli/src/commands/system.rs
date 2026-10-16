@@ -1,8 +1,8 @@
-use std::path::{Path, PathBuf};
 use anyhow::{bail, Context, Result};
 use clap::Subcommand;
 use genrl_core::http::{Gate, Service};
 use genrl_core::{settings, Db, EventLog, Settings};
+use std::path::{Path, PathBuf};
 
 use super::common::{chrono_lite, open_db};
 
@@ -105,12 +105,7 @@ pub fn events(data_dir: &Path, limit: u32, errors_only: bool, json: bool) -> Res
     Ok(())
 }
 
-pub async fn probe(
-    data_dir: &Path,
-    service: &str,
-    url: &str,
-    skip_cache: bool,
-) -> Result<()> {
+pub async fn probe(data_dir: &Path, service: &str, url: &str, skip_cache: bool) -> Result<()> {
     let service = Service::parse(service)
         .with_context(|| format!("unknown service '{service}' (mal, jikan, nyaa, qbit, images)"))?;
     let db = open_db(data_dir)?;
@@ -218,6 +213,9 @@ pub fn doctor(data_dir: &Path) -> Result<()> {
     let log = EventLog::new(db.clone());
     println!("  events     : {} stored", log.count()?);
 
-    println!("  automation  : {}", if settings.automation_on { "ON" } else { "off" });
+    println!(
+        "  automation  : {}",
+        if settings.automation_on { "ON" } else { "off" }
+    );
     Ok(())
 }

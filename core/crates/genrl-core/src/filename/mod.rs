@@ -49,7 +49,10 @@ pub fn parse_release(input: &str) -> Release {
 
     // 5. Title = text before the episode token (or the whole thing), minus
     //    every bracket group, then whitespace-collapsed.
-    let title_end = release.marker_start.map(|pos| pos.min(name.len())).unwrap_or(name.len());
+    let title_end = release
+        .marker_start
+        .map(|pos| pos.min(name.len()))
+        .unwrap_or(name.len());
     let mut title = name[title_start.min(title_end)..title_end].to_string();
     if release.episode.is_none() && release.is_batch {
         if let Some(caps) = batch_range().captures(&title) {
@@ -160,18 +163,35 @@ mod tests {
     #[test]
     fn normalization_follows_the_design() {
         assert_eq!(normalize("Kimi no Na wa."), "kimi no na wa");
-        assert_eq!(normalize("Ｓｏｕｓｏｕ ｎｏ Ｆｒｉｅｒｅｎ"), "sousou no frieren");
-        assert_eq!(normalize("Frieren: Beyond Journey's End"), "frieren beyond journey s end");
-        assert_eq!(normalize("Frieren Season 2"), "frieren 2", "season words stripped");
+        assert_eq!(
+            normalize("Ｓｏｕｓｏｕ ｎｏ Ｆｒｉｅｒｅｎ"),
+            "sousou no frieren"
+        );
+        assert_eq!(
+            normalize("Frieren: Beyond Journey's End"),
+            "frieren beyond journey s end"
+        );
+        assert_eq!(
+            normalize("Frieren Season 2"),
+            "frieren 2",
+            "season words stripped"
+        );
         assert_eq!(normalize("Frieren 2nd Season"), "frieren 2");
-        assert_eq!(normalize("Show - 02"), normalize("Show - 2"), "zero padding ignored");
+        assert_eq!(
+            normalize("Show - 02"),
+            normalize("Show - 2"),
+            "zero padding ignored"
+        );
         assert_eq!(normalize("  KIMI   no  NA wa  "), "kimi no na wa");
     }
 
     #[test]
     fn fuzzy_ratio_is_strict_where_it_matters() {
         assert_eq!(fuzzy_ratio("kimi no na wa", "kimi no na wa"), 1.0);
-        assert!(fuzzy_ratio("kimi no na wa", "kimi no na wb") > 0.92, "typos still clear 0.92");
+        assert!(
+            fuzzy_ratio("kimi no na wa", "kimi no na wb") > 0.92,
+            "typos still clear 0.92"
+        );
         assert!(
             fuzzy_ratio("kimi no na wa", "kimi no todoke") < 0.7,
             "a sequel sharing a prefix must not score as a match"

@@ -1,8 +1,4 @@
-enum ActivityLevel {
-  info,
-  warn,
-  error,
-}
+enum ActivityLevel { info, warn, error }
 
 class ActivityItem {
   final int id;

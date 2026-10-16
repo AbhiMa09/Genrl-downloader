@@ -29,12 +29,7 @@ pub struct LibraryFinalizer {
 }
 
 impl LibraryFinalizer {
-    pub fn new(
-        db: Db,
-        gate: Arc<Gate>,
-        clock: Arc<dyn Clock>,
-        data_dir: PathBuf,
-    ) -> Self {
+    pub fn new(db: Db, gate: Arc<Gate>, clock: Arc<dyn Clock>, data_dir: PathBuf) -> Self {
         LibraryFinalizer {
             db,
             gate,
@@ -49,7 +44,11 @@ impl LibraryFinalizer {
         mal_id: i64,
         settings: &Settings,
     ) -> Option<JikanAnimeData> {
-        let url = format!("{}/anime/{}", settings.jikan_base_url.trim_end_matches('/'), mal_id);
+        let url = format!(
+            "{}/anime/{}",
+            settings.jikan_base_url.trim_end_matches('/'),
+            mal_id
+        );
         let opts = GetOptions {
             ttl: Some(Duration::from_secs(settings.jikan_cache_secs as u64)),
             ..Default::default()
@@ -80,7 +79,11 @@ impl LibraryFinalizer {
             return Some(dst);
         }
 
-        match self.gate.get_with(Service::Images, url, &GetOptions::default()).await {
+        match self
+            .gate
+            .get_with(Service::Images, url, &GetOptions::default())
+            .await
+        {
             Ok(fetched) => {
                 if fs::write(&dst, &fetched.body).is_ok() {
                     Some(dst)
@@ -133,13 +136,8 @@ impl LibraryFinalizer {
         })?;
         let show_type = ShowType::parse(&show_type_str);
 
-        let show_dir = resolve_show_folder(
-            &self.db,
-            &library_root,
-            context.mal_id,
-            &title,
-            start_year,
-        )?;
+        let show_dir =
+            resolve_show_folder(&self.db, &library_root, context.mal_id, &title, start_year)?;
 
         // Ensure synopsis, NFO, and folder icon
         let synopsis_path = show_dir.join(SYNOPSIS_FILE);
@@ -220,18 +218,25 @@ impl LibraryFinalizer {
                 }
             }
 
-            let plot = meta.as_ref().and_then(|m| m.synopsis.as_deref())
+            let plot = meta
+                .as_ref()
+                .and_then(|m| m.synopsis.as_deref())
                 .or(existing_synopsis.as_deref())
                 .unwrap_or("");
             let should_write_nfo = !nfo_path.exists() || {
                 if let Ok(c) = fs::read_to_string(&nfo_path) {
-                    (c.contains("<plot></plot>") || c.contains("<plot/>")) && !plot.trim().is_empty()
+                    (c.contains("<plot></plot>") || c.contains("<plot/>"))
+                        && !plot.trim().is_empty()
                 } else {
                     false
                 }
             };
             if should_write_nfo {
-                let tag = if show_type == ShowType::Movie { "movie" } else { "tvshow" };
+                let tag = if show_type == ShowType::Movie {
+                    "movie"
+                } else {
+                    "tvshow"
+                };
                 let score_val = meta.as_ref().and_then(|m| m.score).or(existing_score);
                 let nfo_content = format_nfo(
                     tag,
@@ -251,20 +256,31 @@ impl LibraryFinalizer {
             }
 
             if !folder_png_path.exists() {
-                let poster_url = meta.as_ref().and_then(|m| {
-                    m.images.as_ref().and_then(|imgs| {
-                        imgs.jpg.as_ref().and_then(|j| j.large_image_url.clone().or_else(|| j.image_url.clone()))
-                            .or_else(|| imgs.webp.as_ref().and_then(|w| w.large_image_url.clone().or_else(|| w.image_url.clone())))
+                let poster_url = meta
+                    .as_ref()
+                    .and_then(|m| {
+                        m.images.as_ref().and_then(|imgs| {
+                            imgs.jpg
+                                .as_ref()
+                                .and_then(|j| {
+                                    j.large_image_url.clone().or_else(|| j.image_url.clone())
+                                })
+                                .or_else(|| {
+                                    imgs.webp.as_ref().and_then(|w| {
+                                        w.large_image_url.clone().or_else(|| w.image_url.clone())
+                                    })
+                                })
+                        })
                     })
-                }).or_else(|| {
-                    existing_poster.as_ref().and_then(|p| {
-                        if p.starts_with("http://") || p.starts_with("https://") {
-                            Some(p.clone())
-                        } else {
-                            None
-                        }
-                    })
-                });
+                    .or_else(|| {
+                        existing_poster.as_ref().and_then(|p| {
+                            if p.starts_with("http://") || p.starts_with("https://") {
+                                Some(p.clone())
+                            } else {
+                                None
+                            }
+                        })
+                    });
 
                 let master_poster = match poster_url {
                     Some(url) => self.download_poster(context.mal_id, &url).await,
@@ -351,7 +367,9 @@ impl LibraryFinalizer {
             };
 
             let target_path = show_dir.join(&target_filename);
-            let file_size = fs::metadata(&file_path).map(|m| m.len() as i64).unwrap_or(0);
+            let file_size = fs::metadata(&file_path)
+                .map(|m| m.len() as i64)
+                .unwrap_or(0);
             if !target_path.exists() {
                 let _ = transfer_file(&file_path, &target_path, settings.move_mode);
             }

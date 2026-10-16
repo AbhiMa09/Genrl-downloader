@@ -53,10 +53,7 @@ impl PlanPreview {
             shows,
             plural(shows),
             if self.over_cap > 0 {
-                format!(
-                    "; {} more wait for the daily cap",
-                    self.over_cap
-                )
+                format!("; {} more wait for the daily cap", self.over_cap)
             } else {
                 String::new()
             }
@@ -91,14 +88,13 @@ pub fn preview(db: &Db, list: &MalList) -> Result<PlanPreview> {
 /// The stored first-sync preview, if any (the wizard shows it).
 pub fn pending_preview(db: &Db) -> Result<Option<PlanPreview>> {
     db.with(|c| {
-        Ok(c
-            .query_row(
-                "SELECT value FROM settings WHERE key = 'state.pending_plan'",
-                [],
-                |r| r.get::<_, String>(0),
-            )
-            .ok()
-            .and_then(|raw| serde_json::from_str(&raw).ok()))
+        Ok(c.query_row(
+            "SELECT value FROM settings WHERE key = 'state.pending_plan'",
+            [],
+            |r| r.get::<_, String>(0),
+        )
+        .ok()
+        .and_then(|raw| serde_json::from_str(&raw).ok()))
     })
 }
 
@@ -135,22 +131,23 @@ pub(crate) fn build_preview(
         let overrides = chain
             .entries
             .first()
-            .map(|e| crate::rules::Rules::for_show(db, e.mal_id).map(|r| Overrides {
-                auto_plan_to_watch: r.auto_plan_to_watch,
-            }))
+            .map(|e| {
+                crate::rules::Rules::for_show(db, e.mal_id).map(|r| Overrides {
+                    auto_plan_to_watch: r.auto_plan_to_watch,
+                })
+            })
             .transpose()?
             .unwrap_or_default();
 
         match chain.wanted(settings, overrides) {
             Want::Some(wanted) => {
                 let already: i64 = db.with(|c| {
-                    Ok(c
-                        .query_row(
-                            "SELECT COUNT(*) FROM episodes WHERE mal_id = ?1 AND number = ?2",
-                            rusqlite::params![wanted.mal_id, wanted.episode.unwrap_or(1.0)],
-                            |r| r.get(0),
-                        )
-                        .unwrap_or(0))
+                    Ok(c.query_row(
+                        "SELECT COUNT(*) FROM episodes WHERE mal_id = ?1 AND number = ?2",
+                        rusqlite::params![wanted.mal_id, wanted.episode.unwrap_or(1.0)],
+                        |r| r.get(0),
+                    )
+                    .unwrap_or(0))
                 })?;
                 if already == 0 {
                     episodes.push(PlannedEpisode {

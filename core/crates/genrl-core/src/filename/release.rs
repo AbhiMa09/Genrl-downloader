@@ -1,6 +1,6 @@
-use std::sync::OnceLock;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
+use std::sync::OnceLock;
 
 /// What a release name tells us.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
@@ -48,7 +48,9 @@ pub fn re(pattern: &str) -> &'static Regex {
     if let Some(rx) = map.get(pattern) {
         return rx;
     }
-    let rx = Box::leak(Box::new(Regex::new(pattern).expect("static regex is valid")));
+    let rx = Box::leak(Box::new(
+        Regex::new(pattern).expect("static regex is valid"),
+    ));
     map.insert(pattern.to_string(), rx);
     rx
 }
@@ -74,9 +76,7 @@ pub fn extract_season_episode(name: &str, release: &mut Release) -> Option<usize
     }
 
     // ` - 28` / ` - 6.5` / ` - 05v2` — the common single-episode form.
-    if let Some(caps) =
-        re(r"(?:^|[\s])-\s*(\d{1,3}(?:\.\d)?)\s*(?:v(\d+))?").captures(name)
-    {
+    if let Some(caps) = re(r"(?:^|[\s])-\s*(\d{1,3}(?:\.\d)?)\s*(?:v(\d+))?").captures(name) {
         release.episode = caps[1].parse().ok();
         release.version = caps.get(2).and_then(|m| m.as_str().parse().ok());
         return Some(caps.get(0).unwrap().start() + caps[0].find('-').unwrap_or(0));
@@ -166,10 +166,34 @@ pub fn extract_metadata(name: &str, release: &mut Release) {
 
 pub fn extract_languages(name: &str) -> Vec<String> {
     const LANGS: &[&str] = &[
-        "english", "japanese", "chinese", "french", "spanish", "german", "portuguese",
-        "russian", "italian", "korean", "hindi", "arabic", "thai", "vietnamese",
-        "indonesian", "filipino", "polish", "turkish", "dutch", "swedish", "danish",
-        "norwegian", "finnish", "czech", "romanian", "ukrainian", "multisub", "multi-sub",
+        "english",
+        "japanese",
+        "chinese",
+        "french",
+        "spanish",
+        "german",
+        "portuguese",
+        "russian",
+        "italian",
+        "korean",
+        "hindi",
+        "arabic",
+        "thai",
+        "vietnamese",
+        "indonesian",
+        "filipino",
+        "polish",
+        "turkish",
+        "dutch",
+        "swedish",
+        "danish",
+        "norwegian",
+        "finnish",
+        "czech",
+        "romanian",
+        "ukrainian",
+        "multisub",
+        "multi-sub",
     ];
     let mut found = Vec::new();
     for caps in re(r"\[([^\]]+)\]").captures_iter(name) {

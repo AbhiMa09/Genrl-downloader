@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../models/activity_item.dart';
 import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
@@ -89,9 +90,12 @@ class ActivityTelemetryGrid extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title,
-                  style: ObsidianTypography.labelBadge(
-                      color: ObsidianColors.outline)),
+              Text(
+                title,
+                style: ObsidianTypography.labelBadge(
+                  color: ObsidianColors.outline,
+                ),
+              ),
               Icon(icon, size: 16, color: iconColor),
             ],
           ),
@@ -102,9 +106,12 @@ class ActivityTelemetryGrid extends StatelessWidget {
             children: [
               Text(value, style: ObsidianTypography.headlineMd()),
               const SizedBox(width: 6),
-              Text(unit,
-                  style: ObsidianTypography.monoCode(
-                      color: ObsidianColors.outline)),
+              Text(
+                unit,
+                style: ObsidianTypography.monoCode(
+                  color: ObsidianColors.outline,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 8),

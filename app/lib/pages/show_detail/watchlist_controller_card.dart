@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../models/library_item.dart';
 import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
@@ -31,21 +32,37 @@ class WatchlistControllerCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.bookmark_outline_rounded, size: 16, color: ObsidianColors.primary),
+                  const Icon(
+                    Icons.bookmark_outline_rounded,
+                    size: 16,
+                    color: ObsidianColors.primary,
+                  ),
                   const SizedBox(width: 6),
-                  Text('MY WATCH STATUS', style: ObsidianTypography.monoCode(color: ObsidianColors.outline, fontSize: 11)),
+                  Text(
+                    'MY WATCH STATUS',
+                    style: ObsidianTypography.monoCode(
+                      color: ObsidianColors.outline,
+                      fontSize: 11,
+                    ),
+                  ),
                 ],
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: (show.airingStatus.toLowerCase().contains('air') ? ObsidianColors.tertiary : ObsidianColors.secondary).withOpacity(0.18),
+                  color:
+                      (show.airingStatus.toLowerCase().contains('air')
+                              ? ObsidianColors.tertiary
+                              : ObsidianColors.secondary)
+                          .withOpacity(0.18),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
                   show.airingStatus,
                   style: ObsidianTypography.labelBadge(
-                    color: show.airingStatus.toLowerCase().contains('air') ? ObsidianColors.tertiary : ObsidianColors.secondary,
+                    color: show.airingStatus.toLowerCase().contains('air')
+                        ? ObsidianColors.tertiary
+                        : ObsidianColors.secondary,
                     fontSize: 9,
                   ),
                 ),
@@ -64,18 +81,43 @@ class WatchlistControllerCard extends StatelessWidget {
             ),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
-                value: ['Watching', 'Plan to Watch', 'Completed', 'On Hold', 'Dropped'].contains(show.status) ? show.status : 'Watching',
+                value:
+                    [
+                      'Watching',
+                      'Plan to Watch',
+                      'Completed',
+                      'On Hold',
+                      'Dropped',
+                    ].contains(show.status)
+                    ? show.status
+                    : 'Watching',
                 isExpanded: true,
                 dropdownColor: ObsidianColors.surfaceContainerHigh,
-                items: ['Watching', 'Plan to Watch', 'Completed', 'On Hold', 'Dropped'].map((s) {
-                  return DropdownMenuItem(
-                    value: s,
-                    child: Text(s, style: ObsidianTypography.titleSm(color: ObsidianColors.onSurface, fontSize: 12)),
-                  );
-                }).toList(),
+                items:
+                    [
+                      'Watching',
+                      'Plan to Watch',
+                      'Completed',
+                      'On Hold',
+                      'Dropped',
+                    ].map((s) {
+                      return DropdownMenuItem(
+                        value: s,
+                        child: Text(
+                          s,
+                          style: ObsidianTypography.titleSm(
+                            color: ObsidianColors.onSurface,
+                            fontSize: 12,
+                          ),
+                        ),
+                      );
+                    }).toList(),
                 onChanged: (newStatus) {
                   if (newStatus != null) {
-                    state.updateShowDetails(malId: show.malId, status: newStatus);
+                    state.updateShowDetails(
+                      malId: show.malId,
+                      status: newStatus,
+                    );
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('Watch status updated to "$newStatus"'),
@@ -97,7 +139,10 @@ class WatchlistControllerCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   'Progress: ${show.watchedEpisodes} / ${show.totalEpisodes} eps',
-                  style: ObsidianTypography.monoCode(color: ObsidianColors.onSurfaceVariant, fontSize: 11),
+                  style: ObsidianTypography.monoCode(
+                    color: ObsidianColors.onSurfaceVariant,
+                    fontSize: 11,
+                  ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -107,7 +152,10 @@ class WatchlistControllerCard extends StatelessWidget {
                 children: [
                   InkWell(
                     onTap: show.watchedEpisodes > 0
-                        ? () => state.updateShowDetails(malId: show.malId, watchedEpisodes: show.watchedEpisodes - 1)
+                        ? () => state.updateShowDetails(
+                            malId: show.malId,
+                            watchedEpisodes: show.watchedEpisodes - 1,
+                          )
                         : null,
                     borderRadius: BorderRadius.circular(6),
                     child: Container(
@@ -117,13 +165,20 @@ class WatchlistControllerCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(6),
                         border: Border.all(color: ObsidianColors.border),
                       ),
-                      child: const Icon(Icons.remove_rounded, size: 16, color: ObsidianColors.outline),
+                      child: const Icon(
+                        Icons.remove_rounded,
+                        size: 16,
+                        color: ObsidianColors.outline,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
                   InkWell(
                     onTap: show.watchedEpisodes < show.totalEpisodes
-                        ? () => state.updateShowDetails(malId: show.malId, watchedEpisodes: show.watchedEpisodes + 1)
+                        ? () => state.updateShowDetails(
+                            malId: show.malId,
+                            watchedEpisodes: show.watchedEpisodes + 1,
+                          )
                         : null,
                     borderRadius: BorderRadius.circular(6),
                     child: Container(
@@ -131,9 +186,15 @@ class WatchlistControllerCard extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: ObsidianColors.primary.withOpacity(0.15),
                         borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: ObsidianColors.primary.withOpacity(0.4)),
+                        border: Border.all(
+                          color: ObsidianColors.primary.withOpacity(0.4),
+                        ),
                       ),
-                      child: const Icon(Icons.add_rounded, size: 16, color: ObsidianColors.primary),
+                      child: const Icon(
+                        Icons.add_rounded,
+                        size: 16,
+                        color: ObsidianColors.primary,
+                      ),
                     ),
                   ),
                 ],

@@ -86,13 +86,8 @@ impl Finalizer for LibraryFinalizer {
             let show_type = ShowType::parse(&show_type_str);
 
             // 1. Resolve Show Folder
-            let show_dir = resolve_show_folder(
-                &self.db,
-                &library_root,
-                context.mal_id,
-                &title,
-                start_year,
-            )?;
+            let show_dir =
+                resolve_show_folder(&self.db, &library_root, context.mal_id, &title, start_year)?;
 
             // 2. Write synopsis.txt, NFO, and folder.png if not present
             let synopsis_path = show_dir.join(SYNOPSIS_FILE);
@@ -174,23 +169,31 @@ impl Finalizer for LibraryFinalizer {
                     #[cfg(unix)]
                     {
                         use std::os::unix::fs::PermissionsExt;
-                        let _ = fs::set_permissions(&synopsis_path, fs::Permissions::from_mode(0o644));
+                        let _ =
+                            fs::set_permissions(&synopsis_path, fs::Permissions::from_mode(0o644));
                     }
                 }
 
                 // NFO metadata file
-                let plot = meta.as_ref().and_then(|m| m.synopsis.as_deref())
+                let plot = meta
+                    .as_ref()
+                    .and_then(|m| m.synopsis.as_deref())
                     .or(existing_synopsis.as_deref())
                     .unwrap_or("");
                 let should_write_nfo = !nfo_path.exists() || {
                     if let Ok(c) = fs::read_to_string(&nfo_path) {
-                        (c.contains("<plot></plot>") || c.contains("<plot/>")) && !plot.trim().is_empty()
+                        (c.contains("<plot></plot>") || c.contains("<plot/>"))
+                            && !plot.trim().is_empty()
                     } else {
                         false
                     }
                 };
                 if should_write_nfo {
-                    let tag = if show_type == ShowType::Movie { "movie" } else { "tvshow" };
+                    let tag = if show_type == ShowType::Movie {
+                        "movie"
+                    } else {
+                        "tvshow"
+                    };
                     let score_val = meta.as_ref().and_then(|m| m.score).or(existing_score);
                     let nfo_content = format_nfo(
                         tag,
@@ -211,20 +214,33 @@ impl Finalizer for LibraryFinalizer {
 
                 // Poster & folder icon
                 if !folder_png_path.exists() {
-                    let poster_url = meta.as_ref().and_then(|m| {
-                        m.images.as_ref().and_then(|imgs| {
-                            imgs.jpg.as_ref().and_then(|j| j.large_image_url.clone().or_else(|| j.image_url.clone()))
-                                .or_else(|| imgs.webp.as_ref().and_then(|w| w.large_image_url.clone().or_else(|| w.image_url.clone())))
+                    let poster_url = meta
+                        .as_ref()
+                        .and_then(|m| {
+                            m.images.as_ref().and_then(|imgs| {
+                                imgs.jpg
+                                    .as_ref()
+                                    .and_then(|j| {
+                                        j.large_image_url.clone().or_else(|| j.image_url.clone())
+                                    })
+                                    .or_else(|| {
+                                        imgs.webp.as_ref().and_then(|w| {
+                                            w.large_image_url
+                                                .clone()
+                                                .or_else(|| w.image_url.clone())
+                                        })
+                                    })
+                            })
                         })
-                    }).or_else(|| {
-                        existing_poster.as_ref().and_then(|p| {
-                            if p.starts_with("http://") || p.starts_with("https://") {
-                                Some(p.clone())
-                            } else {
-                                None
-                            }
-                        })
-                    });
+                        .or_else(|| {
+                            existing_poster.as_ref().and_then(|p| {
+                                if p.starts_with("http://") || p.starts_with("https://") {
+                                    Some(p.clone())
+                                } else {
+                                    None
+                                }
+                            })
+                        });
 
                     let master_poster = match poster_url {
                         Some(url) => self.download_poster(context.mal_id, &url).await,
@@ -250,8 +266,10 @@ impl Finalizer for LibraryFinalizer {
                         placeholder
                     });
 
-                    let _ = create_folder_png(&poster_to_use, &folder_png_path, settings.icon_style);
-                    let _ = apply_folder_icon(settings.folder_icon_method, &show_dir, &folder_png_path);
+                    let _ =
+                        create_folder_png(&poster_to_use, &folder_png_path, settings.icon_style);
+                    let _ =
+                        apply_folder_icon(settings.folder_icon_method, &show_dir, &folder_png_path);
                 }
             }
 
@@ -287,7 +305,9 @@ impl Finalizer for LibraryFinalizer {
             let target_path = show_dir.join(&filename);
 
             // Ensure destination sits inside library root (Path traversal check)
-            let can_target = target_path.canonicalize().unwrap_or_else(|_| target_path.clone());
+            let can_target = target_path
+                .canonicalize()
+                .unwrap_or_else(|_| target_path.clone());
             if let Ok(can_root) = library_root.canonicalize() {
                 if !can_target.starts_with(&can_root) {
                     return Err(Error::Other(format!(
@@ -325,8 +345,10 @@ impl Finalizer for LibraryFinalizer {
 
                 match question {
                     Some((_qid, Some(ans_json))) => {
-                        let answer: Answer = serde_json::from_str(&ans_json)
-                            .unwrap_or(Answer { choice: Choice::Replace, always: false });
+                        let answer: Answer = serde_json::from_str(&ans_json).unwrap_or(Answer {
+                            choice: Choice::Replace,
+                            always: false,
+                        });
                         match answer.choice {
                             Choice::Keep => {
                                 // Keep existing file on disk as the episode file
@@ -342,7 +364,10 @@ impl Finalizer for LibraryFinalizer {
                                 }));
                             }
                             Choice::KeepBoth => {
-                                let stem = target_path.file_stem().and_then(|s| s.to_str()).unwrap_or("episode");
+                                let stem = target_path
+                                    .file_stem()
+                                    .and_then(|s| s.to_str())
+                                    .unwrap_or("episode");
                                 let alt_filename = format!("{stem} (v2).{ext}");
                                 let alt_path = show_dir.join(alt_filename);
                                 transfer_file(source_path, &alt_path, settings.move_mode)?;

@@ -177,7 +177,10 @@ mod tests {
         let later = t0 + Duration::from_secs(901);
         assert_eq!(b.check(later), Verdict::Allow, "cooldown elapsed");
         assert_eq!(b.state(), State::HalfOpen);
-        assert!(matches!(b.check(later), Verdict::Reject { .. }), "no pile-up");
+        assert!(
+            matches!(b.check(later), Verdict::Reject { .. }),
+            "no pile-up"
+        );
     }
 
     #[test]

@@ -79,12 +79,19 @@ pub fn rescan_library(db: &Db, library_folder: &Path) -> Result<RescanReport> {
                     if let Some(filename) = file_path.file_name().and_then(|n| n.to_str()) {
                         let parsed = crate::filename::parse_release(filename);
                         if let Some(ep_num) = parsed.episode {
-                            let size = fs::metadata(&file_path).map(|m| m.len() as i64).unwrap_or(0);
+                            let size = fs::metadata(&file_path)
+                                .map(|m| m.len() as i64)
+                                .unwrap_or(0);
                             let updated = db.with(|c| {
                                 Ok(c.execute(
                                     "UPDATE episodes SET file_path = ?1, size = ?2, state = 'done'
                                      WHERE mal_id = ?3 AND number = ?4",
-                                    rusqlite::params![file_path.display().to_string(), size, id, ep_num],
+                                    rusqlite::params![
+                                        file_path.display().to_string(),
+                                        size,
+                                        id,
+                                        ep_num
+                                    ],
                                 )?)
                             })?;
                             if updated > 0 {

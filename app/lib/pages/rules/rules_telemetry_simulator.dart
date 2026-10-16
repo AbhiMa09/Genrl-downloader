@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
@@ -6,16 +7,15 @@ import '../../theme/typography.dart';
 class RulesTelemetrySimulator extends StatelessWidget {
   final StateProvider state;
 
-  const RulesTelemetrySimulator({
-    super.key,
-    required this.state,
-  });
+  const RulesTelemetrySimulator({super.key, required this.state});
 
   @override
   Widget build(BuildContext context) {
     final sampleTarget = state.queue.isNotEmpty
         ? state.queue.first.title
-        : (state.shows.isNotEmpty ? '${state.shows.first.title} - 01' : 'No active test target');
+        : (state.shows.isNotEmpty
+              ? '${state.shows.first.title} - 01'
+              : 'No active test target');
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -29,19 +29,43 @@ class RulesTelemetrySimulator extends StatelessWidget {
         children: [
           Row(
             children: [
-              Container(width: 7, height: 7, decoration: const BoxDecoration(shape: BoxShape.circle, color: ObsidianColors.tertiary)),
+              Container(
+                width: 7,
+                height: 7,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: ObsidianColors.tertiary,
+                ),
+              ),
               const SizedBox(width: 8),
-              Text('Policy Matcher Telemetry: ', style: ObsidianTypography.monoCode(color: ObsidianColors.onSurface).copyWith(fontWeight: FontWeight.bold)),
+              Text(
+                'Policy Matcher Telemetry: ',
+                style: ObsidianTypography.monoCode(
+                  color: ObsidianColors.onSurface,
+                ).copyWith(fontWeight: FontWeight.bold),
+              ),
               Expanded(
                 child: Text(
                   sampleTarget,
-                  style: ObsidianTypography.monoCode(color: ObsidianColors.outline),
+                  style: ObsidianTypography.monoCode(
+                    color: ObsidianColors.outline,
+                  ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              Text('Calculated Score: +185 pts', style: ObsidianTypography.monoCode(color: ObsidianColors.tertiary)),
+              Text(
+                'Calculated Score: +185 pts',
+                style: ObsidianTypography.monoCode(
+                  color: ObsidianColors.tertiary,
+                ),
+              ),
               const SizedBox(width: 12),
-              Text('Verdict: AUTO_COMMITTED_QBTT', style: ObsidianTypography.monoCode(color: ObsidianColors.primary).copyWith(fontWeight: FontWeight.bold)),
+              Text(
+                'Verdict: AUTO_COMMITTED_QBTT',
+                style: ObsidianTypography.monoCode(
+                  color: ObsidianColors.primary,
+                ).copyWith(fontWeight: FontWeight.bold),
+              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -60,7 +84,12 @@ class RulesTelemetrySimulator extends StatelessWidget {
                   color: ObsidianColors.surfaceContainerHigh,
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: Text('Inbox: BYPASSED', style: ObsidianTypography.labelBadge(color: ObsidianColors.tertiary)),
+                child: Text(
+                  'Inbox: BYPASSED',
+                  style: ObsidianTypography.labelBadge(
+                    color: ObsidianColors.tertiary,
+                  ),
+                ),
               ),
             ],
           ),
@@ -76,7 +105,12 @@ class RulesTelemetrySimulator extends StatelessWidget {
         color: ObsidianColors.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(4),
       ),
-      child: Text(text, style: ObsidianTypography.labelBadge(color: ObsidianColors.onSurfaceVariant)),
+      child: Text(
+        text,
+        style: ObsidianTypography.labelBadge(
+          color: ObsidianColors.onSurfaceVariant,
+        ),
+      ),
     );
   }
 }

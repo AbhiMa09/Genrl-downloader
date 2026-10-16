@@ -1,7 +1,7 @@
-use std::path::{Path, PathBuf};
 use anyhow::{bail, Result};
 use clap::Subcommand;
 use genrl_core::EventLog;
+use std::path::{Path, PathBuf};
 
 use super::common::{human_bytes, open_db};
 
@@ -64,7 +64,10 @@ pub fn locations_get_cmd(data_dir: &Path, json: bool) -> Result<()> {
         println!("  Path       : {}", report.download_dir.path);
         println!("  Exists     : {}", report.download_dir.exists);
         println!("  Writable   : {}", report.download_dir.writable);
-        println!("  Free Space : {:.2} GiB", report.download_dir.free_space_gb.unwrap_or(0.0));
+        println!(
+            "  Free Space : {:.2} GiB",
+            report.download_dir.free_space_gb.unwrap_or(0.0)
+        );
         if let Some(err) = &report.download_dir.error {
             println!("  Warning    : {}", err);
         }
@@ -73,7 +76,10 @@ pub fn locations_get_cmd(data_dir: &Path, json: bool) -> Result<()> {
         println!("  Path       : {}", report.library_dir.path);
         println!("  Exists     : {}", report.library_dir.exists);
         println!("  Writable   : {}", report.library_dir.writable);
-        println!("  Free Space : {:.2} GiB", report.library_dir.free_space_gb.unwrap_or(0.0));
+        println!(
+            "  Free Space : {:.2} GiB",
+            report.library_dir.free_space_gb.unwrap_or(0.0)
+        );
         if let Some(err) = &report.library_dir.error {
             println!("  Warning    : {}", err);
         }
@@ -116,7 +122,10 @@ pub fn locations_check_cmd(path: &str, json: bool) -> Result<()> {
         println!("Checking location: {}", check.path);
         println!("  Exists     : {}", check.exists);
         println!("  Writable   : {}", check.writable);
-        println!("  Free Space : {:.2} GiB", check.free_space_gb.unwrap_or(0.0));
+        println!(
+            "  Free Space : {:.2} GiB",
+            check.free_space_gb.unwrap_or(0.0)
+        );
         println!("  Valid      : {}", check.is_valid);
         if let Some(err) = &check.error {
             println!("  Error      : {}", err);
@@ -137,7 +146,10 @@ pub fn locations_get_show_cmd(data_dir: &Path, mal_id: i64, json: bool) -> Resul
             if let Some(chk) = &info.check {
                 println!("  Exists          : {}", chk.exists);
                 println!("  Writable        : {}", chk.writable);
-                println!("  Free Space      : {:.2} GiB", chk.free_space_gb.unwrap_or(0.0));
+                println!(
+                    "  Free Space      : {:.2} GiB",
+                    chk.free_space_gb.unwrap_or(0.0)
+                );
             }
         } else {
             println!("  Folder Override : None (uses library default)");
@@ -146,12 +158,7 @@ pub fn locations_get_show_cmd(data_dir: &Path, mal_id: i64, json: bool) -> Resul
     Ok(())
 }
 
-pub fn locations_migrate_cmd(
-    data_dir: &Path,
-    from: &Path,
-    to: &Path,
-    confirm: bool,
-) -> Result<()> {
+pub fn locations_migrate_cmd(data_dir: &Path, from: &Path, to: &Path, confirm: bool) -> Result<()> {
     if !confirm {
         bail!("Library migration requires --confirm to avoid unintentional file moves.");
     }

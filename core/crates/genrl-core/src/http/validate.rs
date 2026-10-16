@@ -39,7 +39,11 @@ fn host_is_private(url: &reqwest::Url) -> bool {
     }
     if host.starts_with('[') || host.contains(':') {
         let h = host.trim_start_matches('[').trim_end_matches(']');
-        return h == "::1" || h == "::" || h.starts_with("fe80") || h.starts_with("fc") || h.starts_with("fd");
+        return h == "::1"
+            || h == "::"
+            || h.starts_with("fe80")
+            || h.starts_with("fc")
+            || h.starts_with("fd");
     }
     false
 }

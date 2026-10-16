@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
@@ -61,10 +62,16 @@ class ConnectionBanner extends StatelessWidget {
                   state.refreshStatus();
                 }
               },
-              icon: const Icon(Icons.refresh_rounded, size: 14, color: ObsidianColors.onErrorContainer),
+              icon: const Icon(
+                Icons.refresh_rounded,
+                size: 14,
+                color: ObsidianColors.onErrorContainer,
+              ),
               label: Text(
                 'Retry',
-                style: ObsidianTypography.labelBadge(color: ObsidianColors.onErrorContainer),
+                style: ObsidianTypography.labelBadge(
+                  color: ObsidianColors.onErrorContainer,
+                ),
               ),
               style: TextButton.styleFrom(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

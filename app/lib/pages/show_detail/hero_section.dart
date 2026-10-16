@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../models/library_item.dart';
 import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
@@ -60,10 +61,13 @@ class ShowDetailHero extends StatelessWidget {
                     show.englishTitle ?? show.title,
                     style: ObsidianTypography.headlineXl(),
                   ),
-                  if (show.japaneseTitle != null && show.japaneseTitle!.isNotEmpty)
+                  if (show.japaneseTitle != null &&
+                      show.japaneseTitle!.isNotEmpty)
                     Text(
                       show.japaneseTitle!,
-                      style: ObsidianTypography.headlineMd(color: ObsidianColors.outline),
+                      style: ObsidianTypography.headlineMd(
+                        color: ObsidianColors.outline,
+                      ),
                     ),
                 ],
               ),
@@ -76,25 +80,43 @@ class ShowDetailHero extends StatelessWidget {
                 children: [
                   Text(
                     show.title,
-                    style: ObsidianTypography.monoCode(color: ObsidianColors.primary).copyWith(fontWeight: FontWeight.w500),
+                    style: ObsidianTypography.monoCode(
+                      color: ObsidianColors.primary,
+                    ).copyWith(fontWeight: FontWeight.w500),
                   ),
-                  Text('•', style: ObsidianTypography.monoCode(color: ObsidianColors.outline)),
+                  Text(
+                    '•',
+                    style: ObsidianTypography.monoCode(
+                      color: ObsidianColors.outline,
+                    ),
+                  ),
                   Text.rich(
                     TextSpan(
                       text: 'Studio: ',
-                      style: ObsidianTypography.bodySm(color: ObsidianColors.onSurfaceVariant),
+                      style: ObsidianTypography.bodySm(
+                        color: ObsidianColors.onSurfaceVariant,
+                      ),
                       children: [
                         TextSpan(
                           text: show.studio ?? 'Unknown Studio',
-                          style: ObsidianTypography.bodySm(color: ObsidianColors.onSurface).copyWith(fontWeight: FontWeight.bold),
+                          style: ObsidianTypography.bodySm(
+                            color: ObsidianColors.onSurface,
+                          ).copyWith(fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
                   ),
-                  Text('•', style: ObsidianTypography.monoCode(color: ObsidianColors.outline)),
+                  Text(
+                    '•',
+                    style: ObsidianTypography.monoCode(
+                      color: ObsidianColors.outline,
+                    ),
+                  ),
                   Text(
                     isMovie ? 'Original Story / Film' : 'TV Broadcast Series',
-                    style: ObsidianTypography.bodySm(color: ObsidianColors.outline),
+                    style: ObsidianTypography.bodySm(
+                      color: ObsidianColors.outline,
+                    ),
                   ),
                 ],
               ),
@@ -110,14 +132,19 @@ class ShowDetailHero extends StatelessWidget {
                 runSpacing: 8,
                 children: genres.map((g) {
                   return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 5,
+                    ),
                     decoration: BoxDecoration(
                       color: ObsidianColors.surfaceContainerHigh,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
                       g,
-                      style: ObsidianTypography.labelBadge(color: ObsidianColors.onSurface),
+                      style: ObsidianTypography.labelBadge(
+                        color: ObsidianColors.onSurface,
+                      ),
                     ),
                   );
                 }).toList(),

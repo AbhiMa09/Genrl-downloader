@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import '../models/activity_item.dart';
 import '../models/inbox_item.dart';
 import '../models/queue_item.dart';
@@ -52,7 +53,7 @@ class StateProvider extends StateContext
   Timer? _pollingTimer;
 
   StateProvider({CoreBridge? bridge, bool startPolling = true})
-      : bridge = bridge ?? CoreBridge() {
+    : bridge = bridge ?? CoreBridge() {
     refreshAll();
     if (startPolling) {
       _startPolling();
@@ -131,8 +132,7 @@ class StateProvider extends StateContext
         _coreError = null;
       } else {
         _isCoreConnected = false;
-        _coreError =
-            'Core daemon unreachable (Process exit non-zero or genrl not found)';
+        _coreError = 'Core daemon unreachable (Process exit non-zero or genrl not found)';
       }
 
       if (queueRes != null) {
@@ -162,8 +162,7 @@ class StateProvider extends StateContext
         _coreError = null;
       } else {
         _isCoreConnected = false;
-        _coreError =
-            'Core daemon unreachable (Process exit non-zero or genrl not found)';
+        _coreError = 'Core daemon unreachable (Process exit non-zero or genrl not found)';
       }
     } catch (e) {
       _isCoreConnected = false;
@@ -189,8 +188,11 @@ class StateProvider extends StateContext
     }
   }
 
-  Future<void> answerInboxQuestion(int id, String choiceKey,
-      {bool always = false}) async {
+  Future<void> answerInboxQuestion(
+    int id,
+    String choiceKey, {
+    bool always = false,
+  }) async {
     try {
       await bridge.answerQuestion(id, choiceKey, always: always);
     } catch (_) {}
@@ -198,14 +200,13 @@ class StateProvider extends StateContext
     notifyListeners();
   }
 
-  Future<void> answerQuestion(int questionId, String answerKey,
-      {bool always = false}) async {
+  Future<void> answerQuestion(
+    int questionId,
+    String answerKey, {
+    bool always = false,
+  }) async {
     await bridge.answerQuestion(questionId, answerKey, always: always);
-    await Future.wait([
-      refreshInbox(),
-      refreshEvents(),
-      refreshQueue(),
-    ]);
+    await Future.wait([refreshInbox(), refreshEvents(), refreshQueue()]);
   }
 
   // Core Actions
@@ -238,11 +239,7 @@ class StateProvider extends StateContext
     _isScanning = true;
     notifyListeners();
     await bridge.rescanLibrary();
-    await Future.wait([
-      refreshShows(),
-      refreshLocations(),
-      refreshEvents(),
-    ]);
+    await Future.wait([refreshShows(), refreshLocations(), refreshEvents()]);
     _isScanning = false;
     notifyListeners();
   }

@@ -57,7 +57,11 @@ impl QuestionStore {
 
     /// Every still-open question, oldest first (the Inbox reads in order).
     pub fn open(db: &Db, now: i64) -> Result<Vec<OpenQuestion>> {
-        Self::query(db, "answer IS NULL AND (expires_at IS NULL OR expires_at > ?1)", [now])
+        Self::query(
+            db,
+            "answer IS NULL AND (expires_at IS NULL OR expires_at > ?1)",
+            [now],
+        )
     }
 
     /// Open questions for one show.
@@ -187,7 +191,11 @@ impl QuestionStore {
         })
     }
 
-    fn query(db: &Db, where_clause: &str, args: impl rusqlite::Params) -> Result<Vec<OpenQuestion>> {
+    fn query(
+        db: &Db,
+        where_clause: &str,
+        args: impl rusqlite::Params,
+    ) -> Result<Vec<OpenQuestion>> {
         let sql = format!(
             "SELECT id, job_id, mal_id, payload, created_at, expires_at
              FROM questions WHERE {where_clause} ORDER BY id"
@@ -200,12 +208,13 @@ impl QuestionStore {
                     id: r.get(0)?,
                     job_id: r.get(1)?,
                     mal_id: r.get(2)?,
-                    payload: serde_json::from_str(&payload)
-                        .map_err(|e| rusqlite::Error::FromSqlConversionFailure(
+                    payload: serde_json::from_str(&payload).map_err(|e| {
+                        rusqlite::Error::FromSqlConversionFailure(
                             3,
                             rusqlite::types::Type::Text,
                             Box::new(e),
-                        ))?,
+                        )
+                    })?,
                     created_at: r.get(4)?,
                     expires_at: r.get(5)?,
                 })
@@ -267,14 +276,23 @@ mod tests {
             Ok(())
         })
         .unwrap();
-        let id = QuestionStore::ask(&db, None, Some(42), &review_payload(), now(), Some(72 * 3600))
-            .unwrap();
+        let id = QuestionStore::ask(
+            &db,
+            None,
+            Some(42),
+            &review_payload(),
+            now(),
+            Some(72 * 3600),
+        )
+        .unwrap();
 
         let open = QuestionStore::open(&db, now()).unwrap();
         assert_eq!(open.len(), 1);
         assert_eq!(open[0].kind(), QuestionKind::MatchReview);
         match &open[0].payload {
-            Payload::MatchReview { expected, options, .. } => {
+            Payload::MatchReview {
+                expected, options, ..
+            } => {
                 assert_eq!(expected.title, "Kimi no Na wa");
                 assert_eq!(options.len(), 1);
                 assert_eq!(options[0].group.as_deref(), Some("SubsPlease"));
@@ -332,12 +350,19 @@ mod tests {
         };
         let id = QuestionStore::ask(&db, Some(7), Some(99), &payload, now(), Some(3600)).unwrap();
 
-        assert!(QuestionStore::expire(&db, now()).unwrap().is_empty(), "not yet");
+        assert!(
+            QuestionStore::expire(&db, now()).unwrap().is_empty(),
+            "not yet"
+        );
         let expired = QuestionStore::expire(&db, now() + 3601).unwrap();
         assert_eq!(expired.len(), 1);
         assert_eq!(expired[0].id, id);
         assert_eq!(expired[0].job_id, Some(7));
-        assert_eq!(expired[0].mal_id, Some(99), "the caller returns the episode to missing");
+        assert_eq!(
+            expired[0].mal_id,
+            Some(99),
+            "the caller returns the episode to missing"
+        );
 
         // Expiring marks it answered, so it stops showing in the Inbox.
         assert!(QuestionStore::open(&db, now() + 3601).unwrap().is_empty());
@@ -364,7 +389,9 @@ mod tests {
                 free_gb: 3,
                 floor_gb: 20,
             },
-            Payload::AllFailed { candidates_tried: 3 },
+            Payload::AllFailed {
+                candidates_tried: 3,
+            },
             Payload::EntryChanged {
                 mal_id: 5,
                 title: "Show".to_string(),
@@ -372,14 +399,13 @@ mod tests {
             },
         ];
         for (index, payload) in payloads.iter().enumerate() {
-            let id =
-                QuestionStore::ask(&db, None, None, payload, now(), None).unwrap();
+            let id = QuestionStore::ask(&db, None, None, payload, now(), None).unwrap();
             let open = QuestionStore::open(&db, now()).unwrap();
-            let stored = open
-                .iter()
-                .find(|q| q.id == id)
-                .expect("just asked");
-            assert_eq!(&stored.payload, payload, "payload {index} survived the round trip");
+            let stored = open.iter().find(|q| q.id == id).expect("just asked");
+            assert_eq!(
+                &stored.payload, payload,
+                "payload {index} survived the round trip"
+            );
         }
     }
 
@@ -400,7 +426,14 @@ mod tests {
             None,
         )
         .unwrap();
-        assert_eq!(QuestionStore::of_kind(&db, QuestionKind::LowSeeds, now()).unwrap().len(), 1);
-        assert!(QuestionStore::of_kind(&db, QuestionKind::FileExists, now()).unwrap().is_empty());
+        assert_eq!(
+            QuestionStore::of_kind(&db, QuestionKind::LowSeeds, now())
+                .unwrap()
+                .len(),
+            1
+        );
+        assert!(QuestionStore::of_kind(&db, QuestionKind::FileExists, now())
+            .unwrap()
+            .is_empty());
     }
 }

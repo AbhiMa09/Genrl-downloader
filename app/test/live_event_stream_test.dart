@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:genrl_downloader/models/queue_item.dart';
 import 'package:genrl_downloader/models/system_status.dart';
 import 'package:genrl_downloader/services/state_provider.dart';
+
 import 'fake_core_bridge.dart';
 
 class StreamingCoreBridge extends FakeCoreBridge {
@@ -89,28 +90,31 @@ class StreamingCoreBridge extends FakeCoreBridge {
 }
 
 void main() {
-  test('Event stream / background timer updates state store without user action', () async {
-    final streamBridge = StreamingCoreBridge();
-    final state = StateProvider(bridge: streamBridge, startPolling: false);
+  test(
+    'Event stream / background timer updates state store without user action',
+    () async {
+      final streamBridge = StreamingCoreBridge();
+      final state = StateProvider(bridge: streamBridge, startPolling: false);
 
-    // Initial load
-    await state.refreshAll();
-    expect(state.status.activeTorrents, equals(1));
-    expect(state.queue.length, equals(1));
-    expect(state.queue.first.progress, equals(0.50));
+      // Initial load
+      await state.refreshAll();
+      expect(state.status.activeTorrents, equals(1));
+      expect(state.queue.length, equals(1));
+      expect(state.queue.first.progress, equals(0.50));
 
-    // Core emits an event / background state change without any user action
-    streamBridge.currentActiveTorrents = 2;
+      // Core emits an event / background state change without any user action
+      streamBridge.currentActiveTorrents = 2;
 
-    // Simulate periodic live telemetry tick
-    await state.refreshLiveTelemetry();
+      // Simulate periodic live telemetry tick
+      await state.refreshLiveTelemetry();
 
-    // Verify store updated reactively without user intervention
-    expect(state.status.activeTorrents, equals(2));
-    expect(state.queue.length, equals(2));
-    expect(state.queue.first.progress, equals(0.85));
-    expect(streamBridge.telemetryPollCount, greaterThanOrEqualTo(2));
+      // Verify store updated reactively without user intervention
+      expect(state.status.activeTorrents, equals(2));
+      expect(state.queue.length, equals(2));
+      expect(state.queue.first.progress, equals(0.85));
+      expect(streamBridge.telemetryPollCount, greaterThanOrEqualTo(2));
 
-    state.dispose();
-  });
+      state.dispose();
+    },
+  );
 }

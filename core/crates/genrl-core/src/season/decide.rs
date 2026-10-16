@@ -42,7 +42,9 @@ pub fn decide(chain: &SeasonChain, wanted: &Wanted, release: &Release) -> Decisi
                 episode: 1.0,
             },
             Some(found) => Decision::Ask {
-                reason: format!("episode-numbered release ({found}) for a feature without episodes"),
+                reason: format!(
+                    "episode-numbered release ({found}) for a feature without episodes"
+                ),
             },
         };
     };
@@ -77,7 +79,10 @@ pub fn decide(chain: &SeasonChain, wanted: &Wanted, release: &Release) -> Decisi
     if entry.episode_offset != 0 {
         accepted.push(w + entry.episode_offset as f64);
     }
-    if accepted.iter().any(|want| (want - found).abs() < f64::EPSILON) {
+    if accepted
+        .iter()
+        .any(|want| (want - found).abs() < f64::EPSILON)
+    {
         return Decision::Download {
             season: wanted_season,
             episode: w,

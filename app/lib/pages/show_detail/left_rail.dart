@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../models/library_item.dart';
 import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
@@ -57,26 +58,38 @@ class ShowDetailLeftRail extends StatelessWidget {
                 child: Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
-                        color: ObsidianColors.surfaceContainerLowest.withOpacity(0.9),
+                        color: ObsidianColors.surfaceContainerLowest
+                            .withOpacity(0.9),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
                         'BD 1080p',
-                        style: ObsidianTypography.labelBadge(color: ObsidianColors.tertiary),
+                        style: ObsidianTypography.labelBadge(
+                          color: ObsidianColors.tertiary,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 6),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
-                        color: ObsidianColors.surfaceContainerLowest.withOpacity(0.9),
+                        color: ObsidianColors.surfaceContainerLowest
+                            .withOpacity(0.9),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
                         'HEVC',
-                        style: ObsidianTypography.labelBadge(color: ObsidianColors.primary),
+                        style: ObsidianTypography.labelBadge(
+                          color: ObsidianColors.primary,
+                        ),
                       ),
                     ),
                   ],
@@ -93,7 +106,9 @@ class ShowDetailLeftRail extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: ObsidianColors.surfaceContainerLowest.withOpacity(0.9),
+                      color: ObsidianColors.surfaceContainerLowest.withOpacity(
+                        0.9,
+                      ),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
@@ -111,7 +126,10 @@ class ShowDetailLeftRail extends StatelessWidget {
                 left: 0,
                 right: 0,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.bottomCenter,
@@ -127,21 +145,30 @@ class ShowDetailLeftRail extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
-                          color: ObsidianColors.secondaryContainer.withOpacity(0.5),
+                          color: ObsidianColors.secondaryContainer.withOpacity(
+                            0.5,
+                          ),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
                           isFinished
                               ? (isMovie ? 'MOVIE COMPLETE' : 'SEASON COMPLETE')
                               : 'AIRING',
-                          style: ObsidianTypography.labelBadge(color: ObsidianColors.secondary),
+                          style: ObsidianTypography.labelBadge(
+                            color: ObsidianColors.secondary,
+                          ),
                         ),
                       ),
                       Text(
                         durationLabel,
-                        style: ObsidianTypography.monoCode(color: ObsidianColors.onSurfaceVariant),
+                        style: ObsidianTypography.monoCode(
+                          color: ObsidianColors.onSurfaceVariant,
+                        ),
                       ),
                     ],
                   ),
@@ -168,30 +195,47 @@ class ShowDetailLeftRail extends StatelessWidget {
                     onTap: () => showRatingDialog(context, state, show),
                     borderRadius: BorderRadius.circular(8),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: ObsidianColors.surfaceContainerLowest,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: ObsidianColors.warning.withOpacity(0.35)),
+                        border: Border.all(
+                          color: ObsidianColors.warning.withOpacity(0.35),
+                        ),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.star_rounded, size: 18, color: ObsidianColors.warning),
+                          const Icon(
+                            Icons.star_rounded,
+                            size: 18,
+                            color: ObsidianColors.warning,
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             show.score.toStringAsFixed(1),
-                            style: ObsidianTypography.monoMetric(color: ObsidianColors.onSurface).copyWith(fontWeight: FontWeight.bold),
+                            style: ObsidianTypography.monoMetric(
+                              color: ObsidianColors.onSurface,
+                            ).copyWith(fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(width: 6),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 1,
+                            ),
                             decoration: BoxDecoration(
                               color: ObsidianColors.primary.withOpacity(0.15),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
                               'Edit',
-                              style: ObsidianTypography.monoCode(color: ObsidianColors.primary, fontSize: 9),
+                              style: ObsidianTypography.monoCode(
+                                color: ObsidianColors.primary,
+                                fontSize: 9,
+                              ),
                             ),
                           ),
                         ],
@@ -201,11 +245,15 @@ class ShowDetailLeftRail extends StatelessWidget {
                   Text.rich(
                     TextSpan(
                       text: 'Ranked ',
-                      style: ObsidianTypography.monoCode(color: ObsidianColors.outline),
+                      style: ObsidianTypography.monoCode(
+                        color: ObsidianColors.outline,
+                      ),
                       children: [
                         TextSpan(
                           text: '#${show.rank ?? 12}',
-                          style: ObsidianTypography.monoCode(color: ObsidianColors.onSurface).copyWith(fontWeight: FontWeight.bold),
+                          style: ObsidianTypography.monoCode(
+                            color: ObsidianColors.onSurface,
+                          ).copyWith(fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
@@ -217,9 +265,7 @@ class ShowDetailLeftRail extends StatelessWidget {
               // 2x2 Telemetry Grid
               Row(
                 children: [
-                  Expanded(
-                    child: _buildTelemetryCell('FORMAT', formatLabel),
-                  ),
+                  Expanded(child: _buildTelemetryCell('FORMAT', formatLabel)),
                   const SizedBox(width: 8),
                   Expanded(
                     child: _buildTelemetryCell('PREMIERED', premieredLabel),
@@ -233,7 +279,9 @@ class ShowDetailLeftRail extends StatelessWidget {
                     child: _buildTelemetryCell(
                       'STATUS',
                       isFinished ? 'Finished' : 'Airing',
-                      statusColor: isFinished ? ObsidianColors.success : ObsidianColors.tertiary,
+                      statusColor: isFinished
+                          ? ObsidianColors.success
+                          : ObsidianColors.tertiary,
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -252,7 +300,11 @@ class ShowDetailLeftRail extends StatelessWidget {
         const SizedBox(height: 16),
 
         // File Storage Inspector Card
-        StorageInspectorCard(state: state, show: show, onDiskString: onDiskString),
+        StorageInspectorCard(
+          state: state,
+          show: show,
+          onDiskString: onDiskString,
+        ),
         const SizedBox(height: 16),
 
         // Quick Telemetry Graph: Codec Bitrate Analysis Sparkline
@@ -273,7 +325,8 @@ class ShowDetailLeftRail extends StatelessWidget {
         children: [
           Text(
             label,
-            style: ObsidianTypography.monoCode(color: ObsidianColors.outline).copyWith(fontSize: 10),
+            style: ObsidianTypography.monoCode(color: ObsidianColors.outline)
+                .copyWith(fontSize: 10),
           ),
           const SizedBox(height: 2),
           if (statusColor != null)
@@ -282,13 +335,17 @@ class ShowDetailLeftRail extends StatelessWidget {
                 Container(
                   width: 6,
                   height: 6,
-                  decoration: BoxDecoration(color: statusColor, shape: BoxShape.circle),
+                  decoration: BoxDecoration(
+                    color: statusColor,
+                    shape: BoxShape.circle,
+                  ),
                 ),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
                     value,
-                    style: ObsidianTypography.titleSm(color: statusColor).copyWith(fontSize: 12),
+                    style: ObsidianTypography.titleSm(color: statusColor)
+                        .copyWith(fontSize: 12),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -297,7 +354,8 @@ class ShowDetailLeftRail extends StatelessWidget {
           else
             Text(
               value,
-              style: ObsidianTypography.titleSm(color: ObsidianColors.onSurface).copyWith(fontSize: 12),
+              style: ObsidianTypography.titleSm(color: ObsidianColors.onSurface)
+                  .copyWith(fontSize: 12),
               overflow: TextOverflow.ellipsis,
             ),
         ],

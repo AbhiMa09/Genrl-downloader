@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../services/state_provider.dart';
 import '../theme/colors.dart';
 import '../theme/typography.dart';
@@ -26,7 +27,11 @@ class StatusStrip extends StatelessWidget {
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: ConstrainedBox(
-              constraints: BoxConstraints(minWidth: constraints.maxWidth > 32 ? constraints.maxWidth - 32 : 0),
+              constraints: BoxConstraints(
+                minWidth: constraints.maxWidth > 32
+                    ? constraints.maxWidth - 32
+                    : 0,
+              ),
               child: Row(
                 children: [
                   // Automation on/off toggle button
@@ -34,7 +39,10 @@ class StatusStrip extends StatelessWidget {
                     onTap: () => state.toggleAutomation(),
                     borderRadius: BorderRadius.circular(4),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       child: Row(
                         children: [
                           Container(
@@ -49,7 +57,9 @@ class StatusStrip extends StatelessWidget {
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            status.automationOn ? 'Automation: Active' : 'Automation: Paused',
+                            status.automationOn
+                                ? 'Automation: Active'
+                                : 'Automation: Paused',
                             style: ObsidianTypography.monoCode(
                               color: status.automationOn
                                   ? ObsidianColors.onSurface
@@ -145,7 +155,9 @@ class StatusStrip extends StatelessWidget {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          state.isSyncing ? 'Syncing...' : status.formattedLastSync,
+                          state.isSyncing
+                              ? 'Syncing...'
+                              : status.formattedLastSync,
                           style: ObsidianTypography.monoCode(
                             color: state.isSyncing
                                 ? ObsidianColors.primary
@@ -170,10 +182,6 @@ class _Separator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 1,
-      height: 12,
-      color: ObsidianColors.border,
-    );
+    return Container(width: 1, height: 12, color: ObsidianColors.border);
   }
 }

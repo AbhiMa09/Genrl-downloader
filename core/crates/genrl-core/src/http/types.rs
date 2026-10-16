@@ -1,7 +1,7 @@
 use std::time::Duration;
 
-use crate::error::Result;
 use super::policy::RetryPolicy;
+use crate::error::Result;
 
 /// Options for a single request. `Default` is "use the service policy".
 #[derive(Debug, Clone, Default)]

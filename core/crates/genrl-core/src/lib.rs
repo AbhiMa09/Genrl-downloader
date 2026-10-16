@@ -30,17 +30,19 @@
 //!
 //! No other module talks to the network directly.
 
-pub mod db;
 pub mod clock;
+pub mod db;
 pub mod error;
 pub mod events;
 pub mod filename;
 pub mod http;
 pub mod jobs;
 pub mod library;
+pub mod locations;
 pub mod logging;
 pub mod mal;
 pub mod matching;
+pub mod metadata;
 pub mod models;
 pub mod names;
 pub mod nyaa;
@@ -54,16 +56,16 @@ pub mod season;
 pub mod secrets;
 pub mod settings;
 pub mod worker;
-pub mod locations;
-pub mod metadata;
 
 pub use db::Db;
 pub use error::{Error, Result};
 pub use events::{EventLog, Level};
 pub use http::{Gate, Service};
-pub use library::{LibraryFinalizer, RescanReport, rescan_library, rewrite_show_folder_metadata};
-pub use locations::{LocationCheck, LocationsReport, get_locations, set_location, check_directory};
-pub use metadata::{fetch_show_metadata, process_metadata_queue, queue_stale_metadata, MetadataOutcome};
+pub use library::{rescan_library, rewrite_show_folder_metadata, LibraryFinalizer, RescanReport};
+pub use locations::{check_directory, get_locations, set_location, LocationCheck, LocationsReport};
+pub use metadata::{
+    fetch_show_metadata, process_metadata_queue, queue_stale_metadata, MetadataOutcome,
+};
 pub use rules::Rules;
 pub use settings::Settings;
 

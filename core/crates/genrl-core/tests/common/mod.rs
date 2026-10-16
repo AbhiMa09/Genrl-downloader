@@ -54,13 +54,7 @@ pub struct Fixed {
 impl Fixed {
     pub fn new(response: ResponseTemplate) -> (Arc<AtomicUsize>, Fixed) {
         let hits = Arc::new(AtomicUsize::new(0));
-        (
-            hits.clone(),
-            Fixed {
-                hits,
-                response,
-            },
-        )
+        (hits.clone(), Fixed { hits, response })
     }
 }
 

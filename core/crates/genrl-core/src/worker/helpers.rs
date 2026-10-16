@@ -15,7 +15,11 @@ impl Engine {
     // ------------------------------------------------------------------ helpers
 
     /// If single-episode download is used, ensure sibling missing episodes have search jobs queued.
-    pub(crate) fn enqueue_sibling_episodes_if_needed(&self, mal_id: i64, current_episode_id: i64) -> Result<()> {
+    pub(crate) fn enqueue_sibling_episodes_if_needed(
+        &self,
+        mal_id: i64,
+        current_episode_id: i64,
+    ) -> Result<()> {
         let missing_ids: Vec<i64> = self.db.with(|c| {
             let mut stmt = c.prepare(
                 "SELECT e.id FROM episodes e
@@ -23,9 +27,10 @@ impl Engine {
                     AND NOT EXISTS (
                         SELECT 1 FROM jobs j WHERE j.episode_id = e.id AND j.kind = 'search'
                     )
-                 ORDER BY e.number ASC"
+                 ORDER BY e.number ASC",
             )?;
-            let rows = stmt.query_map(rusqlite::params![mal_id, current_episode_id], |r| r.get(0))?;
+            let rows =
+                stmt.query_map(rusqlite::params![mal_id, current_episode_id], |r| r.get(0))?;
             let mut list = Vec::new();
             for r in rows {
                 list.push(r?);
@@ -109,7 +114,13 @@ impl Engine {
     }
 
     /// Queue a question and park the job in `needs_input`.
-    pub(crate) fn ask(&self, job: &Job, mal_id: i64, payload: Payload, reason: &str) -> Result<i64> {
+    pub(crate) fn ask(
+        &self,
+        job: &Job,
+        mal_id: i64,
+        payload: Payload,
+        reason: &str,
+    ) -> Result<i64> {
         let settings = Settings::load(&self.db)?;
         let now = self.now();
         let id = QuestionStore::ask(
@@ -171,20 +182,19 @@ impl Engine {
             return Ok(None);
         };
         self.db.with(|c| {
-            Ok(c
-                .query_row(
-                    "SELECT info_hash, name, magnet, size FROM torrents WHERE id = ?1",
-                    [torrent_id],
-                    |r| {
-                        Ok(ChosenTorrent {
-                            info_hash: r.get(0)?,
-                            name: r.get(1)?,
-                            magnet: r.get(2)?,
-                            size_bytes: r.get::<_, i64>(3).unwrap_or(0),
-                        })
-                    },
-                )
-                .optional()?)
+            Ok(c.query_row(
+                "SELECT info_hash, name, magnet, size FROM torrents WHERE id = ?1",
+                [torrent_id],
+                |r| {
+                    Ok(ChosenTorrent {
+                        info_hash: r.get(0)?,
+                        name: r.get(1)?,
+                        magnet: r.get(2)?,
+                        size_bytes: r.get::<_, i64>(3).unwrap_or(0),
+                    })
+                },
+            )
+            .optional()?)
         })
     }
 

@@ -117,7 +117,11 @@ pub enum AskReason {
     /// No candidate reached the accept score.
     NoConfidentMatch { best: f64, needed: f64 },
     /// The runner-up is too close to call.
-    TooClose { best: f64, runner_up: f64, margin: f64 },
+    TooClose {
+        best: f64,
+        runner_up: f64,
+        margin: f64,
+    },
     /// The winner is thin, and this show is not on the auto list.
     ThinSeeds { seeders: u32 },
 }
@@ -150,7 +154,12 @@ pub enum Verdict {
         thin: bool,
     },
     /// Not clear enough: pause the job and show a Match Review card.
-    Ask { reason: AskReason, ranked: Vec<Ranked> },
+    Ask {
+        reason: AskReason,
+        ranked: Vec<Ranked>,
+    },
     /// Nothing usable, with the reasons everything was dropped for.
-    NotFound { rejections: Vec<(String, Rejection)> },
+    NotFound {
+        rejections: Vec<(String, Rejection)>,
+    },
 }

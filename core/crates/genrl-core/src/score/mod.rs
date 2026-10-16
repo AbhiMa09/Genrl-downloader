@@ -77,8 +77,10 @@ mod tests {
     fn a_clean_single_episode_scores_above_the_threshold() {
         let (names, others) = target();
         let t = frieren_target(&names, &others);
-        let (release, mut candidate) =
-            candidate("[SubsPlease] Sousou no Frieren - 28 (1080p) [ABCD1234].mkv", 53);
+        let (release, mut candidate) = candidate(
+            "[SubsPlease] Sousou no Frieren - 28 (1080p) [ABCD1234].mkv",
+            53,
+        );
         candidate.show_type = Some(ShowType::Tv);
         let rules = Rules {
             groups: vec!["SubsPlease".into(), "Erai-raws".into()],
@@ -100,10 +102,18 @@ mod tests {
     fn a_wrong_episode_is_rejected() {
         let (names, others) = target();
         let t = frieren_target(&names, &others);
-        let (_release, candidate) =
-            candidate("[SubsPlease] Sousou no Frieren - 07 (1080p) [ABCD1234].mkv", 53);
-        let err = evaluate(&candidate, &t, &Rules::default(), &Settings::default(), now())
-            .unwrap_err();
+        let (_release, candidate) = candidate(
+            "[SubsPlease] Sousou no Frieren - 07 (1080p) [ABCD1234].mkv",
+            53,
+        );
+        let err = evaluate(
+            &candidate,
+            &t,
+            &Rules::default(),
+            &Settings::default(),
+            now(),
+        )
+        .unwrap_err();
         assert_eq!(
             err,
             Rejection::WrongEpisode {
@@ -117,10 +127,18 @@ mod tests {
     fn a_title_belonging_to_another_show_is_rejected() {
         let (names, others) = target();
         let t = frieren_target(&names, &others);
-        let (_release, candidate) =
-            candidate("[SubsPlease] Kimi no Todoke - 28 (1080p) [ABCD1234].mkv", 53);
-        let err = evaluate(&candidate, &t, &Rules::default(), &Settings::default(), now())
-            .unwrap_err();
+        let (_release, candidate) = candidate(
+            "[SubsPlease] Kimi no Todoke - 28 (1080p) [ABCD1234].mkv",
+            53,
+        );
+        let err = evaluate(
+            &candidate,
+            &t,
+            &Rules::default(),
+            &Settings::default(),
+            now(),
+        )
+        .unwrap_err();
         match err {
             Rejection::TitleIsAnotherShow { name, .. } => assert_eq!(name, "kimi no todoke"),
             other => panic!("expected TitleIsAnotherShow, got {other:?}"),
@@ -133,8 +151,10 @@ mod tests {
         let names = vec!["sousou no frieren".to_string()];
         let others: Vec<String> = vec![];
         let t = frieren_target(&names, &others);
-        let (_release, candidate) =
-            candidate("[SubsPlease] Some Random Show - 28 (1080p) [ABCD1234].mkv", 53);
+        let (_release, candidate) = candidate(
+            "[SubsPlease] Some Random Show - 28 (1080p) [ABCD1234].mkv",
+            53,
+        );
         let settings = Settings::default();
         let scored = evaluate(&candidate, &t, &Rules::default(), &settings, now()).unwrap();
         assert!(
@@ -198,7 +218,10 @@ mod tests {
         let settings = Settings::default();
 
         // Zero seeders.
-        let (_r, c) = candidate("[SubsPlease] Sousou no Frieren - 28 (1080p) [ABCD1234].mkv", 0);
+        let (_r, c) = candidate(
+            "[SubsPlease] Sousou no Frieren - 28 (1080p) [ABCD1234].mkv",
+            0,
+        );
         assert_eq!(
             evaluate(&c, &t, &Rules::default(), &settings, now()).unwrap_err(),
             Rejection::NoSeeders
@@ -206,7 +229,10 @@ mod tests {
 
         // Below the resolution floor.
         let rules = Rules::default(); // floor 720p
-        let (_r, c) = candidate("[SubsPlease] Sousou no Frieren - 28 (480p) [ABCD1234].mkv", 53);
+        let (_r, c) = candidate(
+            "[SubsPlease] Sousou no Frieren - 28 (480p) [ABCD1234].mkv",
+            53,
+        );
         assert!(matches!(
             evaluate(&c, &t, &rules, &settings, now()).unwrap_err(),
             Rejection::ResolutionBelowFloor { .. }
@@ -335,7 +361,10 @@ mod tests {
 
     #[test]
     fn season_batch_prioritized_over_single_and_fails_over_on_zero_seeders() {
-        let names = vec!["9 ruler s crown".to_string(), "9 nine ruler s crown".to_string()];
+        let names = vec![
+            "9 ruler s crown".to_string(),
+            "9 nine ruler s crown".to_string(),
+        ];
         let others: Vec<String> = vec![];
         let settings = Settings::default();
         let rules = Rules::default(); // prefer_batch_when_finished = true
@@ -350,13 +379,19 @@ mod tests {
         };
 
         // 1. Healthy Season Batch
-        let (_r, mut batch_cand) = candidate("[EMBER] 9: Ruler's Crown (2025) (Season 1) [1080p] [Batch]", 14);
+        let (_r, mut batch_cand) = candidate(
+            "[EMBER] 9: Ruler's Crown (2025) (Season 1) [1080p] [Batch]",
+            14,
+        );
         batch_cand.show_type = Some(ShowType::Tv);
         let batch_scored = evaluate(&batch_cand, &t, &rules, &settings, now()).unwrap();
         assert_eq!(batch_scored.signal, 110.0); // 50 title + 10 type + 50 batch
 
         // 2. Single Episode
-        let (_r, mut single_cand) = candidate("[Valhalla-Society] 9-nine- Ruler's Crown S01E01 [1080p]", 20);
+        let (_r, mut single_cand) = candidate(
+            "[Valhalla-Society] 9-nine- Ruler's Crown S01E01 [1080p]",
+            20,
+        );
         single_cand.show_type = Some(ShowType::Tv);
         let single_scored = evaluate(&single_cand, &t, &rules, &settings, now()).unwrap();
         assert_eq!(single_scored.signal, 90.0); // 50 title + 10 type + 30 episode
@@ -365,7 +400,10 @@ mod tests {
         assert!(batch_scored.signal - single_scored.signal >= settings.score_margin);
 
         // 3. Batch with 0 seeders fails hard filter and is rejected with NoSeeders
-        let (_r, dead_batch) = candidate("[EMBER] 9: Ruler's Crown (2025) (Season 1) [1080p] [Batch]", 0);
+        let (_r, dead_batch) = candidate(
+            "[EMBER] 9: Ruler's Crown (2025) (Season 1) [1080p] [Batch]",
+            0,
+        );
         let err = evaluate(&dead_batch, &t, &rules, &settings, now()).unwrap_err();
         assert_eq!(err, Rejection::NoSeeders);
     }

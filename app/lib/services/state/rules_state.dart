@@ -20,7 +20,10 @@ mixin RulesStateMixin on StateContext {
     try {
       final globalData = await bridge.getRules();
       if (globalData != null) {
-        final globalRule = RuleItem.fromJson(globalData, showTitle: 'Global Defaults');
+        final globalRule = RuleItem.fromJson(
+          globalData,
+          showTitle: 'Global Defaults',
+        );
         final overrides = _rules.where((r) => !r.isGlobal).toList();
         _rules = [globalRule, ...overrides];
       }
@@ -39,7 +42,8 @@ mixin RulesStateMixin on StateContext {
       ActivityItem(
         id: DateTime.now().millisecondsSinceEpoch,
         level: ActivityLevel.info,
-        message: 'Updated rule "$key" for ${malId != null ? "show #$malId" : "global defaults"}',
+        message:
+            'Updated rule "$key" for ${malId != null ? "show #$malId" : "global defaults"}',
         timestamp: DateTime.now(),
         malId: malId,
       ),
@@ -54,7 +58,8 @@ mixin RulesStateMixin on StateContext {
       ActivityItem(
         id: DateTime.now().millisecondsSinceEpoch,
         level: ActivityLevel.info,
-        message: 'Reset rule(s) for ${malId != null ? "show #$malId" : "global defaults"}',
+        message:
+            'Reset rule(s) for ${malId != null ? "show #$malId" : "global defaults"}',
         timestamp: DateTime.now(),
         malId: malId,
       ),

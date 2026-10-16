@@ -83,12 +83,17 @@ fn sync_queues_metadata_jobs() {
     .unwrap();
 
     let queued = queue_stale_metadata(&db, clk.now()).unwrap();
-    assert_eq!(queued, 2, "Expected 2 shows to be queued for metadata refresh");
+    assert_eq!(
+        queued, 2,
+        "Expected 2 shows to be queued for metadata refresh"
+    );
 
     // Verify Show 1 and Show 3 are marked pending with next_run_at = NOW
     let statuses: Vec<(i64, String, Option<i64>)> = db
         .with(|c| {
-            let mut stmt = c.prepare("SELECT mal_id, metadata_status, metadata_next_retry_at FROM shows ORDER BY mal_id")?;
+            let mut stmt = c.prepare(
+                "SELECT mal_id, metadata_status, metadata_next_retry_at FROM shows ORDER BY mal_id",
+            )?;
             let rows = stmt.query_map([], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?;
             Ok(rows.filter_map(Result::ok).collect())
         })
@@ -151,9 +156,16 @@ async fn metadata_429_placeholder_and_retry_fills_it() {
         .unwrap();
 
     match outcome {
-        MetadataOutcome::PendingRetry { mal_id, next_run_at, .. } => {
+        MetadataOutcome::PendingRetry {
+            mal_id,
+            next_run_at,
+            ..
+        } => {
             assert_eq!(mal_id, 100);
-            assert!(next_run_at > NOW, "next_run_at should be in the future (backoff)");
+            assert!(
+                next_run_at > NOW,
+                "next_run_at should be in the future (backoff)"
+            );
         }
         other => panic!("expected PendingRetry, got {other:?}"),
     }
@@ -214,7 +226,9 @@ async fn metadata_429_placeholder_and_retry_fills_it() {
         .unwrap();
 
     match retry_outcome {
-        MetadataOutcome::Updated { mal_id, synopsis, .. } => {
+        MetadataOutcome::Updated {
+            mal_id, synopsis, ..
+        } => {
             assert_eq!(mal_id, 100);
             assert_eq!(synopsis, "This is the real recovered synopsis from Jikan.");
         }
@@ -232,7 +246,10 @@ async fn metadata_429_placeholder_and_retry_fills_it() {
         })
         .unwrap();
 
-    assert_eq!(final_syn.as_deref(), Some("This is the real recovered synopsis from Jikan."));
+    assert_eq!(
+        final_syn.as_deref(),
+        Some("This is the real recovered synopsis from Jikan.")
+    );
     assert_eq!(final_status, "ready");
     assert_eq!(final_retry, 0);
     assert!(final_err.is_none());
@@ -304,7 +321,8 @@ fn control_characters_stripped() {
     );
 
     // Single line cleaning replaces newlines and tabs with spaces and collapses whitespace
-    let single = clean_single_line("Title with \x1b[34mANSI\x1b[0m\nand \r\n multiple   spaces\t\x00!");
+    let single =
+        clean_single_line("Title with \x1b[34mANSI\x1b[0m\nand \r\n multiple   spaces\t\x00!");
     assert_eq!(single, "Title with ANSI and multiple spaces !");
 }
 
@@ -389,9 +407,14 @@ async fn fallback_to_mal_when_jikan_is_empty() {
         .unwrap();
 
     match outcome {
-        MetadataOutcome::Updated { mal_id, synopsis, .. } => {
+        MetadataOutcome::Updated {
+            mal_id, synopsis, ..
+        } => {
             assert_eq!(mal_id, 300);
-            assert_eq!(synopsis, "Official synopsis fetched directly from MyAnimeList API.");
+            assert_eq!(
+                synopsis,
+                "Official synopsis fetched directly from MyAnimeList API."
+            );
         }
         other => panic!("expected Updated from MAL API, got {other:?}"),
     }
@@ -407,7 +430,10 @@ async fn fallback_to_mal_when_jikan_is_empty() {
         })
         .unwrap();
 
-    assert_eq!(syn, "Official synopsis fetched directly from MyAnimeList API.");
+    assert_eq!(
+        syn,
+        "Official synopsis fetched directly from MyAnimeList API."
+    );
     assert_eq!(status, "ready");
     assert_eq!(en_title.as_deref(), Some("Show Three Hundred"));
 }
@@ -445,7 +471,9 @@ async fn permanent_404_not_retried_and_marked_failed() {
     // Jikan returns 404 Not Found
     Mock::given(method("GET"))
         .and(path("/v4/anime/404/full"))
-        .respond_with(ResponseTemplate::new(404).set_body_string(r#"{"status":404,"type":"BadResponseException","message":"Resource not found"}"#))
+        .respond_with(ResponseTemplate::new(404).set_body_string(
+            r#"{"status":404,"type":"BadResponseException","message":"Resource not found"}"#,
+        ))
         .expect(1)
         .mount(&server)
         .await;
@@ -475,7 +503,10 @@ async fn permanent_404_not_retried_and_marked_failed() {
 
     assert!(syn.is_none(), "synopsis must be NULL on failure");
     assert_eq!(status, "failed");
-    assert!(next_retry.is_none(), "404 must NOT be retried (next_retry_at is NULL)");
+    assert!(
+        next_retry.is_none(),
+        "404 must NOT be retried (next_retry_at is NULL)"
+    );
     assert!(err.as_deref().unwrap_or("").contains("404"));
 
     // Verify synopsis.txt contains 404 placeholder line
@@ -531,7 +562,8 @@ async fn remote_poster_url_is_redownloaded() {
     let queued = queue_stale_metadata(&db, clk.now()).unwrap();
     assert_eq!(queued, 1, "remote poster URLs must be queued for download");
 
-    let jikan_json = format!(r#"{{
+    let jikan_json = format!(
+        r#"{{
         "data": {{
             "mal_id": 500,
             "title": "Show 500",
@@ -543,7 +575,9 @@ async fn remote_poster_url_is_redownloaded() {
                 }}
             }}
         }}
-    }}"#, remote_poster_url, remote_poster_url);
+    }}"#,
+        remote_poster_url, remote_poster_url
+    );
 
     Mock::given(method("GET"))
         .and(path("/v4/anime/500/full"))
@@ -564,12 +598,22 @@ async fn remote_poster_url_is_redownloaded() {
         .unwrap();
 
     match outcome {
-        MetadataOutcome::Updated { mal_id, poster_path, .. } => {
+        MetadataOutcome::Updated {
+            mal_id,
+            poster_path,
+            ..
+        } => {
             assert_eq!(mal_id, 500);
             assert!(poster_path.is_some());
             let local_path = poster_path.unwrap();
-            assert!(!local_path.starts_with("http"), "poster_path must be a local file path");
-            assert!(std::path::Path::new(&local_path).is_file(), "poster file must exist on disk");
+            assert!(
+                !local_path.starts_with("http"),
+                "poster_path must be a local file path"
+            );
+            assert!(
+                std::path::Path::new(&local_path).is_file(),
+                "poster file must exist on disk"
+            );
         }
         other => panic!("expected Updated, got {other:?}"),
     }
@@ -630,7 +674,9 @@ async fn sync_queues_watching_shows_with_priority() {
     .unwrap();
 
     for id in [20, 40] {
-        let resp = format!(r#"{{"data":{{"mal_id":{id},"title":"Show {id}","synopsis":"Synopsis for {id}"}}}}"#);
+        let resp = format!(
+            r#"{{"data":{{"mal_id":{id},"title":"Show {id}","synopsis":"Synopsis for {id}"}}}}"#
+        );
         Mock::given(method("GET"))
             .and(path(format!("/v4/anime/{id}/full")))
             .respond_with(ResponseTemplate::new(200).set_body_string(resp))
@@ -650,18 +696,22 @@ async fn sync_queues_watching_shows_with_priority() {
     // Verify Shows 20 and 40 are now ready, while 10 and 30 remain pending
     let statuses: Vec<(i64, String)> = db
         .with(|c| {
-            let mut stmt = c.prepare("SELECT mal_id, metadata_status FROM shows ORDER BY mal_id")?;
+            let mut stmt =
+                c.prepare("SELECT mal_id, metadata_status FROM shows ORDER BY mal_id")?;
             let rows = stmt.query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?;
             Ok(rows.filter_map(Result::ok).collect())
         })
         .unwrap();
 
-    assert_eq!(statuses, vec![
-        (10, "pending".into()),
-        (20, "ready".into()),
-        (30, "pending".into()),
-        (40, "ready".into()),
-    ]);
+    assert_eq!(
+        statuses,
+        vec![
+            (10, "pending".into()),
+            (20, "ready".into()),
+            (30, "pending".into()),
+            (40, "ready".into()),
+        ]
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -823,7 +873,11 @@ async fn placeholder_synopsis_and_nfo_replaced_for_all_existing_folders_when_met
         .unwrap();
 
     match outcome {
-        MetadataOutcome::Updated { mal_id: id, synopsis, .. } => {
+        MetadataOutcome::Updated {
+            mal_id: id,
+            synopsis,
+            ..
+        } => {
             assert_eq!(id, mal_id);
             assert!(synopsis.contains("This is the real recovered movie synopsis"));
         }
@@ -836,7 +890,9 @@ async fn placeholder_synopsis_and_nfo_replaced_for_all_existing_folders_when_met
     assert!(!syn1.starts_with('['));
 
     let nfo1 = std::fs::read_to_string(show_folder1.join("movie.nfo")).unwrap();
-    assert!(nfo1.contains("<plot>This is the real recovered movie synopsis from Jikan with rich detail.</plot>"));
+    assert!(nfo1.contains(
+        "<plot>This is the real recovered movie synopsis from Jikan with rich detail.</plot>"
+    ));
     assert!(nfo1.contains("<rating>8.95</rating>"));
     assert!(nfo1.contains("<year>2024</year>"));
 
@@ -846,7 +902,9 @@ async fn placeholder_synopsis_and_nfo_replaced_for_all_existing_folders_when_met
     assert!(!syn2.starts_with('['));
 
     let nfo2 = std::fs::read_to_string(show_folder2.join("movie.nfo")).unwrap();
-    assert!(nfo2.contains("<plot>This is the real recovered movie synopsis from Jikan with rich detail.</plot>"));
+    assert!(nfo2.contains(
+        "<plot>This is the real recovered movie synopsis from Jikan with rich detail.</plot>"
+    ));
     assert!(nfo2.contains("<rating>8.95</rating>"));
     assert!(nfo2.contains("<year>2024</year>"));
 }

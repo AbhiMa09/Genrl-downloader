@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
 
@@ -25,8 +26,11 @@ class WizardHeader extends StatelessWidget {
               color: ObsidianColors.secondary.withOpacity(0.2),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.terminal_rounded,
-                size: 24, color: ObsidianColors.primary),
+            child: const Icon(
+              Icons.terminal_rounded,
+              size: 24,
+              color: ObsidianColors.primary,
+            ),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -35,50 +39,68 @@ class WizardHeader extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Text('GENRL DOWNLOADER SETUP WIZARD',
-                        style: ObsidianTypography.labelBadge(
-                            color: ObsidianColors.primary)),
+                    Text(
+                      'GENRL DOWNLOADER SETUP WIZARD',
+                      style: ObsidianTypography.labelBadge(
+                        color: ObsidianColors.primary,
+                      ),
+                    ),
                     const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 5, vertical: 1),
+                        horizontal: 5,
+                        vertical: 1,
+                      ),
                       decoration: BoxDecoration(
                         color: ObsidianColors.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: Text('v2.4.1',
-                          style: ObsidianTypography.labelBadge(
-                              color: ObsidianColors.outline)),
+                      child: Text(
+                        'v2.4.1',
+                        style: ObsidianTypography.labelBadge(
+                          color: ObsidianColors.outline,
+                        ),
+                      ),
                     ),
                     const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 1.5),
+                        horizontal: 6,
+                        vertical: 1.5,
+                      ),
                       decoration: BoxDecoration(
                         color: ObsidianColors.secondary.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: Text('Step 5 of 5',
-                          style: ObsidianTypography.labelBadge(
-                              color: ObsidianColors.secondary)),
+                      child: Text(
+                        'Step 5 of 5',
+                        style: ObsidianTypography.labelBadge(
+                          color: ObsidianColors.secondary,
+                        ),
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 6),
-                Text('Initial Library Synchronization & Review',
-                    style: ObsidianTypography.headlineMd()),
+                Text(
+                  'Initial Library Synchronization & Review',
+                  style: ObsidianTypography.headlineMd(),
+                ),
                 const SizedBox(height: 4),
                 Text(
                   'Review detected library manifests, ingestion queue volume, and confirm automation daemon state before starting.',
                   style: ObsidianTypography.bodySm(
-                      color: ObsidianColors.onSurfaceVariant),
+                    color: ObsidianColors.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
           ),
           IconButton(
-            icon:
-                const Icon(Icons.close_rounded, color: ObsidianColors.outline),
+            icon: const Icon(
+              Icons.close_rounded,
+              color: ObsidianColors.outline,
+            ),
             onPressed: onClose,
           ),
         ],

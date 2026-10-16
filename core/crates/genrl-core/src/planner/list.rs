@@ -71,7 +71,7 @@ impl MalList {
                         s.total_episodes, s.start_year, s.auto, s.season, s.episode_offset
                  FROM shows s
                  JOIN mal_entries m ON s.mal_id = m.mal_id
-                 ORDER BY s.title ASC"
+                 ORDER BY s.title ASC",
             )?;
             let rows = stmt.query_map([], |r| {
                 let mal_id = r.get::<_, i64>(0)?;
@@ -115,7 +115,8 @@ impl MalList {
 
             for entry in &mut entries {
                 if let Ok(mut nstmt) = c.prepare("SELECT name FROM show_names WHERE mal_id = ?1") {
-                    if let Ok(names) = nstmt.query_map([entry.mal_id], |nr| nr.get::<_, String>(0)) {
+                    if let Ok(names) = nstmt.query_map([entry.mal_id], |nr| nr.get::<_, String>(0))
+                    {
                         for name in names.flatten() {
                             if !entry.names.contains(&name) {
                                 entry.names.push(name);

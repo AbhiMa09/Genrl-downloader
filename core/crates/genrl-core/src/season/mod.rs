@@ -33,7 +33,13 @@ mod tests {
     use crate::models::{ListStatus, ShowType};
     use crate::settings::Settings;
 
-    fn tv(mal_id: i64, title: &str, status: ListStatus, watched: i64, total: Option<i64>) -> SeasonEntry {
+    fn tv(
+        mal_id: i64,
+        title: &str,
+        status: ListStatus,
+        watched: i64,
+        total: Option<i64>,
+    ) -> SeasonEntry {
         SeasonEntry {
             mal_id,
             title: title.to_string(),
@@ -87,7 +93,10 @@ mod tests {
         assert_eq!(release.episode, Some(5.0));
         assert_eq!(
             decide(&chain, &want, &release),
-            Decision::Download { season: 2, episode: 5.0 }
+            Decision::Download {
+                season: 2,
+                episode: 5.0
+            }
         );
     }
 
@@ -102,7 +111,10 @@ mod tests {
         assert_eq!(release.episode, Some(17.0));
         assert_eq!(
             decide(&chain, &want, &release),
-            Decision::Download { season: 2, episode: 5.0 }
+            Decision::Download {
+                season: 2,
+                episode: 5.0
+            }
         );
     }
 
@@ -164,7 +176,11 @@ mod tests {
             tv(100, "Show", ListStatus::Completed, 12, Some(12)),
             tv(300, "Show 2", ListStatus::PlanToWatch, 0, Some(12)),
         ]);
-        let Want::Skip { reason, fully_watched } = chain.wanted(&settings(), Overrides::default()) else {
+        let Want::Skip {
+            reason,
+            fully_watched,
+        } = chain.wanted(&settings(), Overrides::default())
+        else {
             panic!("expected a skip");
         };
         assert!(reason.contains("plan to watch"), "{reason}");
@@ -178,21 +194,24 @@ mod tests {
             Want::Some(_)
         ));
         assert!(matches!(
-            chain.wanted(&settings(), Overrides { auto_plan_to_watch: Some(true) }),
+            chain.wanted(
+                &settings(),
+                Overrides {
+                    auto_plan_to_watch: Some(true)
+                }
+            ),
             Want::Some(_)
         ));
     }
 
     #[test]
     fn fully_watched_suggests_completing_rather_than_erroring() {
-        let chain = SeasonChain::new(vec![tv(
-            100,
-            "Show",
-            ListStatus::Watching,
-            12,
-            Some(12),
-        )]);
-        let Want::Skip { reason, fully_watched } = chain.wanted(&settings(), Overrides::default()) else {
+        let chain = SeasonChain::new(vec![tv(100, "Show", ListStatus::Watching, 12, Some(12))]);
+        let Want::Skip {
+            reason,
+            fully_watched,
+        } = chain.wanted(&settings(), Overrides::default())
+        else {
             panic!("expected a skip");
         };
         assert!(fully_watched, "the suggestion to mark Completed");
@@ -245,7 +264,10 @@ mod tests {
         let release = parse_release("[SubsPlease] Show - 17 (1080p) [ABC12345].mkv");
         assert_eq!(
             decide(&chain, &want, &release),
-            Decision::Download { season: 1, episode: 5.0 }
+            Decision::Download {
+                season: 1,
+                episode: 5.0
+            }
         );
     }
 
@@ -281,7 +303,10 @@ mod tests {
         let release = parse_release("[Judas] Show - 01-12 [Batch] [BD1080p]");
         assert_eq!(
             decide(&chain, &want, &release),
-            Decision::Download { season: 1, episode: 5.0 }
+            Decision::Download {
+                season: 1,
+                episode: 5.0
+            }
         );
     }
 
@@ -318,7 +343,13 @@ mod tests {
             episode: None,
         };
         let release = parse_release("[Group] Kimi no Na wa (2016) [BD1080p]");
-        assert_eq!(decide(&chain, &want, &release), Decision::Download { season: 1, episode: 1.0 });
+        assert_eq!(
+            decide(&chain, &want, &release),
+            Decision::Download {
+                season: 1,
+                episode: 1.0
+            }
+        );
 
         let release = parse_release("[Group] Kimi no Na wa - 03 (1080p) [ABC12345].mkv");
         assert!(matches!(
@@ -339,7 +370,10 @@ mod tests {
         let release = parse_release("[SubsPlease] Show S02E05 (1080p) [ABC12345].mkv");
         assert_eq!(
             decide(&chain, &want, &release),
-            Decision::Download { season: 2, episode: 5.0 }
+            Decision::Download {
+                season: 2,
+                episode: 5.0
+            }
         );
     }
 }

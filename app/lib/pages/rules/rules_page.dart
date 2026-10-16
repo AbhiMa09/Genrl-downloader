@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../models/rule_item.dart';
 import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
@@ -30,10 +31,17 @@ class _RulesPageState extends State<RulesPage> {
   bool _opusAudio = true;
   bool _bypassInboxStagnation = true;
 
-  final TextEditingController _autoSeedController = TextEditingController(text: '10');
-  final TextEditingController _triageMinController = TextEditingController(text: '1');
-  final TextEditingController _triageMaxController = TextEditingController(text: '9');
-  final TextEditingController _blacklistInputController = TextEditingController();
+  final TextEditingController _autoSeedController = TextEditingController(
+    text: '10',
+  );
+  final TextEditingController _triageMinController = TextEditingController(
+    text: '1',
+  );
+  final TextEditingController _triageMaxController = TextEditingController(
+    text: '9',
+  );
+  final TextEditingController _blacklistInputController =
+      TextEditingController();
 
   // Fansub Group Priority List
   List<Map<String, dynamic>> _fansubGroups = [
@@ -119,11 +127,15 @@ class _RulesPageState extends State<RulesPage> {
     }
 
     if (rule.blockedUploaders.isNotEmpty) {
-      _blacklistItems = rule.blockedUploaders.map((b) => {
-        'name': b,
-        'type': 'Blocked Target',
-        'meta': 'Configured in backend rules',
-      }).toList();
+      _blacklistItems = rule.blockedUploaders
+          .map(
+            (b) => {
+              'name': b,
+              'type': 'Blocked Target',
+              'meta': 'Configured in backend rules',
+            },
+          )
+          .toList();
     }
   }
 
@@ -217,7 +229,8 @@ class _RulesPageState extends State<RulesPage> {
                               flex: 7,
                               child: RulesFansubGroupsCard(
                                 fansubGroups: _fansubGroups,
-                                onGroupsChanged: (val) => setState(() => _fansubGroups = val),
+                                onGroupsChanged: (val) =>
+                                    setState(() => _fansubGroups = val),
                               ),
                             ),
                             const SizedBox(width: 16),
@@ -225,19 +238,26 @@ class _RulesPageState extends State<RulesPage> {
                               flex: 5,
                               child: RulesQualityCodecCard(
                                 targetResolution: _targetResolution,
-                                onResolutionChanged: (val) => setState(() => _targetResolution = val),
+                                onResolutionChanged: (val) =>
+                                    setState(() => _targetResolution = val),
                                 hevcAllowed: _hevcAllowed,
-                                onHevcChanged: (val) => setState(() => _hevcAllowed = val),
+                                onHevcChanged: (val) =>
+                                    setState(() => _hevcAllowed = val),
                                 avcAllowed: _avcAllowed,
-                                onAvcChanged: (val) => setState(() => _avcAllowed = val),
+                                onAvcChanged: (val) =>
+                                    setState(() => _avcAllowed = val),
                                 av1Allowed: _av1Allowed,
-                                onAv1Changed: (val) => setState(() => _av1Allowed = val),
+                                onAv1Changed: (val) =>
+                                    setState(() => _av1Allowed = val),
                                 mpegAllowed: _mpegAllowed,
-                                onMpegChanged: (val) => setState(() => _mpegAllowed = val),
+                                onMpegChanged: (val) =>
+                                    setState(() => _mpegAllowed = val),
                                 flacAudio: _flacAudio,
-                                onFlacChanged: (val) => setState(() => _flacAudio = val),
+                                onFlacChanged: (val) =>
+                                    setState(() => _flacAudio = val),
                                 opusAudio: _opusAudio,
-                                onOpusChanged: (val) => setState(() => _opusAudio = val),
+                                onOpusChanged: (val) =>
+                                    setState(() => _opusAudio = val),
                               ),
                             ),
                           ],
@@ -253,16 +273,20 @@ class _RulesPageState extends State<RulesPage> {
                                 triageMinController: _triageMinController,
                                 triageMaxController: _triageMaxController,
                                 bypassInboxStagnation: _bypassInboxStagnation,
-                                onBypassChanged: (val) => setState(() => _bypassInboxStagnation = val),
+                                onBypassChanged: (val) => setState(
+                                  () => _bypassInboxStagnation = val,
+                                ),
                               ),
                             ),
                             const SizedBox(width: 16),
                             Expanded(
                               flex: 6,
                               child: RulesBlacklistCard(
-                                blacklistInputController: _blacklistInputController,
+                                blacklistInputController:
+                                    _blacklistInputController,
                                 blacklistItems: _blacklistItems,
-                                onBlacklistChanged: (val) => setState(() => _blacklistItems = val),
+                                onBlacklistChanged: (val) =>
+                                    setState(() => _blacklistItems = val),
                               ),
                             ),
                           ],
@@ -274,24 +298,32 @@ class _RulesPageState extends State<RulesPage> {
                       children: [
                         RulesFansubGroupsCard(
                           fansubGroups: _fansubGroups,
-                          onGroupsChanged: (val) => setState(() => _fansubGroups = val),
+                          onGroupsChanged: (val) =>
+                              setState(() => _fansubGroups = val),
                         ),
                         const SizedBox(height: 16),
                         RulesQualityCodecCard(
                           targetResolution: _targetResolution,
-                          onResolutionChanged: (val) => setState(() => _targetResolution = val),
+                          onResolutionChanged: (val) =>
+                              setState(() => _targetResolution = val),
                           hevcAllowed: _hevcAllowed,
-                          onHevcChanged: (val) => setState(() => _hevcAllowed = val),
+                          onHevcChanged: (val) =>
+                              setState(() => _hevcAllowed = val),
                           avcAllowed: _avcAllowed,
-                          onAvcChanged: (val) => setState(() => _avcAllowed = val),
+                          onAvcChanged: (val) =>
+                              setState(() => _avcAllowed = val),
                           av1Allowed: _av1Allowed,
-                          onAv1Changed: (val) => setState(() => _av1Allowed = val),
+                          onAv1Changed: (val) =>
+                              setState(() => _av1Allowed = val),
                           mpegAllowed: _mpegAllowed,
-                          onMpegChanged: (val) => setState(() => _mpegAllowed = val),
+                          onMpegChanged: (val) =>
+                              setState(() => _mpegAllowed = val),
                           flacAudio: _flacAudio,
-                          onFlacChanged: (val) => setState(() => _flacAudio = val),
+                          onFlacChanged: (val) =>
+                              setState(() => _flacAudio = val),
                           opusAudio: _opusAudio,
-                          onOpusChanged: (val) => setState(() => _opusAudio = val),
+                          onOpusChanged: (val) =>
+                              setState(() => _opusAudio = val),
                         ),
                         const SizedBox(height: 16),
                         RulesSwarmHealthCard(
@@ -299,13 +331,15 @@ class _RulesPageState extends State<RulesPage> {
                           triageMinController: _triageMinController,
                           triageMaxController: _triageMaxController,
                           bypassInboxStagnation: _bypassInboxStagnation,
-                          onBypassChanged: (val) => setState(() => _bypassInboxStagnation = val),
+                          onBypassChanged: (val) =>
+                              setState(() => _bypassInboxStagnation = val),
                         ),
                         const SizedBox(height: 16),
                         RulesBlacklistCard(
                           blacklistInputController: _blacklistInputController,
                           blacklistItems: _blacklistItems,
-                          onBlacklistChanged: (val) => setState(() => _blacklistItems = val),
+                          onBlacklistChanged: (val) =>
+                              setState(() => _blacklistItems = val),
                         ),
                       ],
                     );

@@ -4,12 +4,8 @@ use crate::error::{Error, Result};
 
 /// What one in-flight request actually does on the wire.
 pub(crate) enum Wire<'a> {
-    Get {
-        if_none_match: Option<&'a str>,
-    },
-    Form {
-        fields: &'a [(String, String)],
-    },
+    Get { if_none_match: Option<&'a str> },
+    Form { fields: &'a [(String, String)] },
 }
 
 pub(crate) enum Outcome {

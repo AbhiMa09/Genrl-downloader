@@ -29,9 +29,9 @@ pub use validate::*;
 
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
     use super::policy::RateSpec;
     use super::*;
+    use std::time::Duration;
 
     #[test]
     fn accepts_magnets_and_public_torrent_links() {
@@ -41,7 +41,10 @@ mod tests {
         assert!(is_acceptable_link("https://nyaa.si/download/123.torrent"));
         assert!(!is_acceptable_link("ftp://example.com/x.torrent"));
         assert!(!is_acceptable_link("file:///etc/passwd"));
-        assert!(!is_acceptable_link("http://nyaa.si/download/123.torrent"), "https only");
+        assert!(
+            !is_acceptable_link("http://nyaa.si/download/123.torrent"),
+            "https only"
+        );
     }
 
     #[test]
@@ -50,7 +53,9 @@ mod tests {
         assert!(!is_acceptable_link("https://192.168.1.10/x.torrent"));
         assert!(!is_acceptable_link("https://10.0.0.1/x.torrent"));
         assert!(!is_acceptable_link("https://localhost/x.torrent"));
-        assert!(!is_acceptable_link("http://169.254.169.254/latest/meta-data"));
+        assert!(!is_acceptable_link(
+            "http://169.254.169.254/latest/meta-data"
+        ));
         assert!(!is_acceptable_link("not a url"));
     }
 
@@ -62,7 +67,10 @@ mod tests {
         assert_eq!(jikan.cache_ttl, Some(Duration::from_secs(7 * 24 * 3600)));
 
         let nyaa = ServicePolicy::for_service(Service::Nyaa);
-        assert_eq!(nyaa.rate.permits_per_second, 0.5, "one request per 2 seconds");
+        assert_eq!(
+            nyaa.rate.permits_per_second, 0.5,
+            "one request per 2 seconds"
+        );
         assert!(nyaa.rate.jitter);
         assert_eq!(nyaa.cache_ttl, Some(Duration::from_secs(600)));
 

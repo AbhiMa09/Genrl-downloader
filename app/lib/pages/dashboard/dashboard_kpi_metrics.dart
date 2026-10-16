@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
@@ -28,27 +29,41 @@ class DashboardKpiMetrics extends StatelessWidget {
   Widget build(BuildContext context) {
     final status = state.status;
     final totalShows = state.shows.length;
-    final totalEpisodes = state.shows.fold<int>(0, (sum, show) => sum + show.totalEpisodes);
+    final totalEpisodes = state.shows.fold<int>(
+      0,
+      (sum, show) => sum + show.totalEpisodes,
+    );
     final activeQueue = state.activeQueueCount;
     final dlSpeed = status.downloadSpeedFormatted;
 
     final pipelineProgress = state.queue.isEmpty
         ? (activeQueue > 0 ? (status.downloadSpeedBytes > 0 ? 0.68 : 0.2) : 0.0)
-        : (state.queue.fold<double>(0.0, (sum, q) => sum + q.progress) / state.queue.length).clamp(0.0, 1.0);
-    final downloadedEpisodes = state.shows.fold<int>(0, (sum, show) => sum + show.downloadedEpisodes);
-    final libraryProgress = totalEpisodes > 0 ? (downloadedEpisodes / totalEpisodes).clamp(0.0, 1.0) : 0.0;
-    final inboxProgress = state.inboxCount > 0 ? (1.0 / (1.0 + state.inboxCount)).clamp(0.0, 1.0) : 1.0;
+        : (state.queue.fold<double>(0.0, (sum, q) => sum + q.progress) /
+                  state.queue.length)
+              .clamp(0.0, 1.0);
+    final downloadedEpisodes = state.shows.fold<int>(
+      0,
+      (sum, show) => sum + show.downloadedEpisodes,
+    );
+    final libraryProgress = totalEpisodes > 0
+        ? (downloadedEpisodes / totalEpisodes).clamp(0.0, 1.0)
+        : 0.0;
+    final inboxProgress = state.inboxCount > 0
+        ? (1.0 / (1.0 + state.inboxCount)).clamp(0.0, 1.0)
+        : 1.0;
     final now = referenceTime ?? DateTime.now();
     final seasonStartMonth = ((now.month - 1) ~/ 3) * 3 + 1;
-    final seasonProgress = (now.difference(DateTime(now.year, seasonStartMonth, 1)).inDays / 91.0).clamp(0.0, 1.0);
+    final seasonProgress =
+        (now.difference(DateTime(now.year, seasonStartMonth, 1)).inDays / 91.0)
+            .clamp(0.0, 1.0);
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final cardWidth = constraints.maxWidth > 1150
             ? (constraints.maxWidth - 36) / 4
             : constraints.maxWidth > 700
-                ? (constraints.maxWidth - 12) / 2
-                : constraints.maxWidth;
+            ? (constraints.maxWidth - 12) / 2
+            : constraints.maxWidth;
         final isCompact = constraints.maxWidth <= 700;
 
         return Wrap(
@@ -63,7 +78,9 @@ class DashboardKpiMetrics extends StatelessWidget {
               iconColor: ObsidianColors.primary,
               headline: '$activeQueue',
               subhead: 'Torrents Active',
-              detail: dlSpeed.isNotEmpty && dlSpeed != '0 B/s' ? '$dlSpeed • In Progress' : 'Swarm Idle',
+              detail: dlSpeed.isNotEmpty && dlSpeed != '0 B/s'
+                  ? '$dlSpeed • In Progress'
+                  : 'Swarm Idle',
               progress: pipelineProgress,
               progressColor: ObsidianColors.primary,
             ),
@@ -89,8 +106,12 @@ class DashboardKpiMetrics extends StatelessWidget {
               iconColor: ObsidianColors.secondary,
               headline: '${state.inboxCount}',
               subhead: state.inboxCount > 0 ? 'Questions Pending' : 'All Clear',
-              subheadColor: state.inboxCount > 0 ? ObsidianColors.warning : ObsidianColors.success,
-              detail: state.inboxCount > 0 ? '${state.inboxCount} action items need review' : 'No questions pending in Inbox',
+              subheadColor: state.inboxCount > 0
+                  ? ObsidianColors.warning
+                  : ObsidianColors.success,
+              detail: state.inboxCount > 0
+                  ? '${state.inboxCount} action items need review'
+                  : 'No questions pending in Inbox',
               progress: inboxProgress,
               progressColor: ObsidianColors.secondaryContainer,
             ),
@@ -103,7 +124,8 @@ class DashboardKpiMetrics extends StatelessWidget {
               iconColor: ObsidianColors.primary,
               headline: _currentSeasonCycle(),
               headlineSize: 22,
-              subhead: '${state.shows.where((s) => s.status.toLowerCase() == "watching").length} Watching',
+              subhead:
+                  '${state.shows.where((s) => s.status.toLowerCase() == "watching").length} Watching',
               detail: '${state.queue.length} in active pipeline',
               progress: seasonProgress,
               progressColor: ObsidianColors.primaryContainer,
@@ -159,7 +181,13 @@ class KpiCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(label, style: ObsidianTypography.labelBadge(color: ObsidianColors.onSurfaceVariant, fontSize: 10)),
+              Text(
+                label,
+                style: ObsidianTypography.labelBadge(
+                  color: ObsidianColors.onSurfaceVariant,
+                  fontSize: 10,
+                ),
+              ),
               Icon(icon, size: 18, color: iconColor),
             ],
           ),
@@ -169,16 +197,32 @@ class KpiCard extends StatelessWidget {
             spacing: 6,
             runSpacing: 2,
             children: [
-              Text(headline, style: ObsidianTypography.headlineXl(fontSize: headlineSize ?? 28)),
+              Text(
+                headline,
+                style: ObsidianTypography.headlineXl(
+                  fontSize: headlineSize ?? 28,
+                ),
+              ),
               Text(
                 subhead,
-                style: ObsidianTypography.titleSm(color: subheadColor ?? ObsidianColors.tertiary, fontSize: 12),
+                style: ObsidianTypography.titleSm(
+                  color: subheadColor ?? ObsidianColors.tertiary,
+                  fontSize: 12,
+                ),
                 overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
           const SizedBox(height: 4),
-          Text(detail, style: ObsidianTypography.monoCode(color: ObsidianColors.onSurfaceVariant, fontSize: 10), maxLines: 1, overflow: TextOverflow.ellipsis),
+          Text(
+            detail,
+            style: ObsidianTypography.monoCode(
+              color: ObsidianColors.onSurfaceVariant,
+              fontSize: 10,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
           const SizedBox(height: 10),
           ClipRRect(
             borderRadius: BorderRadius.circular(3),

@@ -136,10 +136,15 @@ pub(crate) fn to_mal_entry(item: &ListItem) -> MalEntry {
     // The main title first, then English, Japanese and synonyms, deduplicated
     // case-insensitively: this is the matching engine's whole input set.
     let mut names: Vec<String> = Vec::new();
-    let candidates = [Some(title.clone()), node.main_title.clone(), alt.en.clone(), alt.ja.clone()]
-        .into_iter()
-        .flatten()
-        .chain(alt.synonyms.iter().cloned());
+    let candidates = [
+        Some(title.clone()),
+        node.main_title.clone(),
+        alt.en.clone(),
+        alt.ja.clone(),
+    ]
+    .into_iter()
+    .flatten()
+    .chain(alt.synonyms.iter().cloned());
     for name in candidates {
         let name = name.trim().to_string();
         if !name.is_empty() && !names.iter().any(|n| n.eq_ignore_ascii_case(&name)) {
@@ -209,7 +214,11 @@ pub(crate) fn airing_status(s: Option<&str>) -> Option<&'static str> {
 /// offset by the cumulative episode counts of the earlier seasons. Entries
 /// with no relations (or whose lookups failed) stay their own chain.
 pub fn build_chains(entries: &mut [MalEntry], relations: &HashMap<i64, Vec<Relation>>) {
-    let index: HashMap<i64, usize> = entries.iter().enumerate().map(|(i, m)| (m.mal_id(), i)).collect();
+    let index: HashMap<i64, usize> = entries
+        .iter()
+        .enumerate()
+        .map(|(i, m)| (m.mal_id(), i))
+        .collect();
     let id_set: HashSet<i64> = index.keys().copied().collect();
 
     // `precedes` maps an id to the ids that come after it; `links` is the same
@@ -285,12 +294,10 @@ pub fn build_chains(entries: &mut [MalEntry], relations: &HashMap<i64, Vec<Relat
             }
             let id = match pick {
                 Some(id) => id,
-                None => {
-                    match remaining.iter().min() {
-                        Some(&first) => first,
-                        None => break,
-                    }
-                }
+                None => match remaining.iter().min() {
+                    Some(&first) => first,
+                    None => break,
+                },
             };
             remaining.remove(&id);
             ordered.push(id);

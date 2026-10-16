@@ -30,14 +30,13 @@ pub struct RememberedCandidate {
 /// terminal already exists for it means "already queued".
 pub fn enqueue_search(db: &Db, clock: &dyn Clock, episode_id: i64) -> Result<i64> {
     let existing: Option<i64> = db.with(|c| {
-        Ok(c
-            .query_row(
-                "SELECT id FROM jobs WHERE episode_id = ?1 AND kind = 'search'
+        Ok(c.query_row(
+            "SELECT id FROM jobs WHERE episode_id = ?1 AND kind = 'search'
                    AND state != 'done' ORDER BY id LIMIT 1",
-                [episode_id],
-                |r| r.get(0),
-            )
-            .optional()?)
+            [episode_id],
+            |r| r.get(0),
+        )
+        .optional()?)
     })?;
     if let Some(id) = existing {
         return Ok(id);

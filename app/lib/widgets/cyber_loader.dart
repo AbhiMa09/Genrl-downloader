@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 /// Cybernetic Ingestion Radar & Packet Receiver Loader.
@@ -13,11 +14,7 @@ class CyberIngestionLoader extends StatefulWidget {
   final double size;
   final bool animate;
 
-  const CyberIngestionLoader({
-    super.key,
-    this.size = 200,
-    this.animate = true,
-  });
+  const CyberIngestionLoader({super.key, this.size = 200, this.animate = true});
 
   @override
   State<CyberIngestionLoader> createState() => _CyberIngestionLoaderState();
@@ -92,7 +89,14 @@ class _CyberLoaderPainter extends CustomPainter {
       ..color = const Color(0xFF252B36).withOpacity(0.8)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2 * scale;
-    _drawDashedCircle(canvas, center, 102 * scale, tickTrackPaint, dash: 3 * scale, gap: 8 * scale);
+    _drawDashedCircle(
+      canvas,
+      center,
+      102 * scale,
+      tickTrackPaint,
+      dash: 3 * scale,
+      gap: 8 * scale,
+    );
 
     // 3. Outer Dynamic Segment Ring (Radius ~95, spins clockwise)
     final outerAngle = progress * 2 * math.pi * 2.0; // 6s per loop
@@ -191,7 +195,14 @@ class _CyberLoaderPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round
       ..strokeWidth = 2.5 * scale;
 
-    _drawDashedCircle(canvas, Offset.zero, 54 * scale, innerArcPaint, dash: 24 * scale, gap: 16 * scale);
+    _drawDashedCircle(
+      canvas,
+      Offset.zero,
+      54 * scale,
+      innerArcPaint,
+      dash: 24 * scale,
+      gap: 16 * scale,
+    );
     canvas.restore();
 
     // 6. Orbiting Download Data Nodes (Radius ~92 and ~68)
@@ -204,14 +215,22 @@ class _CyberLoaderPainter extends CustomPainter {
       ..color = const Color(0xFFA78BFA)
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, 5 * scale);
     canvas.drawCircle(orb1, 4 * scale, orbGlow1);
-    canvas.drawCircle(orb1, 3.5 * scale, Paint()..color = const Color(0xFFA78BFA));
+    canvas.drawCircle(
+      orb1,
+      3.5 * scale,
+      Paint()..color = const Color(0xFFA78BFA),
+    );
 
     final orbAngle2 = -progress * 2 * math.pi * 4.8;
     final orb2 = Offset(
       center.dx + math.cos(orbAngle2) * 62 * scale,
       center.dy + math.sin(orbAngle2) * 62 * scale,
     );
-    canvas.drawCircle(orb2, 3 * scale, Paint()..color = const Color(0xFF38BDF8));
+    canvas.drawCircle(
+      orb2,
+      3 * scale,
+      Paint()..color = const Color(0xFF38BDF8),
+    );
 
     // 7. Core Node with Diamond / Rounded Rect Background & Pulsing Core
     final pulseScale = 0.95 + 0.1 * math.sin(progress * 2 * math.pi * 5.0);
@@ -222,8 +241,15 @@ class _CyberLoaderPainter extends CustomPainter {
     // Rotated rounded diamond (45 deg)
     canvas.save();
     canvas.rotate(math.pi / 4);
-    final coreRect = Rect.fromCenter(center: Offset.zero, width: 44 * scale, height: 44 * scale);
-    final coreRRect = RRect.fromRectAndRadius(coreRect, Radius.circular(12 * scale));
+    final coreRect = Rect.fromCenter(
+      center: Offset.zero,
+      width: 44 * scale,
+      height: 44 * scale,
+    );
+    final coreRRect = RRect.fromRectAndRadius(
+      coreRect,
+      Radius.circular(12 * scale),
+    );
 
     final coreFill = Paint()
       ..color = const Color(0xFF181C24)
@@ -260,21 +286,47 @@ class _CyberLoaderPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
       ..strokeWidth = 2.5 * scale;
-    canvas.drawLine(Offset(-9 * scale, 13 * scale), Offset(9 * scale, 13 * scale), trayPaint);
+    canvas.drawLine(
+      Offset(-9 * scale, 13 * scale),
+      Offset(9 * scale, 13 * scale),
+      trayPaint,
+    );
 
     canvas.restore();
 
     // 8. Hexagon Data Corner Dots
     final dotPaint = Paint()..color = const Color(0xFFA78BFA).withOpacity(0.6);
     final dOffset = 26 * scale;
-    canvas.drawCircle(Offset(center.dx - dOffset, center.dy - dOffset), 1.5 * scale, dotPaint);
-    canvas.drawCircle(Offset(center.dx + dOffset, center.dy - dOffset), 1.5 * scale, dotPaint);
-    canvas.drawCircle(Offset(center.dx - dOffset, center.dy + dOffset), 1.5 * scale, dotPaint);
-    canvas.drawCircle(Offset(center.dx + dOffset, center.dy + dOffset), 1.5 * scale, dotPaint);
+    canvas.drawCircle(
+      Offset(center.dx - dOffset, center.dy - dOffset),
+      1.5 * scale,
+      dotPaint,
+    );
+    canvas.drawCircle(
+      Offset(center.dx + dOffset, center.dy - dOffset),
+      1.5 * scale,
+      dotPaint,
+    );
+    canvas.drawCircle(
+      Offset(center.dx - dOffset, center.dy + dOffset),
+      1.5 * scale,
+      dotPaint,
+    );
+    canvas.drawCircle(
+      Offset(center.dx + dOffset, center.dy + dOffset),
+      1.5 * scale,
+      dotPaint,
+    );
   }
 
-  void _drawDashedCircle(Canvas canvas, Offset center, double radius, Paint paint,
-      {required double dash, required double gap}) {
+  void _drawDashedCircle(
+    Canvas canvas,
+    Offset center,
+    double radius,
+    Paint paint, {
+    required double dash,
+    required double gap,
+  }) {
     final circumference = 2 * math.pi * radius;
     final totalSteps = (circumference / (dash + gap)).floor();
     final actualDashAngle = (dash / circumference) * 2 * math.pi;

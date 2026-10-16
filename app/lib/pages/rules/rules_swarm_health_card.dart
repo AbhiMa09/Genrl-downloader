@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
 
@@ -39,9 +40,16 @@ class RulesSwarmHealthCard extends StatelessWidget {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.speed_rounded, size: 20, color: ObsidianColors.tertiary),
+                  const Icon(
+                    Icons.speed_rounded,
+                    size: 20,
+                    color: ObsidianColors.tertiary,
+                  ),
                   const SizedBox(width: 8),
-                  Text('Swarm Health & Ingest Criteria', style: ObsidianTypography.titleSm()),
+                  Text(
+                    'Swarm Health & Ingest Criteria',
+                    style: ObsidianTypography.titleSm(),
+                  ),
                 ],
               ),
               Container(
@@ -50,14 +58,21 @@ class RulesSwarmHealthCard extends StatelessWidget {
                   color: ObsidianColors.tertiary.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: Text('Daemon Live', style: ObsidianTypography.labelBadge(color: ObsidianColors.tertiary)),
+                child: Text(
+                  'Daemon Live',
+                  style: ObsidianTypography.labelBadge(
+                    color: ObsidianColors.tertiary,
+                  ),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 4),
           Text(
             'Define boundary conditions for unattended automatic download versus triage routing into the user Inbox.',
-            style: ObsidianTypography.bodySm(color: ObsidianColors.onSurfaceVariant),
+            style: ObsidianTypography.bodySm(
+              color: ObsidianColors.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 14),
 
@@ -81,18 +96,28 @@ class RulesSwarmHealthCard extends StatelessWidget {
                           Expanded(
                             child: Text(
                               'AUTO-COMMIT TARGET',
-                              style: ObsidianTypography.labelBadge(color: ObsidianColors.outline),
+                              style: ObsidianTypography.labelBadge(
+                                color: ObsidianColors.outline,
+                              ),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           const SizedBox(width: 4),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 1,
+                            ),
                             decoration: BoxDecoration(
                               color: ObsidianColors.tertiary.withOpacity(0.2),
                               borderRadius: BorderRadius.circular(4),
                             ),
-                            child: Text('Direct DL', style: ObsidianTypography.labelBadge(color: ObsidianColors.tertiary)),
+                            child: Text(
+                              'Direct DL',
+                              style: ObsidianTypography.labelBadge(
+                                color: ObsidianColors.tertiary,
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -101,25 +126,40 @@ class RulesSwarmHealthCard extends StatelessWidget {
                         crossAxisAlignment: WrapCrossAlignment.center,
                         spacing: 6,
                         children: [
-                          Text('At or above:', style: ObsidianTypography.bodySm()),
+                          Text(
+                            'At or above:',
+                            style: ObsidianTypography.bodySm(),
+                          ),
                           SizedBox(
                             width: 50,
                             height: 30,
                             child: TextField(
                               controller: autoSeedController,
                               textAlign: TextAlign.center,
-                              style: ObsidianTypography.monoCode(color: ObsidianColors.primary).copyWith(fontWeight: FontWeight.bold),
+                              style: ObsidianTypography.monoCode(
+                                color: ObsidianColors.primary,
+                              ).copyWith(fontWeight: FontWeight.bold),
                               decoration: const InputDecoration(
                                 border: OutlineInputBorder(),
                                 contentPadding: EdgeInsets.zero,
                               ),
                             ),
                           ),
-                          Text('seeders', style: ObsidianTypography.monoCode(color: ObsidianColors.outline)),
+                          Text(
+                            'seeders',
+                            style: ObsidianTypography.monoCode(
+                              color: ObsidianColors.outline,
+                            ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 4),
-                      Text('Transfers to qBittorrent immediately', style: ObsidianTypography.labelBadge(color: ObsidianColors.outline)),
+                      Text(
+                        'Transfers to qBittorrent immediately',
+                        style: ObsidianTypography.labelBadge(
+                          color: ObsidianColors.outline,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -142,18 +182,28 @@ class RulesSwarmHealthCard extends StatelessWidget {
                           Expanded(
                             child: Text(
                               'TRIAGE ROUTE',
-                              style: ObsidianTypography.labelBadge(color: ObsidianColors.outline),
+                              style: ObsidianTypography.labelBadge(
+                                color: ObsidianColors.outline,
+                              ),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           const SizedBox(width: 4),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 1,
+                            ),
                             decoration: BoxDecoration(
                               color: ObsidianColors.error.withOpacity(0.2),
                               borderRadius: BorderRadius.circular(4),
                             ),
-                            child: Text('Inbox Gate', style: ObsidianTypography.labelBadge(color: ObsidianColors.error)),
+                            child: Text(
+                              'Inbox Gate',
+                              style: ObsidianTypography.labelBadge(
+                                color: ObsidianColors.error,
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -170,10 +220,18 @@ class RulesSwarmHealthCard extends StatelessWidget {
                               controller: triageMinController,
                               textAlign: TextAlign.center,
                               style: ObsidianTypography.monoCode(),
-                              decoration: const InputDecoration(border: OutlineInputBorder(), contentPadding: EdgeInsets.zero),
+                              decoration: const InputDecoration(
+                                border: OutlineInputBorder(),
+                                contentPadding: EdgeInsets.zero,
+                              ),
                             ),
                           ),
-                          Text('&', style: ObsidianTypography.monoCode(color: ObsidianColors.outline)),
+                          Text(
+                            '&',
+                            style: ObsidianTypography.monoCode(
+                              color: ObsidianColors.outline,
+                            ),
+                          ),
                           SizedBox(
                             width: 38,
                             height: 30,
@@ -181,14 +239,27 @@ class RulesSwarmHealthCard extends StatelessWidget {
                               controller: triageMaxController,
                               textAlign: TextAlign.center,
                               style: ObsidianTypography.monoCode(),
-                              decoration: const InputDecoration(border: OutlineInputBorder(), contentPadding: EdgeInsets.zero),
+                              decoration: const InputDecoration(
+                                border: OutlineInputBorder(),
+                                contentPadding: EdgeInsets.zero,
+                              ),
                             ),
                           ),
-                          Text('seeds', style: ObsidianTypography.monoCode(color: ObsidianColors.outline)),
+                          Text(
+                            'seeds',
+                            style: ObsidianTypography.monoCode(
+                              color: ObsidianColors.outline,
+                            ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 4),
-                      Text('Requires manual one-click confirmation', style: ObsidianTypography.labelBadge(color: ObsidianColors.outline)),
+                      Text(
+                        'Requires manual one-click confirmation',
+                        style: ObsidianTypography.labelBadge(
+                          color: ObsidianColors.outline,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -203,9 +274,24 @@ class RulesSwarmHealthCard extends StatelessWidget {
             spacing: 8,
             runSpacing: 4,
             children: [
-              Text('0 Seeds (Dropped)', style: ObsidianTypography.labelBadge(color: ObsidianColors.error)),
-              Text('1 - 9 Seeds (Inbox Approval)', style: ObsidianTypography.labelBadge(color: ObsidianColors.secondary)),
-              Text('10+ Seeds (Automated)', style: ObsidianTypography.labelBadge(color: ObsidianColors.tertiary)),
+              Text(
+                '0 Seeds (Dropped)',
+                style: ObsidianTypography.labelBadge(
+                  color: ObsidianColors.error,
+                ),
+              ),
+              Text(
+                '1 - 9 Seeds (Inbox Approval)',
+                style: ObsidianTypography.labelBadge(
+                  color: ObsidianColors.secondary,
+                ),
+              ),
+              Text(
+                '10+ Seeds (Automated)',
+                style: ObsidianTypography.labelBadge(
+                  color: ObsidianColors.tertiary,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 4),
@@ -215,9 +301,18 @@ class RulesSwarmHealthCard extends StatelessWidget {
               height: 10,
               child: Row(
                 children: [
-                  Expanded(flex: 12, child: Container(color: ObsidianColors.error)),
-                  Expanded(flex: 38, child: Container(color: ObsidianColors.secondary)),
-                  Expanded(flex: 50, child: Container(color: ObsidianColors.tertiary)),
+                  Expanded(
+                    flex: 12,
+                    child: Container(color: ObsidianColors.error),
+                  ),
+                  Expanded(
+                    flex: 38,
+                    child: Container(color: ObsidianColors.secondary),
+                  ),
+                  Expanded(
+                    flex: 50,
+                    child: Container(color: ObsidianColors.tertiary),
+                  ),
                 ],
               ),
             ),
@@ -230,8 +325,18 @@ class RulesSwarmHealthCard extends StatelessWidget {
             child: SwitchListTile(
               value: bypassInboxStagnation,
               onChanged: (v) => onBypassChanged(v),
-              title: Text('Bypass Inbox Stagnation', style: ObsidianTypography.bodySm().copyWith(fontWeight: FontWeight.bold)),
-              subtitle: Text('Auto-release item from Inbox to downloader if torrent is >48 hours old and no higher-seed release appears.', style: ObsidianTypography.labelBadge(color: ObsidianColors.outline)),
+              title: Text(
+                'Bypass Inbox Stagnation',
+                style: ObsidianTypography.bodySm().copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              subtitle: Text(
+                'Auto-release item from Inbox to downloader if torrent is >48 hours old and no higher-seed release appears.',
+                style: ObsidianTypography.labelBadge(
+                  color: ObsidianColors.outline,
+                ),
+              ),
               activeColor: ObsidianColors.primary,
               contentPadding: EdgeInsets.zero,
             ),

@@ -28,7 +28,9 @@ mixin LibraryStateMixin on StateContext {
       final items = await bridge.getShows(status: status);
       _shows = List<LibraryShow>.from(items);
       if (selectedShow != null) {
-        final updated = items.where((s) => s.malId == selectedShow!.malId).firstOrNull;
+        final updated = items
+            .where((s) => s.malId == selectedShow!.malId)
+            .firstOrNull;
         if (updated != null) {
           selectedShow = updated;
         }
@@ -88,11 +90,8 @@ mixin LibraryStateMixin on StateContext {
       ActivityItem(
         id: DateTime.now().millisecondsSinceEpoch,
         level: ActivityLevel.info,
-        message: 'Updated show #$malId: ${[
-          if (rating != null) "Rating: ★${rating.toStringAsFixed(1)}",
-          if (status != null) "Status: $status",
-          if (watchedEpisodes != null) "Watched: $watchedEpisodes eps",
-        ].join(", ")}',
+        message:
+            'Updated show #$malId: ${[if (rating != null) "Rating: ★${rating.toStringAsFixed(1)}", if (status != null) "Status: $status", if (watchedEpisodes != null) "Watched: $watchedEpisodes eps"].join(", ")}',
         timestamp: DateTime.now(),
         malId: malId,
       ),

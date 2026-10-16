@@ -1,10 +1,10 @@
-use std::path::Path;
 use anyhow::{Context, Result};
 use genrl_core::clock::SystemClock;
 use genrl_core::http::Gate;
 use genrl_core::mal::{self, KeyringStore, MalClient};
 use genrl_core::planner::{MalList, PlanOutcome, PlanPreview};
 use genrl_core::{planner, Settings};
+use std::path::Path;
 
 use super::common::open_db;
 
@@ -23,7 +23,10 @@ pub async fn plan_cmd(
     // Targeted single show or episode download
     if let Some(target_id) = mal_id {
         if dry_run {
-            println!("dry run: would queue show #{target_id} (episode: {:?})", episode);
+            println!(
+                "dry run: would queue show #{target_id} (episode: {:?})",
+                episode
+            );
             return Ok(());
         }
         let queued = planner::plan_single(&db, &clock, target_id, episode)?;
@@ -77,7 +80,10 @@ pub async fn plan_cmd(
     match planner::plan(&db, &clock, &list, true)? {
         PlanOutcome::Applied { queued, preview } => {
             print_preview(&preview);
-            println!("queued {queued} new job{}", if queued == 1 { "" } else { "s" });
+            println!(
+                "queued {queued} new job{}",
+                if queued == 1 { "" } else { "s" }
+            );
         }
         PlanOutcome::Preview(preview) => {
             print_preview(&preview);

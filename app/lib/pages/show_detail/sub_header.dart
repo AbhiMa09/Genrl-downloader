@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../models/library_item.dart';
 import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
@@ -51,7 +52,9 @@ class ShowDetailSubHeader extends StatelessWidget {
                   const SizedBox(width: 8),
                   Text(
                     'Back to Library',
-                    style: ObsidianTypography.monoCode(color: ObsidianColors.onSurface),
+                    style: ObsidianTypography.monoCode(
+                      color: ObsidianColors.onSurface,
+                    ),
                   ),
                 ],
               ),
@@ -90,7 +93,9 @@ class ShowDetailSubHeader extends StatelessWidget {
               ),
               child: Text(
                 'MAL:${show.malId}',
-                style: ObsidianTypography.labelBadge(color: ObsidianColors.tertiary),
+                style: ObsidianTypography.labelBadge(
+                  color: ObsidianColors.tertiary,
+                ),
               ),
             ),
 
@@ -106,9 +111,16 @@ class ShowDetailSubHeader extends StatelessWidget {
                 style: FilledButton.styleFrom(
                   backgroundColor: ObsidianColors.primaryContainer,
                   foregroundColor: ObsidianColors.onPrimaryContainer,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  textStyle: ObsidianTypography.monoCode(color: ObsidianColors.onPrimaryContainer),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
+                  textStyle: ObsidianTypography.monoCode(
+                    color: ObsidianColors.onPrimaryContainer,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               ),
             ),
@@ -123,18 +135,34 @@ class ShowDetailSubHeader extends StatelessWidget {
                   ? const SizedBox(
                       width: 14,
                       height: 14,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: ObsidianColors.tertiary),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: ObsidianColors.tertiary,
+                      ),
                     )
-                  : const Icon(Icons.sync_rounded, size: 16, color: ObsidianColors.tertiary),
+                  : const Icon(
+                      Icons.sync_rounded,
+                      size: 16,
+                      color: ObsidianColors.tertiary,
+                    ),
               label: Text(
-                show.metadataStatus == 'fetching' ? 'Refreshing...' : 'Refresh Metadata',
-                style: ObsidianTypography.monoCode(color: ObsidianColors.onSurface),
+                show.metadataStatus == 'fetching'
+                    ? 'Refreshing...'
+                    : 'Refresh Metadata',
+                style: ObsidianTypography.monoCode(
+                  color: ObsidianColors.onSurface,
+                ),
               ),
               style: OutlinedButton.styleFrom(
                 backgroundColor: ObsidianColors.surfaceContainer,
                 side: const BorderSide(color: ObsidianColors.border),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
             ),
             const SizedBox(width: 8),
@@ -146,17 +174,33 @@ class ShowDetailSubHeader extends StatelessWidget {
                 await state.loadShowDetail(show.malId);
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Library rescanned and hashes rechecked.')),
+                    const SnackBar(
+                      content: Text('Library rescanned and hashes rechecked.'),
+                    ),
                   );
                 }
               },
-              icon: const Icon(Icons.verified_outlined, size: 16, color: ObsidianColors.primary),
-              label: Text('Recheck Hashes', style: ObsidianTypography.monoCode(color: ObsidianColors.onSurface)),
+              icon: const Icon(
+                Icons.verified_outlined,
+                size: 16,
+                color: ObsidianColors.primary,
+              ),
+              label: Text(
+                'Recheck Hashes',
+                style: ObsidianTypography.monoCode(
+                  color: ObsidianColors.onSurface,
+                ),
+              ),
               style: OutlinedButton.styleFrom(
                 backgroundColor: ObsidianColors.surfaceContainer,
                 side: const BorderSide(color: ObsidianColors.border),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
             ),
             const SizedBox(width: 8),
@@ -176,7 +220,11 @@ class ShowDetailSubHeader extends StatelessWidget {
                     color: ObsidianColors.surfaceContainer,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.delete_outline, size: 18, color: ObsidianColors.outline),
+                  child: const Icon(
+                    Icons.delete_outline,
+                    size: 18,
+                    color: ObsidianColors.outline,
+                  ),
                 ),
               ),
             ),

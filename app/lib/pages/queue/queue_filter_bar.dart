@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../models/queue_item.dart';
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
@@ -21,15 +22,22 @@ class QueueFilterBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dlCount = items.where((i) => i.state == QueueState.downloading).length;
-    final finalCount = items
-        .where((i) =>
-            i.state == QueueState.finalizing || i.state == QueueState.completed)
+    final dlCount = items
+        .where((i) => i.state == QueueState.downloading)
         .length;
-    final blockedCount =
-        items.where((i) => i.state == QueueState.blocked).length;
-    final failedCount =
-        items.where((i) => i.state == QueueState.stalled).length;
+    final finalCount = items
+        .where(
+          (i) =>
+              i.state == QueueState.finalizing ||
+              i.state == QueueState.completed,
+        )
+        .length;
+    final blockedCount = items
+        .where((i) => i.state == QueueState.blocked)
+        .length;
+    final failedCount = items
+        .where((i) => i.state == QueueState.stalled)
+        .length;
     final searchCount = items.where((i) => i.state == QueueState.queued).length;
 
     return Container(
@@ -49,25 +57,54 @@ class QueueFilterBar extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                _buildTab('all', 'All', '${items.length}', ObsidianColors.primary),
+                _buildTab(
+                  'all',
+                  'All',
+                  '${items.length}',
+                  ObsidianColors.primary,
+                ),
                 const SizedBox(width: 6),
-                _buildTab('searching', 'Searching', '$searchCount',
-                    ObsidianColors.tertiary),
+                _buildTab(
+                  'searching',
+                  'Searching',
+                  '$searchCount',
+                  ObsidianColors.tertiary,
+                ),
                 const SizedBox(width: 6),
-                _buildTab('downloading', 'Downloading', '$dlCount',
-                    ObsidianColors.primary),
+                _buildTab(
+                  'downloading',
+                  'Downloading',
+                  '$dlCount',
+                  ObsidianColors.primary,
+                ),
                 const SizedBox(width: 6),
-                _buildTab('finalizing', 'Finalizing', '$finalCount',
-                    ObsidianColors.onSurface),
+                _buildTab(
+                  'finalizing',
+                  'Finalizing',
+                  '$finalCount',
+                  ObsidianColors.onSurface,
+                ),
                 const SizedBox(width: 6),
-                _buildTab('blocked', 'Blocked', '$blockedCount',
-                    ObsidianColors.error),
+                _buildTab(
+                  'blocked',
+                  'Blocked',
+                  '$blockedCount',
+                  ObsidianColors.error,
+                ),
                 const SizedBox(width: 6),
-                _buildTab('failed', 'Failed', '$failedCount',
-                    ObsidianColors.error),
+                _buildTab(
+                  'failed',
+                  'Failed',
+                  '$failedCount',
+                  ObsidianColors.error,
+                ),
                 const SizedBox(width: 6),
-                _buildTab('needs_input', 'Needs Input', '2',
-                    ObsidianColors.secondary),
+                _buildTab(
+                  'needs_input',
+                  'Needs Input',
+                  '2',
+                  ObsidianColors.secondary,
+                ),
               ],
             ),
           ),
@@ -84,18 +121,23 @@ class QueueFilterBar extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const Icon(Icons.filter_list_rounded,
-                    size: 16, color: ObsidianColors.outline),
+                const Icon(
+                  Icons.filter_list_rounded,
+                  size: 16,
+                  color: ObsidianColors.outline,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: TextField(
                     controller: searchController,
-                    style:
-                        ObsidianTypography.bodySm(color: ObsidianColors.onSurface),
+                    style: ObsidianTypography.bodySm(
+                      color: ObsidianColors.onSurface,
+                    ),
                     decoration: InputDecoration(
                       hintText: 'Filter title, release group, hash...',
-                      hintStyle:
-                          ObsidianTypography.bodySm(color: ObsidianColors.outline),
+                      hintStyle: ObsidianTypography.bodySm(
+                        color: ObsidianColors.outline,
+                      ),
                       border: InputBorder.none,
                       isDense: true,
                     ),
@@ -103,15 +145,21 @@ class QueueFilterBar extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 4, vertical: 1.5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 1.5,
+                  ),
                   decoration: BoxDecoration(
                     color: ObsidianColors.surfaceContainerHigh,
                     borderRadius: BorderRadius.circular(4),
                   ),
-                  child: Text('Ctrl+F',
-                      style: ObsidianTypography.monoCode(
-                          color: ObsidianColors.outline, fontSize: 9)),
+                  child: Text(
+                    'Ctrl+F',
+                    style: ObsidianTypography.monoCode(
+                      color: ObsidianColors.outline,
+                      fontSize: 9,
+                    ),
+                  ),
                 ),
               ],
             ),

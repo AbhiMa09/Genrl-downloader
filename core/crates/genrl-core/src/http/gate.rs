@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use crate::error::{Error, Result};
 use super::backoff;
 use super::breaker::{self, State as BreakerState};
 use super::cache;
@@ -10,6 +9,7 @@ use super::limiter;
 use super::policy::{Service, ServicePolicy};
 use super::types::{Fetched, GetOptions};
 use super::wire::{read_body, Outcome, Wire};
+use crate::error::{Error, Result};
 
 pub(crate) struct ServiceState {
     pub(crate) policy: ServicePolicy,
@@ -168,7 +168,7 @@ impl Gate {
     }
 
     // `last_err` starts empty and is only read after an attempt has filled it.
-    #[allow(unused_assignments)]
+    #[allow(unused_assignments, clippy::too_many_arguments)]
     async fn dispatch(
         &self,
         service: Service,
@@ -204,10 +204,7 @@ impl Gate {
                 });
             }
 
-            let retry_after = match self
-                .send(&parsed, &wire, opts, timeout, cap)
-                .await
-            {
+            let retry_after = match self.send(&parsed, &wire, opts, timeout, cap).await {
                 Ok(Outcome::Success {
                     status,
                     body,
@@ -315,10 +312,8 @@ impl Gate {
             let delay = match retry_after {
                 // A 429 with Retry-After uses that value instead of the schedule.
                 Some(d) => d.min(retry.max_delay),
-                None => {
-                    backoff::jitter(backoff::delay_for(attempt, &retry.schedule))
-                        .min(retry.max_delay)
-                }
+                None => backoff::jitter(backoff::delay_for(attempt, &retry.schedule))
+                    .min(retry.max_delay),
             };
 
             if started.elapsed() + delay > retry.max_total_wait {
@@ -435,12 +430,18 @@ impl Gate {
             408 | 425 | 500..=599 => {
                 let body = read_body(resp, cap, url.as_str(), timeout).await.ok();
                 let body_str = body.and_then(|b| String::from_utf8(b).ok());
-                Ok(Outcome::ServerError { status, body: body_str })
+                Ok(Outcome::ServerError {
+                    status,
+                    body: body_str,
+                })
             }
             _ => {
                 let body = read_body(resp, cap, url.as_str(), timeout).await.ok();
                 let body_str = body.and_then(|b| String::from_utf8(b).ok());
-                Ok(Outcome::ClientError { status, body: body_str })
+                Ok(Outcome::ClientError {
+                    status,
+                    body: body_str,
+                })
             }
         }
     }

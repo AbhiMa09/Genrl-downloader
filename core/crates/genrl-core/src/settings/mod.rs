@@ -195,9 +195,8 @@ impl Settings {
         let mut map = BTreeMap::new();
         db.with(|c| {
             let mut stmt = c.prepare("SELECT key, value FROM settings")?;
-            let rows = stmt.query_map([], |r| {
-                Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?))
-            })?;
+            let rows =
+                stmt.query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?)))?;
             for row in rows {
                 let (key, value) = row?;
                 if key.starts_with(STATE_PREFIX) {
@@ -211,11 +210,7 @@ impl Settings {
             Ok(())
         })?;
 
-        let value = serde_json::Value::Object(
-            map.into_iter()
-                .map(|(k, v)| (k, v))
-                .collect::<serde_json::Map<_, _>>(),
-        );
+        let value = serde_json::Value::Object(map.into_iter().collect::<serde_json::Map<_, _>>());
         let settings: Settings = serde_json::from_value(value)?;
         Ok(settings)
     }
@@ -240,9 +235,7 @@ impl Settings {
 
             // Remove stale config keys, keeping runtime state rows.
             let keep: Vec<&String> = map.keys().collect();
-            let mut sql = String::from(
-                "DELETE FROM settings WHERE key NOT LIKE 'state.%'",
-            );
+            let mut sql = String::from("DELETE FROM settings WHERE key NOT LIKE 'state.%'");
             if !keep.is_empty() {
                 sql.push_str(" AND key NOT IN (");
                 for i in 0..keep.len() {
@@ -428,7 +421,10 @@ mod tests {
         s.save(&db).unwrap();
 
         assert_eq!(Settings::load(&db).unwrap().active_downloads, 2);
-        assert_eq!(read_state(&db, "last_mal_sync_at").unwrap().as_deref(), Some("1234"));
+        assert_eq!(
+            read_state(&db, "last_mal_sync_at").unwrap().as_deref(),
+            Some("1234")
+        );
     }
 
     #[test]

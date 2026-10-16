@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../theme/colors.dart';
 import '../theme/typography.dart';
 import '../widgets/loading/cyber_loader.dart';
@@ -36,13 +37,19 @@ class _LoadingGalleryPageState extends State<LoadingGalleryPage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // 1. Connection Banner
-                const Text('1. Connection Banner Primitive', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text(
+                  '1. Connection Banner Primitive',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 8),
                 const ConnectionBanner(),
                 const SizedBox(height: 24),
 
                 // 2. CyberLoader & InlineSpinner
-                const Text('2. CyberLoader (Concentric Rings) & Inline Spinner', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text(
+                  '2. CyberLoader (Concentric Rings) & Inline Spinner',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -52,7 +59,10 @@ class _LoadingGalleryPageState extends State<LoadingGalleryPage> {
                       children: [
                         const InlineSpinner(size: 24),
                         const SizedBox(height: 8),
-                        Text('Inline Spinner', style: ObsidianTypography.monoCode()),
+                        Text(
+                          'Inline Spinner',
+                          style: ObsidianTypography.monoCode(),
+                        ),
                       ],
                     ),
                     const SizedBox(
@@ -68,14 +78,20 @@ class _LoadingGalleryPageState extends State<LoadingGalleryPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('3. IngestionProgress Component', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const Text(
+                      '3. IngestionProgress Component',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     DropdownButton<IngestionStage>(
                       value: _activeStage,
                       dropdownColor: ObsidianColors.surfaceContainerHigh,
                       items: IngestionStage.values.map((s) {
                         return DropdownMenuItem(
                           value: s,
-                          child: Text(s.name, style: ObsidianTypography.bodySm()),
+                          child: Text(
+                            s.name,
+                            style: ObsidianTypography.bodySm(),
+                          ),
                         );
                       }).toList(),
                       onChanged: (val) {

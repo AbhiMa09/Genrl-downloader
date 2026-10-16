@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
 
@@ -11,7 +12,13 @@ class StepQualityGroups extends StatefulWidget {
 
 class _StepQualityGroupsState extends State<StepQualityGroups> {
   String _selectedRes = '1080p';
-  final Set<String> _selectedGroups = {'SubsPlease', 'Erai-raws', 'ASW', 'Judas', 'Golumpa'};
+  final Set<String> _selectedGroups = {
+    'SubsPlease',
+    'Erai-raws',
+    'ASW',
+    'Judas',
+    'Golumpa',
+  };
 
   final List<String> _availableGroups = [
     'SubsPlease',
@@ -35,7 +42,9 @@ class _StepQualityGroupsState extends State<StepQualityGroups> {
         const SizedBox(height: 6),
         Text(
           'Set your default video resolution and preferred fansub release groups.',
-          style: ObsidianTypography.bodySm(color: ObsidianColors.onSurfaceVariant),
+          style: ObsidianTypography.bodySm(
+            color: ObsidianColors.onSurfaceVariant,
+          ),
         ),
         const SizedBox(height: 20),
         Text('Target Resolution', style: ObsidianTypography.titleSm()),
@@ -57,7 +66,10 @@ class _StepQualityGroupsState extends State<StepQualityGroups> {
           }).toList(),
         ),
         const SizedBox(height: 20),
-        Text('Preferred Groups (Prioritized Match)', style: ObsidianTypography.titleSm()),
+        Text(
+          'Preferred Groups (Prioritized Match)',
+          style: ObsidianTypography.titleSm(),
+        ),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,

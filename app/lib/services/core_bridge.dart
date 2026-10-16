@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+
 import '../models/activity_item.dart';
 import '../models/inbox_item.dart';
 import '../models/library_item.dart';
@@ -14,10 +15,7 @@ class CoreBridge {
   final String genrlBinaryPath;
   final String? customDataDir;
 
-  CoreBridge({
-    this.genrlBinaryPath = 'genrl',
-    this.customDataDir,
-  });
+  CoreBridge({this.genrlBinaryPath = 'genrl', this.customDataDir});
 
   String _resolveBinary() {
     if (genrlBinaryPath != 'genrl') return genrlBinaryPath;
@@ -77,8 +75,10 @@ class CoreBridge {
     final res = await execute(['search', query, '--json']);
     if (res.exitCode == 0) {
       try {
-        final List<dynamic> decoded = jsonDecode(res.stdout as String);
-        return decoded.cast<Map<String, dynamic>>();
+        final decoded = jsonDecode(res.stdout as String);
+        if (decoded is List) {
+          return decoded.cast<Map<String, dynamic>>();
+        }
       } catch (_) {}
     }
     return [];
@@ -188,13 +188,25 @@ class CoreBridge {
 
   /// Trigger download/planning of a specific episode
   Future<bool> downloadEpisode(int malId, int episodeNumber) async {
-    final res = await execute(['plan', '--mal-id', malId.toString(), '--episode', episodeNumber.toString(), '--confirm']);
+    final res = await execute([
+      'plan',
+      '--mal-id',
+      malId.toString(),
+      '--episode',
+      episodeNumber.toString(),
+      '--confirm',
+    ]);
     return res.exitCode == 0;
   }
 
   /// Trigger download/planning of an entire season
   Future<bool> downloadSeason(int malId) async {
-    final res = await execute(['plan', '--mal-id', malId.toString(), '--confirm']);
+    final res = await execute([
+      'plan',
+      '--mal-id',
+      malId.toString(),
+      '--confirm',
+    ]);
     return res.exitCode == 0;
   }
 
@@ -210,7 +222,11 @@ class CoreBridge {
   }
 
   /// Set storage location (download_dir, library_dir, or per-show folder override)
-  Future<Map<String, dynamic>?> setLocation(String key, String path, {int? malId}) async {
+  Future<Map<String, dynamic>?> setLocation(
+    String key,
+    String path, {
+    int? malId,
+  }) async {
     final args = ['locations', 'set', key, path];
     if (malId != null) {
       args.addAll(['--mal-id', malId.toString()]);
@@ -235,7 +251,12 @@ class CoreBridge {
 
   /// Get per-show folder override info
   Future<Map<String, dynamic>?> getShowFolder(int malId) async {
-    final res = await execute(['locations', 'get-show', malId.toString(), '--json']);
+    final res = await execute([
+      'locations',
+      'get-show',
+      malId.toString(),
+      '--json',
+    ]);
     if (res.exitCode == 0) {
       try {
         return jsonDecode(res.stdout as String) as Map<String, dynamic>;
@@ -246,7 +267,15 @@ class CoreBridge {
 
   /// Explicit confirmed migration of existing library
   Future<ProcessResult> migrateLibrary(String from, String to) async {
-    return await execute(['locations', 'migrate', '--from', from, '--to', to, '--confirm']);
+    return await execute([
+      'locations',
+      'migrate',
+      '--from',
+      from,
+      '--to',
+      to,
+      '--confirm',
+    ]);
   }
 
   /// Get live system status from core
@@ -266,8 +295,10 @@ class CoreBridge {
     final res = await execute(['queue', '--json']);
     if (res.exitCode == 0) {
       try {
-        final List<dynamic> list = jsonDecode(res.stdout as String);
-        return parseQueueItems(list);
+        final decoded = jsonDecode(res.stdout as String);
+        if (decoded is List) {
+          return parseQueueItems(decoded.cast<dynamic>());
+        }
       } catch (_) {}
     }
     return [];
@@ -278,15 +309,21 @@ class CoreBridge {
     final res = await execute(['inbox', '--json']);
     if (res.exitCode == 0) {
       try {
-        final List<dynamic> list = jsonDecode(res.stdout as String);
-        return parseInboxItems(list);
+        final decoded = jsonDecode(res.stdout as String);
+        if (decoded is List) {
+          return parseInboxItems(decoded.cast<dynamic>());
+        }
       } catch (_) {}
     }
     return [];
   }
 
   /// Answer an inbox question
-  Future<bool> answerQuestion(int questionId, String choiceKey, {bool always = false}) async {
+  Future<bool> answerQuestion(
+    int questionId,
+    String choiceKey, {
+    bool always = false,
+  }) async {
     final args = ['answer', questionId.toString(), choiceKey];
     if (always) args.add('--always');
     final res = await execute(args);
@@ -302,8 +339,10 @@ class CoreBridge {
     final res = await execute(args);
     if (res.exitCode == 0) {
       try {
-        final List<dynamic> list = jsonDecode(res.stdout as String);
-        return parseShowsList(list);
+        final decoded = jsonDecode(res.stdout as String);
+        if (decoded is List) {
+          return parseShowsList(decoded.cast<dynamic>());
+        }
       } catch (_) {}
     }
     return [];
@@ -322,7 +361,10 @@ class CoreBridge {
   }
 
   /// Explicitly fetch metadata for a show (runs `genrl metadata fetch <id> [--force] [--json]`)
-  Future<Map<String, dynamic>?> fetchShowMetadata(int malId, {bool force = false}) async {
+  Future<Map<String, dynamic>?> fetchShowMetadata(
+    int malId, {
+    bool force = false,
+  }) async {
     final args = ['metadata', 'fetch', malId.toString(), '--json'];
     if (force) args.add('--force');
     final res = await execute(args);
@@ -353,17 +395,21 @@ class CoreBridge {
   }
 
   /// Get recent activity events from core
-  Future<List<ActivityItem>> getEvents({int limit = 50, bool errorsOnly = false}) async {
+  Future<List<ActivityItem>> getEvents({
+    int limit = 50,
+    bool errorsOnly = false,
+  }) async {
     final args = ['events', '--limit', limit.toString(), '--json'];
     if (errorsOnly) args.add('--errors-only');
     final res = await execute(args);
     if (res.exitCode == 0) {
       try {
-        final List<dynamic> list = jsonDecode(res.stdout as String);
-        return parseEventsList(list);
+        final decoded = jsonDecode(res.stdout as String);
+        if (decoded is List) {
+          return parseEventsList(decoded.cast<dynamic>());
+        }
       } catch (_) {}
     }
     return [];
   }
 }
-

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../models/library_item.dart';
 import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
@@ -27,13 +28,16 @@ class _ShowDetailAliasesTabState extends State<ShowDetailAliasesTab> {
   void initState() {
     super.initState();
     _aliasController = TextEditingController();
-    _offsetController = TextEditingController(text: widget.show.episodeOffset.toString());
+    _offsetController = TextEditingController(
+      text: widget.show.episodeOffset.toString(),
+    );
   }
 
   @override
   void didUpdateWidget(covariant ShowDetailAliasesTab oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.show.malId != widget.show.malId || oldWidget.show.episodeOffset != widget.show.episodeOffset) {
+    if (oldWidget.show.malId != widget.show.malId ||
+        oldWidget.show.episodeOffset != widget.show.episodeOffset) {
       _offsetController.text = widget.show.episodeOffset.toString();
     }
   }
@@ -60,15 +64,23 @@ class _ShowDetailAliasesTabState extends State<ShowDetailAliasesTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Title Aliases & Release Matching', style: ObsidianTypography.headlineMd()),
+          Text(
+            'Title Aliases & Release Matching',
+            style: ObsidianTypography.headlineMd(),
+          ),
           const SizedBox(height: 4),
           Text(
             'Define alternate tracker queries and release names. When torrent releases match any alias below, they will automatically be parsed into this show directory.',
-            style: ObsidianTypography.bodyMd(color: ObsidianColors.onSurfaceVariant),
+            style: ObsidianTypography.bodyMd(
+              color: ObsidianColors.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 20),
 
-          Text('CONFIGURED MATCH ALIASES', style: ObsidianTypography.monoCode(color: ObsidianColors.outline)),
+          Text(
+            'CONFIGURED MATCH ALIASES',
+            style: ObsidianTypography.monoCode(color: ObsidianColors.outline),
+          ),
           const SizedBox(height: 10),
 
           // Chips of aliases
@@ -77,7 +89,10 @@ class _ShowDetailAliasesTabState extends State<ShowDetailAliasesTab> {
             runSpacing: 8,
             children: aliases.map((alias) {
               return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: ObsidianColors.surfaceContainerHigh,
                   borderRadius: BorderRadius.circular(8),
@@ -85,13 +100,22 @@ class _ShowDetailAliasesTabState extends State<ShowDetailAliasesTab> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(alias, style: ObsidianTypography.monoCode(color: ObsidianColors.onSurface)),
+                    Text(
+                      alias,
+                      style: ObsidianTypography.monoCode(
+                        color: ObsidianColors.onSurface,
+                      ),
+                    ),
                     const SizedBox(width: 8),
                     InkWell(
                       onTap: () async {
                         await state.removeAlias(show.malId, alias);
                       },
-                      child: const Icon(Icons.close_rounded, size: 14, color: ObsidianColors.outline),
+                      child: const Icon(
+                        Icons.close_rounded,
+                        size: 14,
+                        color: ObsidianColors.outline,
+                      ),
                     ),
                   ],
                 ),
@@ -108,13 +132,20 @@ class _ShowDetailAliasesTabState extends State<ShowDetailAliasesTab> {
                   constraints: const BoxConstraints(maxWidth: 420),
                   child: TextField(
                     controller: _aliasController,
-                    style: ObsidianTypography.monoCode(color: ObsidianColors.onSurface),
+                    style: ObsidianTypography.monoCode(
+                      color: ObsidianColors.onSurface,
+                    ),
                     decoration: InputDecoration(
                       hintText: 'Type new alias (e.g. ${show.title} S2)...',
-                      hintStyle: ObsidianTypography.monoCode(color: ObsidianColors.outline),
+                      hintStyle: ObsidianTypography.monoCode(
+                        color: ObsidianColors.outline,
+                      ),
                       filled: true,
                       fillColor: ObsidianColors.surfaceContainerLowest,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                         borderSide: BorderSide.none,
@@ -143,8 +174,13 @@ class _ShowDetailAliasesTabState extends State<ShowDetailAliasesTab> {
                 style: FilledButton.styleFrom(
                   backgroundColor: ObsidianColors.primary,
                   foregroundColor: ObsidianColors.onPrimary,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               ),
             ],
@@ -165,10 +201,15 @@ class _ShowDetailAliasesTabState extends State<ShowDetailAliasesTab> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Episode Number Offset', style: ObsidianTypography.titleSm()),
+                      Text(
+                        'Episode Number Offset',
+                        style: ObsidianTypography.titleSm(),
+                      ),
                       Text(
                         'Adjust parsing integer if tracker indexes this anime as an ongoing sequel episode.',
-                        style: ObsidianTypography.bodySm(color: ObsidianColors.onSurfaceVariant),
+                        style: ObsidianTypography.bodySm(
+                          color: ObsidianColors.onSurfaceVariant,
+                        ),
                       ),
                     ],
                   ),
@@ -176,7 +217,12 @@ class _ShowDetailAliasesTabState extends State<ShowDetailAliasesTab> {
                 const SizedBox(width: 16),
                 Row(
                   children: [
-                    Text('Offset Value:', style: ObsidianTypography.monoCode(color: ObsidianColors.outline)),
+                    Text(
+                      'Offset Value:',
+                      style: ObsidianTypography.monoCode(
+                        color: ObsidianColors.outline,
+                      ),
+                    ),
                     const SizedBox(width: 8),
                     SizedBox(
                       width: 72,
@@ -184,12 +230,19 @@ class _ShowDetailAliasesTabState extends State<ShowDetailAliasesTab> {
                         controller: _offsetController,
                         keyboardType: TextInputType.number,
                         textAlign: TextAlign.center,
-                        style: ObsidianTypography.monoMetric(color: ObsidianColors.primary).copyWith(fontWeight: FontWeight.bold),
+                        style: ObsidianTypography.monoMetric(
+                          color: ObsidianColors.primary,
+                        ).copyWith(fontWeight: FontWeight.bold),
                         decoration: InputDecoration(
                           filled: true,
                           fillColor: ObsidianColors.surfaceContainerLowest,
-                          contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 8,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide.none,
+                          ),
                         ),
                         onSubmitted: (val) async {
                           final parsed = int.tryParse(val.trim());

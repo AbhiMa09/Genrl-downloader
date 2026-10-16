@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../services/state_provider.dart';
 import '../theme/colors.dart';
 import '../theme/typography.dart';
@@ -163,10 +164,11 @@ class NavRail extends StatelessWidget {
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: (state.status.daemonConnected
-                                  ? ObsidianColors.tertiary
-                                  : ObsidianColors.error)
-                              .withOpacity(0.5),
+                          color:
+                              (state.status.daemonConnected
+                                      ? ObsidianColors.tertiary
+                                      : ObsidianColors.error)
+                                  .withOpacity(0.5),
                           blurRadius: 4,
                           spreadRadius: 1,
                         ),
@@ -176,7 +178,9 @@ class NavRail extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      state.status.daemonConnected ? 'Daemon OK' : 'Disconnected',
+                      state.status.daemonConnected
+                          ? 'Daemon OK'
+                          : 'Disconnected',
                       style: ObsidianTypography.monoCode(
                         color: ObsidianColors.outline,
                       ),
@@ -237,7 +241,9 @@ class _NavItem extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
             border: isSelected
                 ? Border.all(
-                    color: ObsidianColors.primary.withOpacity(0.2), width: 1)
+                    color: ObsidianColors.primary.withOpacity(0.2),
+                    width: 1,
+                  )
                 : null,
           ),
           child: Row(
@@ -255,15 +261,18 @@ class _NavItem extends StatelessWidget {
                   label,
                   style: isSelected
                       ? ObsidianTypography.bodySm(color: ObsidianColors.primary)
-                          .copyWith(fontWeight: FontWeight.w600)
+                            .copyWith(fontWeight: FontWeight.w600)
                       : ObsidianTypography.bodySm(
-                          color: ObsidianColors.onSurfaceVariant),
+                          color: ObsidianColors.onSurfaceVariant,
+                        ),
                 ),
               ),
               if (badge != null)
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 1,
+                  ),
                   decoration: BoxDecoration(
                     color: badgeColor.withOpacity(0.18),
                     borderRadius: BorderRadius.circular(4),

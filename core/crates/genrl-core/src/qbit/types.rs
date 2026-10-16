@@ -92,7 +92,9 @@ impl Torrent {
 
     /// Queued, stopped or paused: nothing is moving right now.
     pub fn is_stopped(&self) -> bool {
-        self.state.contains("stopped") || self.state.contains("paused") || self.state.contains("queued")
+        self.state.contains("stopped")
+            || self.state.contains("paused")
+            || self.state.contains("queued")
     }
 }
 
@@ -107,7 +109,9 @@ pub struct TransferSpeeds {
 
 /// Extract the 40-hex info hash from a magnet link, if it carries one.
 pub fn magnet_info_hash(link: &str) -> Option<String> {
-    let rest = link.strip_prefix("magnet:?").or_else(|| link.strip_prefix("magnet:"))?;
+    let rest = link
+        .strip_prefix("magnet:?")
+        .or_else(|| link.strip_prefix("magnet:"))?;
     for pair in rest.trim_start_matches('?').split('&') {
         if let Some(value) = pair.strip_prefix("xt=urn:btih:") {
             let hash = value.to_lowercase();

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../services/state_provider.dart';
 import '../theme/colors.dart';
 import '../theme/typography.dart';
@@ -8,10 +9,7 @@ import 'tray_notifications_overlay.dart';
 class AppHeader extends StatelessWidget {
   final String pageTitle;
 
-  const AppHeader({
-    super.key,
-    required this.pageTitle,
-  });
+  const AppHeader({super.key, required this.pageTitle});
 
   @override
   Widget build(BuildContext context) {
@@ -31,17 +29,17 @@ class AppHeader extends StatelessWidget {
           // Page Title & Linux Tag & Core Connection Indicator
           Row(
             children: [
-              Text(
-                pageTitle,
-                style: ObsidianTypography.headlineMd(),
-              ),
+              Text(pageTitle, style: ObsidianTypography.headlineMd()),
               const SizedBox(width: 10),
               // Core Connection Indicator Pill
               InkWell(
                 onTap: () => state.refreshAll(),
                 borderRadius: BorderRadius.circular(4),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: state.isCoreConnected
                         ? ObsidianColors.success.withOpacity(0.15)
@@ -69,7 +67,9 @@ class AppHeader extends StatelessWidget {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        state.isCoreConnected ? 'Core Online' : 'Core Disconnected (Retry)',
+                        state.isCoreConnected
+                            ? 'Core Online'
+                            : 'Core Disconnected (Retry)',
                         style: ObsidianTypography.labelBadge(
                           color: state.isCoreConnected
                               ? ObsidianColors.success
@@ -105,10 +105,14 @@ class AppHeader extends StatelessWidget {
                 Expanded(
                   child: TextField(
                     onChanged: (val) => state.setSearchFilter(val),
-                    style: ObsidianTypography.bodySm(color: ObsidianColors.onSurface),
+                    style: ObsidianTypography.bodySm(
+                      color: ObsidianColors.onSurface,
+                    ),
                     decoration: InputDecoration(
                       hintText: 'Quick Jump or Filter...',
-                      hintStyle: ObsidianTypography.bodySm(color: ObsidianColors.outline),
+                      hintStyle: ObsidianTypography.bodySm(
+                        color: ObsidianColors.outline,
+                      ),
                       border: InputBorder.none,
                       isDense: true,
                       contentPadding: EdgeInsets.zero,
@@ -116,14 +120,19 @@ class AppHeader extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 5,
+                    vertical: 1.5,
+                  ),
                   decoration: BoxDecoration(
                     color: ObsidianColors.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
                     'Ctrl+K',
-                    style: ObsidianTypography.labelBadge(color: ObsidianColors.outline),
+                    style: ObsidianTypography.labelBadge(
+                      color: ObsidianColors.outline,
+                    ),
                   ),
                 ),
               ],
@@ -136,16 +145,22 @@ class AppHeader extends StatelessWidget {
           // Tray & Notification Toasts Overlay Button
           IconButton(
             onPressed: () {
-              showDialog(
+              showDialog<void>(
                 context: context,
                 barrierColor: Colors.transparent,
-                builder: (ctx) => SystemTrayNotificationOverlay(onClose: () => Navigator.pop(ctx)),
+                builder: (ctx) => SystemTrayNotificationOverlay(
+                  onClose: () => Navigator.pop(ctx),
+                ),
               );
             },
             icon: Stack(
               clipBehavior: Clip.none,
               children: [
-                const Icon(Icons.notifications_active_rounded, size: 20, color: ObsidianColors.primary),
+                const Icon(
+                  Icons.notifications_active_rounded,
+                  size: 20,
+                  color: ObsidianColors.primary,
+                ),
                 Positioned(
                   right: -2,
                   top: -2,

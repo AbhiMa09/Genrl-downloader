@@ -34,9 +34,13 @@ async fn search_returns_seeder_sorted_candidates() {
         .await;
 
     let settings = settings_with(&server.uri(), Vec::new());
-    let items = nyaa::search(&gate(), &settings, &SearchQuery::new("sousou no frieren 1080p"))
-        .await
-        .unwrap();
+    let items = nyaa::search(
+        &gate(),
+        &settings,
+        &SearchQuery::new("sousou no frieren 1080p"),
+    )
+    .await
+    .unwrap();
 
     assert_eq!(
         items.len(),
@@ -52,7 +56,10 @@ async fn search_returns_seeder_sorted_candidates() {
         );
     }
     // The most-seeded row of the real fixture feed.
-    assert_eq!(items[0].info_hash, "bd167d148570f2c7ece6c15bd90d3901acb6d79c");
+    assert_eq!(
+        items[0].info_hash,
+        "bd167d148570f2c7ece6c15bd90d3901acb6d79c"
+    );
     assert!(items[0].info_hash.chars().all(|c| c.is_ascii_hexdigit()));
 
     // The URL we asked for is the design's shape.
@@ -62,15 +69,14 @@ async fn search_returns_seeder_sorted_candidates() {
         .query_pairs()
         .map(|(k, v)| (k.to_string(), v.to_string()))
         .collect();
-    let get = |key: &str| {
-        query
-            .iter()
-            .find(|(k, _)| k == key)
-            .map(|(_, v)| v.clone())
-    };
+    let get = |key: &str| query.iter().find(|(k, _)| k == key).map(|(_, v)| v.clone());
     assert_eq!(get("page").as_deref(), Some("rss"));
     assert_eq!(get("q").as_deref(), Some("sousou no frieren 1080p"));
-    assert_eq!(get("c").as_deref(), Some("1_2"), "anime, English-translated");
+    assert_eq!(
+        get("c").as_deref(),
+        Some("1_2"),
+        "anime, English-translated"
+    );
     assert_eq!(get("s").as_deref(), Some("seeders"));
     assert_eq!(get("o").as_deref(), Some("desc"));
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
 
@@ -57,9 +58,16 @@ class RulesQualityCodecCard extends StatelessWidget {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.tune_rounded, size: 20, color: ObsidianColors.primary),
+                  const Icon(
+                    Icons.tune_rounded,
+                    size: 20,
+                    color: ObsidianColors.primary,
+                  ),
                   const SizedBox(width: 8),
-                  Text('Quality & Codec Specs', style: ObsidianTypography.titleSm()),
+                  Text(
+                    'Quality & Codec Specs',
+                    style: ObsidianTypography.titleSm(),
+                  ),
                 ],
               ),
               Container(
@@ -68,14 +76,22 @@ class RulesQualityCodecCard extends StatelessWidget {
                   color: ObsidianColors.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: Text('v2.4 Core', style: ObsidianTypography.labelBadge(color: ObsidianColors.outline)),
+                child: Text(
+                  'v2.4 Core',
+                  style: ObsidianTypography.labelBadge(
+                    color: ObsidianColors.outline,
+                  ),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 14),
 
           // Target Resolution Segmented Control
-          Text('TARGET RESOLUTION', style: ObsidianTypography.labelBadge(color: ObsidianColors.outline)),
+          Text(
+            'TARGET RESOLUTION',
+            style: ObsidianTypography.labelBadge(color: ObsidianColors.outline),
+          ),
           const SizedBox(height: 6),
           Row(
             children: [
@@ -87,11 +103,17 @@ class RulesQualityCodecCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 4),
-          Text('Optimal profile: 1080p SDR/HDR downsampled with dual audio preferred.', style: ObsidianTypography.monoCode(color: ObsidianColors.secondary)),
+          Text(
+            'Optimal profile: 1080p SDR/HDR downsampled with dual audio preferred.',
+            style: ObsidianTypography.monoCode(color: ObsidianColors.secondary),
+          ),
           const SizedBox(height: 14),
 
           // Allowed Video Codecs Checkbox Grid
-          Text('ALLOWED VIDEO CODECS', style: ObsidianTypography.labelBadge(color: ObsidianColors.outline)),
+          Text(
+            'ALLOWED VIDEO CODECS',
+            style: ObsidianTypography.labelBadge(color: ObsidianColors.outline),
+          ),
           const SizedBox(height: 6),
           Row(
             children: [
@@ -139,7 +161,10 @@ class RulesQualityCodecCard extends StatelessWidget {
           const SizedBox(height: 14),
 
           // Audio Channels Checkboxes
-          Text('AUDIO CHANNELS & CODECS', style: ObsidianTypography.labelBadge(color: ObsidianColors.outline)),
+          Text(
+            'AUDIO CHANNELS & CODECS',
+            style: ObsidianTypography.labelBadge(color: ObsidianColors.outline),
+          ),
           const SizedBox(height: 6),
           Wrap(
             spacing: 8,
@@ -167,8 +192,18 @@ class RulesQualityCodecCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('EPISODE SIZE GATE', style: ObsidianTypography.labelBadge(color: ObsidianColors.outline)),
-              Text('400 MB — 1.80 GB', style: ObsidianTypography.monoCode(color: ObsidianColors.primary).copyWith(fontWeight: FontWeight.bold)),
+              Text(
+                'EPISODE SIZE GATE',
+                style: ObsidianTypography.labelBadge(
+                  color: ObsidianColors.outline,
+                ),
+              ),
+              Text(
+                '400 MB — 1.80 GB',
+                style: ObsidianTypography.monoCode(
+                  color: ObsidianColors.primary,
+                ).copyWith(fontWeight: FontWeight.bold),
+              ),
             ],
           ),
           const SizedBox(height: 6),
@@ -199,11 +234,36 @@ class RulesQualityCodecCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('100M', style: ObsidianTypography.labelBadge(color: ObsidianColors.outline)),
-              Text('400M (Min)', style: ObsidianTypography.labelBadge(color: ObsidianColors.primary)),
-              Text('1.0G', style: ObsidianTypography.labelBadge(color: ObsidianColors.outline)),
-              Text('1.8G (Max)', style: ObsidianTypography.labelBadge(color: ObsidianColors.primary)),
-              Text('3.5G+', style: ObsidianTypography.labelBadge(color: ObsidianColors.outline)),
+              Text(
+                '100M',
+                style: ObsidianTypography.labelBadge(
+                  color: ObsidianColors.outline,
+                ),
+              ),
+              Text(
+                '400M (Min)',
+                style: ObsidianTypography.labelBadge(
+                  color: ObsidianColors.primary,
+                ),
+              ),
+              Text(
+                '1.0G',
+                style: ObsidianTypography.labelBadge(
+                  color: ObsidianColors.outline,
+                ),
+              ),
+              Text(
+                '1.8G (Max)',
+                style: ObsidianTypography.labelBadge(
+                  color: ObsidianColors.primary,
+                ),
+              ),
+              Text(
+                '3.5G+',
+                style: ObsidianTypography.labelBadge(
+                  color: ObsidianColors.outline,
+                ),
+              ),
             ],
           ),
         ],
@@ -220,17 +280,23 @@ class RulesQualityCodecCard extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
-            color: isSelected ? ObsidianColors.primaryContainer : ObsidianColors.surfaceContainer,
+            color: isSelected
+                ? ObsidianColors.primaryContainer
+                : ObsidianColors.surfaceContainer,
             borderRadius: BorderRadius.circular(6),
             border: Border.all(
-              color: isSelected ? ObsidianColors.primary : ObsidianColors.border,
+              color: isSelected
+                  ? ObsidianColors.primary
+                  : ObsidianColors.border,
             ),
           ),
           alignment: Alignment.center,
           child: Text(
             label,
             style: ObsidianTypography.monoCode(
-              color: isSelected ? ObsidianColors.onPrimaryContainer : ObsidianColors.onSurfaceVariant,
+              color: isSelected
+                  ? ObsidianColors.onPrimaryContainer
+                  : ObsidianColors.onSurfaceVariant,
             ).copyWith(fontWeight: FontWeight.bold),
           ),
         ),
@@ -262,8 +328,18 @@ class RulesQualityCodecCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: ObsidianTypography.bodySm().copyWith(fontWeight: FontWeight.bold)),
-                Text(subtitle, style: ObsidianTypography.labelBadge(color: ObsidianColors.outline)),
+                Text(
+                  title,
+                  style: ObsidianTypography.bodySm().copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: ObsidianTypography.labelBadge(
+                    color: ObsidianColors.outline,
+                  ),
+                ),
               ],
             ),
           ),

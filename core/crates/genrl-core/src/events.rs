@@ -83,7 +83,9 @@ impl EventLog {
         message: impl AsRef<str>,
         at: i64,
     ) -> Result<i64> {
-        let id = self.db.with(|c| record_in(c, level, job_id, mal_id, message.as_ref(), at))?;
+        let id = self
+            .db
+            .with(|c| record_in(c, level, job_id, mal_id, message.as_ref(), at))?;
 
         // Keep the log bounded without hammering the table on every write.
         if id % 500 == 0 {
@@ -102,23 +104,37 @@ impl EventLog {
         Ok(id)
     }
 
-    pub fn info(&self, job_id: Option<i64>, mal_id: Option<i64>, message: impl AsRef<str>) -> Result<i64> {
+    pub fn info(
+        &self,
+        job_id: Option<i64>,
+        mal_id: Option<i64>,
+        message: impl AsRef<str>,
+    ) -> Result<i64> {
         self.record(Level::Info, job_id, mal_id, message)
     }
 
-    pub fn warn(&self, job_id: Option<i64>, mal_id: Option<i64>, message: impl AsRef<str>) -> Result<i64> {
+    pub fn warn(
+        &self,
+        job_id: Option<i64>,
+        mal_id: Option<i64>,
+        message: impl AsRef<str>,
+    ) -> Result<i64> {
         self.record(Level::Warn, job_id, mal_id, message)
     }
 
-    pub fn error(&self, job_id: Option<i64>, mal_id: Option<i64>, message: impl AsRef<str>) -> Result<i64> {
+    pub fn error(
+        &self,
+        job_id: Option<i64>,
+        mal_id: Option<i64>,
+        message: impl AsRef<str>,
+    ) -> Result<i64> {
         self.record(Level::Error, job_id, mal_id, message)
     }
 
     /// Query events for the Activity page.
     pub fn query(&self, filter: &EventFilter) -> Result<Vec<Event>> {
-        let mut sql = String::from(
-            "SELECT id, at, level, job_id, mal_id, message FROM events WHERE 1 = 1",
-        );
+        let mut sql =
+            String::from("SELECT id, at, level, job_id, mal_id, message FROM events WHERE 1 = 1");
         let mut params: Vec<Box<dyn rusqlite::ToSql>> = Vec::new();
 
         if let Some(level) = filter.level {
@@ -182,15 +198,15 @@ impl EventLog {
 
     /// Delete events older than `before` (Unix seconds). "Clear old entries".
     pub fn clear_before(&self, before: i64) -> Result<usize> {
-        Ok(self.db.with(|c| {
+        self.db.with(|c| {
             c.execute("DELETE FROM events WHERE at < ?1", [before])?;
             Ok(c.changes() as usize)
-        })?)
+        })
     }
 
     /// Keep only the newest `keep` rows. Size cap, pruning oldest first.
     pub fn prune(&self, keep: u64) -> Result<usize> {
-        Ok(self.db.with(|c| {
+        self.db.with(|c| {
             c.execute(
                 "DELETE FROM events WHERE id NOT IN (
                      SELECT id FROM events ORDER BY at DESC, id DESC LIMIT ?1
@@ -198,7 +214,7 @@ impl EventLog {
                 [keep as i64],
             )?;
             Ok(c.changes() as usize)
-        })?)
+        })
     }
 
     pub fn count(&self) -> Result<u64> {
@@ -266,7 +282,10 @@ mod tests {
 
         let events = log.recent(10).unwrap();
         assert_eq!(events.len(), 2);
-        assert_eq!(events[0].message, "nyaa circuit breaker open", "newest first");
+        assert_eq!(
+            events[0].message, "nyaa circuit breaker open",
+            "newest first"
+        );
         assert_eq!(events[1].job_id, Some(1));
         assert_eq!(events[1].level, Level::Info);
     }
@@ -275,7 +294,8 @@ mod tests {
     fn strips_newlines_from_messages() {
         let db = Db::open_in_memory().unwrap();
         let log = EventLog::new(db);
-        log.info(None, None, "Show\nName; rm -rf ~\tfooter").unwrap();
+        log.info(None, None, "Show\nName; rm -rf ~\tfooter")
+            .unwrap();
         let events = log.recent(1).unwrap();
         assert!(!events[0].message.contains('\n'));
         assert!(!events[0].message.contains('\t'));

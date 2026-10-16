@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
 
@@ -23,12 +24,18 @@ class WizardHeadlineCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.sync_alt_rounded,
-                        size: 16, color: ObsidianColors.primary),
+                    const Icon(
+                      Icons.sync_alt_rounded,
+                      size: 16,
+                      color: ObsidianColors.primary,
+                    ),
                     const SizedBox(width: 6),
-                    Text('QUEUE PIPELINE ANALYSIS',
-                        style: ObsidianTypography.labelBadge(
-                            color: ObsidianColors.primary)),
+                    Text(
+                      'QUEUE PIPELINE ANALYSIS',
+                      style: ObsidianTypography.labelBadge(
+                        color: ObsidianColors.primary,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 6),
@@ -38,16 +45,20 @@ class WizardHeadlineCard extends StatelessWidget {
                     children: const [
                       TextSpan(text: 'This will queue '),
                       TextSpan(
-                          text: '214 episodes',
-                          style: TextStyle(
-                              color: ObsidianColors.primary,
-                              fontWeight: FontWeight.bold)),
+                        text: '214 episodes',
+                        style: TextStyle(
+                          color: ObsidianColors.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       TextSpan(text: ' across '),
                       TextSpan(
-                          text: '31 shows',
-                          style: TextStyle(
-                              color: ObsidianColors.tertiary,
-                              fontWeight: FontWeight.bold)),
+                        text: '31 shows',
+                        style: TextStyle(
+                          color: ObsidianColors.tertiary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -56,18 +67,26 @@ class WizardHeadlineCard extends StatelessWidget {
                   spacing: 6,
                   runSpacing: 4,
                   children: [
-                    _buildPill('31 Tracked Series',
-                        ObsidianColors.surfaceContainerHigh,
-                        ObsidianColors.onSurface),
-                    _buildPill('214 Missing Backlog',
-                        ObsidianColors.secondary.withOpacity(0.2),
-                        ObsidianColors.secondary),
-                    _buildPill('Est. Storage ~248 GB',
-                        ObsidianColors.tertiary.withOpacity(0.2),
-                        ObsidianColors.tertiary),
-                    _buildPill('Nyaa.si (Gate Limiter)',
-                        ObsidianColors.surfaceContainerHighest,
-                        ObsidianColors.onSurfaceVariant),
+                    _buildPill(
+                      '31 Tracked Series',
+                      ObsidianColors.surfaceContainerHigh,
+                      ObsidianColors.onSurface,
+                    ),
+                    _buildPill(
+                      '214 Missing Backlog',
+                      ObsidianColors.secondary.withOpacity(0.2),
+                      ObsidianColors.secondary,
+                    ),
+                    _buildPill(
+                      'Est. Storage ~248 GB',
+                      ObsidianColors.tertiary.withOpacity(0.2),
+                      ObsidianColors.tertiary,
+                    ),
+                    _buildPill(
+                      'Nyaa.si (Gate Limiter)',
+                      ObsidianColors.surfaceContainerHighest,
+                      ObsidianColors.onSurfaceVariant,
+                    ),
                   ],
                 ),
               ],
@@ -89,15 +108,21 @@ class WizardHeadlineCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Flexible(
-                        child: Text('Index Snatches',
-                            style: ObsidianTypography.labelBadge(
-                                color: ObsidianColors.outline),
-                            overflow: TextOverflow.ellipsis)),
-                    const SizedBox(width: 4),
-                    Text('100%',
+                      child: Text(
+                        'Index Snatches',
                         style: ObsidianTypography.labelBadge(
-                                color: ObsidianColors.tertiary)
-                            .copyWith(fontWeight: FontWeight.bold)),
+                          color: ObsidianColors.outline,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '100%',
+                      style: ObsidianTypography.labelBadge(
+                        color: ObsidianColors.tertiary,
+                      ).copyWith(fontWeight: FontWeight.bold),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -118,9 +143,12 @@ class WizardHeadlineCard extends StatelessWidget {
                 const SizedBox(height: 6),
                 Align(
                   alignment: Alignment.centerRight,
-                  child: Text('31/31 metadata resolved',
-                      style: ObsidianTypography.labelBadge(
-                          color: ObsidianColors.outline)),
+                  child: Text(
+                    '31/31 metadata resolved',
+                    style: ObsidianTypography.labelBadge(
+                      color: ObsidianColors.outline,
+                    ),
+                  ),
                 ),
               ],
             ),

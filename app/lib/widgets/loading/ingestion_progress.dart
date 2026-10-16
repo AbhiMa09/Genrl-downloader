@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
 import 'cyber_loader.dart';
@@ -79,7 +80,9 @@ class IngestionProgress extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final progress = totalCount > 0 ? (processedCount / totalCount).clamp(0.0, 1.0) : 0.0;
+    final progress = totalCount > 0
+        ? (processedCount / totalCount).clamp(0.0, 1.0)
+        : 0.0;
     final percent = (progress * 100).toStringAsFixed(1);
 
     return Focus(
@@ -103,7 +106,10 @@ class IngestionProgress extends StatelessWidget {
               // Concentric Radar Rings
               CyberLoader(
                 size: 160,
-                isAnimating: !isPaused && stage != IngestionStage.completed && stage != IngestionStage.failed,
+                isAnimating:
+                    !isPaused &&
+                    stage != IngestionStage.completed &&
+                    stage != IngestionStage.failed,
               ),
               const SizedBox(height: 20),
 
@@ -116,7 +122,9 @@ class IngestionProgress extends StatelessWidget {
               const SizedBox(height: 6),
               Text(
                 _subhead,
-                style: ObsidianTypography.bodySm(color: ObsidianColors.onSurfaceVariant),
+                style: ObsidianTypography.bodySm(
+                  color: ObsidianColors.onSurfaceVariant,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 20),
@@ -127,11 +135,15 @@ class IngestionProgress extends StatelessWidget {
                 children: [
                   Text(
                     '$processedCount / $totalCount episodes verified',
-                    style: ObsidianTypography.monoCode(color: ObsidianColors.onSurface),
+                    style: ObsidianTypography.monoCode(
+                      color: ObsidianColors.onSurface,
+                    ),
                   ),
                   Text(
                     '$percent%',
-                    style: ObsidianTypography.monoCode(color: ObsidianColors.primary).copyWith(fontWeight: FontWeight.bold),
+                    style: ObsidianTypography.monoCode(
+                      color: ObsidianColors.primary,
+                    ).copyWith(fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
@@ -173,14 +185,30 @@ class IngestionProgress extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Container(width: 8, height: 8, decoration: const BoxDecoration(color: ObsidianColors.primary, shape: BoxShape.circle)),
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: ObsidianColors.primary,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
                       const SizedBox(width: 6),
-                      Text('Committed: $processedCount', style: ObsidianTypography.monoCode(color: ObsidianColors.outline)),
+                      Text(
+                        'Committed: $processedCount',
+                        style: ObsidianTypography.monoCode(
+                          color: ObsidianColors.outline,
+                        ),
+                      ),
                     ],
                   ),
                   Text(
-                    etaSeconds != null ? 'Time remaining: ~${etaSeconds}s' : 'Estimating...',
-                    style: ObsidianTypography.monoCode(color: ObsidianColors.outline),
+                    etaSeconds != null
+                        ? 'Time remaining: ~${etaSeconds}s'
+                        : 'Estimating...',
+                    style: ObsidianTypography.monoCode(
+                      color: ObsidianColors.outline,
+                    ),
                   ),
                 ],
               ),
@@ -189,13 +217,37 @@ class IngestionProgress extends StatelessWidget {
               // 4 Stage Tiles
               Row(
                 children: [
-                  Expanded(child: _buildStageTile(1, 'MAL Sync', IngestionStage.malSync)),
+                  Expanded(
+                    child: _buildStageTile(
+                      1,
+                      'MAL Sync',
+                      IngestionStage.malSync,
+                    ),
+                  ),
                   const SizedBox(width: 8),
-                  Expanded(child: _buildStageTile(2, 'Metadata', IngestionStage.metadata)),
+                  Expanded(
+                    child: _buildStageTile(
+                      2,
+                      'Metadata',
+                      IngestionStage.metadata,
+                    ),
+                  ),
                   const SizedBox(width: 8),
-                  Expanded(child: _buildStageTile(3, 'Plan Queue', IngestionStage.planQueue)),
+                  Expanded(
+                    child: _buildStageTile(
+                      3,
+                      'Plan Queue',
+                      IngestionStage.planQueue,
+                    ),
+                  ),
                   const SizedBox(width: 8),
-                  Expanded(child: _buildStageTile(4, 'Create Jobs', IngestionStage.createJobs)),
+                  Expanded(
+                    child: _buildStageTile(
+                      4,
+                      'Create Jobs',
+                      IngestionStage.createJobs,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 24),
@@ -209,8 +261,13 @@ class IngestionProgress extends StatelessWidget {
     );
   }
 
-  Widget _buildStageTile(int stepNumber, String title, IngestionStage tileStage) {
-    final isDone = stage.index > tileStage.index || stage == IngestionStage.completed;
+  Widget _buildStageTile(
+    int stepNumber,
+    String title,
+    IngestionStage tileStage,
+  ) {
+    final isDone =
+        stage.index > tileStage.index || stage == IngestionStage.completed;
     final isActive = stage == tileStage;
     final isFailed = isActive && stage == IngestionStage.failed;
 
@@ -238,7 +295,9 @@ class IngestionProgress extends StatelessWidget {
         color: bgColor,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: isActive ? ObsidianColors.secondary.withOpacity(0.4) : Colors.transparent,
+          color: isActive
+              ? ObsidianColors.secondary.withOpacity(0.4)
+              : Colors.transparent,
           width: 0.5,
         ),
       ),
@@ -254,14 +313,20 @@ class IngestionProgress extends StatelessWidget {
                 Text(
                   '$stepNumber. $title',
                   style: ObsidianTypography.labelBadge(
-                    color: isActive ? ObsidianColors.secondary : (isDone ? ObsidianColors.onSurface : ObsidianColors.outline),
+                    color: isActive
+                        ? ObsidianColors.secondary
+                        : (isDone
+                              ? ObsidianColors.onSurface
+                              : ObsidianColors.outline),
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
                   isDone ? 'Completed' : (isActive ? 'Running' : 'Queued'),
-                  style: ObsidianTypography.monoCode(color: ObsidianColors.outline).copyWith(fontSize: 10),
+                  style: ObsidianTypography.monoCode(
+                    color: ObsidianColors.outline,
+                  ).copyWith(fontSize: 10),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -298,7 +363,10 @@ class IngestionProgress extends StatelessWidget {
       children: [
         OutlinedButton.icon(
           onPressed: onPauseToggle,
-          icon: Icon(isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded, size: 16),
+          icon: Icon(
+            isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded,
+            size: 16,
+          ),
           label: Text(isPaused ? 'Resume' : 'Pause'),
           style: OutlinedButton.styleFrom(
             side: const BorderSide(color: ObsidianColors.border),
@@ -318,9 +386,7 @@ class IngestionProgress extends StatelessWidget {
           onPressed: onViewTelemetry,
           icon: const Icon(Icons.monitor_heart_outlined, size: 16),
           label: const Text('View telemetry'),
-          style: TextButton.styleFrom(
-            foregroundColor: ObsidianColors.tertiary,
-          ),
+          style: TextButton.styleFrom(foregroundColor: ObsidianColors.tertiary),
         ),
       ],
     );

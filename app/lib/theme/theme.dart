@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'colors.dart';
 import 'typography.dart';
 
@@ -37,7 +38,9 @@ class ObsidianTheme {
         ),
       ),
       scrollbarTheme: ScrollbarThemeData(
-        thumbColor: WidgetStateProperty.all(ObsidianColors.surfaceContainerHighest),
+        thumbColor: WidgetStateProperty.all(
+          ObsidianColors.surfaceContainerHighest,
+        ),
         radius: const Radius.circular(4),
         thickness: WidgetStateProperty.all(6),
       ),

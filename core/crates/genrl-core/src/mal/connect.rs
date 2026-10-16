@@ -68,8 +68,11 @@ pub async fn mal_status(
     // Status counts from mal_entries
     let mut counts = StatusCounts::default();
     db.with(|c| {
-        let mut stmt = c.prepare("SELECT list_status, COUNT(*) FROM mal_entries GROUP BY list_status")?;
-        let rows = stmt.query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, i64>(1)? as usize)))?;
+        let mut stmt =
+            c.prepare("SELECT list_status, COUNT(*) FROM mal_entries GROUP BY list_status")?;
+        let rows = stmt.query_map([], |r| {
+            Ok((r.get::<_, String>(0)?, r.get::<_, i64>(1)? as usize))
+        })?;
         for row in rows {
             let (status, count) = row?;
             match status.as_str() {
@@ -156,7 +159,11 @@ pub fn mal_disconnect(db: &Db, store: &dyn TokenStore) -> Result<()> {
     let _ = store.set_client_secret(None);
     settings::write_state(db, JIKAN_USER_STATE_KEY, "")?;
     settings::write_state(db, ACCOUNT_SOURCE_STATE_KEY, "")?;
-    let _ = EventLog::new(db.clone()).info(None, None, "MAL disconnected; credentials and profile cleared");
+    let _ = EventLog::new(db.clone()).info(
+        None,
+        None,
+        "MAL disconnected; credentials and profile cleared",
+    );
     Ok(())
 }
 

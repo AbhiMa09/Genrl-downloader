@@ -152,7 +152,7 @@ pub(crate) fn value_to_string(v: &serde_json::Value) -> Option<String> {
 }
 
 pub(crate) fn parse_start_year(s: &str) -> Option<i64> {
-    let parts: Vec<&str> = s.split(|c: char| c == '-' || c == '/' || c == '.').collect();
+    let parts: Vec<&str> = s.split(['-', '/', '.']).collect();
     for p in &parts {
         if p.len() == 4 {
             if let Ok(y) = p.parse::<i64>() {
@@ -177,8 +177,12 @@ pub async fn fetch_mal_public_load_json(gate: &Gate, username: &str) -> Result<V
     let mut out = Vec::new();
     let mut offset = 0usize;
     loop {
-        let url = format!("https://myanimelist.net/animelist/{username}/load.json?offset={offset}&status=7");
-        let fetched = gate.get_with(Service::Mal, &url, &GetOptions::default()).await?;
+        let url = format!(
+            "https://myanimelist.net/animelist/{username}/load.json?offset={offset}&status=7"
+        );
+        let fetched = gate
+            .get_with(Service::Mal, &url, &GetOptions::default())
+            .await?;
         let items: Vec<MalLoadJsonItem> = fetched.json()?;
         if items.is_empty() {
             break;
@@ -208,7 +212,10 @@ pub async fn fetch_mal_public_load_json(gate: &Gate, username: &str) -> Result<V
                 Some(3) => Some("not_yet_aired".to_string()),
                 _ => None,
             };
-            let start_year = item.anime_start_date_string.as_deref().and_then(parse_start_year);
+            let start_year = item
+                .anime_start_date_string
+                .as_deref()
+                .and_then(parse_start_year);
             let updated_at = item.updated_at.as_ref().and_then(value_to_string);
 
             let entry = ListEntry {
@@ -246,7 +253,11 @@ pub async fn fetch_mal_public_load_json(gate: &Gate, username: &str) -> Result<V
 }
 
 /// Fetch a user's anime list from Jikan (`/v4/users/{username}/animelist`) through Gate.
-pub async fn fetch_jikan_list(gate: &Gate, settings: &Settings, username: &str) -> Result<Vec<MalEntry>> {
+pub async fn fetch_jikan_list(
+    gate: &Gate,
+    settings: &Settings,
+    username: &str,
+) -> Result<Vec<MalEntry>> {
     let mut out = Vec::new();
     let raw_base = settings.jikan_base_url.trim_end_matches('/');
     let base = if raw_base.ends_with("/v4") {
@@ -258,7 +269,9 @@ pub async fn fetch_jikan_list(gate: &Gate, settings: &Settings, username: &str) 
 
     loop {
         let url = format!("{base}/users/{username}/animelist?page={page}");
-        let fetched = gate.get_with(Service::Jikan, &url, &GetOptions::default()).await?;
+        let fetched = gate
+            .get_with(Service::Jikan, &url, &GetOptions::default())
+            .await?;
         let res: JikanUserAnimelistResponse = fetched.json()?;
 
         for item in &res.data {
@@ -294,7 +307,11 @@ pub async fn fetch_jikan_list(gate: &Gate, settings: &Settings, username: &str) 
             });
         }
 
-        let has_next = res.pagination.as_ref().map(|p| p.has_next_page).unwrap_or(false);
+        let has_next = res
+            .pagination
+            .as_ref()
+            .map(|p| p.has_next_page)
+            .unwrap_or(false);
         if !has_next || res.data.is_empty() || page >= 20 {
             break;
         }

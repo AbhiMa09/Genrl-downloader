@@ -102,13 +102,19 @@ impl Scheduler {
 
         let mut dispatched = Vec::new();
         if resource_reason.is_none() {
-            for kind in [JobKind::Search, JobKind::Add, JobKind::Monitor, JobKind::Finalize] {
+            for kind in [
+                JobKind::Search,
+                JobKind::Add,
+                JobKind::Monitor,
+                JobKind::Finalize,
+            ] {
                 let limit = Self::limit_for(kind, &settings);
                 let room = limit.saturating_sub(self.in_flight(kind));
                 if room == 0 {
                     continue;
                 }
-                let due = jobs::due_jobs(self.engine.db(), self.engine.clock().now(), &[kind], room)?;
+                let due =
+                    jobs::due_jobs(self.engine.db(), self.engine.clock().now(), &[kind], room)?;
                 for job in due {
                     // A side state is never "due work"; only main steps run.
                     if !job.state.is_active() {

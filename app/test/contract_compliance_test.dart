@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:genrl_downloader/services/core_bridge.dart';
 import 'package:genrl_downloader/services/generated_contract.dart';
@@ -17,7 +18,8 @@ void main() {
         expect(
           cmd.uiMethod,
           isNotNull,
-          reason: 'Command "${cmd.name}" is non-internal and must specify a uiMethod binding',
+          reason:
+              'Command "${cmd.name}" is non-internal and must specify a uiMethod binding',
         );
       }
     }
@@ -40,7 +42,8 @@ void main() {
   test('Contract definition file matches contract.json source of truth', () {
     final contractFile = File('../core/contract/contract.json');
     if (contractFile.existsSync()) {
-      final jsonMap = jsonDecode(contractFile.readAsStringSync()) as Map<String, dynamic>;
+      final jsonMap =
+          jsonDecode(contractFile.readAsStringSync()) as Map<String, dynamic>;
       final commandList = jsonMap['commands'] as List<dynamic>;
       expect(GenrlContract.commands.length, equals(commandList.length));
     }

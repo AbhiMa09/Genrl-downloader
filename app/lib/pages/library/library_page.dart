@@ -1,6 +1,8 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../services/state_provider.dart';
 import '../../widgets/state_views.dart';
 import 'library_control_bar.dart';
@@ -57,8 +59,7 @@ class _LibraryPageState extends State<LibraryPage> {
           padding: const EdgeInsets.all(24.0),
           child: EmptyStateView(
             title: 'MyAnimeList Not Connected',
-            description:
-                'Connect your MyAnimeList account to sync your plan to watch and watching lists automatically.',
+            description: 'Connect your MyAnimeList account to sync your plan to watch and watching lists automatically.',
             action: ElevatedButton(
               onPressed: () => state.selectPage(5),
               child: const Text('Connect MAL in Settings'),
@@ -71,13 +72,12 @@ class _LibraryPageState extends State<LibraryPage> {
     final allShows = state.shows;
 
     // Compute status counts matching MAL list categories
-    final watchingCount =
-        allShows.where((s) => s.status == 'Watching').length;
-    final planCount =
-        allShows.where((s) => s.status == 'Plan to Watch').length;
+    final watchingCount = allShows.where((s) => s.status == 'Watching').length;
+    final planCount = allShows.where((s) => s.status == 'Plan to Watch').length;
     final onHoldCount = allShows.where((s) => s.status == 'On Hold').length;
-    final completedCount =
-        allShows.where((s) => s.status == 'Completed').length;
+    final completedCount = allShows
+        .where((s) => s.status == 'Completed')
+        .length;
     final droppedCount = allShows.where((s) => s.status == 'Dropped').length;
 
     // Filter shows
@@ -103,7 +103,8 @@ class _LibraryPageState extends State<LibraryPage> {
 
       final query = _searchController.text.trim().toLowerCase();
       if (query.isNotEmpty) {
-        final matches = show.title.toLowerCase().contains(query) ||
+        final matches =
+            show.title.toLowerCase().contains(query) ||
             (show.englishTitle?.toLowerCase().contains(query) ?? false) ||
             (show.japaneseTitle?.toLowerCase().contains(query) ?? false);
         if (!matches) {
@@ -134,10 +135,12 @@ class _LibraryPageState extends State<LibraryPage> {
       }
     });
 
-    final totalTb = (allShows.fold<num>(0, (sum, s) => sum + s.onDiskBytes) /
-            (1024 * 1024 * 1024 * 1024))
-        .toStringAsFixed(1);
-    final libraryPath = state.locationsReport?['library']?['path']?.toString() ??
+    final totalTb =
+        (allShows.fold<num>(0, (sum, s) => sum + s.onDiskBytes) /
+                (1024 * 1024 * 1024 * 1024))
+            .toStringAsFixed(1);
+    final libraryPath =
+        state.locationsReport?['library']?['path']?.toString() ??
         '/mnt/anime/TV';
 
     return SingleChildScrollView(
@@ -180,8 +183,7 @@ class _LibraryPageState extends State<LibraryPage> {
                 ? const EmptyStateView(
                     icon: Icons.video_library_outlined,
                     title: 'No Anime Matches Filter',
-                    description:
-                        'Try adjusting your search query or status filter chips.',
+                    description: 'Try adjusting your search query or status filter chips.',
                   )
                 : LayoutBuilder(
                     builder: (context, constraints) {
@@ -191,24 +193,24 @@ class _LibraryPageState extends State<LibraryPage> {
                           columns = constraints.maxWidth > 1300
                               ? 8
                               : constraints.maxWidth > 900
-                                  ? 6
-                                  : 4;
+                              ? 6
+                              : 4;
                           break;
                         case PosterDensity.large:
                           columns = constraints.maxWidth > 1300
                               ? 4
                               : constraints.maxWidth > 900
-                                  ? 3
-                                  : 2;
+                              ? 3
+                              : 2;
                           break;
                         case PosterDensity.normal:
                           columns = constraints.maxWidth > 1300
                               ? 6
                               : constraints.maxWidth > 900
-                                  ? 4
-                                  : constraints.maxWidth > 600
-                                      ? 3
-                                      : 2;
+                              ? 4
+                              : constraints.maxWidth > 600
+                              ? 3
+                              : 2;
                           break;
                       }
 
@@ -226,8 +228,9 @@ class _LibraryPageState extends State<LibraryPage> {
                               density: _density,
                               onTap: () => state.openShowDetail(show),
                               onOpenFolder: () => _openFileExplorer(
-                                  show.folderPath ??
-                                      '/mnt/anime/TV/${show.title}'),
+                                show.folderPath ??
+                                    '/mnt/anime/TV/${show.title}',
+                              ),
                               onToggleAuto: () {},
                             ),
                           );

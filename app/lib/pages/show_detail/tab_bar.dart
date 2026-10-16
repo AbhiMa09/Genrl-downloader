@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../models/library_item.dart';
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
@@ -19,9 +20,13 @@ class ShowDetailTabBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final epCount = show.episodes.isNotEmpty ? show.episodes.length : (show.totalEpisodes > 0 ? show.totalEpisodes : 1);
+    final epCount = show.episodes.isNotEmpty
+        ? show.episodes.length
+        : (show.totalEpisodes > 0 ? show.totalEpisodes : 1);
     final aliasCount = show.aliases.isNotEmpty ? show.aliases.length : 4;
-    final allDone = show.downloadedEpisodes >= (show.totalEpisodes > 0 ? show.totalEpisodes : 1);
+    final allDone =
+        show.downloadedEpisodes >=
+        (show.totalEpisodes > 0 ? show.totalEpisodes : 1);
 
     return Container(
       padding: const EdgeInsets.all(6),
@@ -64,7 +69,10 @@ class ShowDetailTabBar extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(right: 8),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: ObsidianColors.surfaceContainer,
                   borderRadius: BorderRadius.circular(8),
@@ -75,14 +83,20 @@ class ShowDetailTabBar extends StatelessWidget {
                       width: 6,
                       height: 6,
                       decoration: BoxDecoration(
-                        color: allDone ? ObsidianColors.success : ObsidianColors.tertiary,
+                        color: allDone
+                            ? ObsidianColors.success
+                            : ObsidianColors.tertiary,
                         shape: BoxShape.circle,
                       ),
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      allDone ? 'All $epCount Files Present' : '${show.downloadedEpisodes} / $epCount Downloaded',
-                      style: ObsidianTypography.monoCode(color: ObsidianColors.outline).copyWith(fontSize: 11),
+                      allDone
+                          ? 'All $epCount Files Present'
+                          : '${show.downloadedEpisodes} / $epCount Downloaded',
+                      style: ObsidianTypography.monoCode(
+                        color: ObsidianColors.outline,
+                      ).copyWith(fontSize: 11),
                     ),
                   ],
                 ),
@@ -108,7 +122,9 @@ class ShowDetailTabBar extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isActive ? ObsidianColors.surfaceContainerHigh : Colors.transparent,
+          color: isActive
+              ? ObsidianColors.surfaceContainerHigh
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
@@ -116,30 +132,39 @@ class ShowDetailTabBar extends StatelessWidget {
             Icon(
               icon,
               size: 18,
-              color: isActive ? ObsidianColors.primary : ObsidianColors.onSurfaceVariant,
+              color: isActive
+                  ? ObsidianColors.primary
+                  : ObsidianColors.onSurfaceVariant,
             ),
             const SizedBox(width: 8),
             Text(
               label,
-              style: ObsidianTypography.titleSm(
-                color: isActive ? ObsidianColors.primary : ObsidianColors.onSurfaceVariant,
-              ).copyWith(
-                fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
-                fontSize: 13,
-              ),
+              style:
+                  ObsidianTypography.titleSm(
+                    color: isActive
+                        ? ObsidianColors.primary
+                        : ObsidianColors.onSurfaceVariant,
+                  ).copyWith(
+                    fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+                    fontSize: 13,
+                  ),
             ),
             if (badgeText != null) ...[
               const SizedBox(width: 6),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: isActive ? ObsidianColors.primary.withOpacity(0.2) : ObsidianColors.surfaceContainerHighest,
+                  color: isActive
+                      ? ObsidianColors.primary.withOpacity(0.2)
+                      : ObsidianColors.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
                   badgeText,
                   style: ObsidianTypography.labelBadge(
-                    color: isActive ? ObsidianColors.primary : ObsidianColors.outline,
+                    color: isActive
+                        ? ObsidianColors.primary
+                        : ObsidianColors.outline,
                   ),
                 ),
               ),

@@ -1,8 +1,8 @@
-use std::path::Path;
 use anyhow::Result;
 use clap::Subcommand;
 use genrl_core::http::Gate;
 use genrl_core::Settings;
+use std::path::Path;
 
 use super::common::open_db;
 
@@ -41,20 +41,17 @@ pub async fn metadata_fetch_cmd(
     let settings = Settings::load(&db)?;
     let clock = genrl_core::clock::SystemClock;
 
-    let outcome = genrl_core::fetch_show_metadata(
-        &db,
-        &gate,
-        &settings,
-        &clock,
-        data_dir,
-        mal_id,
-        force,
-    )
-    .await?;
+    let outcome =
+        genrl_core::fetch_show_metadata(&db, &gate, &settings, &clock, data_dir, mal_id, force)
+            .await?;
 
     if json {
         let val = match outcome {
-            genrl_core::MetadataOutcome::Updated { mal_id, synopsis, poster_path } => {
+            genrl_core::MetadataOutcome::Updated {
+                mal_id,
+                synopsis,
+                poster_path,
+            } => {
                 serde_json::json!({
                     "status": "updated",
                     "mal_id": mal_id,
@@ -68,7 +65,11 @@ pub async fn metadata_fetch_cmd(
                     "mal_id": mal_id,
                 })
             }
-            genrl_core::MetadataOutcome::PendingRetry { mal_id, next_run_at, error } => {
+            genrl_core::MetadataOutcome::PendingRetry {
+                mal_id,
+                next_run_at,
+                error,
+            } => {
                 serde_json::json!({
                     "status": "pending_retry",
                     "mal_id": mal_id,
@@ -93,7 +94,11 @@ pub async fn metadata_fetch_cmd(
             genrl_core::MetadataOutcome::Cached { mal_id } => {
                 println!("Metadata is fresh (cached within 7 days) for show #{mal_id}");
             }
-            genrl_core::MetadataOutcome::PendingRetry { mal_id, next_run_at, error } => {
+            genrl_core::MetadataOutcome::PendingRetry {
+                mal_id,
+                next_run_at,
+                error,
+            } => {
                 println!("Metadata fetch failed for show #{mal_id}: {error}. Next retry at {next_run_at}");
             }
             genrl_core::MetadataOutcome::Failed { mal_id, error } => {
@@ -104,33 +109,26 @@ pub async fn metadata_fetch_cmd(
     Ok(())
 }
 
-pub async fn metadata_sync_cmd(
-    data_dir: &Path,
-    limit: usize,
-    json: bool,
-) -> Result<()> {
+pub async fn metadata_sync_cmd(data_dir: &Path, limit: usize, json: bool) -> Result<()> {
     let db = open_db(data_dir)?;
     let gate = Gate::new(db.clone())?;
     let settings = Settings::load(&db)?;
     let clock = genrl_core::clock::SystemClock;
 
-    let report = genrl_core::process_metadata_queue(
-        &db,
-        &gate,
-        &settings,
-        &clock,
-        data_dir,
-        Some(limit),
-    )
-    .await?;
+    let report =
+        genrl_core::process_metadata_queue(&db, &gate, &settings, &clock, data_dir, Some(limit))
+            .await?;
 
     if json {
-        println!("{}", serde_json::to_string_pretty(&serde_json::json!({
-            "processed": report.processed,
-            "updated": report.updated,
-            "failed": report.failed,
-            "cached": report.cached,
-        }))?);
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&serde_json::json!({
+                "processed": report.processed,
+                "updated": report.updated,
+                "failed": report.failed,
+                "cached": report.cached,
+            }))?
+        );
     } else {
         println!(
             "Metadata queue: {} processed, {} updated, {} cached, {} pending retry",
