@@ -10,6 +10,7 @@ Validates:
 
 import json
 import os
+import subprocess
 import sys
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -123,6 +124,19 @@ def generate_dart_code(contract):
 
     return "\n".join(lines)
 
+def format_dart_code(code: str) -> str:
+    try:
+        proc = subprocess.run(
+            ['dart', 'format'],
+            input=code,
+            text=True,
+            capture_output=True,
+            check=True,
+        )
+        return proc.stdout
+    except Exception:
+        return code
+
 def main():
     check_mode = '--check' in sys.argv
     contract = load_contract()
@@ -131,7 +145,7 @@ def main():
     validate_ui_coverage(contract)
 
     # Step 2: Generate Dart code
-    generated = generate_dart_code(contract)
+    generated = format_dart_code(generate_dart_code(contract))
 
     # Step 3: Handle --check or write
     if check_mode:

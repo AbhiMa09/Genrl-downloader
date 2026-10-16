@@ -1,0 +1,112 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-guardrails:
+    name: Lint, Formatting & Guardrails
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Flutter dependencies
+        run: |
+          cd app
+          flutter pub get
+
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path core/Cargo.toml --all -- --check
+
+      - name: Check Flutter formatting
+        run: dart format --output=none --set-exit-if-changed app/
+
+      - name: Run Cargo Clippy (zero warnings)
+        run: cargo clippy --manifest-path core/Cargo.toml --workspace -- -D warnings
+
+      - name: Run Flutter Analyzer (strict)
+        run: |
+          cd app
+          flutter analyze
+
+      - name: Guardrail - File size cap (<= 500 lines)
+        run: python3 tools/check_caps.py
+
+      - name: Guardrail - Contract synchronization check
+        run: python3 tools/generate_contract.py --check
+
+      - name: Guardrail - Theme tokens synchronization check
+        run: python3 tools/generate_theme.py --check
+
+  test-rust:
+    name: Rust Test Suite (Core & CLI)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            core/target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Run Cargo Tests (Unit, Integration, Snapshots, Proptests)
+        run: cargo test --manifest-path core/Cargo.toml --workspace
+
+  test-flutter:
+    name: Flutter Test Suite (Unit & Goldens)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Flutter dependencies
+        run: |
+          cd app
+          flutter pub get
+
+      - name: Run Flutter Tests
+        run: |
+          cd app
+          flutter test

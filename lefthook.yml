@@ -1,0 +1,30 @@
+pre-commit:
+  parallel: false
+  commands:
+    rust-fmt:
+      name: Rust format check
+      run: cargo fmt --manifest-path core/Cargo.toml --all -- --check
+    dart-fmt:
+      name: Dart format check
+      run: dart format --output=none --set-exit-if-changed app/
+    clippy:
+      name: Cargo clippy (zero warnings)
+      run: cargo clippy --manifest-path core/Cargo.toml --workspace -- -D warnings
+    flutter-analyze:
+      name: Flutter analyze
+      run: bash -c "cd app && flutter analyze"
+    check-caps:
+      name: File size hard cap check (<= 500 lines)
+      run: python3 tools/check_caps.py
+    contract-check:
+      name: Core/UI contract synchronization check
+      run: python3 tools/generate_contract.py --check
+    theme-check:
+      name: Design token synchronization check
+      run: python3 tools/generate_theme.py --check
+    rust-test:
+      name: Rust test suite
+      run: cargo test --manifest-path core/Cargo.toml --workspace
+    flutter-test:
+      name: Flutter test suite (including goldens)
+      run: bash -c "cd app && flutter test"

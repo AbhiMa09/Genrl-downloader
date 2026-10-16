@@ -13,6 +13,7 @@ Usage:
 """
 
 import os
+import subprocess
 import sys
 import re
 
@@ -290,6 +291,19 @@ def generate_typography_dart():
     ]
     return "\n".join(lines)
 
+def format_dart_code(code: str) -> str:
+    try:
+        proc = subprocess.run(
+            ['dart', 'format'],
+            input=code,
+            text=True,
+            capture_output=True,
+            check=True,
+        )
+        return proc.stdout
+    except Exception:
+        return code
+
 def main():
     check_mode = '--check' in sys.argv
 
@@ -299,9 +313,9 @@ def main():
     tokens = parse_frontmatter(content)
 
     targets = {
-        os.path.join(THEME_DIR, 'colors.dart'): generate_colors_dart(tokens['colors']),
-        os.path.join(THEME_DIR, 'spacing.dart'): generate_spacing_dart(tokens['spacing'], tokens['rounded']),
-        os.path.join(THEME_DIR, 'typography.dart'): generate_typography_dart(),
+        os.path.join(THEME_DIR, 'colors.dart'): format_dart_code(generate_colors_dart(tokens['colors'])),
+        os.path.join(THEME_DIR, 'spacing.dart'): format_dart_code(generate_spacing_dart(tokens['spacing'], tokens['rounded'])),
+        os.path.join(THEME_DIR, 'typography.dart'): format_dart_code(generate_typography_dart()),
     }
 
     if check_mode:

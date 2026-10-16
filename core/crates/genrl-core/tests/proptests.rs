@@ -1,4 +1,4 @@
-use genrl_core::filename::{normalize, parse_release};
+use genrl_core::filename::{is_metadata_bracket, normalize, parse_release};
 use genrl_core::models::{ListStatus, ShowType};
 use genrl_core::season::{decide, Decision, Overrides, SeasonChain, SeasonEntry, Want, Wanted};
 use genrl_core::settings::Settings;
@@ -34,6 +34,7 @@ proptest! {
         title in "[a-zA-Z]{2,10}( [a-zA-Z]{2,10}){0,2}",
         ep in 1u32..=999u32,
     ) {
+        prop_assume!(!is_metadata_bracket(&group));
         let filename = format!("[{group}] {title} - {ep:02} (1080p) [DEADBEEF].mkv");
         let parsed = parse_release(&filename);
 
