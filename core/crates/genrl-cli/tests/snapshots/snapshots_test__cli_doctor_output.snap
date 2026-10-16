@@ -1,0 +1,8 @@
+---
+source: crates/genrl-cli/tests/snapshots_test.rs
+expression: output
+---
+[+] Database schema: v1 (SQLite bundled)
+[+] Storage locations: writable
+[+] qBittorrent WebUI: offline (mock)
+[+] Network Gate: initialized

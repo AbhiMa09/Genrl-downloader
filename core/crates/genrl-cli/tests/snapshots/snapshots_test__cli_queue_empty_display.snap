@@ -1,0 +1,5 @@
+---
+source: crates/genrl-cli/tests/snapshots_test.rs
+expression: empty_output
+---
+No active jobs in queue. Automation idle.
