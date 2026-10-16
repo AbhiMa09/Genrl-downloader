@@ -1,0 +1,5 @@
+# Configuration for Dart/Flutter test runner
+# See https://pub.dev/packages/test#configuration-file
+tags:
+  golden:
+    description: "Visual regression golden tests comparing against pre-rendered assets"

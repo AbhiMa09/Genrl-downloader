@@ -189,6 +189,19 @@ Stitch is the design source for the UI. Flutter implements the designs; Stitch n
 7. Commit the design assets and the Flutter implementation in separate commits.
 
 ### Security & Operational Rules
-- **API Key Security**: Never write the Stitch API key into any file or logs. It comes solely from the `STITCH_API_KEY` environment variable.
+- **API Key Security**: Never write any raw Stitch API key into any file, repo, or logs. It comes solely from the `STITCH_API_KEY` environment variable.
+- **MCP Client Configuration**: When configuring Stitch MCP servers in `.mcp.json` or your MCP client, reference the environment variable `${STITCH_API_KEY}` exclusively:
+  ```json
+  {
+    "mcpServers": {
+      "stitch": {
+        "serverUrl": "https://stitch.googleapis.com/mcp",
+        "headers": {
+          "X-Goog-Api-Key": "${STITCH_API_KEY}"
+        }
+      }
+    }
+  }
+  ```
 - **Resilience**: If a Stitch call fails or is rate limited, continue working from existing assets, report it, and do not invent arbitrary design tokens.
 - **Dynamic Data**: Designs show placeholder data; the Flutter app must use dynamic data only.

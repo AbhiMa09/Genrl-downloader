@@ -1,4 +1,4 @@
-# Pre-commit configuration for Genrl-downloader
+# Pre-commit & Pre-push configuration for Genrl-downloader
 # See https://pre-commit.com for more information
 repos:
   - repo: local
@@ -8,51 +8,67 @@ repos:
         entry: cargo fmt --manifest-path core/Cargo.toml --all -- --check
         language: system
         pass_filenames: false
+        stages: [commit]
 
       - id: dart-format
         name: Dart format check
         entry: dart format --output=none --set-exit-if-changed app/
         language: system
         pass_filenames: false
+        stages: [commit]
 
       - id: cargo-clippy
         name: Cargo clippy (zero warnings)
         entry: cargo clippy --manifest-path core/Cargo.toml --workspace -- -D warnings
         language: system
         pass_filenames: false
+        stages: [commit]
 
       - id: flutter-analyze
         name: Flutter analyze
         entry: bash -c "cd app && flutter analyze"
         language: system
         pass_filenames: false
+        stages: [commit]
 
       - id: check-caps
         name: File size hard cap check (<= 500 lines)
         entry: python3 tools/check_caps.py
         language: system
         pass_filenames: false
+        stages: [commit]
 
       - id: contract-check
         name: Core/UI contract synchronization check
         entry: python3 tools/generate_contract.py --check
         language: system
         pass_filenames: false
+        stages: [commit]
 
       - id: theme-check
         name: Design token synchronization check
         entry: python3 tools/generate_theme.py --check
         language: system
         pass_filenames: false
+        stages: [commit]
+
+      - id: guardrail-tests
+        name: Fast architecture and compliance tests
+        entry: bash -c "cd app && flutter test test/architecture_guardrails_test.dart test/contract_compliance_test.dart test/design_tokens_test.dart"
+        language: system
+        pass_filenames: false
+        stages: [commit]
 
       - id: rust-tests
-        name: Rust test suite
+        name: Rust test suite (core, CLI, snapshots, proptests)
         entry: cargo test --manifest-path core/Cargo.toml --workspace
         language: system
         pass_filenames: false
+        stages: [push]
 
       - id: flutter-tests
         name: Flutter test suite (including goldens)
         entry: bash -c "cd app && flutter test"
         language: system
         pass_filenames: false
+        stages: [push]

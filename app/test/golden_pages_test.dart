@@ -11,8 +11,12 @@
 // posters, timestamps), and diff static chrome against the target design threshold.
 // ============================================================================
 
+@Tags(['golden'])
+library;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import 'package:genrl_downloader/pages/activity_page.dart';
@@ -57,6 +61,7 @@ Widget wrapPage(
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  GoogleFonts.config.allowRuntimeFetching = false;
 
   late StateProvider state;
 

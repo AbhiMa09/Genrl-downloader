@@ -22,9 +22,16 @@ pre-commit:
     theme-check:
       name: Design token synchronization check
       run: python3 tools/generate_theme.py --check
-    rust-test:
-      name: Rust test suite
+    guardrail-tests:
+      name: Fast architecture and compliance tests
+      run: bash -c "cd app && flutter test test/architecture_guardrails_test.dart test/contract_compliance_test.dart test/design_tokens_test.dart"
+
+pre-push:
+  parallel: false
+  commands:
+    rust-tests:
+      name: Full Rust test suite (core, CLI, snapshots, proptests)
       run: cargo test --manifest-path core/Cargo.toml --workspace
-    flutter-test:
-      name: Flutter test suite (including goldens)
+    flutter-tests:
+      name: Full Flutter test suite (unit, widget, goldens)
       run: bash -c "cd app && flutter test"
