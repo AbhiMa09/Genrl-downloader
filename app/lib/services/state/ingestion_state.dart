@@ -58,6 +58,25 @@ mixin IngestionStateMixin on StateContext {
     notifyListeners();
   }
 
+  void setIngestionProgressForTesting({
+    required IngestionStage stage,
+    required bool isIngesting,
+    int processedCount = 146,
+    int totalCount = 214,
+    int? etaSeconds = 24,
+    bool isPaused = false,
+    String? errorMessage,
+  }) {
+    _ingestionStage = stage;
+    _isIngesting = isIngesting;
+    _ingestionProcessedCount = processedCount;
+    _ingestionTotalCount = totalCount;
+    _ingestionEtaSeconds = etaSeconds;
+    _isIngestionPaused = isPaused;
+    _ingestionError = errorMessage;
+    notifyListeners();
+  }
+
   Future<void> startIngestion({
     bool automationOn = true,
     bool bypassDailyCap = false,

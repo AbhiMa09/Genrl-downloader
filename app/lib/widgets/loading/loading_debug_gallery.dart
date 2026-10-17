@@ -1,23 +1,23 @@
 import 'package:flutter/material.dart';
 
-import '../theme/colors.dart';
-import '../theme/typography.dart';
-import '../widgets/loading/cyber_loader.dart';
-import '../widgets/loading/inline_spinner.dart';
-import '../widgets/loading/skeleton_poster_card.dart';
-import '../widgets/loading/connection_banner.dart';
-import '../widgets/loading/ingestion_progress.dart';
+import '../../theme/colors.dart';
+import '../../theme/typography.dart';
+import 'connection_banner.dart';
+import 'cyber_loader.dart';
+import 'ingestion_progress.dart';
+import 'inline_spinner.dart';
+import 'skeleton_poster_card.dart';
 
 /// Debug-only gallery showcasing loading state primitives.
 /// Hidden in production release builds.
-class LoadingGalleryPage extends StatefulWidget {
-  const LoadingGalleryPage({super.key});
+class LoadingDebugGallery extends StatefulWidget {
+  const LoadingDebugGallery({super.key});
 
   @override
-  State<LoadingGalleryPage> createState() => _LoadingGalleryPageState();
+  State<LoadingDebugGallery> createState() => _LoadingDebugGalleryState();
 }
 
-class _LoadingGalleryPageState extends State<LoadingGalleryPage> {
+class _LoadingDebugGalleryState extends State<LoadingDebugGallery> {
   IngestionStage _activeStage = IngestionStage.metadata;
 
   @override

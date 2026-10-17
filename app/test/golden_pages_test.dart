@@ -23,7 +23,7 @@ import 'package:genrl_downloader/pages/activity_page.dart';
 import 'package:genrl_downloader/pages/dashboard_page.dart';
 import 'package:genrl_downloader/pages/inbox_page.dart';
 import 'package:genrl_downloader/pages/library_page.dart';
-import 'package:genrl_downloader/pages/loading_gallery_page.dart';
+import 'package:genrl_downloader/widgets/loading/loading.dart';
 import 'package:genrl_downloader/pages/queue_page.dart';
 import 'package:genrl_downloader/pages/rules_page.dart';
 import 'package:genrl_downloader/pages/search_page.dart';
@@ -231,14 +231,14 @@ void main() {
     );
   });
 
-  testWidgets('Golden Test - Setup Wizard Page', (tester) async {
+  testWidgets('Golden Test - Setup Wizard Review & Launch', (tester) async {
     tester.view.physicalSize = const Size(1600, 1000);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
 
     await tester.pumpWidget(
       wrapPage(
-        WizardPage(onComplete: () {}, useLegacyLaunchButton: true),
+        WizardPage(onComplete: () {}),
         state,
         size: const Size(1600, 1000),
       ),
@@ -248,6 +248,34 @@ void main() {
     await expectLater(
       find.byType(MaterialApp),
       matchesGoldenFile('goldens/wizard_page.png'),
+    );
+  });
+
+  testWidgets('Golden Test - Wizard Ingestion Progress State', (tester) async {
+    tester.view.physicalSize = const Size(1600, 1000);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    state.setIngestionProgressForTesting(
+      stage: IngestionStage.metadata,
+      isIngesting: true,
+      processedCount: 146,
+      totalCount: 214,
+      etaSeconds: 24,
+    );
+
+    await tester.pumpWidget(
+      wrapPage(
+        WizardPage(onComplete: () {}),
+        state,
+        size: const Size(1600, 1000),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 200));
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/wizard_ingestion_progress.png'),
     );
   });
 
@@ -288,22 +316,6 @@ void main() {
     await expectLater(
       find.byType(MaterialApp),
       matchesGoldenFile('goldens/cyber_logo.png'),
-    );
-  });
-
-  testWidgets('Golden Test - Loading Primitives Gallery', (tester) async {
-    tester.view.physicalSize = const Size(1600, 1554);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(() => tester.view.resetPhysicalSize());
-
-    await tester.pumpWidget(
-      wrapPage(const LoadingGalleryPage(), state, size: const Size(1600, 1554)),
-    );
-    await tester.pump(const Duration(milliseconds: 200));
-
-    await expectLater(
-      find.byType(MaterialApp),
-      matchesGoldenFile('goldens/loading_gallery_page.png'),
     );
   });
 }

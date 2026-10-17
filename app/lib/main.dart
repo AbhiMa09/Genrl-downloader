@@ -7,7 +7,6 @@ import 'pages/activity_page.dart';
 import 'pages/dashboard_page.dart';
 import 'pages/inbox_page.dart';
 import 'pages/library_page.dart';
-import 'pages/loading_gallery_page.dart';
 import 'pages/queue_page.dart';
 import 'pages/rules_page.dart';
 import 'pages/search_page.dart';
@@ -19,7 +18,7 @@ import 'theme/colors.dart';
 import 'theme/theme.dart';
 import 'widgets/app_header.dart';
 import 'widgets/cyber_logo.dart';
-import 'widgets/loading/connection_banner.dart';
+import 'widgets/loading/loading.dart';
 import 'widgets/nav_rail.dart';
 import 'widgets/status_strip.dart';
 import 'widgets/tray_notifications_overlay.dart';
@@ -105,12 +104,12 @@ class GenrlApp extends StatelessWidget {
         theme: ObsidianTheme.darkTheme,
         routes: {
           if (kDebugMode)
-            '/debug/loading-gallery': (ctx) => const LoadingGalleryPage(),
+            '/debug/loading-gallery': (ctx) => const LoadingDebugGallery(),
         },
         home: Consumer<StateProvider>(
           builder: (context, sp, _) {
             if (isGallery && kDebugMode) {
-              return const LoadingGalleryPage();
+              return const LoadingDebugGallery();
             }
             if (isWizard || !sp.firstRunCompleted) {
               return WizardPage(

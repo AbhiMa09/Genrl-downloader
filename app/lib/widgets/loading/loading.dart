@@ -3,3 +3,4 @@ export 'inline_spinner.dart';
 export 'skeleton_poster_card.dart';
 export 'connection_banner.dart';
 export 'ingestion_progress.dart';
+export 'loading_debug_gallery.dart';

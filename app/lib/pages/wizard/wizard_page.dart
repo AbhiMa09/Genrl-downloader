@@ -17,14 +17,8 @@ import 'wizard_stepper.dart';
 class WizardPage extends StatefulWidget {
   final VoidCallback onComplete;
   final int initialStep;
-  final bool useLegacyLaunchButton;
 
-  const WizardPage({
-    super.key,
-    required this.onComplete,
-    this.initialStep = 4,
-    this.useLegacyLaunchButton = false,
-  });
+  const WizardPage({super.key, required this.onComplete, this.initialStep = 4});
 
   @override
   State<WizardPage> createState() => _WizardPageState();
@@ -230,20 +224,6 @@ class _WizardPageState extends State<WizardPage> {
                 foregroundColor: ObsidianColors.onPrimary,
               ),
               child: const Text('Next Step'),
-            )
-          else if (widget.useLegacyLaunchButton)
-            ElevatedButton.icon(
-              onPressed: widget.onComplete,
-              icon: const Icon(Icons.rocket_launch_rounded, size: 18),
-              label: const Text('Confirm & Launch Pipeline'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: ObsidianColors.primaryContainer,
-                foregroundColor: ObsidianColors.onPrimaryContainer,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 12,
-                ),
-              ),
             )
           else
             Wrap(

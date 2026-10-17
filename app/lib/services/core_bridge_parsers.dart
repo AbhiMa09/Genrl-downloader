@@ -197,7 +197,7 @@ LibraryShow parseShowDetail(Map<String, dynamic> m) {
       videoTrack: e['video_track']?.toString() ?? '1080p BD Remux HEVC 10-bit',
       primaryAudio: e['primary_audio']?.toString() ?? 'FLAC 5.1ch 24-bit 48kHz',
       subtitles: e['subtitles']?.toString() ?? 'ENG (PGS), JPN',
-      crc32: e['crc32']?.toString() ?? '5E2A9D11',
+      crc32: e['crc32']?.toString() ?? '-',
       chapters: (e['chapters'] as num?)?.toInt() ?? 18,
       duration: e['duration']?.toString() ?? '24:12',
     );

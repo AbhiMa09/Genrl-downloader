@@ -17,7 +17,10 @@ void main() {
       'Worker Threads: 08',
       'qBt 4.6.2',
       'v2.4.1 Linux x86_64',
+      'Arch Linux',
       '/run/genrl/daemon.sock',
+      'socket/port check',
+      '5E2A9D11',
     ];
 
     final violations = <String>[];

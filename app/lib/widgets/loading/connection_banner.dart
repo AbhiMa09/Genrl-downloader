@@ -26,7 +26,7 @@ class ConnectionBanner extends StatelessWidget {
 
     final message = isCoreDown
         ? 'Core daemon unreachable (latency: --)'
-        : 'qBittorrent WebUI reconnecting... (socket/port check)';
+        : 'qBittorrent WebUI reconnecting...';
 
     return Container(
       width: double.infinity,
