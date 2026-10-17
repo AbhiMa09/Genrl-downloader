@@ -209,6 +209,12 @@ enum Command {
         /// Accept the first-sync preview and queue it.
         #[arg(long)]
         confirm: bool,
+        /// Bypass daily torrent cap.
+        #[arg(long)]
+        bypass_cap: bool,
+        /// Machine-readable JSON output.
+        #[arg(long)]
+        json: bool,
     },
 
     /// MyAnimeList: OAuth, status, list sync.
@@ -324,15 +330,21 @@ async fn main() -> Result<()> {
             from_mal,
             mal_id,
             episode,
+            bypass_cap,
+            json,
         } => {
             plan_cmd(
                 &data_dir,
-                file.as_deref(),
-                dry_run,
-                confirm,
-                from_mal,
-                mal_id,
-                episode,
+                PlanOptions {
+                    file: file.as_deref(),
+                    dry_run,
+                    confirm,
+                    from_mal,
+                    mal_id,
+                    episode,
+                    bypass_cap,
+                    json,
+                },
             )
             .await
         }

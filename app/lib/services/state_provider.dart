@@ -112,6 +112,7 @@ class StateProvider extends StateContext
       refreshRules(),
       refreshMalStatus(),
       refreshLocations(),
+      refreshPlanPreview(),
     ]);
   }
 

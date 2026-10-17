@@ -210,6 +210,51 @@ class CoreBridge {
     return res.exitCode == 0;
   }
 
+  /// Get plan dry-run preview as structured data
+  Future<Map<String, dynamic>?> getPlanPreview() async {
+    final res = await execute(['plan', '--dry-run', '--json']);
+    if (res.exitCode == 0) {
+      try {
+        return jsonDecode(res.stdout as String) as Map<String, dynamic>;
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  /// Confirm initial plan or apply batch
+  Future<Map<String, dynamic>?> confirmPlan({
+    bool bypassDailyCap = false,
+  }) async {
+    final args = ['plan', '--confirm', '--json'];
+    if (bypassDailyCap) {
+      args.add('--bypass-cap');
+    }
+    final res = await execute(args);
+    if (res.exitCode == 0) {
+      try {
+        return jsonDecode(res.stdout as String) as Map<String, dynamic>;
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  /// Get current system settings map
+  Future<Map<String, dynamic>?> getSettings() async {
+    final res = await execute(['settings', 'show']);
+    if (res.exitCode == 0) {
+      try {
+        return jsonDecode(res.stdout as String) as Map<String, dynamic>;
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  /// Update a single system setting
+  Future<bool> setSetting(String key, dynamic value) async {
+    final res = await execute(['settings', 'set', key, jsonEncode(value)]);
+    return res.exitCode == 0;
+  }
+
   /// Get current storage locations report
   Future<Map<String, dynamic>?> getLocations() async {
     final res = await execute(['locations', 'get', '--json']);

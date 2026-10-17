@@ -4,7 +4,16 @@ import '../../theme/colors.dart';
 import '../../theme/typography.dart';
 
 class WizardHeadlineCard extends StatelessWidget {
-  const WizardHeadlineCard({super.key});
+  final int plannedEpisodes;
+  final int plannedShows;
+  final double estimatedStorageGb;
+
+  const WizardHeadlineCard({
+    super.key,
+    this.plannedEpisodes = 214,
+    this.plannedShows = 31,
+    this.estimatedStorageGb = 248.0,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -42,19 +51,21 @@ class WizardHeadlineCard extends StatelessWidget {
                 RichText(
                   text: TextSpan(
                     style: ObsidianTypography.headlineLg(),
-                    children: const [
-                      TextSpan(text: 'This will queue '),
+                    children: [
+                      const TextSpan(text: 'This will queue '),
                       TextSpan(
-                        text: '214 episodes',
-                        style: TextStyle(
+                        text:
+                            '$plannedEpisodes episode${plannedEpisodes == 1 ? '' : 's'}',
+                        style: const TextStyle(
                           color: ObsidianColors.primary,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      TextSpan(text: ' across '),
+                      const TextSpan(text: ' across '),
                       TextSpan(
-                        text: '31 shows',
-                        style: TextStyle(
+                        text:
+                            '$plannedShows show${plannedShows == 1 ? '' : 's'}',
+                        style: const TextStyle(
                           color: ObsidianColors.tertiary,
                           fontWeight: FontWeight.bold,
                         ),
@@ -68,17 +79,17 @@ class WizardHeadlineCard extends StatelessWidget {
                   runSpacing: 4,
                   children: [
                     _buildPill(
-                      '31 Tracked Series',
+                      '$plannedShows Tracked Series',
                       ObsidianColors.surfaceContainerHigh,
                       ObsidianColors.onSurface,
                     ),
                     _buildPill(
-                      '214 Missing Backlog',
+                      '$plannedEpisodes Missing Backlog',
                       ObsidianColors.secondary.withOpacity(0.2),
                       ObsidianColors.secondary,
                     ),
                     _buildPill(
-                      'Est. Storage ~248 GB',
+                      'Est. Storage ~${estimatedStorageGb.toStringAsFixed(estimatedStorageGb.truncateToDouble() == estimatedStorageGb ? 0 : 1)} GB',
                       ObsidianColors.tertiary.withOpacity(0.2),
                       ObsidianColors.tertiary,
                     ),

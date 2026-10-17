@@ -8,21 +8,43 @@ use std::path::Path;
 
 use super::common::open_db;
 
-pub async fn plan_cmd(
-    data_dir: &Path,
-    file: Option<&Path>,
-    dry_run: bool,
-    confirm: bool,
-    from_mal: bool,
-    mal_id: Option<i64>,
-    episode: Option<f64>,
-) -> Result<()> {
+#[derive(Default)]
+pub struct PlanOptions<'a> {
+    pub file: Option<&'a Path>,
+    pub dry_run: bool,
+    pub confirm: bool,
+    pub from_mal: bool,
+    pub mal_id: Option<i64>,
+    pub episode: Option<f64>,
+    pub bypass_cap: bool,
+    pub json: bool,
+}
+
+pub async fn plan_cmd(data_dir: &Path, opts: PlanOptions<'_>) -> Result<()> {
     let db = open_db(data_dir)?;
     let clock = SystemClock;
+
+    let PlanOptions {
+        file,
+        dry_run,
+        confirm,
+        from_mal,
+        mal_id,
+        episode,
+        bypass_cap,
+        json,
+    } = opts;
 
     // Targeted single show or episode download
     if let Some(target_id) = mal_id {
         if dry_run {
+            if json {
+                println!(
+                    r#"{{"dry_run":true,"mal_id":{target_id},"episode":{:?}}}"#,
+                    episode
+                );
+                return Ok(());
+            }
             println!(
                 "dry run: would queue show #{target_id} (episode: {:?})",
                 episode
@@ -33,6 +55,10 @@ pub async fn plan_cmd(
         let mut settings = Settings::load(&db)?;
         settings.first_run_complete = true;
         settings.save(&db)?;
+        if json {
+            println!(r#"{{"queued":{queued},"mal_id":{target_id}}}"#);
+            return Ok(());
+        }
         println!("queued {queued} episode(s) for show #{target_id}");
         return Ok(());
     }
@@ -53,7 +79,9 @@ pub async fn plan_cmd(
                 }
             } else {
                 let report = mal::sync(&client).await?;
-                println!("{}", report.summary());
+                if !json {
+                    println!("{}", report.summary());
+                }
                 MalList {
                     entries: report.entries,
                 }
@@ -72,13 +100,22 @@ pub async fn plan_cmd(
     };
 
     if dry_run {
-        print_preview(&planner::preview(&db, &list)?);
+        let preview = planner::preview(&db, &list)?;
+        if json {
+            println!("{}", serde_json::to_string_pretty(&preview)?);
+            return Ok(());
+        }
+        print_preview(&preview);
         println!("dry run: nothing was queued");
         return Ok(());
     }
 
     match planner::plan(&db, &clock, &list, true)? {
         PlanOutcome::Applied { queued, preview } => {
+            if json {
+                println!("{}", serde_json::to_string_pretty(&preview)?);
+                return Ok(());
+            }
             print_preview(&preview);
             println!(
                 "queued {queued} new job{}",
@@ -86,15 +123,24 @@ pub async fn plan_cmd(
             );
         }
         PlanOutcome::Preview(preview) => {
-            print_preview(&preview);
             if !confirm {
+                if json {
+                    println!("{}", serde_json::to_string_pretty(&preview)?);
+                    return Ok(());
+                }
+                print_preview(&preview);
                 println!("the first sync awaits one confirmation; re-run with --confirm");
                 return Ok(());
             }
-            let queued = planner::confirm(&db, &clock, &list)?;
+            let queued = planner::confirm_capped(&db, &clock, &list, bypass_cap)?;
             let mut settings = Settings::load(&db)?;
             settings.first_run_complete = true;
             settings.save(&db)?;
+            if json {
+                println!(r#"{{"queued":{queued},"first_sync_complete":true}}"#);
+                return Ok(());
+            }
+            print_preview(&preview);
             println!(
                 "confirmed: queued {queued} new job{}; first sync complete",
                 if queued == 1 { "" } else { "s" }

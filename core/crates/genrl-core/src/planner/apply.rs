@@ -63,6 +63,16 @@ pub fn plan(db: &Db, clock: &dyn Clock, list: &MalList, force: bool) -> Result<P
 
 /// Apply the stored first-sync preview, capped at the (tighter) first-sync cap.
 pub fn confirm(db: &Db, clock: &dyn Clock, list: &MalList) -> Result<usize> {
+    confirm_capped(db, clock, list, false)
+}
+
+/// Apply the first-sync preview, with optional cap bypass.
+pub fn confirm_capped(
+    db: &Db,
+    clock: &dyn Clock,
+    list: &MalList,
+    bypass_cap: bool,
+) -> Result<usize> {
     let pending: Option<PlanPreview> = db.with(|c| {
         Ok(c.query_row(
             "SELECT value FROM settings WHERE key = 'state.pending_plan'",
@@ -72,14 +82,23 @@ pub fn confirm(db: &Db, clock: &dyn Clock, list: &MalList) -> Result<usize> {
         .ok()
         .and_then(|raw| serde_json::from_str(&raw).ok()))
     })?;
-    let Some(preview) = pending else {
-        return Ok(0);
-    };
     let settings = Settings::load(db)?;
+    let preview = match pending {
+        Some(p) => p,
+        None => build_preview(db, list, &settings)?.0,
+    };
 
     // Confirming is the one confirmation the first sync needs; afterwards the
     // wizard sets first_run_complete and normal weekly planning takes over.
-    let queued = apply_preview_capped(db, clock, list, &preview, settings.first_sync_cap as usize)?;
+    let cap = if bypass_cap {
+        usize::MAX
+    } else if !settings.first_run_complete {
+        settings.first_sync_cap as usize
+    } else {
+        settings.daily_torrent_cap as usize
+    };
+
+    let queued = apply_preview_capped(db, clock, list, &preview, cap)?;
     db.with(|c| {
         c.execute("DELETE FROM settings WHERE key = 'state.pending_plan'", [])?;
         c.execute(

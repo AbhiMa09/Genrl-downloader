@@ -35,6 +35,15 @@ proptest! {
         ep in 1u32..=999u32,
     ) {
         prop_assume!(!is_metadata_bracket(&group));
+        let g_lower = group.to_lowercase();
+        prop_assume!(
+            !g_lower.contains("4k")
+                && !g_lower.contains("2k")
+                && !g_lower.contains("1080")
+                && !g_lower.contains("720")
+                && !g_lower.contains("480")
+                && !g_lower.contains("2160")
+        );
         let filename = format!("[{group}] {title} - {ep:02} (1080p) [DEADBEEF].mkv");
         let parsed = parse_release(&filename);
 

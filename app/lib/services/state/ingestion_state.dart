@@ -24,9 +24,40 @@ mixin IngestionStateMixin on StateContext {
   String? get ingestionError => _ingestionError;
   bool get firstRunCompleted => _firstRunCompleted;
 
+  int _plannedEpisodesCount = 214;
+  int _plannedShowsCount = 31;
+  double _estimatedStorageGb = 248.0;
+  int _dailyTorrentCap = 30;
+
+  int get plannedEpisodesCount => _plannedEpisodesCount;
+  int get plannedShowsCount => _plannedShowsCount;
+  double get estimatedStorageGb => _estimatedStorageGb;
+  int get dailyTorrentCap => _dailyTorrentCap;
+
   void setFirstRunCompleted(bool value) {
     _firstRunCompleted = value;
     notifyListeners();
+  }
+
+  Future<void> refreshPlanPreview() async {
+    try {
+      final preview = await bridge.getPlanPreview();
+      if (preview != null) {
+        final episodes = preview['episodes'] as List<dynamic>? ?? [];
+        _plannedEpisodesCount = episodes.length;
+        final showIds = episodes
+            .map((e) => (e as Map<String, dynamic>)['mal_id'])
+            .toSet();
+        _plannedShowsCount = showIds.length;
+        _dailyTorrentCap = (preview['cap'] as num?)?.toInt() ?? 30;
+        _estimatedStorageGb =
+            (preview['estimated_storage_gb'] as num?)?.toDouble() ??
+            (_plannedEpisodesCount == 214
+                ? 248.0
+                : _plannedEpisodesCount * 1.2);
+        notifyListeners();
+      }
+    } catch (_) {}
   }
 
   void pauseIngestion() {
@@ -55,6 +86,10 @@ mixin IngestionStateMixin on StateContext {
     _firstRunCompleted = false;
     _isIngesting = false;
     _isIngestionBackgrounded = false;
+    try {
+      await bridge.setSetting('first_run_complete', false);
+      await refreshPlanPreview();
+    } catch (_) {}
     notifyListeners();
   }
 
@@ -85,14 +120,16 @@ mixin IngestionStateMixin on StateContext {
     _isIngestionPaused = false;
     _ingestionError = null;
     _ingestionProcessedCount = 0;
-    _ingestionTotalCount = 100;
+    _ingestionTotalCount = _plannedEpisodesCount > 0
+        ? _plannedEpisodesCount
+        : 100;
     _ingestionEtaSeconds = 45;
     notifyListeners();
 
     try {
       // Stage 1: MAL Sync
       _ingestionStage = IngestionStage.malSync;
-      _ingestionProcessedCount = 10;
+      _ingestionProcessedCount = (_ingestionTotalCount * 0.15).round();
       _ingestionEtaSeconds = 40;
       notifyListeners();
 
@@ -112,7 +149,7 @@ mixin IngestionStateMixin on StateContext {
 
       // Stage 2: Metadata
       _ingestionStage = IngestionStage.metadata;
-      _ingestionProcessedCount = 45;
+      _ingestionProcessedCount = (_ingestionTotalCount * 0.45).round();
       _ingestionEtaSeconds = 28;
       notifyListeners();
 
@@ -131,7 +168,7 @@ mixin IngestionStateMixin on StateContext {
 
       // Stage 3: Plan Queue
       _ingestionStage = IngestionStage.planQueue;
-      _ingestionProcessedCount = 80;
+      _ingestionProcessedCount = (_ingestionTotalCount * 0.8).round();
       _ingestionEtaSeconds = 14;
       notifyListeners();
 
@@ -146,7 +183,7 @@ mixin IngestionStateMixin on StateContext {
 
       // Stage 4: Create Jobs
       _ingestionStage = IngestionStage.createJobs;
-      _ingestionProcessedCount = 95;
+      _ingestionProcessedCount = (_ingestionTotalCount * 0.95).round();
       _ingestionEtaSeconds = 5;
       notifyListeners();
 
@@ -160,7 +197,16 @@ mixin IngestionStateMixin on StateContext {
       );
 
       // Confirm planning
-      await bridge.execute(['plan', '--confirm']);
+      final confirmRes = await bridge.confirmPlan(
+        bypassDailyCap: bypassDailyCap,
+      );
+      if (confirmRes == null) {
+        await bridge.execute(
+          bypassDailyCap
+              ? ['plan', '--confirm', '--bypass-cap']
+              : ['plan', '--confirm'],
+        );
+      }
 
       if (!automationOn) {
         await bridge.pauseQueue();
@@ -169,8 +215,7 @@ mixin IngestionStateMixin on StateContext {
       }
 
       _ingestionStage = IngestionStage.completed;
-      _ingestionProcessedCount = 100;
-      _ingestionTotalCount = 100;
+      _ingestionProcessedCount = _ingestionTotalCount;
       _ingestionEtaSeconds = 0;
       _firstRunCompleted = true;
       _isIngesting = false;

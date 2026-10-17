@@ -6,11 +6,15 @@ import '../../theme/typography.dart';
 class WizardDailyCapWarning extends StatelessWidget {
   final bool bypassDailyCap;
   final ValueChanged<bool> onToggleBypass;
+  final int dailyCap;
+  final int plannedEpisodes;
 
   const WizardDailyCapWarning({
     super.key,
     required this.bypassDailyCap,
     required this.onToggleBypass,
+    this.dailyCap = 30,
+    this.plannedEpisodes = 214,
   });
 
   @override
@@ -57,7 +61,7 @@ class WizardDailyCapWarning extends StatelessWidget {
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
-                            'Cap: 30 eps/day',
+                            'Cap: $dailyCap eps/day',
                             style: ObsidianTypography.monoCode(
                               color: ObsidianColors.primary,
                             ),
@@ -67,7 +71,9 @@ class WizardDailyCapWarning extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Your download cap is configured to 30 episodes/day in client preferences. Committing all 214 backlog episodes will schedule the first 30 today and throttle the remaining 184 into staged daily queues to prevent tracker rate-limits and ISP bandwidth alarms.',
+                      plannedEpisodes > dailyCap
+                          ? 'Your download cap is configured to $dailyCap episodes/day in client preferences. Committing all $plannedEpisodes backlog episodes will schedule the first $dailyCap today and throttle the remaining ${plannedEpisodes - dailyCap} into staged daily queues to prevent tracker rate-limits and ISP bandwidth alarms.'
+                          : 'Your download cap is configured to $dailyCap episodes/day in client preferences. All $plannedEpisodes backlog episode${plannedEpisodes == 1 ? '' : 's'} fall within your daily cap and will be scheduled immediately.',
                       style: ObsidianTypography.bodySm(
                         color: ObsidianColors.onSurfaceVariant,
                       ),
@@ -97,7 +103,7 @@ class WizardDailyCapWarning extends StatelessWidget {
                       ),
                       Flexible(
                         child: Text(
-                          'Bypass daily cap for initial first-run sync (Queue all 214 immediately without daily delay)',
+                          'Bypass daily cap for initial first-run sync (Queue all $plannedEpisodes immediately without daily delay)',
                           style: ObsidianTypography.bodySm().copyWith(
                             fontWeight: FontWeight.bold,
                           ),

@@ -111,7 +111,10 @@ class _WizardPageState extends State<WizardPage> {
                   WizardStepper(currentStep: _currentStep),
                   Padding(
                     padding: const EdgeInsets.all(24),
-                    child: (_isIngesting || state.isIngesting)
+                    child:
+                        (_isIngesting ||
+                            state.isIngesting ||
+                            state.ingestionStage == IngestionStage.failed)
                         ? IngestionProgress(
                             stage: state.ingestionStage,
                             processedCount: state.ingestionProcessedCount,
@@ -139,7 +142,9 @@ class _WizardPageState extends State<WizardPage> {
                           )
                         : _buildStepBody(state),
                   ),
-                  if (!_isIngesting && !state.isIngesting)
+                  if (!_isIngesting &&
+                      !state.isIngesting &&
+                      state.ingestionStage != IngestionStage.failed)
                     _buildBottomActionStrip(state),
                 ],
               ),
@@ -174,11 +179,17 @@ class _WizardPageState extends State<WizardPage> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const WizardHeadlineCard(),
+            WizardHeadlineCard(
+              plannedEpisodes: state.plannedEpisodesCount,
+              plannedShows: state.plannedShowsCount,
+              estimatedStorageGb: state.estimatedStorageGb,
+            ),
             const SizedBox(height: 16),
             WizardDailyCapWarning(
               bypassDailyCap: _bypassDailyCap,
               onToggleBypass: (val) => setState(() => _bypassDailyCap = val),
+              dailyCap: state.dailyTorrentCap,
+              plannedEpisodes: state.plannedEpisodesCount,
             ),
             const SizedBox(height: 16),
             WizardSeriesManifest(state: state),

@@ -10,6 +10,8 @@ use super::common::{chrono_lite, open_db};
 pub enum SettingsCommand {
     /// Print the current settings as JSON.
     Show,
+    /// Set a setting key.
+    Set { key: String, value: String },
     /// Export settings to a JSON file.
     Export { path: PathBuf },
     /// Import settings from a JSON file (validates first).
@@ -44,6 +46,19 @@ pub fn settings_cmd(data_dir: &Path, command: SettingsCommand) -> Result<()> {
         SettingsCommand::Show => {
             let settings = Settings::load(&db)?;
             println!("{}", settings.to_json_pretty()?);
+        }
+        SettingsCommand::Set { key, value } => {
+            let settings = Settings::load(&db)?;
+            let mut val_json = serde_json::to_value(&settings)?;
+            if let Some(map) = val_json.as_object_mut() {
+                let parsed_val = serde_json::from_str(&value)
+                    .unwrap_or_else(|_| serde_json::Value::String(value.clone()));
+                map.insert(key.clone(), parsed_val);
+            }
+            let updated: Settings = serde_json::from_value(val_json)?;
+            updated.validate()?;
+            updated.save(&db)?;
+            println!("setting updated: {key} = {value}");
         }
         SettingsCommand::Export { path } => {
             let settings = Settings::load(&db)?;

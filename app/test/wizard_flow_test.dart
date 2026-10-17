@@ -178,4 +178,21 @@ void main() {
     expect(find.byType(WizardPage), findsOneWidget);
     expect(find.byType(MainShell), findsNothing);
   });
+
+  testWidgets(
+    're-run setup preserves shows and queue data without deleting or duplicating',
+    (tester) async {
+      await state.refreshAll();
+      final initialShows = state.shows.length;
+      final initialQueue = state.queue.length;
+
+      // Trigger re-run setup
+      await state.resetFirstRun();
+      expect(state.firstRunCompleted, isFalse);
+
+      // Shows and queue are preserved
+      expect(state.shows.length, initialShows);
+      expect(state.queue.length, initialQueue);
+    },
+  );
 }

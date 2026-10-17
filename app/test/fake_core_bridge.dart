@@ -199,6 +199,63 @@ class FakeCoreBridge extends CoreBridge {
   }
 
   @override
+  Future<Map<String, dynamic>?> getPlanPreview() async {
+    if (mode == FakeMode.error) {
+      throw Exception(errorMessage);
+    }
+    if (mode == FakeMode.empty) {
+      return {
+        'episodes': <dynamic>[],
+        'skipped': <dynamic>[],
+        'cap': 30,
+        'over_cap': 0,
+      };
+    }
+    return {
+      'episodes': List<dynamic>.generate(
+        214,
+        (i) => {'mal_id': i % 31, 'episode': 1.0},
+      ),
+      'skipped': <dynamic>[],
+      'cap': 30,
+      'over_cap': 184,
+      'awaiting_confirmation': true,
+      'estimated_storage_gb': 248.0,
+    };
+  }
+
+  @override
+  Future<Map<String, dynamic>?> confirmPlan({
+    bool bypassDailyCap = false,
+  }) async {
+    if (mode == FakeMode.error) {
+      throw Exception(errorMessage);
+    }
+    return {'queued': bypassDailyCap ? 214 : 30, 'first_sync_complete': true};
+  }
+
+  @override
+  Future<Map<String, dynamic>?> getSettings() async {
+    if (mode == FakeMode.error) {
+      throw Exception(errorMessage);
+    }
+    return {
+      'first_run_complete': true,
+      'daily_torrent_cap': 30,
+      'first_sync_cap': 25,
+      'mal_client_id': 'test_client_id',
+    };
+  }
+
+  @override
+  Future<bool> setSetting(String key, dynamic value) async {
+    if (mode == FakeMode.error) {
+      return false;
+    }
+    return true;
+  }
+
+  @override
   Future<List<InboxItem>> getInbox() async {
     if (mode == FakeMode.error) {
       throw Exception(errorMessage);
