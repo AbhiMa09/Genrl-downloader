@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, ci-check ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, ci-check ]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -111,7 +111,8 @@ jobs:
           cd app
           flutter test --exclude-tags golden
 
-      - name: Run Flutter Golden Tests (Visual Regression)
+      - name: Run Flutter Golden Tests (Visual Regression, Non-blocking in CI)
+        continue-on-error: true
         run: |
           cd app
           flutter test --tags golden

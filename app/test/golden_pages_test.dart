@@ -23,6 +23,7 @@ import 'package:genrl_downloader/pages/activity_page.dart';
 import 'package:genrl_downloader/pages/dashboard_page.dart';
 import 'package:genrl_downloader/pages/inbox_page.dart';
 import 'package:genrl_downloader/pages/library_page.dart';
+import 'package:genrl_downloader/pages/loading_gallery_page.dart';
 import 'package:genrl_downloader/pages/queue_page.dart';
 import 'package:genrl_downloader/pages/rules_page.dart';
 import 'package:genrl_downloader/pages/search_page.dart';
@@ -287,6 +288,22 @@ void main() {
     await expectLater(
       find.byType(MaterialApp),
       matchesGoldenFile('goldens/cyber_logo.png'),
+    );
+  });
+
+  testWidgets('Golden Test - Loading Primitives Gallery', (tester) async {
+    tester.view.physicalSize = const Size(1600, 1554);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    await tester.pumpWidget(
+      wrapPage(const LoadingGalleryPage(), state, size: const Size(1600, 1554)),
+    );
+    await tester.pump(const Duration(milliseconds: 200));
+
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/loading_gallery_page.png'),
     );
   });
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import 'pages/activity_page.dart';
@@ -25,6 +26,7 @@ import 'widgets/tray_notifications_overlay.dart';
 
 void main(List<String> args) {
   WidgetsFlutterBinding.ensureInitialized();
+  GoogleFonts.config.allowRuntimeFetching = false;
   int initialPage = 0;
   int? initialShowId;
   bool isWizard = false;

@@ -215,7 +215,7 @@ class FakeCoreBridge extends CoreBridge {
         details: 'File "Frieren - 12 (1080p).mkv" already exists in library.',
         jobId: 44,
         type: QuestionType.fileExists,
-        createdAt: DateTime.now().subtract(const Duration(minutes: 5)),
+        createdAt: DateTime(2026, 10, 15, 21, 55),
         choices: const [
           InboxChoice(key: 'keep', label: 'Keep Existing'),
           InboxChoice(key: 'replace', label: 'Replace File'),
@@ -240,7 +240,7 @@ class FakeCoreBridge extends CoreBridge {
         id: 1,
         level: ActivityLevel.info,
         message: 'Completed download: Sousou no Frieren - 28',
-        timestamp: DateTime.now(),
+        timestamp: DateTime(2026, 10, 15, 22, 0),
         malId: 52991,
       ),
     ];
