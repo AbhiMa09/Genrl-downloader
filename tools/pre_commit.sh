@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
+if ! command -v cargo &>/dev/null; then
+  [ -f "$HOME/.cargo/env" ] && source "$HOME/.cargo/env"
+fi
+if ! command -v dart &>/dev/null; then
+  [ -d "$HOME/flutter/bin" ] && export PATH="$HOME/flutter/bin:$PATH"
+fi
+
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 

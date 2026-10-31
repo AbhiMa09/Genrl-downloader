@@ -87,7 +87,11 @@ class _SettingsQbittorrentSectionState
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: ObsidianColors.tertiary.withOpacity(0.18),
+                  color:
+                      (widget.state.status.qbitConnected
+                              ? ObsidianColors.tertiary
+                              : ObsidianColors.error)
+                          .withOpacity(0.18),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Row(
@@ -95,16 +99,22 @@ class _SettingsQbittorrentSectionState
                     Container(
                       width: 6,
                       height: 6,
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: ObsidianColors.tertiary,
+                        color: widget.state.status.qbitConnected
+                            ? ObsidianColors.tertiary
+                            : ObsidianColors.error,
                       ),
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      'Connected • v4.6.3 Web API',
+                      widget.state.status.qbitConnected
+                          ? 'Connected • ${widget.state.status.qbitVersion.isNotEmpty ? widget.state.status.qbitVersion : "Web API"}'
+                          : 'Disconnected',
                       style: ObsidianTypography.labelBadge(
-                        color: ObsidianColors.tertiary,
+                        color: widget.state.status.qbitConnected
+                            ? ObsidianColors.tertiary
+                            : ObsidianColors.error,
                       ),
                     ),
                   ],
@@ -218,10 +228,14 @@ class _SettingsQbittorrentSectionState
             ),
             child: Row(
               children: [
-                const Icon(
-                  Icons.check_circle_rounded,
+                Icon(
+                  widget.state.status.qbitConnected
+                      ? Icons.check_circle_rounded
+                      : Icons.error_outline_rounded,
                   size: 20,
-                  color: ObsidianColors.tertiary,
+                  color: widget.state.status.qbitConnected
+                      ? ObsidianColors.tertiary
+                      : ObsidianColors.error,
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -229,13 +243,19 @@ class _SettingsQbittorrentSectionState
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Connection verified in 12ms',
+                        widget.state.status.qbitConnected
+                            ? 'WebUI online (${widget.urlController.text.isNotEmpty ? widget.urlController.text : "http://127.0.0.1:8080"})'
+                            : 'WebUI unreachable',
                         style: ObsidianTypography.monoCode(
-                          color: ObsidianColors.tertiary,
+                          color: widget.state.status.qbitConnected
+                              ? ObsidianColors.tertiary
+                              : ObsidianColors.error,
                         ).copyWith(fontWeight: FontWeight.bold),
                       ),
                       Text(
-                        'qBittorrent v4.6.3 x86_64 daemon responded on loopback',
+                        widget.state.status.qbitConnected
+                            ? 'qBittorrent ${widget.state.status.qbitVersion} responding'
+                            : 'Start qBittorrent daemon or check endpoint credentials',
                         style: ObsidianTypography.labelBadge(
                           color: ObsidianColors.outline,
                         ),
@@ -244,10 +264,19 @@ class _SettingsQbittorrentSectionState
                   ),
                 ),
                 ElevatedButton.icon(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Ping verified: 8ms loopback response'),
+                  onPressed: () async {
+                    final messenger = ScaffoldMessenger.of(context);
+                    await widget.state.refreshStatus();
+                    messenger.showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          widget.state.status.qbitConnected
+                              ? 'qBittorrent verified: online (${widget.state.status.qbitVersion})'
+                              : 'qBittorrent check failed: unreachable',
+                        ),
+                        backgroundColor: widget.state.status.qbitConnected
+                            ? ObsidianColors.success
+                            : ObsidianColors.error,
                       ),
                     );
                   },

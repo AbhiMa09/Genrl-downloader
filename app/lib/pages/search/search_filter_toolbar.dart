@@ -8,6 +8,10 @@ class SearchFilterToolbar extends StatelessWidget {
   final ValueChanged<String> onSelectRes;
   final bool trustedOnly;
   final ValueChanged<bool> onToggleTrusted;
+  final String preferredGroup;
+  final int minSeeders;
+  final int minMb;
+  final int maxMb;
 
   const SearchFilterToolbar({
     super.key,
@@ -15,10 +19,16 @@ class SearchFilterToolbar extends StatelessWidget {
     required this.onSelectRes,
     required this.trustedOnly,
     required this.onToggleTrusted,
+    this.preferredGroup = 'SubsPlease',
+    this.minSeeders = 10,
+    this.minMb = 800,
+    this.maxMb = 2560,
   });
 
   @override
   Widget build(BuildContext context) {
+    final sizeRangeStr = '$minMb MB — ${(maxMb / 1024).toStringAsFixed(1)} GB';
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -72,7 +82,7 @@ class SearchFilterToolbar extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      'SubsPlease (Preferred)',
+                      '$preferredGroup (Preferred)',
                       style: ObsidianTypography.monoCode(
                         color: ObsidianColors.primary,
                         fontSize: 10,
@@ -97,7 +107,7 @@ class SearchFilterToolbar extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      'Seeds ≥ 10',
+                      'Seeds ≥ $minSeeders',
                       style: ObsidianTypography.monoMetric(
                         color: ObsidianColors.tertiary,
                         fontSize: 10,
@@ -113,7 +123,7 @@ class SearchFilterToolbar extends StatelessWidget {
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
-                  '800 MB — 2.5 GB',
+                  sizeRangeStr,
                   style: ObsidianTypography.monoCode(
                     color: ObsidianColors.onSurface,
                     fontSize: 10,

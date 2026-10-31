@@ -25,6 +25,8 @@ class QueueItem {
   final int etaSeconds;
   final QueueState state;
   final String? infoHash;
+  final String? magnet;
+  final String? error;
 
   final double uploadSpeedBytes;
 
@@ -44,10 +46,13 @@ class QueueItem {
     required this.etaSeconds,
     required this.state,
     this.infoHash,
+    this.magnet,
+    this.error,
     this.uploadSpeedBytes = 0.0,
   });
 
   String get title => showTitle;
+  bool get isQueued => state == QueueState.queued;
   String get downloadSpeed => formattedSpeed;
   String get uploadSpeed => uploadSpeedBytes > 0
       ? '${(uploadSpeedBytes / 1024).toStringAsFixed(1)} KB/s'
@@ -80,5 +85,56 @@ class QueueItem {
     final secs = etaSeconds % 60;
     if (mins < 60) return '${mins}m ${secs}s';
     return '${mins ~/ 60}h ${mins % 60}m';
+  }
+}
+
+class CandidateItem {
+  final int id;
+  final String name;
+  final String? group;
+  final String? resolution;
+  final int sizeBytes;
+  final int seeders;
+  final int leechers;
+  final double score;
+  final bool isRejected;
+  final String? magnet;
+  final String? infoHash;
+
+  const CandidateItem({
+    required this.id,
+    required this.name,
+    this.group,
+    this.resolution,
+    required this.sizeBytes,
+    required this.seeders,
+    required this.leechers,
+    required this.score,
+    required this.isRejected,
+    this.magnet,
+    this.infoHash,
+  });
+
+  factory CandidateItem.fromJson(Map<String, dynamic> json) {
+    return CandidateItem(
+      id: (json['id'] as num?)?.toInt() ?? 0,
+      name: json['name']?.toString() ?? '',
+      group: json['group']?.toString(),
+      resolution: json['resolution']?.toString(),
+      sizeBytes: (json['size_bytes'] as num?)?.toInt() ?? 0,
+      seeders: (json['seeders'] as num?)?.toInt() ?? 0,
+      leechers: (json['leechers'] as num?)?.toInt() ?? 0,
+      score: (json['score'] as num?)?.toDouble() ?? 0.0,
+      isRejected: json['rejected'] == true,
+      magnet: json['magnet']?.toString(),
+      infoHash: json['info_hash']?.toString(),
+    );
+  }
+
+  String get formattedSize {
+    if (sizeBytes < 1024 * 1024 * 1024) {
+      return '${(sizeBytes / (1024 * 1024)).toStringAsFixed(0)} MB';
+    }
+    return '${(sizeBytes / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB';
   }
 }

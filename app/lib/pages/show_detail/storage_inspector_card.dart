@@ -56,7 +56,10 @@ class StorageInspectorCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
-                  'EXT4',
+                  state.locationsReport?['library']?['fs_type']
+                          ?.toString()
+                          .toUpperCase() ??
+                      (state.sameFilesystem ? 'HARDLINK' : 'CROSS-FS'),
                   style: ObsidianTypography.labelBadge(
                     color: ObsidianColors.tertiary,
                   ),

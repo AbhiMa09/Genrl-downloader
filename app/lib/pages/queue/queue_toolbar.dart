@@ -75,7 +75,9 @@ class QueueToolbar extends StatelessWidget {
                   ),
                   _buildPill(
                     'Free Space: ',
-                    '4.58 TB',
+                    status.formattedDiskSpace.isNotEmpty
+                        ? status.formattedDiskSpace
+                        : '—',
                     ObsidianColors.onSurfaceVariant,
                   ),
                 ],
@@ -117,7 +119,20 @@ class QueueToolbar extends StatelessWidget {
                 ),
               ),
               OutlinedButton.icon(
-                onPressed: () => state.refreshAll(),
+                onPressed: () async {
+                  final ok = await state.retryAllJobs();
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          ok
+                              ? 'Retried all stuck and failed jobs'
+                              : 'Failed to retry jobs',
+                        ),
+                      ),
+                    );
+                  }
+                },
                 icon: const Icon(
                   Icons.restart_alt_rounded,
                   size: 14,

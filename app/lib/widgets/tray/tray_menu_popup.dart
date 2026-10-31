@@ -233,8 +233,9 @@ class TrayMenuPopup extends StatelessWidget {
                   label: 'Pause all',
                   subtext: 'Hold transfers',
                   onTap: () {
+                    state.toggleAutomation();
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('All transfers paused')),
+                      const SnackBar(content: Text('Automation toggled')),
                     );
                     onClose();
                   },
@@ -243,10 +244,13 @@ class TrayMenuPopup extends StatelessWidget {
                   icon: Icons.play_circle_outline_rounded,
                   iconColor: ObsidianColors.outline,
                   label: 'Resume',
-                  subtext: 'Active (2 running)',
+                  subtext: '${state.activeDownloads.length} active',
                   onTap: () {
+                    if (!state.status.automationOn) {
+                      state.toggleAutomation();
+                    }
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Transfers resumed')),
+                      const SnackBar(content: Text('Queue resumed')),
                     );
                     onClose();
                   },
@@ -318,7 +322,7 @@ class TrayMenuPopup extends StatelessWidget {
               children: [
                 Flexible(
                   child: Text(
-                    'Daemon: Unix Socket OK',
+                    'Daemon: ${state.isCoreConnected ? "Online" : "Offline"}',
                     style: ObsidianTypography.labelBadge(
                       color: ObsidianColors.outline,
                     ),
@@ -328,7 +332,7 @@ class TrayMenuPopup extends StatelessWidget {
                 const SizedBox(width: 4),
                 Flexible(
                   child: Text(
-                    'RAM: 38.4 MB',
+                    'qB: ${state.status.qbitConnected ? state.status.qbitVersion : "Offline"}',
                     style: ObsidianTypography.labelBadge(
                       color: ObsidianColors.outline,
                     ),

@@ -99,24 +99,28 @@ class _InboxPageState extends State<InboxPage> {
             pendingCount: pendingCount,
             searchController: _searchController,
             onSearchChanged: () => setState(() {}),
-            onBatchResolve: () {
-              setState(() {
-                _resolvedCards.addAll([
-                  'card-1',
-                  'card-2',
-                  'card-3',
-                  'card-4',
-                  'card-5',
-                ]);
-              });
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'All decisions batch resolved with top-ranked algorithms!',
+            onBatchResolve: () async {
+              final messenger = ScaffoldMessenger.of(context);
+              for (final item in dynamicItems) {
+                if (item.choices.isNotEmpty) {
+                  _resolvedCards.add('item-${item.id}');
+                  await state.answerInboxQuestion(
+                    item.id,
+                    item.choices.first.key,
+                  );
+                }
+              }
+              if (mounted) {
+                setState(() {});
+                messenger.showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'All decisions batch resolved with top-ranked choices!',
+                    ),
+                    backgroundColor: ObsidianColors.success,
                   ),
-                  backgroundColor: ObsidianColors.success,
-                ),
-              );
+                );
+              }
             },
           ),
           const SizedBox(height: 16),

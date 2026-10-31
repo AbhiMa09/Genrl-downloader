@@ -30,14 +30,14 @@ class DashboardKpiMetrics extends StatelessWidget {
     final status = state.status;
     final totalShows = status.totalShows > 0
         ? status.totalShows
-        : (state.shows.isNotEmpty ? state.shows.length : 1040);
+        : state.shows.length;
     final catalogEpisodes = state.shows.fold<int>(
       0,
       (sum, show) => sum + show.totalEpisodes,
     );
     final totalEpisodes = catalogEpisodes > 0
         ? catalogEpisodes
-        : (status.totalEpisodes > 0 ? status.totalEpisodes : totalShows * 12);
+        : (status.totalEpisodes > 0 ? status.totalEpisodes : 0);
     final activeQueue = status.activeTorrents > 0
         ? status.activeTorrents
         : (state.activeQueueCount > 0
@@ -137,7 +137,7 @@ class DashboardKpiMetrics extends StatelessWidget {
               headline: _currentSeasonCycle(),
               headlineSize: 22,
               subhead:
-                  '${state.shows.where((s) => s.status.toLowerCase() == "watching").isNotEmpty ? state.shows.where((s) => s.status.toLowerCase() == "watching").length : 21} Watching',
+                  '${state.shows.where((s) => s.status.toLowerCase() == "watching").length} Watching',
               detail: '${state.queue.length} in active pipeline',
               progress: seasonProgress,
               progressColor: ObsidianColors.primaryContainer,

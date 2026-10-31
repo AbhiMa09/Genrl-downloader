@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../../models/queue_item.dart';
+import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
-import '../../widgets/loading/inline_spinner.dart';
+import 'queue_phase_pill.dart';
 
 class QueueTable extends StatelessWidget {
   final List<QueueItem> items;
@@ -233,7 +235,7 @@ class QueueTable extends StatelessWidget {
                         flex: 3,
                         child: Align(
                           alignment: Alignment.centerLeft,
-                          child: _buildPhasePill(item),
+                          child: QueuePhasePill(item: item),
                         ),
                       ),
 
@@ -339,18 +341,46 @@ class QueueTable extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             InkWell(
-                              onTap: () {},
+                              onTap: () async {
+                                final state = context.read<StateProvider>();
+                                final ok = await state.recheckJob(item.id);
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        ok
+                                            ? 'Stepped job #${item.id}'
+                                            : 'Failed to step job #${item.id}',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
                               child: const Padding(
                                 padding: EdgeInsets.all(4.0),
                                 child: Icon(
-                                  Icons.pause_rounded,
+                                  Icons.restart_alt_rounded,
                                   size: 16,
                                   color: ObsidianColors.outline,
                                 ),
                               ),
                             ),
                             InkWell(
-                              onTap: () {},
+                              onTap: () async {
+                                final state = context.read<StateProvider>();
+                                final ok = await state.cancelJob(item.id);
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        ok
+                                            ? 'Cancelled job #${item.id}'
+                                            : 'Failed to cancel job #${item.id}',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
                               child: const Padding(
                                 padding: EdgeInsets.all(4.0),
                                 child: Icon(
@@ -394,8 +424,9 @@ class QueueTable extends StatelessWidget {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const TextSpan(
-                          text: ' | qBittorrent Slot Allocation: 4/12',
+                        TextSpan(
+                          text:
+                              ' | Active Transfers: ${context.watch<StateProvider>().activeDownloads.length}',
                         ),
                       ],
                     ),
@@ -410,62 +441,6 @@ class QueueTable extends StatelessWidget {
                   ),
                 ),
               ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPhasePill(QueueItem item) {
-    Color bg = ObsidianColors.primaryContainer.withOpacity(0.2);
-    Color fg = ObsidianColors.primary;
-    String label = 'Downloading ${(item.progress * 100).toInt()}%';
-
-    if (item.state == QueueState.finalizing) {
-      bg = ObsidianColors.tertiaryContainer.withOpacity(0.2);
-      fg = ObsidianColors.tertiary;
-      label = 'Hardlinking Media';
-    } else if (item.state == QueueState.queued) {
-      bg = ObsidianColors.surfaceContainerHighest;
-      fg = ObsidianColors.outline;
-      label = 'Searching Indexers';
-    } else if (item.state == QueueState.blocked) {
-      bg = ObsidianColors.error.withOpacity(0.2);
-      fg = ObsidianColors.error;
-      label = 'Blocked: Low Inodes';
-    } else if (item.state == QueueState.stalled) {
-      bg = ObsidianColors.error.withOpacity(0.3);
-      fg = ObsidianColors.error;
-      label = 'Tracker Timeout (504)';
-    } else if (item.seeders <= 1) {
-      bg = ObsidianColors.secondaryContainer.withOpacity(0.4);
-      fg = ObsidianColors.secondary;
-      label = 'Pick Alternative (1 seed)';
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (item.state == QueueState.queued) ...[
-            const InlineSpinner(size: 9, color: ObsidianColors.outline),
-            const SizedBox(width: 4),
-          ],
-          Flexible(
-            child: Text(
-              label,
-              style: ObsidianTypography.monoCode(
-                color: fg,
-                fontSize: 10,
-                fontWeight: FontWeight.w500,
-              ),
-              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],

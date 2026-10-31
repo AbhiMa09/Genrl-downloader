@@ -25,10 +25,13 @@ class StepReviewPrelaunch extends StatelessWidget {
     final qbitConnected = state.status.qbitConnected;
     final malUser = state.malUsername?.isNotEmpty == true
         ? state.malUsername!
-        : 'akumasan2';
+        : (state.settings['mal_username']?.toString().isNotEmpty == true
+              ? state.settings['mal_username'].toString()
+              : 'Public Profile');
     final libraryPath = state.libraryFolder.isNotEmpty
         ? state.libraryFolder
-        : '/tmp/genrl_test_root';
+        : (state.locationsReport?['library']?['path']?.toString() ??
+              'Not configured');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

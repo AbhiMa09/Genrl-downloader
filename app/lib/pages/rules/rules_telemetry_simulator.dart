@@ -17,6 +17,15 @@ class RulesTelemetrySimulator extends StatelessWidget {
               ? '${state.shows.first.title} - 01'
               : 'No active test target');
 
+    final rule = state.globalRule;
+    final topGroup = rule?.groups.isNotEmpty == true
+        ? rule!.groups.first
+        : 'SubsPlease';
+    final targetRes = rule?.preferredResolution ?? '1080p';
+    final seedThreshold = rule?.seedAutoThreshold ?? 10;
+    final resPts = targetRes == '1080p' ? 40 : 25;
+    final calcScore = 50 + resPts + 20 + 15 + 60;
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -54,7 +63,7 @@ class RulesTelemetrySimulator extends StatelessWidget {
                 ),
               ),
               Text(
-                'Calculated Score: +185 pts',
+                'Calculated Score: +$calcScore pts',
                 style: ObsidianTypography.monoCode(
                   color: ObsidianColors.tertiary,
                 ),
@@ -73,11 +82,11 @@ class RulesTelemetrySimulator extends StatelessWidget {
             spacing: 6,
             runSpacing: 4,
             children: [
-              _buildTelemetryChip('Group: SubsPlease (+50)'),
-              _buildTelemetryChip('Res: 1080p (+40)'),
+              _buildTelemetryChip('Group: $topGroup (+50)'),
+              _buildTelemetryChip('Res: $targetRes (+$resPts)'),
               _buildTelemetryChip('Codec: H.264/AVC (+20)'),
               _buildTelemetryChip('Audio: AAC 2.0 (+15)'),
-              _buildTelemetryChip('Swarm: 142 Seeds (>10 Target, +60)'),
+              _buildTelemetryChip('Swarm: >$seedThreshold Seeds Target (+60)'),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(

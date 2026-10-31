@@ -148,7 +148,9 @@ class WizardHeadlineCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '1,040 anime series synced',
+                  plannedShows > 0
+                      ? '$plannedShows anime series planned'
+                      : 'Anime series synced',
                   style: ObsidianTypography.labelBadge(
                     color: ObsidianColors.outline,
                   ),

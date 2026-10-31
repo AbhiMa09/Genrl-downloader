@@ -104,6 +104,16 @@ class _SearchPageState extends State<SearchPage> {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<StateProvider>();
+    final rule = state.globalRule;
+    final filteredResults = _searchResults.where((r) {
+      if (_trustedOnly && r['matchTier'] != 'Trusted') return false;
+      if (_selectedRes != 'All') {
+        final fmt = (r['format'] as String? ?? '').toLowerCase();
+        final target = _selectedRes.toLowerCase().replaceAll(' uhd', '');
+        if (!fmt.contains(target)) return false;
+      }
+      return true;
+    }).toList();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
@@ -136,23 +146,27 @@ class _SearchPageState extends State<SearchPage> {
             onSelectRes: (res) => setState(() => _selectedRes = res),
             trustedOnly: _trustedOnly,
             onToggleTrusted: (val) => setState(() => _trustedOnly = val),
+            preferredGroup: rule?.groups.firstOrNull ?? 'SubsPlease',
+            minSeeders: rule?.seedAutoThreshold ?? 10,
+            minMb: 800,
+            maxMb: 2560,
           ),
           const SizedBox(height: 16),
 
           // 4. View Mode Switcher & Results Summary
-          _buildViewSwitcher(),
+          _buildViewSwitcher(filteredResults.length),
           const SizedBox(height: 12),
 
           // 5. Compact Dense Results Table View
           if (_isSearching)
             _buildSkeletonState()
-          else if (_selectedView == 'zero' || _searchResults.isEmpty)
+          else if (_selectedView == 'zero' || filteredResults.isEmpty)
             _buildZeroState()
           else if (_selectedView == 'skeleton')
             _buildSkeletonState()
           else
             SearchResultsTable(
-              searchResults: _searchResults,
+              searchResults: filteredResults,
               onGrabRelease: _grabRelease,
             ),
         ],
@@ -160,14 +174,14 @@ class _SearchPageState extends State<SearchPage> {
     );
   }
 
-  Widget _buildViewSwitcher() {
+  Widget _buildViewSwitcher(int count) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Row(
           children: [
             Text(
-              'Found ${_searchResults.length} releases',
+              'Found $count releases',
               style: ObsidianTypography.titleSm(fontSize: 12),
             ),
             const SizedBox(width: 6),
@@ -183,7 +197,7 @@ class _SearchPageState extends State<SearchPage> {
         ),
         Row(
           children: [
-            _buildViewTab('results', 'Results (${_searchResults.length})'),
+            _buildViewTab('results', 'Results ($count)'),
             const SizedBox(width: 4),
             _buildViewTab('skeleton', 'Skeleton View'),
             const SizedBox(width: 4),

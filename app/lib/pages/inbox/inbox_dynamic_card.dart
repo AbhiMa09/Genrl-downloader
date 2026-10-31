@@ -52,8 +52,10 @@ class InboxDynamicCard extends StatelessWidget {
       description: item.details,
       autoRuleText: 'Always apply this resolution rule for ${item.showTitle}',
       ruleId: '#auto-resolve-${item.id}',
-      onSecondaryAction: () =>
-          onResolve('item-${item.id}', 'Dismissed ${item.title}'),
+      onSecondaryAction: () {
+        onResolve('item-${item.id}', 'Dismissed ${item.title}');
+        state.answerInboxQuestion(item.id, 'dismiss');
+      },
       secondaryActionLabel: 'Dismiss',
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

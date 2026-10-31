@@ -129,7 +129,8 @@ pub fn queue_cmd(data_dir: &Path, json: bool) -> Result<()> {
         let jobs = db.with(|c| {
             let mut stmt = c.prepare(
                 "SELECT j.id, e.mal_id, s.title, s.season, e.number, t.name, t.\"group\",
-                        j.progress, t.size, j.state, t.seeders, t.leechers, j.last_error
+                        j.progress, t.size, j.state, t.seeders, t.leechers, j.last_error,
+                        t.info_hash, t.magnet
                  FROM jobs j
                  JOIN episodes e ON e.id = j.episode_id
                  JOIN shows s ON s.mal_id = e.mal_id
@@ -152,6 +153,8 @@ pub fn queue_cmd(data_dir: &Path, json: bool) -> Result<()> {
                     "seeders": r.get::<_, Option<i64>>(10)?,
                     "leechers": r.get::<_, Option<i64>>(11)?,
                     "last_error": r.get::<_, Option<String>>(12)?,
+                    "info_hash": r.get::<_, Option<String>>(13)?,
+                    "magnet": r.get::<_, Option<String>>(14)?,
                 }))
             })?;
             let mut out = Vec::new();

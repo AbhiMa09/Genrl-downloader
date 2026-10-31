@@ -23,8 +23,10 @@ class LibraryTelemetryBanner extends StatelessWidget {
     final qbLabel = state.status.qbitConnected
         ? 'qB: ${state.status.qbitVersion}'
         : 'qB: Offline';
-    final fsLabel =
-        'FS: Btrfs (Hardlink: ${state.sameFilesystem ? "Supported" : "Cross-FS"})';
+    final libFs = state.locationsReport?['library']?['fs_type']?.toString();
+    final fsLabel = libFs != null && libFs.isNotEmpty
+        ? 'FS: $libFs (Hardlink: ${state.sameFilesystem ? "Supported" : "Cross-FS"})'
+        : 'Hardlink: ${state.sameFilesystem ? "Supported" : "Cross-FS"}';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),

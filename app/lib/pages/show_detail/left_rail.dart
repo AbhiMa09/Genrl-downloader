@@ -308,7 +308,11 @@ class ShowDetailLeftRail extends StatelessWidget {
         const SizedBox(height: 16),
 
         // Quick Telemetry Graph: Codec Bitrate Analysis Sparkline
-        BitrateSparklineCard(durationLabel: durationLabel),
+        BitrateSparklineCard(
+          durationLabel: durationLabel,
+          onDiskBytes: show.onDiskBytes,
+          downloadedEpisodes: show.downloadedEpisodes,
+        ),
       ],
     );
   }

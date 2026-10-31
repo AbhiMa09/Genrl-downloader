@@ -88,6 +88,9 @@ List<QueueItem> parseQueueItems(List<dynamic> list) {
       sizeBytes: (m['size_bytes'] as num?)?.toInt() ?? 0,
       etaSeconds: 0,
       state: st,
+      infoHash: m['info_hash']?.toString(),
+      magnet: m['magnet']?.toString(),
+      error: m['last_error']?.toString(),
     );
   }).toList();
 }
@@ -211,13 +214,23 @@ LibraryShow parseShowDetail(Map<String, dynamic> m) {
       sizeBytes: (e['size_bytes'] as num?)?.toInt(),
       releaseName: e['release_name']?.toString(),
       group: e['group']?.toString() ?? 'Auto',
-      container: e['container']?.toString() ?? 'Matroska (MKV)',
-      videoTrack: e['video_track']?.toString() ?? '1080p BD Remux HEVC 10-bit',
-      primaryAudio: e['primary_audio']?.toString() ?? 'FLAC 5.1ch 24-bit 48kHz',
-      subtitles: e['subtitles']?.toString() ?? 'ENG (PGS), JPN',
+      container:
+          e['container']?.toString() ??
+          (e['is_downloaded'] == true ? 'Matroska (MKV)' : '-'),
+      videoTrack:
+          e['video_track']?.toString() ??
+          (e['is_downloaded'] == true ? '1080p' : '-'),
+      primaryAudio:
+          e['primary_audio']?.toString() ??
+          (e['is_downloaded'] == true ? 'AAC' : '-'),
+      subtitles:
+          e['subtitles']?.toString() ??
+          (e['is_downloaded'] == true ? 'ENG' : '-'),
       crc32: e['crc32']?.toString() ?? '-',
-      chapters: (e['chapters'] as num?)?.toInt() ?? 18,
-      duration: e['duration']?.toString() ?? '24:12',
+      chapters: (e['chapters'] as num?)?.toInt() ?? 0,
+      duration:
+          e['duration']?.toString() ??
+          (e['is_downloaded'] == true ? '24m' : '-'),
     );
   }).toList();
 

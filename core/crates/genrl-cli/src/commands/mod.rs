@@ -1,4 +1,5 @@
 pub mod common;
+pub mod jobs;
 pub mod locations;
 pub mod mal;
 pub mod metadata;
@@ -9,6 +10,7 @@ pub mod shows;
 pub mod system;
 pub mod torrents;
 
+pub use jobs::*;
 pub use locations::*;
 pub use mal::*;
 pub use metadata::*;

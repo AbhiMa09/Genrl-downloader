@@ -314,7 +314,9 @@ class SettingsEngineSection extends StatelessWidget {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'All changes take effect immediately on local daemon via UNIX socket: /run/genrl/core.sock',
+                          state.isCoreConnected
+                              ? 'Connected to daemon • IPC RPC responsive'
+                              : 'Core offline • IPC socket ready',
                           style: ObsidianTypography.monoCode(
                             color: ObsidianColors.outline,
                           ),
@@ -326,9 +328,11 @@ class SettingsEngineSection extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Last written: 14:22:09 UTC',
+                  state.isCoreConnected ? 'Engine: ACTIVE' : 'Engine: STANDBY',
                   style: ObsidianTypography.labelBadge(
-                    color: ObsidianColors.onSurfaceVariant,
+                    color: state.isCoreConnected
+                        ? ObsidianColors.tertiary
+                        : ObsidianColors.outline,
                   ),
                 ),
               ],

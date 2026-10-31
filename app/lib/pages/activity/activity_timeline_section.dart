@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../models/activity_item.dart';
 import '../../services/state_provider.dart';
@@ -295,13 +296,94 @@ class ActivityTimelineSection extends StatelessWidget {
               else
                 TextButton.icon(
                   onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Inspecting event details: ${event.message}',
-                        ),
-                        backgroundColor: ObsidianColors.surfaceContainerHigh,
-                      ),
+                    showDialog<void>(
+                      context: context,
+                      builder: (ctx) {
+                        return AlertDialog(
+                          backgroundColor: ObsidianColors.surfaceContainer,
+                          title: Row(
+                            children: [
+                              Icon(eventIcon, size: 20, color: levelColor),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Event Audit #${event.id}',
+                                style: ObsidianTypography.titleSm(),
+                              ),
+                            ],
+                          ),
+                          content: SingleChildScrollView(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'TIMESTAMP: ${event.timestamp.toIso8601String()}',
+                                  style: ObsidianTypography.monoCode(
+                                    color: ObsidianColors.outline,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                if (event.jobId != null)
+                                  Text(
+                                    'JOB ID: #${event.jobId}',
+                                    style: ObsidianTypography.monoCode(
+                                      color: ObsidianColors.primary,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                if (event.malId != null)
+                                  Text(
+                                    'MAL ID: #${event.malId}',
+                                    style: ObsidianTypography.monoCode(
+                                      color: ObsidianColors.tertiary,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                const SizedBox(height: 12),
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color:
+                                        ObsidianColors.surfaceContainerLowest,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: ObsidianColors.border,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    event.message,
+                                    style: ObsidianTypography.monoCode(
+                                      color: ObsidianColors.onSurface,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          actions: [
+                            TextButton.icon(
+                              onPressed: () {
+                                Clipboard.setData(
+                                  ClipboardData(text: event.message),
+                                );
+                                Navigator.of(ctx).pop();
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Copied event message'),
+                                  ),
+                                );
+                              },
+                              icon: const Icon(Icons.copy_rounded, size: 14),
+                              label: const Text('Copy'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.of(ctx).pop(),
+                              child: const Text('Close'),
+                            ),
+                          ],
+                        );
+                      },
                     );
                   },
                   icon: const Icon(
