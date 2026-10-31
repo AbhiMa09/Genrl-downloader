@@ -39,7 +39,7 @@ class DashboardPipelineTable extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Daemon Pipeline & Active Ingestion',
+                  'ACTIVE DOWNLOAD TRANSFERS',
                   style: ObsidianTypography.headlineMd(),
                 ),
                 const SizedBox(width: 10),
@@ -53,9 +53,9 @@ class DashboardPipelineTable extends StatelessWidget {
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
-                    'ACTIVE DOWNLOAD TRANSFERS',
+                    'PIPELINE IDLE',
                     style: ObsidianTypography.labelBadge(
-                      color: ObsidianColors.primary,
+                      color: ObsidianColors.outline,
                     ),
                   ),
                 ),
@@ -108,7 +108,7 @@ class DashboardPipelineTable extends StatelessWidget {
                     color: ObsidianColors.primary,
                   ),
                   Text(
-                    'Daemon Pipeline & Active Ingestion',
+                    'ACTIVE DOWNLOAD TRANSFERS',
                     style: ObsidianTypography.headlineMd(),
                   ),
                   Container(
@@ -121,7 +121,7 @@ class DashboardPipelineTable extends StatelessWidget {
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
-                      'ACTIVE DOWNLOAD TRANSFERS',
+                      '${queueItems.length} IN ACTIVE PIPELINE',
                       style: ObsidianTypography.labelBadge(
                         color: ObsidianColors.primary,
                       ),

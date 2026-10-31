@@ -234,8 +234,14 @@ class _SettingsFoldersSectionState extends State<SettingsFoldersSection> {
                           final title = state.shows.isNotEmpty
                               ? state.shows.first.title
                               : '{Series Title}';
+                          final base =
+                              widget.libraryFolderController.text.isNotEmpty
+                              ? widget.libraryFolderController.text
+                              : (state.libraryFolder.isNotEmpty
+                                    ? state.libraryFolder
+                                    : '{Library Root}');
                           return Text(
-                            '/mnt/anime/TV/$title/Season 01/$title - S01E01 [1080p].mkv',
+                            '$base/$title/Season 01/$title - S01E01 [1080p].mkv',
                             style: ObsidianTypography.monoCode(
                               color: ObsidianColors.onSurface,
                             ),

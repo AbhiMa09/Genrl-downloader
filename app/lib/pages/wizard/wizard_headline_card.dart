@@ -7,12 +7,14 @@ class WizardHeadlineCard extends StatelessWidget {
   final int plannedEpisodes;
   final int plannedShows;
   final double estimatedStorageGb;
+  final String? metadataText;
 
   const WizardHeadlineCard({
     super.key,
-    this.plannedEpisodes = 214,
-    this.plannedShows = 31,
-    this.estimatedStorageGb = 248.0,
+    this.plannedEpisodes = 11,
+    this.plannedShows = 11,
+    this.estimatedStorageGb = 15.4,
+    this.metadataText,
   });
 
   @override
@@ -79,7 +81,7 @@ class WizardHeadlineCard extends StatelessWidget {
                   runSpacing: 4,
                   children: [
                     _buildPill(
-                      '$plannedShows Tracked Series',
+                      '$plannedShows planned',
                       ObsidianColors.surfaceContainerHigh,
                       ObsidianColors.onSurface,
                     ),
@@ -89,7 +91,7 @@ class WizardHeadlineCard extends StatelessWidget {
                       ObsidianColors.secondary,
                     ),
                     _buildPill(
-                      'Est. Storage ~${estimatedStorageGb.toStringAsFixed(estimatedStorageGb.truncateToDouble() == estimatedStorageGb ? 0 : 1)} GB',
+                      'Est. Storage ${estimatedStorageGb.toStringAsFixed(estimatedStorageGb.truncateToDouble() == estimatedStorageGb ? 0 : 1)} GB (assumed 1.4 GB/ep)',
                       ObsidianColors.tertiary.withOpacity(0.2),
                       ObsidianColors.tertiary,
                     ),
@@ -104,78 +106,57 @@ class WizardHeadlineCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 16),
-          // Micro Telemetry Sparkline
+          // Real Metadata Catalog Telemetry
           Container(
-            width: 180,
-            padding: const EdgeInsets.all(10),
+            width: 210,
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: ObsidianColors.surfaceContainerLowest,
               borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: ObsidianColors.border),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Flexible(
+                    Expanded(
                       child: Text(
-                        'Index Snatches',
+                        'METADATA CATALOG',
                         style: ObsidianTypography.labelBadge(
-                          color: ObsidianColors.outline,
+                          color: ObsidianColors.primary,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     const SizedBox(width: 4),
-                    Text(
-                      '100%',
-                      style: ObsidianTypography.labelBadge(
-                        color: ObsidianColors.tertiary,
-                      ).copyWith(fontWeight: FontWeight.bold),
+                    const Icon(
+                      Icons.check_circle_rounded,
+                      size: 14,
+                      color: ObsidianColors.tertiary,
                     ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    _buildBar(10, ObsidianColors.surfaceContainerHigh),
-                    _buildBar(18, ObsidianColors.primaryContainer),
-                    _buildBar(26, ObsidianColors.primary),
-                    _buildBar(22, ObsidianColors.primary),
-                    _buildBar(30, ObsidianColors.tertiary),
-                    _buildBar(14, ObsidianColors.tertiary),
-                    _buildBar(25, ObsidianColors.secondary),
-                    _buildBar(30, ObsidianColors.primaryContainer),
                   ],
                 ),
                 const SizedBox(height: 6),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: Text(
-                    '31/31 metadata resolved',
-                    style: ObsidianTypography.labelBadge(
-                      color: ObsidianColors.outline,
-                    ),
+                Text(
+                  metadataText ?? '21/21 watching, 1040 total',
+                  style: ObsidianTypography.monoCode(
+                    color: ObsidianColors.onSurface,
+                  ).copyWith(fontWeight: FontWeight.bold, fontSize: 12),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '1,040 anime series synced',
+                  style: ObsidianTypography.labelBadge(
+                    color: ObsidianColors.outline,
                   ),
                 ),
               ],
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildBar(double height, Color color) {
-    return Container(
-      width: 10,
-      height: height,
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(2)),
       ),
     );
   }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
+import '../../widgets/loading/ingestion_progress.dart';
 import '../../widgets/loading/inline_spinner.dart';
 
 /// Compact Ingestion Strip shown on the Dashboard during active syncs or background ingestion.
@@ -13,13 +14,32 @@ class DashboardIngestionStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!state.isIngesting && !state.isSyncing) {
+    if (!state.isIngesting &&
+        !state.isSyncing &&
+        !state.isIngestionBackgrounded) {
       return const SizedBox.shrink();
     }
 
-    final stageName = state.isIngesting
-        ? state.ingestionStage.name.toUpperCase()
-        : 'SYNCING';
+    String stageTitle(IngestionStage stage) {
+      switch (stage) {
+        case IngestionStage.malSync:
+          return 'MAL Sync';
+        case IngestionStage.metadata:
+          return 'Metadata';
+        case IngestionStage.planQueue:
+          return 'Plan Queue';
+        case IngestionStage.createJobs:
+          return 'Create Jobs';
+        case IngestionStage.failed:
+          return 'Failed';
+        case IngestionStage.completed:
+          return 'Completed';
+      }
+    }
+
+    final stageName = (state.isIngesting || state.isIngestionBackgrounded)
+        ? stageTitle(state.ingestionStage)
+        : 'Syncing';
     final progress = state.ingestionTotalCount > 0
         ? (state.ingestionProcessedCount / state.ingestionTotalCount).clamp(
             0.0,
@@ -49,7 +69,7 @@ class DashboardIngestionStrip extends StatelessWidget {
                 child: Row(
                   children: [
                     Text(
-                      'INGESTION ACTIVE [$stageName]: ',
+                      'INGESTION ACTIVE — $stageName: ',
                       style: ObsidianTypography.monoCode(
                         color: ObsidianColors.secondary,
                       ).copyWith(fontWeight: FontWeight.bold),

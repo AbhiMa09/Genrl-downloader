@@ -26,7 +26,10 @@ pub struct Gate {
 impl Gate {
     /// Build a gate with the design's default policies for all five services.
     pub fn new(db: crate::Db) -> Result<Self> {
-        Self::with_policies(db, &[])
+        let settings = crate::settings::Settings::load(&db)?;
+        let mut jikan = ServicePolicy::for_service(Service::Jikan);
+        jikan.breaker_cooldown = Duration::from_secs(settings.jikan_breaker_cooldown_secs.max(1));
+        Self::with_policies(db, &[(Service::Jikan, jikan)])
     }
 
     /// Build a gate, replacing any policies that are supplied (tests use this
@@ -297,12 +300,13 @@ impl Gate {
                 }
             };
 
-            // Five consecutive failures: open the breaker now.
+            // Preserve the actual failure and Retry-After on the opening request.
+            // Subsequent callers are rejected by allow() with BreakerOpen.
             if self.breaker_state(service) == BreakerState::Open {
-                return Err(Error::BreakerOpen {
+                return Err(last_err.unwrap_or_else(|| Error::BreakerOpen {
                     service: service.as_str().to_string(),
                     retry_in_secs: state.policy.breaker_cooldown.as_secs(),
-                });
+                }));
             }
 
             if attempt >= retry.max_attempts {

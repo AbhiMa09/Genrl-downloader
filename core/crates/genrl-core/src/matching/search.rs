@@ -70,7 +70,7 @@ pub async fn run(
 ) -> Result<Verdict> {
     let settings = Settings::load(db)?;
     let rules = Rules::for_show(db, inputs.mal_id)?;
-    let candidates = search_candidates(gate, &settings, &inputs.names, 50, 25).await?;
+    let candidates = search_candidates(gate, &settings, &inputs.names, 1000, 1000).await?;
     let (ranked, rejected) = rank(candidates, inputs, wanted_episode, &rules, &settings, now);
     Ok(decide_verdict(ranked, rejected, inputs, &rules, &settings))
 }

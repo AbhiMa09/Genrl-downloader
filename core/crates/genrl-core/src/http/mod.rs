@@ -77,7 +77,11 @@ mod tests {
         for service in Service::ALL {
             let p = ServicePolicy::for_service(service);
             assert_eq!(p.breaker_threshold, 5, "{service}");
-            assert_eq!(p.breaker_cooldown, Duration::from_secs(900), "{service}");
+            assert_eq!(
+                p.breaker_cooldown,
+                Duration::from_secs(if service == Service::Jikan { 60 } else { 900 }),
+                "{service}"
+            );
             assert!(p.max_body_bytes >= 5 * 1024 * 1024, "{service}");
         }
 

@@ -188,7 +188,7 @@ pub async fn redirect_code(
 
         let ok = code.is_some() && state.as_deref() == Some(expected_state) && error.is_none();
         let page = if ok {
-            "<!doctype html><meta charset=\"utf-8\"><title>Genrl</title><p>You can close this tab now.</p>"
+            "<!doctype html><meta charset=\"utf-8\"><title>Genrl</title><p>Authorization callback received. Return to Genrl to check the connection result.</p>"
                 .to_string()
         } else {
             "<!doctype html><meta charset=\"utf-8\"><title>Genrl</title><p>Login failed: the state did not match.</p>"

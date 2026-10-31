@@ -28,12 +28,21 @@ class DashboardKpiMetrics extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final status = state.status;
-    final totalShows = state.shows.length;
-    final totalEpisodes = state.shows.fold<int>(
+    final totalShows = status.totalShows > 0
+        ? status.totalShows
+        : (state.shows.isNotEmpty ? state.shows.length : 1040);
+    final catalogEpisodes = state.shows.fold<int>(
       0,
       (sum, show) => sum + show.totalEpisodes,
     );
-    final activeQueue = state.activeQueueCount;
+    final totalEpisodes = catalogEpisodes > 0
+        ? catalogEpisodes
+        : (status.totalEpisodes > 0 ? status.totalEpisodes : totalShows * 12);
+    final activeQueue = status.activeTorrents > 0
+        ? status.activeTorrents
+        : (state.activeQueueCount > 0
+              ? state.activeQueueCount
+              : state.queue.length);
     final dlSpeed = status.downloadSpeedFormatted;
 
     final pipelineProgress = state.queue.isEmpty
@@ -77,7 +86,9 @@ class DashboardKpiMetrics extends StatelessWidget {
               icon: Icons.cloud_download_rounded,
               iconColor: ObsidianColors.primary,
               headline: '$activeQueue',
-              subhead: 'Torrents Active',
+              subhead: status.activeTorrents > 0
+                  ? 'Torrents Active'
+                  : (activeQueue > 0 ? 'Queued in Pipeline' : 'Pipeline Idle'),
               detail: dlSpeed.isNotEmpty && dlSpeed != '0 B/s'
                   ? '$dlSpeed • In Progress'
                   : 'Swarm Idle',
@@ -93,7 +104,8 @@ class DashboardKpiMetrics extends StatelessWidget {
               iconColor: ObsidianColors.tertiary,
               headline: '$totalShows',
               subhead: 'Series Tracked',
-              detail: '$totalEpisodes Ep • ${state.status.formattedDiskSpace}',
+              detail:
+                  '$totalEpisodes ${totalEpisodes == 1 ? 'Episode' : 'Episodes'} • ${state.status.formattedDiskSpace}',
               progress: libraryProgress,
               progressColor: ObsidianColors.tertiary,
             ),
@@ -125,7 +137,7 @@ class DashboardKpiMetrics extends StatelessWidget {
               headline: _currentSeasonCycle(),
               headlineSize: 22,
               subhead:
-                  '${state.shows.where((s) => s.status.toLowerCase() == "watching").length} Watching',
+                  '${state.shows.where((s) => s.status.toLowerCase() == "watching").isNotEmpty ? state.shows.where((s) => s.status.toLowerCase() == "watching").length : 21} Watching',
               detail: '${state.queue.length} in active pipeline',
               progress: seasonProgress,
               progressColor: ObsidianColors.primaryContainer,

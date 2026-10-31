@@ -78,6 +78,7 @@ pub async fn mal_login_cmd(
         bail!("set settings.mal_client_id first (myanimelist.net/apiconfig)");
     }
     let store = KeyringStore;
+    let client_secret = client_secret.or_else(|| std::env::var("GENRL_MAL_CLIENT_SECRET").ok());
     if let Some(sec) = client_secret {
         let sec = sec.trim();
         if !sec.is_empty() {
@@ -99,9 +100,11 @@ pub async fn mal_login_cmd(
     login
         .finish(&client, std::time::Duration::from_secs(300))
         .await?;
+    // Credentials are stored now; do not leave the account in public-profile mode
+    // if the subsequent profile lookup has a transient network failure.
+    settings::write_state(&db, mal::ACCOUNT_SOURCE_STATE_KEY, "mal")?;
     let account = client.account().await?;
     settings::write_state(&db, "mal_account", &account.name)?;
-    settings::write_state(&db, mal::ACCOUNT_SOURCE_STATE_KEY, "mal")?;
     println!("connected as {} (id {})", account.name, account.id);
     Ok(())
 }

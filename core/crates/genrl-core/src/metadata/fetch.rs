@@ -7,7 +7,8 @@ use crate::db::Db;
 use crate::error::Result;
 use crate::events::EventLog;
 use crate::http::{Gate, GetOptions, Service};
-use crate::settings::{self, Settings};
+use crate::mal::{KeyringStore, MalClient};
+use crate::settings::Settings;
 
 use super::apply::{apply_jikan_metadata, apply_mal_metadata, MetadataOutcome};
 use super::models::{
@@ -28,6 +29,23 @@ pub async fn fetch_show_metadata(
     data_dir: &Path,
     mal_id: i64,
     force: bool,
+) -> Result<MetadataOutcome> {
+    let store = KeyringStore;
+    let mal = MalClient::new(gate, settings.clone(), &store, clock);
+    fetch_show_metadata_with_client(db, gate, settings, clock, data_dir, mal_id, force, &mal).await
+}
+
+/// Share a MAL session across a batch; tests inject an in-memory token store.
+#[allow(clippy::too_many_arguments)]
+pub async fn fetch_show_metadata_with_client(
+    db: &Db,
+    gate: &Gate,
+    settings: &Settings,
+    clock: &dyn Clock,
+    data_dir: &Path,
+    mal_id: i64,
+    force: bool,
+    mal: &MalClient<'_>,
 ) -> Result<MetadataOutcome> {
     let now = clock.now();
     let log = EventLog::new(db.clone());
@@ -82,7 +100,7 @@ pub async fn fetch_show_metadata(
         .unwrap_or(false);
 
     // 2. Cache Check: 7 days
-    if !force && meta_status_str == "ready" {
+    if !force && matches!(meta_status_str.as_str(), "ready" | "partial") {
         if let Some(ts) = updated_at {
             if now - ts < 7 * 86400 {
                 let syn_ok = existing_syn
@@ -136,8 +154,19 @@ pub async fn fetch_show_metadata(
     let mut jikan_fetched_data: Option<JikanFullData> = None;
     let mut last_error: Option<String> = None;
     let mut is_404 = false;
+    let mut minimum_retry_secs = 0i64;
 
-    match gate.get_with(Service::Jikan, &jikan_url, &jikan_opts).await {
+    let service_retry_at =
+        crate::settings::read_state_time(db, "jikan_retry_after_at")?.unwrap_or(0);
+    let jikan_result = if service_retry_at > now {
+        Err(crate::Error::RateLimited {
+            service: "jikan".into(),
+            retry_after: Some(Duration::from_secs((service_retry_at - now) as u64)),
+        })
+    } else {
+        gate.get_with(Service::Jikan, &jikan_url, &jikan_opts).await
+    };
+    match jikan_result {
         Ok(fetched) => {
             match fetched.json::<JikanFullResponse>() {
                 Ok(resp) => {
@@ -156,6 +185,32 @@ pub async fn fetch_show_metadata(
             }
         }
         Err(err) => {
+            minimum_retry_secs = match &err {
+                crate::Error::RateLimited {
+                    retry_after: Some(delay),
+                    ..
+                }
+                | crate::Error::Status {
+                    retry_after: Some(delay),
+                    ..
+                } => i64::try_from(delay.as_secs()).unwrap_or(i64::MAX),
+                crate::Error::BreakerOpen { retry_in_secs, .. } => {
+                    i64::try_from(*retry_in_secs).unwrap_or(i64::MAX)
+                }
+                _ => 0,
+            };
+            if matches!(err, crate::Error::RateLimited { .. }) && minimum_retry_secs > 0 {
+                let retry_at = now.saturating_add(minimum_retry_secs);
+                db.with(|c| {
+                    c.execute(
+                        "INSERT INTO settings (key,value) VALUES ('state.jikan_retry_after_at',?1)
+                        ON CONFLICT(key) DO UPDATE SET value=CAST(MAX(
+                        CAST(settings.value AS INTEGER),CAST(excluded.value AS INTEGER)) AS TEXT)",
+                        [retry_at.to_string()],
+                    )?;
+                    Ok(())
+                })?;
+            }
             if matches!(err, crate::Error::Status { status: 404, .. }) {
                 is_404 = true;
                 last_error = Some("Anime not found on Jikan (404)".to_string());
@@ -187,11 +242,17 @@ pub async fn fetch_show_metadata(
     }
 
     // 5. Fallback to MAL API if Jikan has no synopsis or failed
-    if let Ok(Some(access_token)) = settings::read_state(db, "mal_oauth_access_token") {
+    // Access tokens remain in the MAL session, never in SQLite.
+    let access_token = if settings.mal_client_id.trim().is_empty() {
+        None
+    } else {
+        mal.access_token().await.ok()
+    };
+    if let Some(access_token) = access_token {
         if !access_token.trim().is_empty() {
             let mal_base = settings.mal_base_url.trim_end_matches('/');
             let mal_url = format!(
-                "{mal_base}/anime/{mal_id}?fields=synopsis,main_picture,mean,media_type,num_episodes,start_season,alternative_titles,genres,status"
+                "{mal_base}/anime/{mal_id}?fields=synopsis,main_picture,mean,media_type,num_episodes,start_date,start_season,alternative_titles,genres,status"
             );
             let mal_opts = GetOptions {
                 ttl: Some(Duration::from_secs(7 * 86400)),
@@ -203,22 +264,28 @@ pub async fn fetch_show_metadata(
             match gate.get_with(Service::Mal, &mal_url, &mal_opts).await {
                 Ok(fetched) => {
                     if let Ok(mal_data) = fetched.json::<MalApiAnimeDetailResponse>() {
-                        if let Some(ref syn) = mal_data.synopsis {
-                            if !syn.trim().is_empty() {
-                                return apply_mal_metadata(
-                                    db,
-                                    gate,
-                                    data_dir,
-                                    clock,
-                                    mal_id,
-                                    &title,
-                                    english_title.as_deref(),
-                                    folder_path.as_deref(),
-                                    existing_poster.as_deref(),
-                                    &mal_data,
-                                )
-                                .await;
-                            }
+                        if mal_data.id == mal_id
+                            && !mal_data.title.trim().is_empty()
+                            && (mal_data.num_episodes.is_some()
+                                || mal_data.status.is_some()
+                                || mal_data
+                                    .synopsis
+                                    .as_ref()
+                                    .is_some_and(|s| !s.trim().is_empty()))
+                        {
+                            return apply_mal_metadata(
+                                db,
+                                gate,
+                                data_dir,
+                                clock,
+                                mal_id,
+                                &title,
+                                english_title.as_deref(),
+                                folder_path.as_deref(),
+                                existing_poster.as_deref(),
+                                &mal_data,
+                            )
+                            .await;
                         }
                     }
                 }
@@ -293,8 +360,8 @@ pub async fn fetch_show_metadata(
 
     // Transient failure: 429, 5xx, network, etc.
     let new_retry_count = retry_cnt + 1;
-    let backoff_secs = calculate_backoff(new_retry_count);
-    let next_run_at = now + backoff_secs;
+    let backoff_secs = calculate_backoff(new_retry_count).max(minimum_retry_secs);
+    let next_run_at = now.saturating_add(backoff_secs);
     let err_str =
         last_error.unwrap_or_else(|| "Failed to fetch metadata from Jikan or MAL".to_string());
 

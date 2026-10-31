@@ -173,13 +173,21 @@ pub(crate) fn parse_start_year(s: &str) -> Option<i64> {
 }
 
 /// Fetch a user's anime list directly from MAL's public load.json endpoint.
-pub async fn fetch_mal_public_load_json(gate: &Gate, username: &str) -> Result<Vec<MalEntry>> {
+pub async fn fetch_mal_public_load_json(
+    gate: &Gate,
+    settings: &Settings,
+    username: &str,
+) -> Result<Vec<MalEntry>> {
     let mut out = Vec::new();
     let mut offset = 0usize;
+    let base = settings.mal_base_url.trim_end_matches('/');
+    let host = if base.contains("127.0.0.1") || base.contains("localhost") {
+        base
+    } else {
+        "https://myanimelist.net"
+    };
     loop {
-        let url = format!(
-            "https://myanimelist.net/animelist/{username}/load.json?offset={offset}&status=7"
-        );
+        let url = format!("{host}/animelist/{username}/load.json?offset={offset}&status=7");
         let fetched = gate
             .get_with(Service::Mal, &url, &GetOptions::default())
             .await?;

@@ -44,6 +44,7 @@ pub struct Candidate {
     /// Known when the caller matched the name against a typed entry; `None`
     /// means "unknown", which scores nothing but never rejects.
     pub show_type: Option<ShowType>,
+    pub category_id: Option<String>,
 }
 
 impl Candidate {
@@ -61,6 +62,7 @@ impl Candidate {
             published_at: item.published_at,
             uploader: None,
             show_type: None,
+            category_id: Some(item.category_id.clone()),
         }
     }
 }
@@ -80,6 +82,7 @@ pub struct Target<'a> {
     pub season: i64,
     pub start_year: Option<i64>,
     pub fully_aired: bool,
+    pub total_episodes: Option<i64>,
 }
 
 /// Why a candidate was rejected outright.

@@ -80,20 +80,24 @@ class StepQbittorrent extends StatelessWidget {
               Icon(
                 state.status.qbitConnected
                     ? Icons.check_circle_rounded
-                    : Icons.info_outline_rounded,
+                    : Icons.error_outline_rounded,
                 size: 18,
                 color: state.status.qbitConnected
                     ? ObsidianColors.tertiary
-                    : ObsidianColors.outline,
+                    : ObsidianColors.error,
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   state.status.qbitConnected
-                      ? 'Daemon online • qBittorrent ${state.status.qbitVersion} responding'
-                      : 'Endpoint reachable. Credentials verified.',
+                      ? (passwordController.text.isEmpty
+                            ? 'Daemon online • qBittorrent ${state.status.qbitVersion} responding (Authentication bypassed / no password configured)'
+                            : 'Daemon online • qBittorrent ${state.status.qbitVersion} responding (Credentials verified)')
+                      : 'WebUI unreachable on ${urlController.text} — start qBittorrent or check endpoint.',
                   style: ObsidianTypography.bodySm(
-                    color: ObsidianColors.onSurface,
+                    color: state.status.qbitConnected
+                        ? ObsidianColors.onSurface
+                        : ObsidianColors.error,
                   ),
                 ),
               ),

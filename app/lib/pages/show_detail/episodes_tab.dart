@@ -194,7 +194,7 @@ class ShowDetailEpisodesTab extends StatelessWidget {
                   ),
                   child: Center(
                     child: Text(
-                      'EP ${ep.number}',
+                      'EP ${ep.number % 1 == 0 ? ep.number.toInt() : ep.number}',
                       style: ObsidianTypography.monoMetric(
                         color: ObsidianColors.onSurface,
                       ).copyWith(fontWeight: FontWeight.bold, fontSize: 12),
@@ -273,7 +273,7 @@ class ShowDetailEpisodesTab extends StatelessWidget {
                     // Filename Line
                     SelectableText(
                       ep.releaseName ??
-                          '${show.title} - ${ep.number.toString().padLeft(2, '0')}.mkv',
+                          '${show.title} - ${ep.number % 1 == 0 ? ep.number.toInt().toString().padLeft(2, '0') : ep.number}.mkv',
                       style: ObsidianTypography.monoCode(
                         color: ObsidianColors.primary,
                       ),

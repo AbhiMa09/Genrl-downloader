@@ -73,6 +73,9 @@ pub use settings::Settings;
 ///
 /// `$XDG_DATA_HOME/genrl-downloader/` holds `genrl.db`, cached posters and backups.
 pub fn default_data_dir() -> std::path::PathBuf {
+    if std::env::var("GENRL_REQUIRE_SCRATCH").is_ok() {
+        panic!("Refusing to resolve default_data_dir(): GENRL_REQUIRE_SCRATCH=1 is set. All data paths must come from the single data-dir the process was started with.");
+    }
     if let Ok(xdg) = std::env::var("XDG_DATA_HOME") {
         if !xdg.is_empty() {
             return std::path::PathBuf::from(xdg).join("genrl-downloader");

@@ -136,6 +136,24 @@ List<InboxItem> parseInboxItems(List<dynamic> list) {
         InboxChoice(key: 'search_again', label: 'Search again'),
       ];
     }
+
+    final rawPayload = m['payload'];
+    final payload = rawPayload is Map ? rawPayload : <String, dynamic>{};
+    if (qt == QuestionType.matchReview && payload['options'] is List) {
+      choices = [
+        for (final option in payload['options'] as List)
+          if (option is Map &&
+              RegExp(r'^[a-fA-F0-9]{40}$')
+                  .hasMatch(option['info_hash']?.toString() ?? ''))
+            InboxChoice(
+              key: option['info_hash'].toString(),
+              label:
+                  'Accept ${option['name']} (${((option['size_bytes'] as num? ?? 0) / 1000000000).toStringAsFixed(2)} GB, ${option['seeders'] ?? 0} seeds)',
+            ),
+        const InboxChoice(key: 'wrong_release', label: 'Wrong release'),
+        ...choices,
+      ];
+    }
     final createdAtTs = (m['created_at'] as num?)?.toInt() ?? 0;
     return InboxItem(
       id: (m['id'] as num).toInt(),
@@ -143,7 +161,7 @@ List<InboxItem> parseInboxItems(List<dynamic> list) {
       malId: (m['mal_id'] as num?)?.toInt() ?? 0,
       showTitle: m['show_title']?.toString() ?? 'Question',
       title: 'Attention Required: $kind',
-      details: m['payload']?.toString() ?? '',
+      details: payload['reason']?.toString() ?? m['payload']?.toString() ?? '',
       type: qt,
       choices: choices,
       createdAt: DateTime.fromMillisecondsSinceEpoch(createdAtTs * 1000),

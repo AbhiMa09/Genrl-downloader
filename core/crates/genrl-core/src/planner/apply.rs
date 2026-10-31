@@ -118,6 +118,23 @@ pub fn plan_single(
     mal_id: i64,
     target_episode: Option<f64>,
 ) -> Result<usize> {
+    let (metadata, title, total, status_str): (String, String, Option<i64>, Option<String>) = db
+        .with(|c| {
+            Ok(c.query_row(
+            "SELECT metadata_status, title, total_episodes, status FROM shows WHERE mal_id = ?1",
+            [mal_id],
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)),
+        )?)
+        })?;
+    if !matches!(metadata.as_str(), "ready" | "partial")
+        || title.trim().is_empty()
+        || title.trim().eq_ignore_ascii_case("unknown")
+        || (target_episode.is_none() && total.unwrap_or(0) <= 0)
+    {
+        return Err(crate::Error::Other(
+            "Metadata unresolved: refresh metadata before downloading this show or season".into(),
+        ));
+    }
     let entry = db.with(|c| {
         let entry = c.query_row(
             "SELECT s.mal_id, s.title, s.english_title, s.start_year, s.total_episodes, s.season, s.episode_offset
@@ -174,10 +191,13 @@ pub fn plan_single(
     };
 
     let rules = crate::rules::Rules::for_show(db, mal_id)?;
+    let is_finished = status_str
+        .map(|s| crate::models::AiringStatus::parse(&s) == crate::models::AiringStatus::Finished)
+        .unwrap_or_else(|| entry.airing_finished());
     let should_batch_season = target_episode.is_none()
         && eps_to_queue.len() > 1
         && rules.prefer_batch_when_finished
-        && entry.airing_finished();
+        && is_finished;
 
     let mut queued = 0;
     if should_batch_season {

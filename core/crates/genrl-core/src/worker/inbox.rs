@@ -53,6 +53,33 @@ pub fn apply_answer(
                 )?;
                 Ok(())
             })?;
+
+            if answer.always {
+                if let Some(mal_id) = mal_id {
+                    let group: Option<String> = db.with(|c| {
+                        Ok(c.query_row(
+                            "SELECT \"group\" FROM torrents WHERE info_hash = ?1",
+                            [info_hash],
+                            |r| r.get(0),
+                        )
+                        .ok()
+                        .flatten())
+                    })?;
+                    if let Some(group) = group {
+                        let group_trimmed = group.trim().to_string();
+                        if !group_trimmed.is_empty() {
+                            crate::rules::Rules::set_override(
+                                db,
+                                mal_id,
+                                "groups",
+                                vec![group_trimmed.clone()],
+                            )?;
+                            auto_resolve_show_questions(db, mal_id, &group_trimmed)?;
+                        }
+                    }
+                }
+            }
+
             Some(JobState::Add)
         }
         Choice::NoneOfThese => {
@@ -61,6 +88,7 @@ pub fn apply_answer(
             Some(JobState::Failed)
         }
         Choice::SearchAgain => Some(JobState::Search),
+        Choice::WrongRelease => Some(JobState::Search),
         Choice::Alias { name } => {
             if let Some(mal_id) = mal_id {
                 names_alias(db, mal_id, name)?;
@@ -147,6 +175,7 @@ pub fn apply_answer(
         clear_torrent: matches!(answer.choice, Choice::PickAnother | Choice::NoneOfThese),
         blocked_from: None,
         count_attempt: false,
+        next_run_at: None,
     };
     jobs::transition(
         db,
@@ -177,6 +206,7 @@ fn answer_label(choice: &Choice) -> String {
         Choice::ChangeFolder => "choose another folder".to_string(),
         Choice::RetryLater => "retry later".to_string(),
         Choice::ManualSearch => "manual search".to_string(),
+        Choice::WrongRelease => "wrong release".to_string(),
         Choice::SkipEpisode => "skip this episode".to_string(),
         Choice::Expired => "expired".to_string(),
     }
@@ -207,4 +237,57 @@ pub fn expected_show(mal_id: i64, title: &str, english_title: Option<String>) ->
         english_title,
         year: None,
     }
+}
+
+fn auto_resolve_show_questions(db: &Db, mal_id: i64, group: &str) -> Result<()> {
+    let group_norm = group.trim().to_ascii_lowercase();
+    let open_questions: Vec<(i64, Option<i64>, String)> = db.with(|c| {
+        let mut stmt = c.prepare(
+            "SELECT id, job_id, payload FROM questions
+             WHERE mal_id = ?1 AND answer IS NULL AND kind = 'match_review'",
+        )?;
+        let rows = stmt.query_map([mal_id], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)))?;
+        let mut list = Vec::new();
+        for row in rows {
+            list.push(row?);
+        }
+        Ok(list)
+    })?;
+
+    for (qid, q_job_id, payload_str) in open_questions {
+        if let Ok(crate::questions::Payload::MatchReview { options, .. }) =
+            serde_json::from_str::<crate::questions::Payload>(&payload_str)
+        {
+            if let Some(matched_opt) = options.iter().find(|opt| {
+                opt.group
+                    .as_deref()
+                    .map(|g| g.trim().to_ascii_lowercase() == group_norm)
+                    .unwrap_or(false)
+            }) {
+                let ans = crate::questions::Answer {
+                    choice: crate::questions::Choice::UseThis {
+                        info_hash: matched_opt.info_hash.clone(),
+                    },
+                    always: true,
+                };
+                let ans_json = serde_json::to_string(&ans)?;
+                db.with(|c| {
+                    c.execute(
+                        "UPDATE questions SET answer = ?1 WHERE id = ?2",
+                        rusqlite::params![ans_json, qid],
+                    )?;
+                    if let Some(jid) = q_job_id {
+                        c.execute(
+                            "UPDATE jobs SET torrent_id = (SELECT id FROM torrents WHERE info_hash = ?2),
+                                            state = 'add', last_error = NULL
+                             WHERE id = ?1 AND state = 'needs_input'",
+                            rusqlite::params![jid, matched_opt.info_hash],
+                        )?;
+                    }
+                    Ok(())
+                })?;
+            }
+        }
+    }
+    Ok(())
 }

@@ -67,6 +67,8 @@ pub struct Settings {
     pub mal_sync_interval_min: u32,
     pub jikan_per_second: f64,
     pub jikan_per_minute: u32,
+    /// Jikan circuit-breaker cooldown; pending shows wait without being failed.
+    pub jikan_breaker_cooldown_secs: u64,
     /// Nyaa gets one request per this many seconds, globally.
     pub nyaa_interval_secs: f64,
     pub mal_cache_secs: u32,
@@ -91,7 +93,11 @@ pub struct Settings {
     pub question_expiry_hours: u32,
     /// Size sanity range for a 24-minute episode; catches fakes and mislabeled batches.
     pub min_episode_mb: u64,
+    #[serde(default = "default_max_episode_mb")]
     pub max_episode_mb: u64,
+    /// Batch/season torrent total size limit in GB (default 200 GB).
+    #[serde(default = "default_max_batch_gb")]
+    pub max_batch_gb: u64,
 
     // --- Endpoints ----------------------------------------------------------
     pub nyaa_base_url: String,
@@ -120,6 +126,14 @@ pub struct Settings {
     pub events_keep_rows: u64,
     /// Cap the response cache, pruning oldest first.
     pub http_cache_keep_rows: u64,
+}
+
+fn default_max_episode_mb() -> u64 {
+    2560
+}
+
+fn default_max_batch_gb() -> u64 {
+    200
 }
 
 impl Default for Settings {
@@ -151,6 +165,7 @@ impl Default for Settings {
             mal_sync_interval_min: 30,
             jikan_per_second: 2.0,
             jikan_per_minute: 50,
+            jikan_breaker_cooldown_secs: 60,
             nyaa_interval_secs: 2.0,
             mal_cache_secs: 1800,
             jikan_cache_secs: 7 * 24 * 3600,
@@ -164,7 +179,8 @@ impl Default for Settings {
             max_failed_candidates: 3,
             question_expiry_hours: 72,
             min_episode_mb: 100,
-            max_episode_mb: 4096,
+            max_episode_mb: 2560,
+            max_batch_gb: 200,
 
             nyaa_base_url: "https://nyaa.si".to_string(),
             nyaa_mirrors: Vec::new(),
@@ -275,8 +291,14 @@ impl Settings {
         if self.jikan_per_second <= 0.0 {
             return bad("jikan_per_second must be greater than 0");
         }
+        if self.jikan_breaker_cooldown_secs == 0 {
+            return bad("jikan_breaker_cooldown_secs must be greater than 0");
+        }
         if self.min_episode_mb >= self.max_episode_mb {
             return bad("min_episode_mb must be smaller than max_episode_mb");
+        }
+        if self.max_batch_gb == 0 {
+            return bad("max_batch_gb must be greater than 0");
         }
         if self.score_threshold > 100.0 {
             return bad("score_threshold is a score out of 100");
@@ -364,7 +386,8 @@ mod tests {
         assert_eq!(s.score_threshold, 80.0);
         assert_eq!(s.score_margin, 15.0);
         assert_eq!(s.min_episode_mb, 100);
-        assert_eq!(s.max_episode_mb, 4096);
+        assert_eq!(s.max_episode_mb, 2560);
+        assert_eq!(s.max_batch_gb, 200);
         assert_eq!(s.mal_sync_interval_min, 30);
         assert_eq!(s.jikan_per_second, 2.0);
         assert_eq!(s.jikan_per_minute, 50);

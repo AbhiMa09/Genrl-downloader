@@ -21,6 +21,18 @@ void main() {
       '/run/genrl/daemon.sock',
       'socket/port check',
       '5E2A9D11',
+      '/media/genrl/anime',
+      'ren_kurokawa',
+      '/mnt/anime/TV',
+      'v2.4.1',
+      '40.8',
+      '1428',
+      '12-sai',
+      '1080p Remux',
+      'Auto-snatch: ENABLED',
+      '428 GB',
+      '18475',
+      'Aku-gaki',
     ];
 
     final violations = <String>[];

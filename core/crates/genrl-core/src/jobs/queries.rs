@@ -23,6 +23,7 @@ pub fn due_jobs(db: &Db, now: i64, kinds: &[JobKind], limit: usize) -> Result<Ve
                 created_at, updated_at, progress, last_progress_at, blocked_from
          FROM jobs
          WHERE (next_run_at IS NULL OR next_run_at <= ?1){kind_filter}
+           AND state NOT IN ('blocked', 'needs_input', 'failed', 'done')
          ORDER BY created_at LIMIT ?2"
     );
     let mut params: Vec<Box<dyn rusqlite::ToSql>> = vec![Box::new(now), Box::new(limit as i64)];

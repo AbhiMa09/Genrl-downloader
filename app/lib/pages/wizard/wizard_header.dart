@@ -1,12 +1,46 @@
 import 'package:flutter/material.dart';
 
+import '../../constants/app_version.dart';
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
 
 class WizardHeader extends StatelessWidget {
   final VoidCallback onClose;
+  final int currentStep;
 
-  const WizardHeader({super.key, required this.onClose});
+  const WizardHeader({super.key, required this.onClose, this.currentStep = 4});
+
+  String get _title {
+    switch (currentStep) {
+      case 0:
+        return 'MyAnimeList Account Connection';
+      case 1:
+        return 'qBittorrent Integration';
+      case 2:
+        return 'Media Library & Storage Paths';
+      case 3:
+        return 'Quality & Download Rules';
+      case 4:
+      default:
+        return 'Initial Library Synchronization & Review';
+    }
+  }
+
+  String get _subtitle {
+    switch (currentStep) {
+      case 0:
+        return 'Connect your MyAnimeList account to sync your watching list and plan download queues.';
+      case 1:
+        return 'Connect to local or remote qBittorrent WebUI daemon for automated queue management.';
+      case 2:
+        return 'Configure base directories for ongoing torrent downloads and organized anime library folders.';
+      case 3:
+        return 'Configure resolution floors, release group preferences, and automation filters.';
+      case 4:
+      default:
+        return 'Review detected library manifests, ingestion queue volume, and confirm automation daemon state before starting.';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,7 +90,7 @@ class WizardHeader extends StatelessWidget {
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        'v2.4.1',
+                        kAppVersion,
                         style: ObsidianTypography.labelBadge(
                           color: ObsidianColors.outline,
                         ),
@@ -73,7 +107,7 @@ class WizardHeader extends StatelessWidget {
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        'Step 5 of 5',
+                        'Step ${currentStep + 1} of 5',
                         style: ObsidianTypography.labelBadge(
                           color: ObsidianColors.secondary,
                         ),
@@ -82,13 +116,10 @@ class WizardHeader extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 6),
-                Text(
-                  'Initial Library Synchronization & Review',
-                  style: ObsidianTypography.headlineMd(),
-                ),
+                Text(_title, style: ObsidianTypography.headlineMd()),
                 const SizedBox(height: 4),
                 Text(
-                  'Review detected library manifests, ingestion queue volume, and confirm automation daemon state before starting.',
+                  _subtitle,
                   style: ObsidianTypography.bodySm(
                     color: ObsidianColors.onSurfaceVariant,
                   ),

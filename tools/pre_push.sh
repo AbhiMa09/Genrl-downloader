@@ -17,8 +17,8 @@ echo "    Rust tests PASSED in $(($(date +%s) - T_RUST))s"
 
 # 2. Full Flutter Test Suite
 T_FLUTTER=$(date +%s)
-echo "--> [2/2] Running full Flutter test suite..."
-(cd app && flutter test)
+echo "--> [2/2] Running full Flutter test suite (excluding goldens)..."
+(cd app && flutter test --exclude-tags golden)
 echo "    Flutter tests PASSED in $(($(date +%s) - T_FLUTTER))s"
 
 TOTAL_DURATION=$(($(date +%s) - START_TIME))

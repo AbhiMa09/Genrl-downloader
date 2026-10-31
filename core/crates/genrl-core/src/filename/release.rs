@@ -32,6 +32,7 @@ pub struct Release {
     pub version: Option<u32>,
     /// Year in the release name (remakes with the same title differ here).
     pub year: Option<i64>,
+    pub episode_range: Option<(f64, f64)>,
     /// File extension when the name is a filename, lower-cased without the dot.
     pub extension: Option<String>,
     /// Where the episode token started in `raw`, so the title can be cut there.
@@ -58,11 +59,40 @@ pub fn re(pattern: &str) -> &'static Regex {
 pub const VIDEO_EXTENSIONS: &[&str] = &["mkv", "mp4", "avi", "m2ts", "ts", "wmv", "mov", "webm"];
 
 pub fn extract_season_episode(name: &str, release: &mut Release) -> Option<usize> {
+    // `S01E01-E11` / `S01E01-11` range batch
+    if let Some(caps) =
+        re(r"(?i)\bS(\d{1,2})\s*[- ]?\s*E(\d{1,3})\s*-\s*E?(\d{1,3})\b").captures(name)
+    {
+        release.season = caps[1].parse().ok();
+        release.is_batch = true;
+        let from: Option<f64> = caps[2].parse().ok();
+        let to: Option<f64> = caps[3].parse().ok();
+        if let (Some(f), Some(t)) = (from, to) {
+            release.episode_range = Some((f, t));
+        }
+        return Some(caps.get(0).unwrap().start());
+    }
+
     // `S01E05` / `S1E5`
     if let Some(caps) = re(r"(?i)\bS(\d{1,2})\s*[- ]?\s*E(\d{1,3})\b").captures(name) {
         release.season = caps[1].parse().ok();
         release.episode = caps[2].parse().ok();
         return Some(caps.get(0).unwrap().start());
+    }
+
+    // Season indicator: `4th Season`, `Season 2`, `S2`
+    if release.season.is_none() {
+        if let Some(caps) = re(r"(?i)\b(\d{1,2})(?:st|nd|rd|th)\s*season\b").captures(name) {
+            release.season = caps[1].parse().ok();
+        } else if let Some(caps) = re(r"(?i)\bSEASON\s*(\d{1,2})\b").captures(name) {
+            release.season = caps[1].parse().ok();
+        } else if let Some(caps) = re(r"(?i)\bS(\d{1,2})\s*(?:v(\d+))?\b").captures(name) {
+            release.season = caps[1].parse().ok();
+            release.version = caps.get(2).and_then(|m| m.as_str().parse().ok());
+            if release.version.is_some() {
+                release.is_batch = true;
+            }
+        }
     }
 
     // `01-12` range: a batch, and deliberately not an episode.
@@ -71,6 +101,7 @@ pub fn extract_season_episode(name: &str, release: &mut Release) -> Option<usize
         let to: f64 = caps[2].parse().unwrap_or(0.0);
         if to > from {
             release.is_batch = true;
+            release.episode_range = Some((from, to));
             return Some(caps.get(0).unwrap().start());
         }
     }
@@ -94,18 +125,6 @@ pub fn extract_season_episode(name: &str, release: &mut Release) -> Option<usize
         return Some(caps.get(0).unwrap().start());
     }
 
-    // Season only: `S01v2` / `Season 2` — usually a batch.
-    if let Some(caps) = re(r"(?i)\bS(\d{1,2})\s*(?:v(\d+))?\b").captures(name) {
-        release.season = caps[1].parse().ok();
-        release.version = caps.get(2).and_then(|m| m.as_str().parse().ok());
-        if release.version.is_some() {
-            release.is_batch = true;
-        }
-        return None;
-    }
-    if let Some(caps) = re(r"(?i)\bSEASON\s*(\d{1,2})\b").captures(name) {
-        release.season = caps[1].parse().ok();
-    }
     None
 }
 
@@ -210,7 +229,7 @@ pub fn extract_languages(name: &str) -> Vec<String> {
 }
 
 pub fn contains_dual_audio(name: &str) -> bool {
-    re(r"(?i)\bdual[-\s]?audio\b|\bmulti[-\s]?audio\b").is_match(name)
+    re(r"(?i)\bdual([-\s]?audio)?\b|\bmulti[-\s]?audio\b").is_match(name)
 }
 
 pub fn is_metadata_bracket(inner: &str) -> bool {
@@ -219,11 +238,48 @@ pub fn is_metadata_bracket(inner: &str) -> bool {
     if inner.len() == 4 && bytes.iter().all(|b| b.is_ascii_digit()) && lower.starts_with('2') {
         return true;
     }
-    re(r"(?i)^\s*(\d{3,4}p|4k|bd|bluray|web-?dl|webrip|hevc|x26[45]|avc|av1|aac|flac|dual[\s-]?audio|multisub|batch|complete)\s*$")
+    re(r"(?i)^\s*(\d{3,4}p|4k|bd|bluray|web-?dl|webrip|hevc|x26[45]|avc|av1|aac|flac|dual([\s-]?audio)?|multisub|batch|complete)\s*$")
         .is_match(inner)
         || re(r"(?i)^[0-9A-F]{8}$").is_match(inner)
 }
 
 pub fn batch_range() -> &'static Regex {
     re(r"(?:^|[\s])\d{1,3}\s*-\s*\d{1,3}(?:\s|$)")
+}
+
+/// Extract explicit season number from a title if present (e.g. "4th Season", "Season 2", "S04", "Mob Psycho 100 III").
+pub fn extract_season_from_title(title: &str) -> Option<i64> {
+    if let Some(caps) = re(r"(?i)\b(\d{1,2})(?:st|nd|rd|th)\s*season\b").captures(title) {
+        return caps[1].parse().ok();
+    }
+    if let Some(caps) = re(r"(?i)\bSEASON\s*(\d{1,2})\b").captures(title) {
+        return caps[1].parse().ok();
+    }
+    if let Some(caps) = re(r"(?i)\bS(\d{1,2})\b").captures(title) {
+        return caps[1].parse().ok();
+    }
+    // Roman numeral season markers (e.g. "Mob Psycho 100 III", "Overlord IV", "Kingdom III")
+    if let Some(caps) = re(r"\b(II|III|IV|VI|VII|VIII|IX|X)\b").captures(title) {
+        let val = match &caps[1] {
+            "II" => 2,
+            "III" => 3,
+            "IV" => 4,
+            "VI" => 6,
+            "VII" => 7,
+            "VIII" => 8,
+            "IX" => 9,
+            "X" => 10,
+            _ => return None,
+        };
+        return Some(val);
+    }
+    None
+}
+
+/// Check if title indicates a sub-split (Cour 2, Part 2) without its own distinct season.
+pub fn is_cour_or_part_split(title: &str) -> bool {
+    re(r"(?i)\b(?:cour|part)\s*\d{1,2}\b").is_match(title)
+        && !re(r"(?i)\b\d{1,2}(?:st|nd|rd|th)\s*season\b").is_match(title)
+        && !re(r"(?i)\bseason\s*\d{1,2}\b").is_match(title)
+        && !re(r"(?i)\bS\d{1,2}\b").is_match(title)
 }

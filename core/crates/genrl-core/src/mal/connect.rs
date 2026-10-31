@@ -93,6 +93,8 @@ pub async fn mal_status(
         let client = MalClient::new(gate, settings.clone(), store, clock);
         match client.account().await {
             Ok(acc) => {
+                let _ = settings::write_state(db, "mal_account", &acc.name);
+                let _ = settings::write_state(db, ACCOUNT_SOURCE_STATE_KEY, "mal");
                 return Ok(MalStatusResult {
                     status: "connected".to_string(),
                     username: Some(acc.name),
@@ -104,9 +106,10 @@ pub async fn mal_status(
                 });
             }
             Err(Error::Auth { .. }) => {
+                let saved = settings::read_state(db, "mal_account").ok().flatten();
                 return Ok(MalStatusResult {
                     status: "token_expired".to_string(),
-                    username: None,
+                    username: saved,
                     source: Some("mal".to_string()),
                     avatar_url: None,
                     last_sync_at: last_sync,
@@ -115,9 +118,10 @@ pub async fn mal_status(
                 });
             }
             Err(_) => {
+                let saved = settings::read_state(db, "mal_account").ok().flatten();
                 return Ok(MalStatusResult {
                     status: "connected".to_string(),
-                    username: None,
+                    username: saved,
                     source: Some("mal".to_string()),
                     avatar_url: None,
                     last_sync_at: last_sync,
@@ -185,6 +189,14 @@ pub async fn mal_sync(
     store: &dyn TokenStore,
     clock: &dyn Clock,
 ) -> Result<SyncReport> {
+    let source = settings::read_state(db, ACCOUNT_SOURCE_STATE_KEY)?.unwrap_or_default();
+    if source == "jikan" {
+        if let Some(user) = settings::read_state(db, JIKAN_USER_STATE_KEY)? {
+            if !user.trim().is_empty() {
+                return sync_jikan(db, gate, settings, clock, &user).await;
+            }
+        }
+    }
     if store.refresh_token().ok().flatten().is_some() {
         let client = MalClient::new(gate, settings.clone(), store, clock);
         sync(&client).await

@@ -37,7 +37,7 @@ class StepMalAccount extends StatelessWidget {
           controller: userController,
           decoration: const InputDecoration(
             labelText: 'MAL Username',
-            hintText: 'e.g. ren_kurokawa',
+            hintText: 'e.g. your_mal_username',
             prefixIcon: Icon(Icons.person_outline_rounded),
           ),
         ),

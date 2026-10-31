@@ -44,6 +44,7 @@ mod tests {
             season: 1,
             start_year: Some(2023),
             fully_aired: true,
+            total_episodes: Some(28),
         }
     }
 
@@ -257,13 +258,9 @@ mod tests {
             ..Rules::default()
         };
         let (_r, c) = candidate("[SubsPlease] Sousou no Frieren - 28 (1080p).mkv", 53);
-        assert_eq!(
-            evaluate(&c, &t, &rules, &settings, now()).unwrap_err(),
-            Rejection::SizeOutOfRange {
-                size_mb: 1525,
-                min_mb: 100,
-                max_mb: 1024
-            }
+        assert!(
+            evaluate(&c, &t, &rules, &settings, now()).is_ok(),
+            "large releases remain candidates; add requires explicit confirmation"
         );
 
         // Blocked uploader.
@@ -322,7 +319,8 @@ mod tests {
             start_year: Some(2023),
             ..frieren_target(&names, &others)
         };
-        let (_r, c) = candidate("[Judas] Sousou no Frieren - 01-28 [Batch] [BD 1080p]", 53);
+        let (_r, mut c) = candidate("[Judas] Sousou no Frieren - 01-28 [Batch] [BD 1080p]", 53);
+        c.size_bytes = 20 * 1024 * 1024 * 1024;
         let scored = evaluate(&c, &t, &Rules::default(), &settings, now()).unwrap();
         assert_eq!(scored.signal, 95.0, "{scored:?}"); // title 50 + feature 30 + batch 15
 
@@ -333,7 +331,8 @@ mod tests {
             wanted_episode: Some(28.0),
             ..t
         };
-        let (_r, c) = candidate("[Judas] Sousou no Frieren - 01-28 [Batch] [BD 1080p]", 53);
+        let (_r, mut c) = candidate("[Judas] Sousou no Frieren - 01-28 [Batch] [BD 1080p]", 53);
+        c.size_bytes = 20 * 1024 * 1024 * 1024;
         let scored = evaluate(&c, &t, &Rules::default(), &settings, now()).unwrap();
         assert_eq!(scored.signal, 50.0, "{scored:?}"); // title only
 
@@ -383,6 +382,7 @@ mod tests {
             "[EMBER] 9: Ruler's Crown (2025) (Season 1) [1080p] [Batch]",
             14,
         );
+        batch_cand.size_bytes = 14 * 1024 * 1024 * 1024;
         batch_cand.show_type = Some(ShowType::Tv);
         let batch_scored = evaluate(&batch_cand, &t, &rules, &settings, now()).unwrap();
         assert_eq!(batch_scored.signal, 110.0); // 50 title + 10 type + 50 batch

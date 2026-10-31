@@ -131,7 +131,7 @@ class _ShowDetailRulesTabState extends State<ShowDetailRulesTab> {
                         items: const [
                           DropdownMenuItem(
                             value: '1080p',
-                            child: Text('BD 1080p Remux (Selected)'),
+                            child: Text('1080p BD / WEB-DL (Selected)'),
                           ),
                           DropdownMenuItem(
                             value: '2160p',

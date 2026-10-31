@@ -401,7 +401,22 @@ async fn full_end_to_end_flow_from_planning_to_library_and_rescan() {
         temp.path().to_path_buf(),
     ));
 
-    let engine = Engine::new(db.clone(), gate, clock.clone(), finalizer, disk);
+    let engine = Engine::new(
+        db.clone(),
+        gate,
+        clock.clone(),
+        finalizer,
+        disk,
+        temp.path().to_path_buf(),
+    );
+
+    // MOCK queue fixture starts with resolved metadata. Metadata ingestion is
+    // covered separately; this test exercises matching through finalization.
+    db.with(|c| {
+        c.execute("UPDATE shows SET metadata_status = 'ready'", [])?;
+        Ok(())
+    })
+    .unwrap();
 
     // 8. Run Engine steps
     // Step 1: Search -> Choose

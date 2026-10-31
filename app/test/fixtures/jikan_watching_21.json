@@ -1,0 +1,569 @@
+{
+  "21": {
+    "data": {
+      "mal_id": 21,
+      "title": "One Piece",
+      "title_english": "One Piece",
+      "synopsis": "Synopsis for One Piece",
+      "score": 8.0,
+      "type": "tv",
+      "episodes": null,
+      "status": "Currently Airing",
+      "year": 1999,
+      "aired": {
+        "prop": {
+          "from": {
+            "year": 1999
+          }
+        },
+        "string": "1999"
+      },
+      "images": {
+        "jpg": {
+          "image_url": "https://cdn.myanimelist.net/images/anime/21.jpg",
+          "large_image_url": "https://cdn.myanimelist.net/images/anime/21l.jpg"
+        }
+      }
+    }
+  },
+  "169": {
+    "data": {
+      "mal_id": 169,
+      "title": "Shingetsutan Tsukihime",
+      "title_english": "Lunar Legend Tsukihime",
+      "synopsis": "Synopsis for Shingetsutan Tsukihime",
+      "score": 8.0,
+      "type": "tv",
+      "episodes": 12,
+      "status": "Finished Airing",
+      "year": 2003,
+      "aired": {
+        "prop": {
+          "from": {
+            "year": 2003
+          }
+        },
+        "string": "2003"
+      },
+      "images": {
+        "jpg": {
+          "image_url": "https://cdn.myanimelist.net/images/anime/169.jpg",
+          "large_image_url": "https://cdn.myanimelist.net/images/anime/169l.jpg"
+        }
+      }
+    }
+  },
+  "195": {
+    "data": {
+      "mal_id": 195,
+      "title": "Onegai\u2606Teacher",
+      "title_english": "Please Teacher!",
+      "synopsis": "Synopsis for Onegai\u2606Teacher",
+      "score": 8.0,
+      "type": "tv",
+      "episodes": 12,
+      "status": "Finished Airing",
+      "year": 2002,
+      "aired": {
+        "prop": {
+          "from": {
+            "year": 2002
+          }
+        },
+        "string": "2002"
+      },
+      "images": {
+        "jpg": {
+          "image_url": "https://cdn.myanimelist.net/images/anime/195.jpg",
+          "large_image_url": "https://cdn.myanimelist.net/images/anime/195l.jpg"
+        }
+      }
+    }
+  },
+  "235": {
+    "data": {
+      "mal_id": 235,
+      "title": "Meitantei Conan",
+      "title_english": "Case Closed",
+      "synopsis": "Synopsis for Meitantei Conan",
+      "score": 8.0,
+      "type": "tv",
+      "episodes": null,
+      "status": "Currently Airing",
+      "year": 1996,
+      "aired": {
+        "prop": {
+          "from": {
+            "year": 1996
+          }
+        },
+        "string": "1996"
+      },
+      "images": {
+        "jpg": {
+          "image_url": "https://cdn.myanimelist.net/images/anime/235.jpg",
+          "large_image_url": "https://cdn.myanimelist.net/images/anime/235l.jpg"
+        }
+      }
+    }
+  },
+  "9760": {
+    "data": {
+      "mal_id": 9760,
+      "title": "Hoshi wo Ou Kodomo",
+      "title_english": "Children Who Chase Lost Voices",
+      "synopsis": "Synopsis for Hoshi wo Ou Kodomo",
+      "score": 8.0,
+      "type": "tv",
+      "episodes": 1,
+      "status": "Finished Airing",
+      "year": 2011,
+      "aired": {
+        "prop": {
+          "from": {
+            "year": 2011
+          }
+        },
+        "string": "2011"
+      },
+      "images": {
+        "jpg": {
+          "image_url": "https://cdn.myanimelist.net/images/anime/9760.jpg",
+          "large_image_url": "https://cdn.myanimelist.net/images/anime/9760l.jpg"
+        }
+      }
+    }
+  },
+  "10029": {
+    "data": {
+      "mal_id": 10029,
+      "title": "Coquelicot-zaka kara",
+      "title_english": "From Up on Poppy Hill",
+      "synopsis": "Synopsis for Coquelicot-zaka kara",
+      "score": 8.0,
+      "type": "tv",
+      "episodes": 1,
+      "status": "Finished Airing",
+      "year": 2011,
+      "aired": {
+        "prop": {
+          "from": {
+            "year": 2011
+          }
+        },
+        "string": "2011"
+      },
+      "images": {
+        "jpg": {
+          "image_url": "https://cdn.myanimelist.net/images/anime/10029.jpg",
+          "large_image_url": "https://cdn.myanimelist.net/images/anime/10029l.jpg"
+        }
+      }
+    }
+  },
+  "12175": {
+    "data": {
+      "mal_id": 12175,
+      "title": "Koi to Senkyo to Chocolate",
+      "title_english": "Love, Election and Chocolate",
+      "synopsis": "Synopsis for Koi to Senkyo to Chocolate",
+      "score": 8.0,
+      "type": "tv",
+      "episodes": 12,
+      "status": "Finished Airing",
+      "year": 2012,
+      "aired": {
+        "prop": {
+          "from": {
+            "year": 2012
+          }
+        },
+        "string": "2012"
+      },
+      "images": {
+        "jpg": {
+          "image_url": "https://cdn.myanimelist.net/images/anime/12175.jpg",
+          "large_image_url": "https://cdn.myanimelist.net/images/anime/12175l.jpg"
+        }
+      }
+    }
+  },
+  "16355": {
+    "data": {
+      "mal_id": 16355,
+      "title": "Dansai Bunri no Crime Edge",
+      "title_english": "The Severing Crime Edge",
+      "synopsis": "Synopsis for Dansai Bunri no Crime Edge",
+      "score": 8.0,
+      "type": "tv",
+      "episodes": 13,
+      "status": "Finished Airing",
+      "year": 2013,
+      "aired": {
+        "prop": {
+          "from": {
+            "year": 2013
+          }
+        },
+        "string": "2013"
+      },
+      "images": {
+        "jpg": {
+          "image_url": "https://cdn.myanimelist.net/images/anime/16355.jpg",
+          "large_image_url": "https://cdn.myanimelist.net/images/anime/16355l.jpg"
+        }
+      }
+    }
+  },
+  "32827": {
+    "data": {
+      "mal_id": 32827,
+      "title": "B: The Beginning",
+      "title_english": "B: The Beginning",
+      "synopsis": "Synopsis for B: The Beginning",
+      "score": 8.0,
+      "type": "tv",
+      "episodes": 12,
+      "status": "Finished Airing",
+      "year": 2018,
+      "aired": {
+        "prop": {
+          "from": {
+            "year": 2018
+          }
+        },
+        "string": "2018"
+      },
+      "images": {
+        "jpg": {
+          "image_url": "https://cdn.myanimelist.net/images/anime/32827.jpg",
+          "large_image_url": "https://cdn.myanimelist.net/images/anime/32827l.jpg"
+        }
+      }
+    }
+  },
+  "34566": {
+    "data": {
+      "mal_id": 34566,
+      "title": "Boruto: Naruto Next Generations",
+      "title_english": "Boruto: Naruto Next Generations",
+      "synopsis": "Synopsis for Boruto: Naruto Next Generations",
+      "score": 8.0,
+      "type": "tv",
+      "episodes": 293,
+      "status": "Finished Airing",
+      "year": 2017,
+      "aired": {
+        "prop": {
+          "from": {
+            "year": 2017
+          }
+        },
+        "string": "2017"
+      },
+      "images": {
+        "jpg": {
+          "image_url": "https://cdn.myanimelist.net/images/anime/34566.jpg",
+          "large_image_url": "https://cdn.myanimelist.net/images/anime/34566l.jpg"
+        }
+      }
+    }
+  },
+  "37396": {
+    "data": {
+      "mal_id": 37396,
+      "title": "Shikioriori",
+      "title_english": "Flavors of Youth",
+      "synopsis": "Synopsis for Shikioriori",
+      "score": 8.0,
+      "type": "tv",
+      "episodes": 3,
+      "status": "Finished Airing",
+      "year": 2018,
+      "aired": {
+        "prop": {
+          "from": {
+            "year": 2018
+          }
+        },
+        "string": "2018"
+      },
+      "images": {
+        "jpg": {
+          "image_url": "https://cdn.myanimelist.net/images/anime/37396.jpg",
+          "large_image_url": "https://cdn.myanimelist.net/images/anime/37396l.jpg"
+        }
+      }
+    }
+  },
+  "39523": {
+    "data": {
+      "mal_id": 39523,
+      "title": "Choujin Koukousei-tachi wa Isekai demo Yoyuu de Ikinuku you desu!",
+      "title_english": "CHOYOYU!: High School Prodigies Have It Easy Even in Another World!",
+      "synopsis": "Synopsis for Choujin Koukousei-tachi wa Isekai demo Yoyuu de Ikinuku you desu!",
+      "score": 8.0,
+      "type": "tv",
+      "episodes": 12,
+      "status": "Finished Airing",
+      "year": 2019,
+      "aired": {
+        "prop": {
+          "from": {
+            "year": 2019
+          }
+        },
+        "string": "2019"
+      },
+      "images": {
+        "jpg": {
+          "image_url": "https://cdn.myanimelist.net/images/anime/39523.jpg",
+          "large_image_url": "https://cdn.myanimelist.net/images/anime/39523l.jpg"
+        }
+      }
+    }
+  },
+  "48842": {
+    "data": {
+      "mal_id": 48842,
+      "title": "Mahoutsukai Reimeiki",
+      "title_english": "The Dawn of the Witch",
+      "synopsis": "Synopsis for Mahoutsukai Reimeiki",
+      "score": 8.0,
+      "type": "tv",
+      "episodes": 12,
+      "status": "Finished Airing",
+      "year": 2022,
+      "aired": {
+        "prop": {
+          "from": {
+            "year": 2022
+          }
+        },
+        "string": "2022"
+      },
+      "images": {
+        "jpg": {
+          "image_url": "https://cdn.myanimelist.net/images/anime/48842.jpg",
+          "large_image_url": "https://cdn.myanimelist.net/images/anime/48842l.jpg"
+        }
+      }
+    }
+  },
+  "51462": {
+    "data": {
+      "mal_id": 51462,
+      "title": "Isekai Nonbiri Nouka",
+      "title_english": "Farming Life in Another World",
+      "synopsis": "Synopsis for Isekai Nonbiri Nouka",
+      "score": 8.0,
+      "type": "tv",
+      "episodes": 12,
+      "status": "Finished Airing",
+      "year": 2023,
+      "aired": {
+        "prop": {
+          "from": {
+            "year": 2023
+          }
+        },
+        "string": "2023"
+      },
+      "images": {
+        "jpg": {
+          "image_url": "https://cdn.myanimelist.net/images/anime/51462.jpg",
+          "large_image_url": "https://cdn.myanimelist.net/images/anime/51462l.jpg"
+        }
+      }
+    }
+  },
+  "54449": {
+    "data": {
+      "mal_id": 54449,
+      "title": "Ishura",
+      "title_english": "Ishura",
+      "synopsis": "Synopsis for Ishura",
+      "score": 8.0,
+      "type": "tv",
+      "episodes": 12,
+      "status": "Finished Airing",
+      "year": 2024,
+      "aired": {
+        "prop": {
+          "from": {
+            "year": 2024
+          }
+        },
+        "string": "2024"
+      },
+      "images": {
+        "jpg": {
+          "image_url": "https://cdn.myanimelist.net/images/anime/54449.jpg",
+          "large_image_url": "https://cdn.myanimelist.net/images/anime/54449l.jpg"
+        }
+      }
+    }
+  },
+  "60852": {
+    "data": {
+      "mal_id": 60852,
+      "title": "Koori no Jouheki",
+      "title_english": "The Ramparts of Ice",
+      "synopsis": "Synopsis for Koori no Jouheki",
+      "score": 8.0,
+      "type": "tv",
+      "episodes": 14,
+      "status": "Finished Airing",
+      "year": 2026,
+      "aired": {
+        "prop": {
+          "from": {
+            "year": 2026
+          }
+        },
+        "string": "2026"
+      },
+      "images": {
+        "jpg": {
+          "image_url": "https://cdn.myanimelist.net/images/anime/60852.jpg",
+          "large_image_url": "https://cdn.myanimelist.net/images/anime/60852l.jpg"
+        }
+      }
+    }
+  },
+  "60933": {
+    "data": {
+      "mal_id": 60933,
+      "title": "Chanto Suenai Kyuuketsuki-chan",
+      "title_english": "Li'l Miss Vampire Can't Suck Right",
+      "synopsis": "Synopsis for Chanto Suenai Kyuuketsuki-chan",
+      "score": 8.0,
+      "type": "tv",
+      "episodes": 12,
+      "status": "Finished Airing",
+      "year": 2025,
+      "aired": {
+        "prop": {
+          "from": {
+            "year": 2025
+          }
+        },
+        "string": "2025"
+      },
+      "images": {
+        "jpg": {
+          "image_url": "https://cdn.myanimelist.net/images/anime/60933.jpg",
+          "large_image_url": "https://cdn.myanimelist.net/images/anime/60933l.jpg"
+        }
+      }
+    }
+  },
+  "61211": {
+    "data": {
+      "mal_id": 61211,
+      "title": "Mayonaka Heart Tune",
+      "title_english": "Tune In to the Midnight Heart",
+      "synopsis": "Synopsis for Mayonaka Heart Tune",
+      "score": 8.0,
+      "type": "tv",
+      "episodes": 12,
+      "status": "Finished Airing",
+      "year": 2026,
+      "aired": {
+        "prop": {
+          "from": {
+            "year": 2026
+          }
+        },
+        "string": "2026"
+      },
+      "images": {
+        "jpg": {
+          "image_url": "https://cdn.myanimelist.net/images/anime/61211.jpg",
+          "large_image_url": "https://cdn.myanimelist.net/images/anime/61211l.jpg"
+        }
+      }
+    }
+  },
+  "61316": {
+    "data": {
+      "mal_id": 61316,
+      "title": "Re:Zero kara Hajimeru Isekai Seikatsu 4th Season",
+      "title_english": "Re:ZERO -Starting Life in Another World- Season 4",
+      "synopsis": "Synopsis for Re:Zero kara Hajimeru Isekai Seikatsu 4th Season",
+      "score": 8.0,
+      "type": "tv",
+      "episodes": 19,
+      "status": "Finished Airing",
+      "year": 2026,
+      "aired": {
+        "prop": {
+          "from": {
+            "year": 2026
+          }
+        },
+        "string": "2026"
+      },
+      "images": {
+        "jpg": {
+          "image_url": "https://cdn.myanimelist.net/images/anime/61316.jpg",
+          "large_image_url": "https://cdn.myanimelist.net/images/anime/61316l.jpg"
+        }
+      }
+    }
+  },
+  "61814": {
+    "data": {
+      "mal_id": 61814,
+      "title": "Oni no Hanayome",
+      "title_english": "The Ogre's Bride",
+      "synopsis": "Synopsis for Oni no Hanayome",
+      "score": 8.0,
+      "type": "tv",
+      "episodes": 12,
+      "status": "Finished Airing",
+      "year": 2026,
+      "aired": {
+        "prop": {
+          "from": {
+            "year": 2026
+          }
+        },
+        "string": "2026"
+      },
+      "images": {
+        "jpg": {
+          "image_url": "https://cdn.myanimelist.net/images/anime/61814.jpg",
+          "large_image_url": "https://cdn.myanimelist.net/images/anime/61814l.jpg"
+        }
+      }
+    }
+  },
+  "63014": {
+    "data": {
+      "mal_id": 63014,
+      "title": "Tadaima, Ojamasaremasu!",
+      "title_english": "Pardon the Intrusion, I'm Home!",
+      "synopsis": "Synopsis for Tadaima, Ojamasaremasu!",
+      "score": 8.0,
+      "type": "tv",
+      "episodes": 12,
+      "status": "Finished Airing",
+      "year": 2026,
+      "aired": {
+        "prop": {
+          "from": {
+            "year": 2026
+          }
+        },
+        "string": "2026"
+      },
+      "images": {
+        "jpg": {
+          "image_url": "https://cdn.myanimelist.net/images/anime/63014.jpg",
+          "large_image_url": "https://cdn.myanimelist.net/images/anime/63014l.jpg"
+        }
+      }
+    }
+  }
+}

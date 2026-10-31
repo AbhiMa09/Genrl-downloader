@@ -129,6 +129,25 @@ class ShowDetailSynopsis extends StatelessWidget {
       );
     }
 
+    if (status == 'partial') {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Partial metadata from MAL API',
+            style: ObsidianTypography.bodySm(color: ObsidianColors.warning),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            show.synopsis.isEmpty ? 'Synopsis unavailable.' : show.synopsis,
+            style: ObsidianTypography.bodyMd(
+              color: ObsidianColors.onSurfaceVariant,
+            ),
+          ),
+        ],
+      );
+    }
+
     if (show.synopsis.isNotEmpty && !show.synopsis.startsWith('[')) {
       return Text(
         show.synopsis,

@@ -30,6 +30,10 @@ pub fn rank(
             .partial_cmp(&a.scored.total())
             .unwrap_or(std::cmp::Ordering::Equal)
     });
+    // Candidate limit is applied AFTER episode and season matching
+    if ranked.len() > 20 {
+        ranked.truncate(20);
+    }
     (ranked, rejected)
 }
 
@@ -60,6 +64,7 @@ pub fn decide_verdict(
         };
     }
 
+    let mut best = best;
     if let Some(runner_up) = ranked.get(1) {
         let batch_prefers_winner = best.candidate.release.is_batch
             && !runner_up.candidate.release.is_batch
@@ -68,14 +73,43 @@ pub fn decide_verdict(
         if !batch_prefers_winner
             && best.scored.signal - runner_up.scored.signal < settings.score_margin
         {
-            return Verdict::Ask {
-                reason: AskReason::TooClose {
-                    best: best.scored.signal,
-                    runner_up: runner_up.scored.signal,
-                    margin: settings.score_margin,
-                },
-                ranked,
-            };
+            // Collect all candidates within score_margin of best
+            let tied: Vec<&Ranked> = ranked
+                .iter()
+                .filter(|r| best.scored.signal - r.scored.signal < settings.score_margin)
+                .collect();
+
+            let mut preferred_pick = None;
+            for pref in &rules.groups {
+                let pref_norm = pref.trim().to_ascii_lowercase();
+                if pref_norm.is_empty() {
+                    continue;
+                }
+                if let Some(cand) = tied.iter().find(|r| {
+                    r.candidate
+                        .release
+                        .group
+                        .as_deref()
+                        .map(|g| g.trim().to_ascii_lowercase() == pref_norm)
+                        .unwrap_or(false)
+                }) {
+                    preferred_pick = Some((*cand).clone());
+                    break;
+                }
+            }
+
+            if let Some(picked) = preferred_pick {
+                best = picked;
+            } else {
+                return Verdict::Ask {
+                    reason: AskReason::TooClose {
+                        best: best.scored.signal,
+                        runner_up: runner_up.scored.signal,
+                        margin: settings.score_margin,
+                    },
+                    ranked,
+                };
+            }
         }
     }
 

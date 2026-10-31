@@ -149,9 +149,12 @@ impl ServicePolicy {
                 cache_ttl: Some(Duration::from_secs(7 * 24 * 3600)),
                 max_body_bytes: 5 * 1024 * 1024,
                 timeout: Duration::from_secs(20),
-                retry: RetryPolicy::default(),
+                retry: RetryPolicy {
+                    max_attempts: 1,
+                    ..RetryPolicy::default()
+                },
                 breaker_threshold: 5,
-                breaker_cooldown: Duration::from_secs(900),
+                breaker_cooldown: Duration::from_secs(60),
             },
             // One request per 2 seconds globally, cache each query 10 minutes,
             // jitter, never scrape HTML pages.

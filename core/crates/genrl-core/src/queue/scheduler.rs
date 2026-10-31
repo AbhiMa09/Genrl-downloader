@@ -37,6 +37,8 @@ pub struct Scheduler {
     /// Per-kind count of steps currently running.
     in_flight: Arc<Mutex<HashMap<JobKind, usize>>>,
     spawned: Mutex<Vec<JoinHandle<()>>>,
+    sync_handle: Mutex<Option<JoinHandle<()>>>,
+    metadata_handle: Mutex<Option<JoinHandle<()>>>,
 }
 
 impl Scheduler {
@@ -45,6 +47,8 @@ impl Scheduler {
             engine,
             in_flight: Arc::new(Mutex::new(HashMap::new())),
             spawned: Mutex::new(Vec::new()),
+            sync_handle: Mutex::new(None),
+            metadata_handle: Mutex::new(None),
         }
     }
 
@@ -177,34 +181,86 @@ impl Scheduler {
         let mut last_resource: Option<String> = None;
         loop {
             let _ = sweep(self.engine.db(), self.engine.clock());
-            // MAL sync rides the same loop: at most every `mal_sync_interval_min`,
-            // only when a refresh token is stored, and a failure never stops the
-            // workers. The weekly planner takes over afterwards.
-            if let Some(report) = crate::mal::sync_if_due(
-                self.engine.db(),
-                self.engine.gate(),
-                self.engine.clock(),
-                &crate::mal::KeyringStore,
-            )
-            .await
+
+            // 1. Independent Background MAL Sync: never blocks dispatch!
             {
-                let log = EventLog::new(self.engine.db().clone());
-                let _ = log.info(None, None, report.summary());
-                let list = crate::planner::MalList {
-                    entries: report.entries,
-                };
-                if let Ok(crate::planner::PlanOutcome::Applied { queued, .. }) =
-                    crate::planner::plan(self.engine.db(), self.engine.clock(), &list, false)
-                {
-                    if queued > 0 {
-                        let _ = log.info(
-                            None,
-                            None,
-                            format!("planned {queued} new episode(s) from the MAL list"),
-                        );
+                let mut sh = self.sync_handle.lock().unwrap_or_else(|e| e.into_inner());
+                if let Some(h) = sh.as_ref() {
+                    if h.is_finished() {
+                        *sh = None;
+                    }
+                }
+                if sh.is_none() {
+                    let db = self.engine.db().clone();
+                    let gate = self.engine.gate_arc();
+                    let clock = self.engine.clock_arc();
+                    let handle = tokio::spawn(async move {
+                        if let Some(report) = crate::mal::sync_if_due(
+                            &db,
+                            &gate,
+                            clock.as_ref(),
+                            &crate::mal::KeyringStore,
+                        )
+                        .await
+                        {
+                            let log = EventLog::new(db.clone());
+                            let _ = log.info(None, None, report.summary());
+                            let list = crate::planner::MalList {
+                                entries: report.entries,
+                            };
+                            if let Ok(crate::planner::PlanOutcome::Applied { queued, .. }) =
+                                crate::planner::plan(&db, clock.as_ref(), &list, false)
+                            {
+                                if queued > 0 {
+                                    let _ = log.info(
+                                        None,
+                                        None,
+                                        format!(
+                                            "planned {queued} new episode(s) from the MAL list"
+                                        ),
+                                    );
+                                }
+                            }
+                        }
+                    });
+                    *sh = Some(handle);
+                }
+            }
+
+            // 2. Independent Background Metadata Worker: resolves pending shows
+            {
+                let mut mh = self
+                    .metadata_handle
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner());
+                if let Some(h) = mh.as_ref() {
+                    if h.is_finished() {
+                        *mh = None;
+                    }
+                }
+                if mh.is_none() {
+                    let db = self.engine.db().clone();
+                    let gate = self.engine.gate_arc();
+                    let clock = self.engine.clock_arc();
+                    let data_dir = self.engine.data_dir().to_path_buf();
+                    if let Ok(settings) = Settings::load(&db) {
+                        let handle = tokio::spawn(async move {
+                            let _ = crate::metadata::process_metadata_queue(
+                                &db,
+                                &gate,
+                                &settings,
+                                clock.as_ref(),
+                                &data_dir,
+                                Some(5),
+                            )
+                            .await;
+                        });
+                        *mh = Some(handle);
                     }
                 }
             }
+
+            // 3. Dispatch runnable jobs immediately on tick
             let report = self.tick().await?;
             self.settle().await;
 
@@ -302,7 +358,21 @@ impl Scheduler {
                 continue;
             };
             let reason = job.last_error.clone().unwrap_or_default();
-            let cleared = if reason.contains("Nyaa") {
+            let cleared = if reason.starts_with("Metadata unresolved") {
+                self.engine
+                    .db()
+                    .with(|c| {
+                        Ok(c.query_row(
+                            "SELECT EXISTS(
+                        SELECT 1 FROM episodes e JOIN shows s ON s.mal_id = e.mal_id
+                        WHERE e.id = ?1 AND s.metadata_status IN ('ready', 'partial')
+                          AND trim(s.title) != '' AND lower(trim(s.title)) != 'unknown')",
+                            [job.episode_id],
+                            |r| r.get::<_, bool>(0),
+                        )?)
+                    })
+                    .unwrap_or(false)
+            } else if reason.contains("Nyaa") {
                 // Not "is it closed" but "may a request go out": the cooldown
                 // can elapse while the job waits, and the probe that closes the
                 // breaker happens on the step's own request.

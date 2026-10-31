@@ -82,7 +82,9 @@ impl MalList {
                 let total_episodes = r.get::<_, Option<i64>>(5)?;
                 let start_year = r.get::<_, Option<i64>>(6)?;
                 let auto = r.get::<_, i64>(7)? != 0;
-                let season = r.get::<_, Option<i64>>(8)?.unwrap_or(1);
+                let db_season = r.get::<_, Option<i64>>(8)?.unwrap_or(1);
+                let explicit_season = crate::filename::extract_season_from_title(&title);
+                let season = explicit_season.unwrap_or(db_season);
                 let episode_offset = r.get::<_, Option<i64>>(9)?.unwrap_or(0);
 
                 let list_status = match status_str.as_str() {

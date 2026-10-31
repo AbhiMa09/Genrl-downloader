@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../constants/app_version.dart';
 import '../services/state_provider.dart';
 import '../theme/colors.dart';
 import '../theme/typography.dart';
@@ -48,7 +49,7 @@ class NavRail extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       Text(
-                        'v2.4.1',
+                        kAppVersion,
                         style: ObsidianTypography.monoCode(
                           color: ObsidianColors.outline,
                         ),

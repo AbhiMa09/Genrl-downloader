@@ -863,3 +863,169 @@ async fn state_check_and_callback_timeout() {
     let err_msg = res.unwrap_err().to_string();
     assert!(err_msg.contains("timed out waiting for the browser redirect"));
 }
+
+#[tokio::test]
+async fn test_mal_account_rename_preserves_shows_and_jobs() {
+    let server = MockServer::start().await;
+
+    Mock::given(method("POST"))
+        .and(path("/oauth2/token"))
+        .respond_with(token_response("at"))
+        .mount(&server)
+        .await;
+
+    // Return the new username "akumasan2" on /users/@me
+    Mock::given(method("GET"))
+        .and(path("/users/@me"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "id": 6780197,
+            "name": "akumasan2",
+        })))
+        .mount(&server)
+        .await;
+
+    // Return the same list of entries
+    Mock::given(method("GET"))
+        .and(path("/users/@me/animelist"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(list_page(
+            &[
+                list_entry(52991, "Sousou no Frieren", "watching", 20, 28),
+                list_entry(54959, "Dungeon Meshi", "completed", 24, 24),
+            ],
+            false,
+        )))
+        .mount(&server)
+        .await;
+
+    mock_relations_for(&server, 52991, &[]).await;
+    mock_relations_for(&server, 54959, &[]).await;
+
+    let db = db();
+    let gate = Gate::new(db.clone()).unwrap();
+    let store = MemoryStore::with("mock-refresh-token");
+    let clock = clock();
+    let settings = settings_for(&server);
+
+    // Initially stored under the old name "Aku-gaki"
+    genrl_core::settings::write_state(&db, "mal_account", "Aku-gaki").unwrap();
+
+    // Enqueue an initial job to confirm jobs table is preserved
+    let show_id = 52991;
+    db.with(|c| {
+        c.execute(
+            "INSERT INTO shows (mal_id, title, status, auto) VALUES (?1, 'Sousou no Frieren', 'Watching', 1)",
+            [show_id],
+        )?;
+        c.execute(
+            "INSERT INTO episodes (mal_id, number, state) VALUES (?1, 21.0, 'missing')",
+            [show_id],
+        )?;
+        c.execute(
+            "INSERT INTO jobs (episode_id, kind, state, created_at, updated_at) VALUES (1, 'search', 'queued', 1000, 1000)",
+            [],
+        )?;
+        Ok(())
+    }).unwrap();
+
+    let client = MalClient::new(&gate, settings.clone(), &store, &clock);
+    let report = mal::sync(&client).await.unwrap();
+    assert_eq!(report.total, 2);
+
+    // Assert that the stored username refreshed to the new name "akumasan2"
+    let current_user = genrl_core::settings::read_state(&db, "mal_account").unwrap();
+    assert_eq!(
+        current_user.as_deref(),
+        Some("akumasan2"),
+        "username refreshed after rename"
+    );
+
+    // Assert that shows, mal_entries, and jobs tables are preserved and unchanged
+    let shows_count: i64 = db
+        .with(|c| {
+            Ok(c.query_row("SELECT count(*) FROM shows", [], |r| r.get(0))
+                .unwrap())
+        })
+        .unwrap();
+    let entries_count: i64 = db
+        .with(|c| {
+            Ok(
+                c.query_row("SELECT count(*) FROM mal_entries", [], |r| r.get(0))
+                    .unwrap(),
+            )
+        })
+        .unwrap();
+    let jobs_count: i64 = db
+        .with(|c| {
+            Ok(c.query_row("SELECT count(*) FROM jobs", [], |r| r.get(0))
+                .unwrap())
+        })
+        .unwrap();
+
+    assert_eq!(shows_count, 2, "shows count preserved across rename");
+    assert_eq!(
+        entries_count, 2,
+        "mal_entries count preserved across rename"
+    );
+    assert_eq!(jobs_count, 1, "jobs count preserved across rename");
+}
+
+#[tokio::test]
+async fn oauth_status_takes_precedence_over_public_profile() {
+    let server = MockServer::start().await;
+    mount_token(&server, "fixture-access").await;
+    Mock::given(method("GET"))
+        .and(path("/users/@me"))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_json(serde_json::json!({"id": 1, "name": "fixture-owner"})),
+        )
+        .mount(&server)
+        .await;
+    let db = db();
+    mal::mal_set_public_profile(&db, "fixture-public").unwrap();
+    let g = gate(db.clone());
+    let store = MemoryStore::with("fixture-refresh");
+    let status = mal::mal_status(&db, &g, &settings_for(&server), &store, &clock())
+        .await
+        .unwrap();
+    assert_eq!(status.status, "connected");
+    assert_eq!(status.source.as_deref(), Some("mal"));
+    assert_eq!(
+        genrl_core::settings::read_state(&db, "mal_account_source")
+            .unwrap()
+            .as_deref(),
+        Some("mal")
+    );
+}
+
+#[tokio::test]
+async fn token_failures_never_echo_response_secrets() {
+    for (status, body, expected) in [
+        (
+            400,
+            r#"{"error":"invalid_client","message":"FIXTURE_SECRET_MARKER"}"#,
+            "invalid_client",
+        ),
+        (
+            400,
+            r#"{"error":"FIXTURE_SECRET_MARKER"}"#,
+            "request_rejected",
+        ),
+        (200, "FIXTURE_SECRET_MARKER", "unexpected response"),
+    ] {
+        let server = MockServer::start().await;
+        Mock::given(method("POST"))
+            .and(path("/oauth2/token"))
+            .respond_with(ResponseTemplate::new(status).set_body_string(body))
+            .expect(1)
+            .mount(&server)
+            .await;
+        let g = gate(db());
+        let store = MemoryStore::with("fixture-refresh");
+        let c = clock();
+        let client = MalClient::new(&g, settings_for(&server), &store, &c);
+        let error = client.access_token().await.unwrap_err().to_string();
+        assert!(error.contains(expected), "{error}");
+        assert!(!error.contains("FIXTURE_SECRET_MARKER"));
+    }
+}

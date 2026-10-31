@@ -1,5 +1,6 @@
 import '../../models/activity_item.dart';
 import 'state_context.dart';
+import '../mal_auth_error.dart';
 
 mixin SettingsStateMixin on StateContext {
   // MAL Status State
@@ -7,6 +8,8 @@ mixin SettingsStateMixin on StateContext {
   String? _malUsername;
   String? _malSource;
   String? _malError;
+  bool _isConnectingMal = false;
+  bool get isConnectingMal => _isConnectingMal;
   String? _malClientId;
   int _watchingCount = 0;
   int _completedCount = 0;
@@ -50,7 +53,7 @@ mixin SettingsStateMixin on StateContext {
         notifyListeners();
       }
     } catch (e) {
-      _malError = e.toString();
+      _malError = malAuthErrorSummary(e.toString());
       notifyListeners();
     }
   }
@@ -61,25 +64,29 @@ mixin SettingsStateMixin on StateContext {
     int? port,
     String? redirectUri,
   }) async {
+    if (_isConnectingMal) return;
+    _isConnectingMal = true;
     _malError = null;
     notifyListeners();
-    final res = await bridge.malConnectStart(
-      clientId: clientId,
-      clientSecret: clientSecret,
-      port: port,
-      redirectUri: redirectUri,
-    );
-    if (res.exitCode != 0) {
-      _malError = res.stderr.toString().isNotEmpty
-          ? res.stderr.toString()
-          : res.stdout.toString();
-    } else {
-      if (clientId != null && clientId.isNotEmpty) {
+    try {
+      final res = await bridge.malConnectStart(
+        clientId: clientId,
+        clientSecret: clientSecret,
+        port: port,
+        redirectUri: redirectUri,
+      );
+      if (res.exitCode != 0) {
+        _malError = malAuthErrorSummary(res.stderr.toString());
+      } else if (clientId != null && clientId.isNotEmpty) {
         _malClientId = clientId;
       }
       await refreshMalStatus();
+    } catch (error) {
+      _malError = malAuthErrorSummary(error.toString());
+    } finally {
+      _isConnectingMal = false;
+      notifyListeners();
     }
-    notifyListeners();
   }
 
   Future<void> disconnectMal() async {
@@ -128,6 +135,69 @@ mixin SettingsStateMixin on StateContext {
   Map<String, dynamic>? get locationsReport => _locationsReport;
   Map<String, dynamic>? get downloadCheck => _downloadCheck;
   Map<String, dynamic>? get libraryCheck => _libraryCheck;
+  Map<String, dynamic> _settings = {};
+  Map<String, dynamic> get settings => _settings;
+
+  String? _customLibraryFolder;
+  String get libraryFolder {
+    if (_customLibraryFolder != null && _customLibraryFolder!.isNotEmpty) {
+      return _customLibraryFolder!;
+    }
+    final settingPath = _settings['library_folder'] as String?;
+    if (settingPath != null && settingPath.isNotEmpty) {
+      return settingPath;
+    }
+    return _libraryCheck?['path'] as String? ?? '';
+  }
+
+  void setLibraryFolder(String path) {
+    _customLibraryFolder = path;
+    notifyListeners();
+  }
+
+  String get jikanBaseUrl {
+    final url = _settings['jikan_base_url'] as String?;
+    if (url != null && url.isNotEmpty) {
+      return url;
+    }
+    return 'http://127.0.0.1:9992';
+  }
+
+  int get firstSyncCap {
+    return (_settings['first_sync_cap'] as num?)?.toInt() ?? 25;
+  }
+
+  Future<bool> saveQbitEndpoint(String value) async {
+    final endpoint = value.trim();
+    final uri = Uri.tryParse(endpoint);
+    if (uri == null ||
+        !['http', 'https'].contains(uri.scheme) ||
+        uri.host.isEmpty) {
+      return false;
+    }
+    try {
+      if (!await bridge.setSetting('qbit_url', endpoint)) return false;
+      _settings = {..._settings, 'qbit_url': endpoint};
+      await refreshStatus();
+      notifyListeners();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> refreshSettings() async {
+    try {
+      final s = await bridge.getSettings();
+      if (s != null) {
+        _settings = s;
+        notifyListeners();
+      }
+    } catch (_) {}
+  }
+
+  String get downloadFolder =>
+      _downloadCheck?['path'] as String? ?? '/home/genrl/Downloads/Genrl';
   bool get sameFilesystem => _sameFilesystem;
   String get filesystemNote => _filesystemNote;
   bool get isMigrating => _isMigrating;

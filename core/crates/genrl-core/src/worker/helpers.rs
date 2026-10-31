@@ -12,6 +12,93 @@ use super::inbox::tried;
 use super::types::ChosenTorrent;
 
 impl Engine {
+    /// Require a per-job, per-torrent approval above 2 GB, including batches.
+    pub(crate) fn confirm_large_download(
+        &self,
+        job: &Job,
+        mal_id: i64,
+        torrent: &ChosenTorrent,
+    ) -> Result<bool> {
+        const REASON: &str = "Download exceeds 2 GB. Confirm this release before downloading.";
+        if torrent.size_bytes <= 2_000_000_000 {
+            return Ok(true);
+        }
+        let approved = self.db.with(|c| {
+            let mut stmt = c.prepare(
+                "SELECT payload, answer FROM questions WHERE job_id = ?1 AND answer IS NOT NULL",
+            )?;
+            let rows = stmt.query_map([job.id], |r| {
+                Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?))
+            })?;
+            for row in rows {
+                let (payload, answer) = row?;
+                if let (
+                    Ok(Payload::MatchReview {
+                        reason, options, ..
+                    }),
+                    Ok(crate::questions::Answer {
+                        choice: crate::questions::Choice::UseThis { info_hash },
+                        ..
+                    }),
+                ) = (
+                    serde_json::from_str::<Payload>(&payload),
+                    serde_json::from_str::<crate::questions::Answer>(&answer),
+                ) {
+                    if reason == REASON
+                        && info_hash == torrent.info_hash
+                        && options.iter().any(|o| {
+                            o.info_hash == info_hash && o.size_bytes == torrent.size_bytes as u64
+                        })
+                    {
+                        return Ok(true);
+                    }
+                }
+            }
+            Ok(false)
+        })?;
+        if approved {
+            return Ok(true);
+        }
+        let inputs = crate::matching::TargetInputs::load(&self.db, mal_id)?;
+        let options = self
+            .candidate_rows(mal_id)?
+            .into_iter()
+            .filter(|c| c.info_hash == torrent.info_hash)
+            .map(|c| crate::questions::MatchOption {
+                info_hash: c.info_hash,
+                name: c.release.raw,
+                magnet: c.magnet,
+                group: c.release.group,
+                resolution: c.release.resolution,
+                seeders: c.seeders,
+                size_bytes: c.size_bytes,
+                signal: 0.0,
+                ranking: 0.0,
+                title_ratio: 0.0,
+                why: vec![REASON.into()],
+            })
+            .collect();
+        self.ask(
+            job,
+            mal_id,
+            Payload::MatchReview {
+                expected: inputs.expected_show(),
+                options,
+                reason: REASON.into(),
+            },
+            REASON,
+        )?;
+        jobs::transition(
+            &self.db,
+            self.clock.as_ref(),
+            job.id,
+            JobState::NeedsInput,
+            REASON,
+            &MoveOptions::default(),
+        )?;
+        Ok(false)
+    }
+
     // ------------------------------------------------------------------ helpers
 
     /// If single-episode download is used, ensure sibling missing episodes have search jobs queued.
@@ -222,6 +309,7 @@ impl Engine {
                     published_at: r.get(9)?,
                     uploader: None,
                     show_type: None,
+                    category_id: None,
                 })
             })?;
             let mut out = Vec::new();

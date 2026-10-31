@@ -141,7 +141,7 @@ class _LibraryPageState extends State<LibraryPage> {
             .toStringAsFixed(1);
     final libraryPath =
         state.locationsReport?['library']?['path']?.toString() ??
-        '/mnt/anime/TV';
+        (state.libraryFolder.isNotEmpty ? state.libraryFolder : '—');
 
     return SingleChildScrollView(
       child: Column(
@@ -229,7 +229,9 @@ class _LibraryPageState extends State<LibraryPage> {
                               onTap: () => state.openShowDetail(show),
                               onOpenFolder: () => _openFileExplorer(
                                 show.folderPath ??
-                                    '/mnt/anime/TV/${show.title}',
+                                    (libraryPath != '—'
+                                        ? '$libraryPath/${show.title}'
+                                        : ''),
                               ),
                               onToggleAuto: () {},
                             ),

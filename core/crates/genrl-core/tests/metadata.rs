@@ -19,7 +19,7 @@ use genrl_core::metadata::{
     clean_plain_text, clean_single_line, fetch_show_metadata, process_metadata_queue,
     queue_stale_metadata, MetadataOutcome,
 };
-use genrl_core::settings::{self, Settings};
+use genrl_core::settings::Settings;
 
 const NOW: i64 = 1_760_000_000;
 
@@ -345,8 +345,17 @@ async fn fallback_to_mal_when_jikan_is_empty() {
     settings.mal_base_url = format!("{}/v2", server.uri());
     Settings::save(&settings, &db).unwrap();
 
-    // Store mock MAL OAuth access token
-    settings::write_state(&db, "mal_oauth_access_token", "mock_access_token_123").unwrap();
+    // MOCK OAuth store and endpoint; no SQLite token or real credentials.
+    settings.mal_client_id = "fixture-client".into();
+    let store = genrl_core::mal::MemoryStore::with("fixture-refresh");
+    Mock::given(method("POST"))
+        .and(path("/v2/oauth2/token"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "access_token": "mock_access_token_123", "expires_in": 3600
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
 
     let gate = Gate::with_policies(
         db.clone(),
@@ -402,9 +411,12 @@ async fn fallback_to_mal_when_jikan_is_empty() {
         .mount(&server)
         .await;
 
-    let outcome = fetch_show_metadata(&db, &gate, &settings, &clk, &data_dir, 300, true)
-        .await
-        .unwrap();
+    let client = genrl_core::mal::MalClient::new(&gate, settings.clone(), &store, &clk);
+    let outcome = genrl_core::metadata::fetch_show_metadata_with_client(
+        &db, &gate, &settings, &clk, &data_dir, 300, true, &client,
+    )
+    .await
+    .unwrap();
 
     match outcome {
         MetadataOutcome::Updated {
@@ -434,8 +446,111 @@ async fn fallback_to_mal_when_jikan_is_empty() {
         syn,
         "Official synopsis fetched directly from MyAnimeList API."
     );
-    assert_eq!(status, "ready");
+    assert_eq!(status, "partial");
     assert_eq!(en_title.as_deref(), Some("Show Three Hundred"));
+}
+
+#[tokio::test]
+async fn download_season_fetches_metadata_via_mal_fallback_before_queueing() {
+    let server = MockServer::start().await;
+    let temp = tempdir().unwrap();
+    let data_dir = temp.path().join("data");
+    std::fs::create_dir_all(&data_dir).unwrap();
+
+    let db = Db::open_in_memory().unwrap();
+    let clk = clock();
+
+    let mut settings = Settings::load(&db).unwrap();
+    settings.jikan_base_url = server.uri();
+    settings.mal_base_url = format!("{}/v2", server.uri());
+    settings.mal_client_id = "fixture-client".into();
+    Settings::save(&settings, &db).unwrap();
+
+    let store = genrl_core::mal::MemoryStore::with("fixture-refresh");
+    Mock::given(method("POST"))
+        .and(path("/v2/oauth2/token"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "access_token": "mock_token_301", "expires_in": 3600
+        })))
+        .mount(&server)
+        .await;
+
+    let gate = Gate::with_policies(
+        db.clone(),
+        &[
+            (Service::Jikan, fast_policy()),
+            (Service::Mal, fast_policy()),
+            (Service::Images, fast_policy()),
+        ],
+    )
+    .unwrap();
+
+    // 1. Show starts with pending metadata
+    db.with(|c| {
+        c.execute(
+            "INSERT INTO shows (mal_id, title, metadata_status) VALUES (301, 'Oni no Hanayome', 'pending')",
+            [],
+        )?;
+        Ok(())
+    })
+    .unwrap();
+
+    // 2. Planning before metadata resolution refuses with "Metadata unresolved"
+    let err = genrl_core::planner::plan_single(&db, &clk, 301, None).unwrap_err();
+    assert!(err.to_string().contains("Metadata unresolved"));
+
+    // 3. Jikan 404 / unavailable, MAL API provides show metadata
+    Mock::given(method("GET"))
+        .and(path("/v4/anime/301/full"))
+        .respond_with(ResponseTemplate::new(404))
+        .mount(&server)
+        .await;
+
+    let mal_resp = r#"{
+        "id": 301,
+        "title": "Oni no Hanayome",
+        "synopsis": "Official synopsis from MyAnimeList.",
+        "mean": 8.0,
+        "media_type": "tv",
+        "num_episodes": 12,
+        "alternative_titles": {
+            "en": "The Ogre's Bride",
+            "ja": "鬼の花嫁"
+        }
+    }"#;
+    Mock::given(method("GET"))
+        .and(path("/v2/anime/301"))
+        .and(header("Authorization", "Bearer mock_token_301"))
+        .respond_with(ResponseTemplate::new(200).set_body_string(mal_resp))
+        .mount(&server)
+        .await;
+
+    // 4. Fallback fetch resolves show metadata
+    let client = genrl_core::mal::MalClient::new(&gate, settings.clone(), &store, &clk);
+    let outcome = genrl_core::metadata::fetch_show_metadata_with_client(
+        &db, &gate, &settings, &clk, &data_dir, 301, true, &client,
+    )
+    .await
+    .unwrap();
+    assert!(matches!(outcome, MetadataOutcome::Updated { .. }));
+
+    // Verify metadata status transitioned to ready/partial
+    assert!(genrl_core::metadata::is_resolved(&db, 301).unwrap());
+
+    // 5. Download season now succeeds and queues all 12 episodes
+    let queued = genrl_core::planner::plan_single(&db, &clk, 301, None).unwrap();
+    assert_eq!(queued, 12, "Queues 12 episodes after metadata resolved");
+
+    let count: i64 = db
+        .with(|c| {
+            Ok(
+                c.query_row("SELECT count(*) FROM jobs WHERE kind='search'", [], |r| {
+                    r.get(0)
+                })?,
+            )
+        })
+        .unwrap();
+    assert_eq!(count, 12, "12 search jobs in database");
 }
 
 // ---------------------------------------------------------------------------
@@ -907,4 +1022,463 @@ async fn placeholder_synopsis_and_nfo_replaced_for_all_existing_folders_when_met
     ));
     assert!(nfo2.contains("<rating>8.95</rating>"));
     assert!(nfo2.contains("<year>2024</year>"));
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn concurrent_workers_claim_disjoint_metadata_jobs() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let db_path = temp_dir.path().join("genrl.db");
+
+    // Open connection 1, run migrations and insert test shows
+    let db1 = Db::open(&db_path).unwrap();
+    let clk = clock();
+    let now = clk.now();
+
+    // Insert 20 pending shows, 1 stale fetching show (>5 min ago), and 1 active fetching show
+    db1.with(|c| {
+        for id in 1..=20 {
+            c.execute(
+                "INSERT INTO shows (mal_id, title, metadata_status) VALUES (?1, ?2, 'pending')",
+                rusqlite::params![id, format!("Show {id}")],
+            )?;
+        }
+        c.execute(
+            "INSERT INTO shows (mal_id, title, metadata_status, metadata_updated_at) VALUES (21, 'Stale Show', 'fetching', ?1)",
+            rusqlite::params![now - 400],
+        )?;
+        c.execute(
+            "INSERT INTO shows (mal_id, title, metadata_status, metadata_updated_at) VALUES (22, 'Active Show', 'fetching', ?1)",
+            rusqlite::params![now - 50],
+        )?;
+        Ok(())
+    })
+    .unwrap();
+
+    // Open connection 2 to the exact same on-disk database
+    let db2 = Db::open(&db_path).unwrap();
+
+    // Worker 1 claims jobs using connection 1
+    let handle1 = tokio::spawn(async move {
+        let mut claimed = Vec::new();
+        while let Ok(Some(id)) = genrl_core::metadata::claim_next_metadata_job(&db1, now) {
+            claimed.push(id);
+            tokio::time::sleep(std::time::Duration::from_millis(2)).await;
+        }
+        claimed
+    });
+
+    // Worker 2 claims jobs using separate connection 2
+    let handle2 = tokio::spawn(async move {
+        let mut claimed = Vec::new();
+        while let Ok(Some(id)) = genrl_core::metadata::claim_next_metadata_job(&db2, now) {
+            claimed.push(id);
+            tokio::time::sleep(std::time::Duration::from_millis(2)).await;
+        }
+        claimed
+    });
+
+    let (claimed1, claimed2) = tokio::join!(handle1, handle2);
+    let list1 = claimed1.unwrap();
+    let list2 = claimed2.unwrap();
+
+    assert!(!list1.is_empty(), "Worker 1 should have claimed jobs");
+    assert!(!list2.is_empty(), "Worker 2 should have claimed jobs");
+    assert_eq!(
+        list1.len() + list2.len(),
+        21,
+        "20 pending shows + 1 stale lease show claimed"
+    );
+
+    let set1: std::collections::HashSet<i64> = list1.into_iter().collect();
+    let set2: std::collections::HashSet<i64> = list2.into_iter().collect();
+    let intersection: Vec<_> = set1.intersection(&set2).collect();
+    assert!(
+        intersection.is_empty(),
+        "Workers claimed the same show(s): {intersection:?}"
+    );
+
+    // Stale row #21 was reclaimed past its lease
+    assert!(
+        set1.contains(&21) || set2.contains(&21),
+        "Stale fetching show 21 should be reclaimed"
+    );
+    // Active row #22 was NOT claimed
+    assert!(
+        !set1.contains(&22) && !set2.contains(&22),
+        "Active fetching show 22 should NOT be reclaimed"
+    );
+}
+
+// MOCK-only regressions for outage handling; no real endpoints or credentials.
+#[tokio::test]
+async fn two_jikan_timeouts_do_not_open_the_default_breaker() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .respond_with(ResponseTemplate::new(200).set_delay(std::time::Duration::from_millis(150)))
+        .expect(2)
+        .mount(&server)
+        .await;
+    let mut policy = ServicePolicy::for_service(Service::Jikan);
+    policy.timeout = std::time::Duration::from_millis(20);
+    policy.rate = fast_policy().rate;
+    let gate =
+        Gate::with_policies(Db::open_in_memory().unwrap(), &[(Service::Jikan, policy)]).unwrap();
+    for _ in 0..2 {
+        assert!(gate
+            .get(Service::Jikan, &server.uri())
+            .await
+            .unwrap_err()
+            .is_timeout());
+    }
+    assert_eq!(
+        gate.breaker_state(Service::Jikan),
+        genrl_core::http::breaker::State::Closed
+    );
+}
+
+#[tokio::test]
+async fn open_jikan_breaker_leaves_remaining_metadata_unclaimed() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .respond_with(ResponseTemplate::new(503))
+        .expect(1)
+        .mount(&server)
+        .await;
+    let db = Db::open_in_memory().unwrap();
+    db.with(|c| {
+        for id in 1..=8 {
+            c.execute(
+                "INSERT INTO shows (mal_id,title,metadata_status) VALUES (?1,'Fixture','pending')",
+                [id],
+            )?;
+        }
+        Ok(())
+    })
+    .unwrap();
+    let mut settings = Settings::default();
+    settings.jikan_base_url = server.uri();
+    let mut policy = fast_policy();
+    policy.breaker_threshold = 1;
+    let gate = Gate::with_policies(db.clone(), &[(Service::Jikan, policy)]).unwrap();
+    let dir = tempdir().unwrap();
+    let report = process_metadata_queue(&db, &gate, &settings, &clock(), dir.path(), Some(8))
+        .await
+        .unwrap();
+    assert_eq!((report.processed, report.failed), (1, 1));
+    let untouched: i64 = db
+        .with(|c| {
+            Ok(c.query_row(
+        "SELECT count(*) FROM shows WHERE metadata_status='pending' AND metadata_retry_count=0",
+        [], |r| r.get(0))?)
+        })
+        .unwrap();
+    assert_eq!(untouched, 7);
+}
+
+#[tokio::test]
+async fn metadata_retry_honors_server_retry_after() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .respond_with(ResponseTemplate::new(429).insert_header("Retry-After", "120"))
+        .expect(1)
+        .mount(&server)
+        .await;
+    let db = Db::open_in_memory().unwrap();
+    db.with(|c| {
+        c.execute("INSERT INTO shows (mal_id,title) VALUES (1,'Fixture')", [])?;
+        Ok(())
+    })
+    .unwrap();
+    let mut settings = Settings::default();
+    settings.jikan_base_url = server.uri();
+    let mut policy = fast_policy();
+    policy.breaker_threshold = 1;
+    let gate = Gate::with_policies(db.clone(), &[(Service::Jikan, policy)]).unwrap();
+    let dir = tempdir().unwrap();
+    match fetch_show_metadata(&db, &gate, &settings, &clock(), dir.path(), 1, true)
+        .await
+        .unwrap()
+    {
+        MetadataOutcome::PendingRetry { next_run_at, .. } => assert_eq!(next_run_at, NOW + 120),
+        other => panic!("expected deferred retry, got {other:?}"),
+    }
+    let fresh_gate = Gate::with_policies(db.clone(), &[(Service::Jikan, fast_policy())]).unwrap();
+    let retry = fetch_show_metadata(&db, &fresh_gate, &settings, &clock(), dir.path(), 1, true)
+        .await
+        .unwrap();
+    assert!(
+        matches!(retry, MetadataOutcome::PendingRetry{next_run_at,..} if next_run_at == NOW+120)
+    );
+}
+
+#[tokio::test]
+async fn jikan_timeout_uses_authenticated_mal_partial_metadata_without_sqlite_token() {
+    let server = MockServer::start().await;
+    let db = Db::open_in_memory().unwrap();
+    db.with(|c| {
+        c.execute("INSERT INTO shows (mal_id,title) VALUES (1,'Fixture')", [])?;
+        Ok(())
+    })
+    .unwrap();
+    let mut settings = Settings::default();
+    settings.jikan_base_url = server.uri();
+    settings.mal_base_url = server.uri();
+    settings.mal_client_id = "fixture-client".into();
+    Mock::given(method("GET"))
+        .and(path("/v4/anime/1/full"))
+        .respond_with(ResponseTemplate::new(200).set_delay(std::time::Duration::from_millis(150)))
+        .expect(1)
+        .mount(&server)
+        .await;
+    Mock::given(method("POST"))
+        .and(path("/oauth2/token"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "access_token":"fixture-access","expires_in":3600
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/anime/1"))
+        .and(header("Authorization", "Bearer fixture-access"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "id":1,"title":"Fixture","num_episodes":12,"status":"currently_airing",
+            "start_date":"2024-01-01"
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+    let mut policy = fast_policy();
+    policy.timeout = std::time::Duration::from_millis(20);
+    let gate = Gate::with_policies(
+        db.clone(),
+        &[(Service::Jikan, policy), (Service::Mal, fast_policy())],
+    )
+    .unwrap();
+    let store = genrl_core::mal::MemoryStore::with("fixture-refresh");
+    let clk = clock();
+    let client = genrl_core::mal::MalClient::new(&gate, settings.clone(), &store, &clk);
+    let dir = tempdir().unwrap();
+    let result = genrl_core::metadata::fetch_show_metadata_with_client(
+        &db,
+        &gate,
+        &settings,
+        &clk,
+        dir.path(),
+        1,
+        true,
+        &client,
+    )
+    .await
+    .unwrap();
+    assert!(matches!(result, MetadataOutcome::Updated { .. }));
+    let row: (String, i64, i64) = db
+        .with(|c| {
+            Ok(c.query_row(
+                "SELECT metadata_status,total_episodes,start_year FROM shows WHERE mal_id=1",
+                [],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+            )?)
+        })
+        .unwrap();
+    assert_eq!(row, ("partial".into(), 12, 2024));
+    let tokens: i64 = db
+        .with(|c| {
+            Ok(c.query_row(
+                "SELECT count(*) FROM settings WHERE key LIKE '%access_token%'",
+                [],
+                |r| r.get(0),
+            )?)
+        })
+        .unwrap();
+    assert_eq!(tokens, 0);
+}
+
+#[test]
+fn targeted_download_refuses_unresolved_metadata_and_accepts_partial_metadata() {
+    let db = Db::open_in_memory().unwrap();
+    db.with(|c| { c.execute(
+        "INSERT INTO shows (mal_id,title,total_episodes,metadata_status) VALUES (1,'Fixture',3,'pending')",[])?;
+        Ok(()) }).unwrap();
+    let error = genrl_core::planner::plan_single(&db, &clock(), 1, None).unwrap_err();
+    assert!(error.to_string().contains("Metadata unresolved"));
+    let count: i64 = db
+        .with(|c| Ok(c.query_row("SELECT count(*) FROM jobs", [], |r| r.get(0))?))
+        .unwrap();
+    assert_eq!(count, 0);
+    db.with(|c| {
+        c.execute("UPDATE shows SET metadata_status='partial'", [])?;
+        Ok(())
+    })
+    .unwrap();
+    assert!(genrl_core::planner::plan_single(&db, &clock(), 1, None).unwrap() > 0);
+}
+
+#[test]
+fn jikan_cooldown_is_configurable() {
+    let db = Db::open_in_memory().unwrap();
+    let mut settings = Settings::default();
+    settings.jikan_breaker_cooldown_secs = 17;
+    settings.save(&db).unwrap();
+    let gate = Gate::new(db).unwrap();
+    assert_eq!(
+        gate.policy(Service::Jikan).breaker_cooldown,
+        std::time::Duration::from_secs(17)
+    );
+    assert_eq!(gate.policy(Service::Jikan).retry.max_attempts, 1);
+}
+
+#[tokio::test]
+async fn test_scratch_isolation_acquire_never_touches_default_data_dir() {
+    use std::sync::Arc;
+    let empty_home = tempfile::tempdir().unwrap();
+    let scratch_dir = tempfile::tempdir().unwrap();
+
+    // 1. Set environment to empty_home with GENRL_REQUIRE_SCRATCH=1
+    std::env::set_var("GENRL_REQUIRE_SCRATCH", "1");
+    std::env::set_var("XDG_DATA_HOME", empty_home.path());
+    std::env::set_var("HOME", empty_home.path());
+
+    // Verify default_data_dir() panics when GENRL_REQUIRE_SCRATCH=1
+    let panic_res = std::panic::catch_unwind(|| {
+        genrl_core::default_data_dir();
+    });
+    assert!(
+        panic_res.is_err(),
+        "default_data_dir() must panic when GENRL_REQUIRE_SCRATCH=1"
+    );
+
+    // 2. Setup scratch database
+    let db_path = scratch_dir.path().join("genrl.db");
+    let db = Db::open(&db_path).unwrap();
+    let settings = Settings::default();
+    settings.save(&db).unwrap();
+
+    db.with(|c| {
+        c.execute(
+            "INSERT INTO shows (mal_id, title, total_episodes, metadata_status) VALUES (999, 'Test Scratch Show', 12, 'pending')",
+            [],
+        )?;
+        c.execute(
+            "INSERT INTO episodes (mal_id, number, state) VALUES (999, 1.0, 'missing')",
+            [],
+        )?;
+        c.execute(
+            "INSERT INTO jobs (episode_id, kind, state, attempts, created_at, updated_at) VALUES (1, 'search', 'search', 0, 1000, 1000)",
+            [],
+        )?;
+        Ok(())
+    })
+    .unwrap();
+
+    let clock = Arc::new(FakeClock::new(1000));
+    let gate = Arc::new(Gate::new(db.clone()).unwrap());
+
+    let engine = genrl_core::worker::Engine::new(
+        db.clone(),
+        gate,
+        clock,
+        Arc::new(genrl_core::worker::NoopFinalizer),
+        Arc::new(genrl_core::worker::FakeDiskProbe::new(
+            100 * 1024 * 1024 * 1024,
+        )),
+        scratch_dir.path().to_path_buf(),
+    );
+
+    // Run search step on unresolved metadata show
+    let outcome = engine.step(1).await;
+    assert!(outcome.is_ok(), "step execution should complete");
+
+    // 3. Verify job was blocked due to unresolved metadata
+    let state_str: String = db
+        .with(|c| Ok(c.query_row("SELECT state FROM jobs WHERE id = 1", [], |r| r.get(0))?))
+        .unwrap();
+    assert_eq!(state_str, "blocked");
+
+    // 4. Assert that empty_home was NEVER touched and no file/folder was created inside it!
+    let entries: Vec<_> = std::fs::read_dir(empty_home.path()).unwrap().collect();
+    assert!(
+        entries.is_empty(),
+        "empty_home was touched! Created entries: {:?}",
+        entries
+    );
+}
+
+#[tokio::test]
+async fn test_sync_does_not_reset_ready_or_partial_metadata_to_pending() {
+    let db = Db::open_in_memory().unwrap();
+    let clk = genrl_core::clock::FakeClock::new(100_000);
+
+    // Show 1 is 'ready' with local poster
+    db.with(|c| {
+        c.execute(
+            "INSERT INTO shows (mal_id, title, synopsis, poster_path, metadata_status, metadata_updated_at)
+             VALUES (101, 'Ready Show', 'Valid synopsis', '/local/path/101.jpg', 'ready', 99_000)",
+            [],
+        )?;
+        // Show 2 is 'partial' with remote poster (from MAL fallback)
+        c.execute(
+            "INSERT INTO shows (mal_id, title, synopsis, poster_path, metadata_status, metadata_updated_at)
+             VALUES (102, 'Partial Show', 'Fallback synopsis', 'https://cdn.myanimelist.net/102.jpg', 'partial', 99_000)",
+            [],
+        )?;
+        Ok(())
+    }).unwrap();
+
+    let queued = queue_stale_metadata(&db, clk.now()).unwrap();
+    assert_eq!(
+        queued, 0,
+        "Already-resolved shows within 7 days must NOT be reset to pending"
+    );
+
+    let s101: String = db
+        .with(|c| {
+            Ok(c.query_row(
+                "SELECT metadata_status FROM shows WHERE mal_id = 101",
+                [],
+                |r| r.get(0),
+            )?)
+        })
+        .unwrap();
+    let s102: String = db
+        .with(|c| {
+            Ok(c.query_row(
+                "SELECT metadata_status FROM shows WHERE mal_id = 102",
+                [],
+                |r| r.get(0),
+            )?)
+        })
+        .unwrap();
+    assert_eq!(s101, "ready");
+    assert_eq!(s102, "partial");
+}
+
+#[tokio::test]
+async fn test_download_season_for_finished_show_prefers_exact_season_batch() {
+    let db = Db::open_in_memory().unwrap();
+    let clk = genrl_core::clock::FakeClock::new(100_000);
+
+    db.with(|c| {
+        c.execute(
+            "INSERT INTO shows (mal_id, title, status, total_episodes, metadata_status)
+             VALUES (61814, 'Oni no Hanayome', 'finished', 12, 'ready')",
+            [],
+        )?;
+        Ok(())
+    })
+    .unwrap();
+
+    let queued = genrl_core::planner::plan_single(&db, &clk, 61814, None).unwrap();
+    assert_eq!(queued, 1, "Download season for a finished show must queue exactly 1 season batch job, not 12 single jobs");
+
+    let jobs: Vec<(i64, f64)> = db.with(|c| {
+        let mut stmt = c.prepare("SELECT j.id, e.number FROM jobs j JOIN episodes e ON e.id = j.episode_id WHERE e.mal_id = 61814")?;
+        let rows = stmt.query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?;
+        Ok(rows.map(|r| r.unwrap()).collect())
+    }).unwrap();
+    assert_eq!(
+        jobs.len(),
+        1,
+        "Exactly 1 search job must be queued for season batch"
+    );
 }

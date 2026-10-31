@@ -13,16 +13,20 @@ class WizardDailyCapWarning extends StatelessWidget {
     super.key,
     required this.bypassDailyCap,
     required this.onToggleBypass,
-    this.dailyCap = 30,
-    this.plannedEpisodes = 214,
+    this.dailyCap = 25,
+    this.plannedEpisodes = 11,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isExceeded = plannedEpisodes > dailyCap;
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: ObsidianColors.surfaceContainerHigh,
+        color: isExceeded
+            ? ObsidianColors.surfaceContainerHigh
+            : ObsidianColors.surfaceContainerLow,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: ObsidianColors.border),
       ),
@@ -32,10 +36,12 @@ class WizardDailyCapWarning extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(
-                Icons.warning_rounded,
+              Icon(
+                isExceeded ? Icons.warning_rounded : Icons.info_outline_rounded,
                 size: 22,
-                color: ObsidianColors.primary,
+                color: isExceeded
+                    ? ObsidianColors.primary
+                    : ObsidianColors.tertiary,
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -46,7 +52,9 @@ class WizardDailyCapWarning extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Daily Ingestion Cap Exceeded Warning',
+                          isExceeded
+                              ? 'Daily Ingestion Cap Exceeded Warning'
+                              : 'Daily Ingestion Budget Info',
                           style: ObsidianTypography.titleSm().copyWith(
                             fontWeight: FontWeight.bold,
                           ),
@@ -61,7 +69,7 @@ class WizardDailyCapWarning extends StatelessWidget {
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
-                            'Cap: $dailyCap eps/day',
+                            'First-sync cap: $dailyCap (daily cap: 30)',
                             style: ObsidianTypography.monoCode(
                               color: ObsidianColors.primary,
                             ),
@@ -72,8 +80,8 @@ class WizardDailyCapWarning extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       plannedEpisodes > dailyCap
-                          ? 'Your download cap is configured to $dailyCap episodes/day in client preferences. Committing all $plannedEpisodes backlog episodes will schedule the first $dailyCap today and throttle the remaining ${plannedEpisodes - dailyCap} into staged daily queues to prevent tracker rate-limits and ISP bandwidth alarms.'
-                          : 'Your download cap is configured to $dailyCap episodes/day in client preferences. All $plannedEpisodes backlog episode${plannedEpisodes == 1 ? '' : 's'} fall within your daily cap and will be scheduled immediately.',
+                          ? '$plannedEpisodes planned, exceeding the $dailyCap first-sync cap. The first $dailyCap episodes will be queued today; remaining ${plannedEpisodes - dailyCap} staged for tomorrow.'
+                          : '$plannedEpisodes planned, within the $dailyCap first-sync cap. All $plannedEpisodes backlog episodes will be queued immediately without throttle.',
                       style: ObsidianTypography.bodySm(
                         color: ObsidianColors.onSurfaceVariant,
                       ),

@@ -16,6 +16,34 @@ impl Engine {
 
     pub(crate) async fn search_step(&self, job: &Job) -> Result<JobState> {
         let context = self.context(job)?;
+        if !crate::metadata::is_resolved(&self.db, context.mal_id)? {
+            let settings = Settings::load(&self.db)?;
+            let store = crate::mal::KeyringStore;
+            let mal = crate::mal::MalClient::new(
+                &self.gate,
+                settings.clone(),
+                &store,
+                self.clock.as_ref(),
+            );
+            let _ = crate::metadata::fetch_show_metadata_with_client(
+                &self.db,
+                &self.gate,
+                &settings,
+                self.clock.as_ref(),
+                &self.data_dir,
+                context.mal_id,
+                true,
+                &mal,
+            )
+            .await;
+
+            if !crate::metadata::is_resolved(&self.db, context.mal_id)? {
+                return self.block(
+                    job,
+                    "Metadata unresolved: refresh metadata before searching for releases",
+                );
+            }
+        }
         let settings = Settings::load(&self.db)?;
         let inputs = TargetInputs::load(&self.db, context.mal_id)?;
 
@@ -39,7 +67,9 @@ impl Engine {
         }
 
         let candidates =
-            match matching::search_candidates(&self.gate, &settings, &search_names, 50, 25).await {
+            match matching::search_candidates(&self.gate, &settings, &search_names, 1000, 1000)
+                .await
+            {
                 Ok(candidates) => candidates,
                 Err(err) if err.is_transient() || err.is_connection_failure() => {
                     return self.block(job, &format!("Nyaa unreachable: {err}"));
@@ -255,6 +285,10 @@ impl Engine {
                 &MoveOptions::default(),
             );
         };
+
+        if !self.confirm_large_download(job, context.mal_id, &torrent)? {
+            return Ok(JobState::NeedsInput);
+        }
 
         let dl_str = if settings.download_folder.trim().is_empty() {
             crate::locations::default_download_dir()

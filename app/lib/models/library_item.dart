@@ -69,6 +69,9 @@ class LibraryShow {
   final int? metadataUpdatedAt;
   final List<EpisodeItem> episodes;
 
+  bool get metadataResolved =>
+      metadataStatus == 'ready' || metadataStatus == 'partial';
+
   int get id => malId;
   int get episodesTotal => totalEpisodes;
   int get episodesDownloaded => downloadedEpisodes;

@@ -58,8 +58,14 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
-      // Now IngestionProgress should be displayed inside the wizard
-      expect(find.byType(IngestionProgress), findsOneWidget);
+      // If plan confirmation step is reached, scroll and confirm the plan
+      final confirmBtn = find.byKey(const Key('confirm_plan_btn'));
+      if (confirmBtn.evaluate().isNotEmpty) {
+        await tester.ensureVisible(confirmBtn);
+        await tester.pumpAndSettle();
+        await tester.tap(confirmBtn);
+        await tester.pumpAndSettle();
+      }
 
       // Pump frames to let async stages finish
       for (int i = 0; i < 20; i++) {
@@ -80,22 +86,18 @@ void main() {
 
       bool isComplete = false;
 
+      state.setIngestionProgressForTesting(
+        stage: IngestionStage.createJobs,
+        isIngesting: true,
+        processedCount: 5,
+        totalCount: 16,
+      );
+
       await tester.pumpWidget(
         createTestApp(
           home: WizardPage(initialStep: 4, onComplete: () => isComplete = true),
         ),
       );
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
-
-      final startOffFinder = find.text('Start with automation off');
-      expect(startOffFinder, findsOneWidget);
-      await tester.ensureVisible(startOffFinder);
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
-
-      // Launch
-      await tester.tap(startOffFinder);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 

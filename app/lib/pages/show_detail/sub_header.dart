@@ -103,9 +103,13 @@ class ShowDetailSubHeader extends StatelessWidget {
 
             // Download Season Button
             Tooltip(
-              message: 'Download Season',
+              message: show.metadataResolved
+                  ? 'Download Season'
+                  : 'Resolve metadata before downloading',
               child: FilledButton.icon(
-                onPressed: () => state.downloadSeason(show.malId),
+                onPressed: show.metadataResolved
+                    ? () => state.downloadSeason(show.malId)
+                    : null,
                 icon: const Icon(Icons.download_rounded, size: 16),
                 label: Text(isMovie ? 'Download Movie' : 'Download Season'),
                 style: FilledButton.styleFrom(

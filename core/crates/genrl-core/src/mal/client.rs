@@ -202,35 +202,35 @@ impl<'a> MalClient<'a> {
             .await;
         let fetched = match body_result {
             Ok(fetched) => fetched,
-            Err(Error::Status {
-                status, url, body, ..
-            }) => {
-                let reason = body.unwrap_or_default();
-                let detail = if reason.is_empty() {
-                    format!("token endpoint returned HTTP {status} for {url}")
-                } else {
-                    format!("token endpoint returned HTTP {status}: {reason}")
-                };
+            Err(Error::Status { status, body, .. }) => {
+                let code = body
+                    .as_deref()
+                    .and_then(|body| serde_json::from_str::<serde_json::Value>(body).ok())
+                    .and_then(|json| json.get("error")?.as_str().map(str::to_owned))
+                    .filter(|code| {
+                        matches!(
+                            code.as_str(),
+                            "invalid_client"
+                                | "invalid_grant"
+                                | "invalid_request"
+                                | "unauthorized_client"
+                                | "unsupported_grant_type"
+                                | "invalid_scope"
+                                | "access_denied"
+                        )
+                    })
+                    .unwrap_or_else(|| "request_rejected".into());
                 return Err(Error::Auth {
-                    service: "mal".to_string(),
-                    message: format!(
-                        "{detail}\nChecklist:\n1. Verify client_id in Settings.\n2. Ensure redirect URI registered in MAL API config matches http://localhost:<port>/callback exactly."
-                    ),
+                    service: "mal".into(),
+                    message: format!("token endpoint returned HTTP {status} ({code}); check MAL client configuration"),
                 });
             }
             Err(err) => return Err(err),
         };
-        let body = fetched.text().unwrap_or_default();
-        let raw: TokenResponse = match fetched.json() {
-            Ok(raw) => raw,
-            Err(_) if !body.is_empty() => {
-                return Err(Error::Auth {
-                    service: "mal".to_string(),
-                    message: format!("token endpoint response: {body}"),
-                });
-            }
-            Err(err) => return Err(err),
-        };
+        let raw: TokenResponse = fetched.json().map_err(|_| Error::Auth {
+            service: "mal".into(),
+            message: "token endpoint returned an unexpected response".into(),
+        })?;
         if let Some(rotated) = raw.refresh_token.as_deref() {
             self.store.set_refresh_token(Some(rotated))?;
         }

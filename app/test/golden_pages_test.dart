@@ -238,7 +238,7 @@ void main() {
 
     await tester.pumpWidget(
       wrapPage(
-        WizardPage(onComplete: () {}),
+        WizardPage(initialStep: 4, onComplete: () {}),
         state,
         size: const Size(1600, 1000),
       ),

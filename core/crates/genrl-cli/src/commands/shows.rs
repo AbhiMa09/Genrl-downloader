@@ -58,24 +58,37 @@ pub fn shows_cmd(data_dir: &Path, status_filter: Option<&str>, json: bool) -> Re
             let airing_st: Option<String> = r.get(5)?;
             let synopsis_txt: Option<String> = r.get(6)?;
             let poster_val: Option<String> = r.get(7)?;
-            Ok(serde_json::json!({
-                "mal_id": r.get::<_, i64>(0)?,
-                "title": r.get::<_, String>(1)?,
-                "english_title": r.get::<_, Option<String>>(2)?,
-                "start_year": r.get::<_, Option<i64>>(3)?,
-                "total_episodes": total_eps.unwrap_or(0),
-                "airing_status": airing_st.unwrap_or_else(|| "Finished".into()),
-                "synopsis": synopsis_txt.unwrap_or_default(),
-                "poster_url": poster_val,
-                "folder_path": r.get::<_, Option<String>>(8)?,
-                "auto": r.get::<_, i64>(9)? != 0,
-                "status": r.get::<_, String>(10)?,
-                "watched_episodes": r.get::<_, i64>(11)?,
-                "score": r.get::<_, f64>(12)?,
-                "downloaded_episodes": r.get::<_, i64>(13)?,
-                "metadata_status": r.get::<_, Option<String>>(14)?.unwrap_or_else(|| "ready".into()),
-                "metadata_error": r.get::<_, Option<String>>(15)?,
-            }))
+                let list_st: String = r.get(10)?;
+                let airing_formatted = match airing_st.as_deref().map(|s| s.to_lowercase()).as_deref() {
+                    Some("airing") | Some("currently_airing") => "Airing",
+                    Some("not_yet_aired") => "Not Yet Aired",
+                    Some("finished") | Some("finished_airing") => "Finished",
+                    _ => {
+                        if list_st.eq_ignore_ascii_case("watching") {
+                            "Airing"
+                        } else {
+                            "Finished"
+                        }
+                    }
+                };
+                Ok(serde_json::json!({
+                    "mal_id": r.get::<_, i64>(0)?,
+                    "title": r.get::<_, String>(1)?,
+                    "english_title": r.get::<_, Option<String>>(2)?,
+                    "start_year": r.get::<_, Option<i64>>(3)?,
+                    "total_episodes": total_eps.unwrap_or(0),
+                    "airing_status": airing_formatted,
+                    "synopsis": synopsis_txt.unwrap_or_default(),
+                    "poster_url": poster_val,
+                    "folder_path": r.get::<_, Option<String>>(8)?,
+                    "auto": r.get::<_, i64>(9)? != 0,
+                    "status": list_st,
+                    "watched_episodes": r.get::<_, i64>(11)?,
+                    "score": r.get::<_, f64>(12)?,
+                    "downloaded_episodes": r.get::<_, i64>(13)?,
+                    "metadata_status": r.get::<_, Option<String>>(14)?.unwrap_or_else(|| "ready".into()),
+                    "metadata_error": r.get::<_, Option<String>>(15)?,
+                }))
         })?;
         let mut list = Vec::new();
         for row in rows {

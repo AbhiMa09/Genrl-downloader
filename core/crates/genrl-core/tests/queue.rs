@@ -439,6 +439,7 @@ impl World {
             clock,
             Arc::new(NoopFinalizer),
             disk,
+            self.dir.path().to_path_buf(),
         )
     }
 
@@ -491,6 +492,14 @@ fn plan_one(world: &World) -> i64 {
         PlanOutcome::Applied { queued, .. } => assert_eq!(queued, 1, "one episode queued"),
         PlanOutcome::Preview(preview) => panic!("a finished first run applies: {preview:?}"),
     }
+    // MOCK queue fixture starts after successful metadata resolution.
+    world
+        .db
+        .with(|c| {
+            c.execute("UPDATE shows SET metadata_status = 'ready'", [])?;
+            Ok(())
+        })
+        .unwrap();
     single_job(world)
 }
 
@@ -1195,4 +1204,332 @@ async fn the_daily_cap_stops_a_bad_sync_from_flooding_the_client() {
         other => panic!("expected an applied plan, got {other:?}"),
     }
     assert_eq!(job_count(&world), 1, "only the cap's worth of jobs exist");
+}
+
+/// A first sync with 40+ missing episodes respects the 25 first-sync cap,
+/// leaving the remainder waiting for tomorrow, while bypass creates all.
+#[tokio::test]
+async fn first_sync_cap_holds_with_40_missing_episodes_and_bypass_queues_all() {
+    let world = World::new().await;
+    let mut settings = Settings::load(&world.db).expect("settings");
+    settings.first_run_complete = false;
+    settings.first_sync_cap = 25;
+    settings.daily_torrent_cap = 30;
+    settings.save(&world.db).expect("settings");
+
+    // 45 Watching shows, each wanting episode 1
+    let mut entries = Vec::new();
+    for id in 1000..1045 {
+        entries.push(ListEntry {
+            mal_id: id,
+            title: format!("Watching Show #{id}"),
+            english_title: None,
+            list_status: ListStatus::Watching,
+            watched_count: 0,
+            total_episodes: Some(12),
+            start_year: Some(2025),
+            auto: true,
+            episode_offset: 0,
+            names: vec![format!("Watching Show #{id}")],
+            franchise: id,
+            season: 1,
+        });
+    }
+    let list = MalList { entries };
+
+    // 1. Preview reports 45 episodes
+    let preview = match planner::plan(&world.db, &world.clock, &list, false).expect("plan") {
+        PlanOutcome::Preview(p) => p,
+        PlanOutcome::Applied { .. } => panic!("first sync must preview"),
+    };
+    assert_eq!(preview.episodes.len(), 45);
+    assert_eq!(job_count(&world), 0);
+
+    // 2. Confirm without bypass: respects first_sync_cap (25), leaves 20 waiting for tomorrow
+    let queued =
+        planner::confirm_capped(&world.db, &world.clock, &list, false).expect("confirm_capped");
+    assert_eq!(
+        queued, 25,
+        "Launch must create exactly the first-sync cap of 25"
+    );
+    assert_eq!(job_count(&world), 25);
+
+    // Assert that the 20 capped episodes stay planned (not lost) after the cap
+    let remaining_plan =
+        match planner::plan(&world.db, &world.clock, &list, true).expect("subsequent plan") {
+            PlanOutcome::Preview(p) => p,
+            PlanOutcome::Applied { preview, .. } => preview,
+        };
+    assert_eq!(
+        remaining_plan.episodes.len(),
+        20,
+        "20 capped episodes stay planned (not lost) after the cap"
+    );
+    assert_eq!(
+        job_count(&world),
+        25,
+        "job_count is still 25 after the second plan"
+    );
+
+    // 3. Confirm with bypass on creates all 45
+    let world2 = World::new().await;
+    let mut settings2 = Settings::load(&world2.db).expect("settings");
+    settings2.first_run_complete = false;
+    settings2.first_sync_cap = 25;
+    settings2.daily_torrent_cap = 30;
+    settings2.save(&world2.db).expect("settings");
+
+    let queued_all =
+        planner::confirm_capped(&world2.db, &world2.clock, &list, true).expect("confirm bypass");
+    assert_eq!(queued_all, 45, "Bypass on creates all 45 jobs");
+    assert_eq!(job_count(&world2), 45);
+}
+
+#[tokio::test]
+async fn planner_plans_next_episode_for_ongoing_shows_with_null_total_episodes() {
+    let world = World::new().await;
+    let list = MalList {
+        entries: vec![
+            ListEntry {
+                mal_id: 235,
+                title: "Meitantei Conan".to_string(),
+                english_title: Some("Detective Conan".to_string()),
+                list_status: ListStatus::Watching,
+                watched_count: 1020,
+                total_episodes: None, // Real ongoing anime: total NULL
+                start_year: Some(1996),
+                auto: true,
+                episode_offset: 0,
+                names: vec!["Meitantei Conan".to_string()],
+                franchise: 235,
+                season: 1,
+            },
+            ListEntry {
+                mal_id: 21,
+                title: "One Piece".to_string(),
+                english_title: Some("One Piece".to_string()),
+                list_status: ListStatus::Watching,
+                watched_count: 905,
+                total_episodes: None, // Real ongoing anime: total NULL
+                start_year: Some(1999),
+                auto: true,
+                episode_offset: 0,
+                names: vec!["One Piece".to_string()],
+                franchise: 21,
+                season: 1,
+            },
+            ListEntry {
+                mal_id: 34566,
+                title: "Boruto: Naruto Next Generations".to_string(),
+                english_title: Some("Boruto: Naruto Next Generations".to_string()),
+                list_status: ListStatus::Watching,
+                watched_count: 216,
+                total_episodes: Some(293), // Known finished/part total
+                start_year: Some(2017),
+                auto: true,
+                episode_offset: 0,
+                names: vec!["Boruto: Naruto Next Generations".to_string()],
+                franchise: 34566,
+                season: 1,
+            },
+            ListEntry {
+                mal_id: 51462,
+                title: "Ishura".to_string(),
+                english_title: Some("Ishura".to_string()),
+                list_status: ListStatus::Watching,
+                watched_count: 12,
+                total_episodes: Some(12), // Known total: fully watched
+                start_year: Some(2024),
+                auto: true,
+                episode_offset: 0,
+                names: vec!["Ishura".to_string()],
+                franchise: 51462,
+                season: 1,
+            },
+        ],
+    };
+
+    let preview = match planner::plan(&world.db, &world.clock, &list, false).expect("plan") {
+        PlanOutcome::Preview(p) => p,
+        PlanOutcome::Applied { preview, .. } => preview,
+    };
+
+    // Conan: watched 1020 -> wanted episode 1021.0
+    let conan = preview.episodes.iter().find(|e| e.mal_id == 235);
+    assert!(conan.is_some(), "Conan must be planned for next episode");
+    assert_eq!(conan.unwrap().episode, 1021.0);
+
+    // One Piece: watched 905 -> wanted episode 906.0
+    let op = preview.episodes.iter().find(|e| e.mal_id == 21);
+    assert!(op.is_some(), "One Piece must be planned for next episode");
+    assert_eq!(op.unwrap().episode, 906.0);
+
+    // Boruto: watched 216 < total 293 -> wanted episode 217.0
+    let boruto = preview.episodes.iter().find(|e| e.mal_id == 34566);
+    assert!(boruto.is_some(), "Boruto must be planned for next episode");
+    assert_eq!(boruto.unwrap().episode, 217.0);
+
+    // Ishura: watched 12 == total 12 -> fully watched, skipped!
+    let ishura = preview.episodes.iter().find(|e| e.mal_id == 51462);
+    assert!(ishura.is_none(), "Ishura must not be planned");
+    let ishura_skip = preview.skipped.iter().find(|s| s.mal_id == 51462);
+    assert!(ishura_skip.is_some());
+    assert!(
+        ishura_skip.unwrap().reason.contains("fully watched"),
+        "Only shows with known total are marked fully watched"
+    );
+}
+
+/// MOCK Nyaa/qBit: unresolved shows must not make any search request.
+#[tokio::test]
+async fn unresolved_metadata_blocks_search_without_using_nyaa() {
+    let world = World::new().await;
+    let id = plan_one(&world);
+    world
+        .db
+        .with(|c| {
+            c.execute("UPDATE shows SET metadata_status = 'pending'", [])?;
+            Ok(())
+        })
+        .unwrap();
+    let engine = Arc::new(world.engine());
+    let result = engine.step(id).await.unwrap();
+    assert_eq!(result.to, JobState::Blocked);
+    let job = jobs::get(&world.db, id).unwrap().unwrap();
+    assert_eq!(job.attempts, 0);
+    assert!(job.last_error.unwrap().starts_with("Metadata unresolved"));
+    let requests = world.server.received_requests().await.unwrap();
+    assert!(!requests.iter().any(|r| r.url.path() == "/"));
+    let scheduler = Scheduler::new(engine);
+    assert!(scheduler.tick().await.unwrap().resumed.is_empty());
+    world
+        .db
+        .with(|c| {
+            c.execute("UPDATE shows SET metadata_status='partial'", [])?;
+            Ok(())
+        })
+        .unwrap();
+    let report = scheduler.tick().await.unwrap();
+    assert!(report.resumed.contains(&(id, JobState::Search)));
+    scheduler.settle().await;
+    assert_eq!(state_of(&world.db, id), JobState::Choose);
+}
+
+/// Regression test: 2 blocked + 5 runnable jobs with search_concurrency 2.
+/// Blocked jobs get next_run_at backoff, due_jobs only selects runnable jobs,
+/// and all 5 runnable jobs must run without head-of-line blocking.
+#[tokio::test]
+async fn due_jobs_runnable_only_prevents_head_of_line_blocking() {
+    let world = World::new().await;
+    let mut settings = Settings::load(&world.db).unwrap();
+    settings.search_concurrency = 2;
+    settings.save(&world.db).unwrap();
+
+    let list = list_of(vec![
+        entry(101, "Show 1", 1, 1),
+        entry(102, "Show 2", 2, 1),
+        entry(103, "Show 3", 3, 1),
+        entry(104, "Show 4", 4, 1),
+        entry(105, "Show 5", 5, 1),
+        entry(106, "Show 6", 6, 1),
+        entry(107, "Show 7", 7, 1),
+    ]);
+    planner::plan(&world.db, &world.clock, &list, true).expect("plan");
+    world
+        .db
+        .with(|c| {
+            c.execute("UPDATE shows SET metadata_status = 'ready'", [])?;
+            c.execute(
+                "UPDATE shows SET metadata_status = 'pending' WHERE mal_id IN (101, 102)",
+                [],
+            )?;
+            Ok(())
+        })
+        .unwrap();
+
+    let all_jobs = jobs::list(&world.db, None, 10).unwrap();
+    assert_eq!(all_jobs.len(), 7);
+
+    let engine = Arc::new(world.engine());
+    // Block the first 2 jobs
+    engine.block(&all_jobs[0], "Metadata unresolved").unwrap();
+    engine.block(&all_jobs[1], "Metadata unresolved").unwrap();
+
+    let b0 = jobs::get(&world.db, all_jobs[0].id).unwrap().unwrap();
+    assert_eq!(b0.state, JobState::Blocked);
+    assert!(
+        b0.next_run_at.is_some(),
+        "Blocked jobs must receive next_run_at backoff"
+    );
+
+    let scheduler = Scheduler::new(engine);
+    let mut dispatched_ids = std::collections::HashSet::new();
+    for _ in 0..10 {
+        let report = scheduler.tick().await.unwrap();
+        for (_kind, id) in report.dispatched {
+            dispatched_ids.insert(id);
+        }
+        scheduler.settle().await;
+        if dispatched_ids.len() >= 5 {
+            break;
+        }
+    }
+    assert!(
+        !dispatched_ids.contains(&all_jobs[0].id),
+        "Blocked job 0 must not be dispatched"
+    );
+    assert!(
+        !dispatched_ids.contains(&all_jobs[1].id),
+        "Blocked job 1 must not be dispatched"
+    );
+    for job in &all_jobs[2..7] {
+        assert!(
+            dispatched_ids.contains(&job.id),
+            "Runnable job {} must run",
+            job.id
+        );
+    }
+    assert_eq!(
+        dispatched_ids.len(),
+        5,
+        "All 5 runnable jobs must run despite 2 older blocked jobs"
+    );
+}
+
+#[tokio::test]
+async fn test_slow_fake_sync_does_not_stall_job_dispatch() {
+    let world = World::new().await;
+
+    // Insert 1 runnable show and job
+    let list = list_of(vec![entry(200, "Show 2", 1, 2)]);
+    planner::plan(&world.db, &world.clock, &list, true).expect("plan");
+    world
+        .db
+        .with(|c| {
+            c.execute("UPDATE shows SET metadata_status = 'ready'", [])?;
+            Ok(())
+        })
+        .unwrap();
+
+    let jobs = jobs::list(&world.db, None, 10).unwrap();
+    assert!(!jobs.is_empty(), "Must have a queued job");
+
+    let engine = Arc::new(world.engine());
+    let scheduler = Scheduler::new(engine);
+
+    // Simulate an active slow sync task running in the background
+    let slow_sync_handle = tokio::spawn(async {
+        tokio::time::sleep(Duration::from_millis(500)).await;
+    });
+
+    // Scheduler tick must dispatch the runnable job without waiting for slow sync
+    let report = scheduler.tick().await.unwrap();
+    assert_eq!(
+        report.dispatched.len(),
+        1,
+        "Runnable job must be dispatched despite slow sync"
+    );
+    assert_eq!(report.dispatched[0].1, jobs[0].id);
+
+    slow_sync_handle.await.unwrap();
 }

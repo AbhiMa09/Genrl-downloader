@@ -22,7 +22,10 @@ class FakeCoreBridge extends CoreBridge {
   });
 
   @override
-  Future<ProcessResult> execute(List<String> args) async {
+  Future<ProcessResult> execute(
+    List<String> args, {
+    Map<String, String>? environment,
+  }) async {
     if (mode == FakeMode.error) {
       return ProcessResult(1, 1, '', errorMessage);
     }

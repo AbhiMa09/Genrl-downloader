@@ -87,6 +87,8 @@ pub struct JikanNamedItem {
 #[derive(Debug, Clone, Deserialize)]
 pub struct MalApiAnimeDetailResponse {
     pub id: i64,
+    #[serde(default)]
+    pub start_date: Option<String>,
     pub title: String,
     #[serde(default)]
     pub alternative_titles: Option<MalApiAlternativeTitles>,

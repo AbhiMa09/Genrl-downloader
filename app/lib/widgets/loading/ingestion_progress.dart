@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
 import 'cyber_loader.dart';
+import 'ingestion_error_card.dart';
 import 'inline_spinner.dart';
 
 enum IngestionStage {
@@ -20,11 +21,14 @@ enum IngestionStage {
 /// 4 real core stage tiles, telemetry counts/ETA, and action controls.
 class IngestionProgress extends StatelessWidget {
   final IngestionStage stage;
+  final IngestionStage? failedStage;
   final int processedCount;
   final int totalCount;
   final int? etaSeconds;
   final bool isPaused;
   final String? errorMessage;
+  final String? dbPath;
+  final String? jikanBaseUrl;
   final VoidCallback? onPauseToggle;
   final VoidCallback? onBackground;
   final VoidCallback? onViewTelemetry;
@@ -33,11 +37,14 @@ class IngestionProgress extends StatelessWidget {
   const IngestionProgress({
     super.key,
     required this.stage,
+    this.failedStage,
     this.processedCount = 0,
     this.totalCount = 0,
     this.etaSeconds,
     this.isPaused = false,
     this.errorMessage,
+    this.dbPath,
+    this.jikanBaseUrl,
     this.onPauseToggle,
     this.onBackground,
     this.onViewTelemetry,
@@ -66,7 +73,7 @@ class IngestionProgress extends StatelessWidget {
       case IngestionStage.malSync:
         return 'Fetching watching and plan-to-watch series from MAL API.';
       case IngestionStage.metadata:
-        return 'Downloading synopses and high-res seasonal posters.';
+        return 'Resolving watching shows first (21 shows). Remaining shows continue in the background (~21 min, Jikan limit).';
       case IngestionStage.planQueue:
         return 'Evaluating episode missing states against active rules.';
       case IngestionStage.createJobs:
@@ -120,24 +127,49 @@ class IngestionProgress extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 6),
-              Text(
-                _subhead,
-                style: ObsidianTypography.bodySm(
-                  color: ObsidianColors.onSurfaceVariant,
+              if (stage == IngestionStage.failed) ...[
+                IngestionErrorCard(
+                  info: IngestionErrorInfo.from(
+                    stage: failedStage,
+                    rawError: errorMessage,
+                    dbPath: dbPath,
+                    jikanBaseUrl: jikanBaseUrl,
+                  ),
                 ),
-                textAlign: TextAlign.center,
-              ),
+              ] else ...[
+                Text(
+                  _subhead,
+                  style: ObsidianTypography.bodySm(
+                    color: ObsidianColors.onSurfaceVariant,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
               const SizedBox(height: 20),
 
               // Dual-Segmented Progress Metrics
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    '$processedCount / $totalCount episodes verified',
-                    style: ObsidianTypography.monoCode(
-                      color: ObsidianColors.onSurface,
-                    ),
+                  Builder(
+                    builder: (context) {
+                      final effectiveStage = stage == IngestionStage.failed
+                          ? (failedStage ?? IngestionStage.createJobs)
+                          : stage;
+                      final label = effectiveStage == IngestionStage.malSync
+                          ? '$processedCount / $totalCount entries synced'
+                          : (effectiveStage == IngestionStage.metadata
+                                ? '$processedCount / $totalCount watching shows resolved'
+                                : (effectiveStage == IngestionStage.planQueue
+                                      ? '$processedCount / $totalCount shows evaluated'
+                                      : '$processedCount / $totalCount jobs created'));
+                      return Text(
+                        label,
+                        style: ObsidianTypography.monoCode(
+                          color: ObsidianColors.onSurface,
+                        ),
+                      );
+                    },
                   ),
                   Text(
                     '$percent%',
@@ -195,7 +227,9 @@ class IngestionProgress extends StatelessWidget {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        'Committed: $processedCount',
+                        stage == IngestionStage.failed
+                            ? 'Interrupted at: $processedCount'
+                            : 'Committed: $processedCount',
                         style: ObsidianTypography.monoCode(
                           color: ObsidianColors.outline,
                         ),
@@ -203,9 +237,9 @@ class IngestionProgress extends StatelessWidget {
                     ],
                   ),
                   Text(
-                    etaSeconds != null
+                    etaSeconds != null && etaSeconds! > 0
                         ? 'Time remaining: ~${etaSeconds}s'
-                        : 'Estimating...',
+                        : '',
                     style: ObsidianTypography.monoCode(
                       color: ObsidianColors.outline,
                     ),
@@ -266,10 +300,35 @@ class IngestionProgress extends StatelessWidget {
     String title,
     IngestionStage tileStage,
   ) {
-    final isDone =
-        stage.index > tileStage.index || stage == IngestionStage.completed;
-    final isActive = stage == tileStage;
-    final isFailed = isActive && stage == IngestionStage.failed;
+    final effectiveFailed = failedStage ?? IngestionStage.createJobs;
+    final bool isDone;
+    final bool isFailed;
+    final bool isActive;
+
+    if (stage == IngestionStage.failed) {
+      if (tileStage.index < effectiveFailed.index) {
+        isDone = true;
+        isFailed = false;
+        isActive = false;
+      } else if (tileStage == effectiveFailed) {
+        isDone = false;
+        isFailed = true;
+        isActive = false;
+      } else {
+        isDone = false;
+        isFailed = false;
+        isActive = false;
+      }
+    } else {
+      isDone =
+          stage.index > tileStage.index || stage == IngestionStage.completed;
+      isActive = stage == tileStage;
+      isFailed = false;
+    }
+
+    final String statusText = isDone
+        ? 'Completed'
+        : (isFailed ? 'Failed' : (isActive ? 'Running' : 'Queued'));
 
     Color bgColor = ObsidianColors.surfaceContainerHigh;
     Color iconColor = ObsidianColors.outline;
@@ -295,9 +354,11 @@ class IngestionProgress extends StatelessWidget {
         color: bgColor,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: isActive
-              ? ObsidianColors.secondary.withOpacity(0.4)
-              : Colors.transparent,
+          color: isFailed
+              ? ObsidianColors.error.withOpacity(0.6)
+              : (isActive
+                    ? ObsidianColors.secondary.withOpacity(0.4)
+                    : Colors.transparent),
           width: 0.5,
         ),
       ),
@@ -313,19 +374,23 @@ class IngestionProgress extends StatelessWidget {
                 Text(
                   '$stepNumber. $title',
                   style: ObsidianTypography.labelBadge(
-                    color: isActive
-                        ? ObsidianColors.secondary
-                        : (isDone
-                              ? ObsidianColors.onSurface
-                              : ObsidianColors.outline),
+                    color: isFailed
+                        ? ObsidianColors.error
+                        : (isActive
+                              ? ObsidianColors.secondary
+                              : (isDone
+                                    ? ObsidianColors.onSurface
+                                    : ObsidianColors.outline)),
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
-                  isDone ? 'Completed' : (isActive ? 'Running' : 'Queued'),
+                  statusText,
                   style: ObsidianTypography.monoCode(
-                    color: ObsidianColors.outline,
+                    color: isFailed
+                        ? ObsidianColors.error
+                        : ObsidianColors.outline,
                   ).copyWith(fontSize: 10),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

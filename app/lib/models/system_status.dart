@@ -19,16 +19,16 @@ class SystemStatus {
     this.daemonConnected = true,
     this.daemonPort = 'IPC Linked',
     this.automationOn = true,
-    this.qbitConnected = true,
-    this.qbitVersion = 'v5.2.4',
-    this.downloadSpeedBytes = 42800000, // 42.8 MB/s
-    this.uploadSpeedBytes = 1200000,
-    this.activeTorrents = 4,
-    this.totalShows = 1428,
-    this.totalEpisodes = 38912,
-    this.inboxQuestions = 3,
-    this.freeDiskSpaceGb = 428,
-    this.totalDiskSpaceGb = 18400,
+    this.qbitConnected = false,
+    this.qbitVersion = '—',
+    this.downloadSpeedBytes = 0.0,
+    this.uploadSpeedBytes = 0.0,
+    this.activeTorrents = 0,
+    this.totalShows = 0,
+    this.totalEpisodes = 0,
+    this.inboxQuestions = 0,
+    this.freeDiskSpaceGb = 0,
+    this.totalDiskSpaceGb = 0,
     this.lastMalSync,
     this.activeError,
   });
@@ -43,7 +43,7 @@ class SystemStatus {
   }
 
   String get formattedDownloadSpeed {
-    if (downloadSpeedBytes <= 0) return '0 B/s';
+    if (!qbitConnected || downloadSpeedBytes <= 0) return '—';
     if (downloadSpeedBytes < 1024 * 1024) {
       return '${(downloadSpeedBytes / 1024).toStringAsFixed(1)} KB/s';
     }
@@ -51,6 +51,7 @@ class SystemStatus {
   }
 
   String get formattedDiskSpace {
+    if (freeDiskSpaceGb <= 0) return '—';
     if (freeDiskSpaceGb >= 1000) {
       return '${(freeDiskSpaceGb / 1000).toStringAsFixed(1)} TB free';
     }

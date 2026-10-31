@@ -60,10 +60,19 @@ class StateProvider extends StateContext
     }
   }
 
+  bool _disposed = false;
+
   @override
   void dispose() {
+    _disposed = true;
     _pollingTimer?.cancel();
     super.dispose();
+  }
+
+  @override
+  void notifyListeners() {
+    if (_disposed) return;
+    super.notifyListeners();
   }
 
   void _startPolling() {
@@ -77,6 +86,11 @@ class StateProvider extends StateContext
   int get selectedPageIndex => _selectedPageIndex;
   String get searchFilter => _searchFilter;
   SystemStatus get status => _status;
+  void setStatusForTesting(SystemStatus newStatus) {
+    _status = newStatus;
+    notifyListeners();
+  }
+
   List<InboxItem> get inbox => _inbox;
   int get inboxCount => _inbox.length;
   bool get isSyncing => _isSyncing;
@@ -113,6 +127,7 @@ class StateProvider extends StateContext
       refreshMalStatus(),
       refreshLocations(),
       refreshPlanPreview(),
+      refreshSettings(),
     ]);
   }
 

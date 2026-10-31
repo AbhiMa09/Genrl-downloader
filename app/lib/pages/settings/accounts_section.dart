@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
+import 'mal_connection_controls.dart';
 
 class SettingsAccountsSection extends StatelessWidget {
   final StateProvider state;
@@ -25,7 +26,7 @@ class SettingsAccountsSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final isMalAuth = state.isMalAuthenticated;
     final username = isMalAuth
-        ? (state.malUsername ?? 'ren_kurokawa')
+        ? (state.malUsername ?? 'Connected')
         : 'Not Connected';
 
     return Container(
@@ -224,21 +225,7 @@ class SettingsAccountsSection extends StatelessWidget {
                             elevation: 0,
                           ),
                         ),
-                        OutlinedButton.icon(
-                          onPressed: () => state.loginMal(),
-                          icon: const Icon(Icons.key_rounded, size: 16),
-                          label: Text(
-                            isMalAuth
-                                ? 'Reconnect'
-                                : 'Connect via Browser (PKCE)',
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(
-                              color: ObsidianColors.border,
-                            ),
-                            foregroundColor: ObsidianColors.onSurface,
-                          ),
-                        ),
+                        MalConnectionControls(state: state),
                         if (isMalAuth)
                           OutlinedButton.icon(
                             onPressed: () => state.disconnectMal(),

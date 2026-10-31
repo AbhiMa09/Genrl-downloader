@@ -113,7 +113,15 @@ pub async fn search(
                 .text()
                 .and_then(|text| parse_feed(&text))
                 .map(|mut items| {
-                    items.retain(|i| i.seeders >= query.min_seeders);
+                    items.retain(|i| {
+                        i.seeders >= query.min_seeders
+                            && i.info_hash.len() == 40
+                            && i.info_hash.bytes().all(|b| b.is_ascii_hexdigit())
+                            && query
+                                .category
+                                .as_ref()
+                                .map_or(true, |c| &i.category_id == c)
+                    });
                     items.sort_by_key(|a| std::cmp::Reverse(a.seeders));
                     if items.len() > query.limit {
                         items.truncate(query.limit);

@@ -16,6 +16,7 @@ pub struct TargetInputs {
     pub english_title: Option<String>,
     pub start_year: Option<i64>,
     pub show_type: ShowType,
+    pub total_episodes: Option<i64>,
     /// 1-based season within the chain (MAL season 2 → 2).
     pub season: i64,
     pub fully_aired: bool,
@@ -41,13 +42,15 @@ impl TargetInputs {
             )));
         }
         let other_names = other_show_names(db, mal_id)?;
+        let season = crate::filename::extract_season_from_title(&show.title).unwrap_or(show.season);
         Ok(TargetInputs {
             mal_id: show.mal_id,
             title: show.title,
             english_title: show.english_title,
             start_year: show.start_year,
             show_type: show.show_type,
-            season: show.season,
+            total_episodes: show.total_episodes,
+            season,
             fully_aired: show.status == AiringStatus::Finished,
             auto: show.auto,
             names,
@@ -71,6 +74,7 @@ impl TargetInputs {
             season: self.season,
             start_year: self.start_year,
             fully_aired: self.fully_aired,
+            total_episodes: self.total_episodes,
         }
     }
 
@@ -124,6 +128,8 @@ pub enum AskReason {
     },
     /// The winner is thin, and this show is not on the auto list.
     ThinSeeds { seeders: u32 },
+    /// Release or batch size exceeds confirmation threshold.
+    SizeReview { reason: String },
 }
 
 impl std::fmt::Display for AskReason {
@@ -140,6 +146,7 @@ impl std::fmt::Display for AskReason {
             AskReason::ThinSeeds { seeders } => {
                 write!(f, "only {seeders} seeders, which is below your auto-download line")
             }
+            AskReason::SizeReview { reason } => write!(f, "{reason}"),
         }
     }
 }

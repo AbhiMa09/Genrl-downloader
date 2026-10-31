@@ -14,8 +14,21 @@ import 'core_bridge_parsers.dart';
 class CoreBridge {
   final String genrlBinaryPath;
   final String? customDataDir;
+  String? lastError;
 
-  CoreBridge({this.genrlBinaryPath = 'genrl', this.customDataDir});
+  CoreBridge({this.genrlBinaryPath = 'genrl', this.customDataDir}) {
+    final home = Platform.environment['HOME'];
+    final defaultDir = home != null
+        ? '$home/.local/share/genrl-downloader'
+        : null;
+    if (Platform.environment['GENRL_REQUIRE_SCRATCH'] == '1') {
+      if (customDataDir == null || customDataDir == defaultDir) {
+        throw StateError(
+          'Refusing to start: GENRL_REQUIRE_SCRATCH is set but customDataDir is default production path: $defaultDir',
+        );
+      }
+    }
+  }
 
   String _resolveBinary() {
     if (genrlBinaryPath != 'genrl') return genrlBinaryPath;
@@ -30,7 +43,10 @@ class CoreBridge {
   }
 
   /// Execute a `genrl` command line.
-  Future<ProcessResult> execute(List<String> args) async {
+  Future<ProcessResult> execute(
+    List<String> args, {
+    Map<String, String>? environment,
+  }) async {
     final fullArgs = <String>[];
     if (customDataDir != null && customDataDir!.isNotEmpty) {
       fullArgs.addAll(['--data-dir', customDataDir!]);
@@ -39,8 +55,16 @@ class CoreBridge {
 
     try {
       final bin = _resolveBinary();
-      return await Process.run(bin, fullArgs);
+      final res = await Process.run(bin, fullArgs, environment: environment);
+      if (res.exitCode != 0) {
+        final err = (res.stderr as String).trim();
+        lastError = err.isNotEmpty ? err : (res.stdout as String).trim();
+      } else {
+        lastError = null;
+      }
+      return res;
     } catch (e) {
+      lastError = e.toString();
       // In case genrl is not in PATH during dev, fall back gracefully
       return ProcessResult(-1, 1, '', e.toString());
     }
@@ -105,9 +129,6 @@ class CoreBridge {
     if (clientId != null && clientId.trim().isNotEmpty) {
       args.addAll(['--client-id', clientId.trim()]);
     }
-    if (clientSecret != null && clientSecret.trim().isNotEmpty) {
-      args.addAll(['--client-secret', clientSecret.trim()]);
-    }
     if (port != null) {
       args.addAll(['--port', port.toString()]);
     }
@@ -117,7 +138,12 @@ class CoreBridge {
     if (noOpen) {
       args.add('--no-open');
     }
-    return await execute(args);
+    return await execute(
+      args,
+      environment: clientSecret != null && clientSecret.trim().isNotEmpty
+          ? {'GENRL_MAL_CLIENT_SECRET': clientSecret.trim()}
+          : null,
+    );
   }
 
   /// Get MAL status as structured map

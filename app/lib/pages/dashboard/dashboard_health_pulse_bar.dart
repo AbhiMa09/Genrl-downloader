@@ -13,11 +13,14 @@ class DashboardHealthPulseBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final activeTorrents = state.status.activeTorrents > 0
         ? state.status.activeTorrents
-        : state.activeQueueCount;
+        : (state.activeQueueCount > 0
+              ? state.activeQueueCount
+              : state.queue.length);
     final monitoredShows = state.status.totalShows > 0
         ? state.status.totalShows
         : state.shows.length;
-    final nextShow = state.shows.isNotEmpty ? state.shows.first.title : '-';
+    // Real next release from verified next air date; if unknown, show "—"
+    const String? nextReleaseTitle = null;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -102,23 +105,18 @@ class DashboardHealthPulseBar extends StatelessWidget {
                               color: ObsidianColors.primaryFixedDim,
                             ),
                           ),
-                          TextSpan(
-                            text: nextShow,
-                            style: const TextStyle(
+                          const TextSpan(
+                            text: nextReleaseTitle ?? '—',
+                            style: TextStyle(
                               color: ObsidianColors.onSurface,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          TextSpan(
-                            text:
-                                state.shows.isNotEmpty &&
-                                    state.shows.first.airingStatus.isNotEmpty
-                                ? ' (${state.shows.first.airingStatus})'
-                                : '',
-                            style: const TextStyle(
-                              color: ObsidianColors.outline,
+                          if (nextReleaseTitle != null)
+                            const TextSpan(
+                              text: ' (Airing)',
+                              style: TextStyle(color: ObsidianColors.outline),
                             ),
-                          ),
                         ],
                       ),
                     ),

@@ -57,3 +57,5 @@ __pycache__/
 
 # --- Audit & diff artifacts ---
 audit/
+photo/
+app/test/failures/

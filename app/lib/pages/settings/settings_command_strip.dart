@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../constants/app_version.dart';
 import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
@@ -63,7 +64,7 @@ class SettingsCommandStrip extends StatelessWidget {
                   style: ObsidianTypography.headlineLg(),
                 ),
                 Text(
-                  'v2.4.1',
+                  kAppBuildInfo,
                   style: ObsidianTypography.titleSm(
                     color: ObsidianColors.outline,
                   ),

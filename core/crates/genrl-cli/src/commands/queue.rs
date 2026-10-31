@@ -279,6 +279,7 @@ pub fn answer_cmd(data_dir: &Path, id: i64, choice_str: &str, always: bool) -> R
         "skip_episode" => genrl_core::questions::Choice::SkipEpisode,
         "search_again" => genrl_core::questions::Choice::SearchAgain,
         "none_of_these" => genrl_core::questions::Choice::NoneOfThese,
+        "wrong_release" | "wrong" => genrl_core::questions::Choice::WrongRelease,
         other => {
             if other.len() == 40 && other.chars().all(|c| c.is_ascii_hexdigit()) {
                 genrl_core::questions::Choice::UseThis {
@@ -324,6 +325,7 @@ pub async fn run_cmd(data_dir: &Path) -> Result<()> {
         Arc::new(SystemClock),
         finalizer,
         Arc::new(FsDiskProbe),
+        data_dir.to_path_buf(),
     ));
     let report = queue::reconcile(&engine).await?;
     println!(
@@ -374,6 +376,7 @@ pub async fn step_cmd(data_dir: &Path, job_id: i64) -> Result<()> {
         Arc::new(SystemClock),
         finalizer,
         Arc::new(FsDiskProbe),
+        data_dir.to_path_buf(),
     ));
     println!("Stepping job {job_id}...");
     match engine.step(job_id).await {

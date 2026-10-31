@@ -32,6 +32,15 @@ pub enum MetadataOutcome {
     },
 }
 
+fn normalize_airing_status(s: Option<&str>) -> Option<&'static str> {
+    match s.map(|x| x.trim().to_lowercase()).as_deref() {
+        Some("currently airing") | Some("currently_airing") | Some("airing") => Some("airing"),
+        Some("finished airing") | Some("finished_airing") | Some("finished") => Some("finished"),
+        Some("not yet aired") | Some("not_yet_aired") => Some("not_yet_aired"),
+        _ => None,
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 pub(crate) async fn apply_jikan_metadata(
     db: &Db,
@@ -90,6 +99,7 @@ pub(crate) async fn apply_jikan_metadata(
     });
 
     let english_title = data.title_english.as_deref().or(current_english);
+    let airing = normalize_airing_status(data.status.as_deref());
 
     db.with(|c| {
         c.execute(
@@ -101,12 +111,13 @@ pub(crate) async fn apply_jikan_metadata(
                 total_episodes = COALESCE(?5, total_episodes),
                 start_year = COALESCE(?6, start_year),
                 english_title = COALESCE(?7, english_title),
+                status = COALESCE(?8, status),
                 metadata_status = 'ready',
-                metadata_updated_at = ?8,
+                metadata_updated_at = ?9,
                 metadata_next_retry_at = NULL,
                 metadata_retry_count = 0,
                 metadata_error = NULL
-             WHERE mal_id = ?9",
+             WHERE mal_id = ?10",
             rusqlite::params![
                 clean_syn,
                 local_poster_path,
@@ -115,6 +126,7 @@ pub(crate) async fn apply_jikan_metadata(
                 data.episodes,
                 start_year,
                 english_title,
+                airing,
                 now,
                 mal_id,
             ],
@@ -202,13 +214,21 @@ pub(crate) async fn apply_mal_metadata(
         None => None,
     };
 
-    let start_year = data.start_season.as_ref().and_then(|s| s.year);
+    let start_year = data.start_season.as_ref().and_then(|s| s.year).or_else(|| {
+        data.start_date
+            .as_deref()?
+            .split('-')
+            .next()?
+            .parse::<i64>()
+            .ok()
+    });
     let en_title = data
         .alternative_titles
         .as_ref()
         .and_then(|a| a.en.clone())
         .or_else(|| current_english.map(|s| s.to_string()));
     let ja_title = data.alternative_titles.as_ref().and_then(|a| a.ja.clone());
+    let airing = normalize_airing_status(data.status.as_deref());
 
     db.with(|c| {
         c.execute(
@@ -220,12 +240,13 @@ pub(crate) async fn apply_mal_metadata(
                 total_episodes = COALESCE(?5, total_episodes),
                 start_year = COALESCE(?6, start_year),
                 english_title = COALESCE(?7, english_title),
-                metadata_status = 'ready',
-                metadata_updated_at = ?8,
+                status = COALESCE(?8, status),
+                metadata_status = 'partial',
+                metadata_updated_at = ?9,
                 metadata_next_retry_at = NULL,
                 metadata_retry_count = 0,
-                metadata_error = NULL
-             WHERE mal_id = ?9",
+                metadata_error = 'Partial metadata from MAL API; Jikan details unavailable'
+             WHERE mal_id = ?10",
             rusqlite::params![
                 clean_syn,
                 local_poster_path,
@@ -234,6 +255,7 @@ pub(crate) async fn apply_mal_metadata(
                 data.num_episodes,
                 start_year,
                 en_title,
+                airing,
                 now,
                 mal_id,
             ],

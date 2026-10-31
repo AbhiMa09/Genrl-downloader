@@ -1,5 +1,4 @@
 use crate::filename::fuzzy_ratio;
-use crate::models::ShowType;
 use crate::rules::Rules;
 use crate::settings::Settings;
 
@@ -18,6 +17,15 @@ pub fn evaluate(
     // ---------------------------------------------------------------- stage 1
     if candidate.seeders == 0 {
         return Err(Rejection::NoSeeders);
+    }
+
+    if let Some(cat) = &candidate.category_id {
+        if !cat.starts_with("1_") && !cat.is_empty() {
+            return Err(Rejection::TypeMismatch {
+                wanted: target.show_type,
+                found: crate::models::ShowType::Special,
+            });
+        }
     }
 
     if let Some(uploader) = &candidate.uploader {
@@ -58,20 +66,56 @@ pub fn evaluate(
         }
     }
 
-    // Size sanity: strict for a single episode; batches and movies are whole
-    // works and get headroom (the library step re-checks free space for real).
-    let size_mb = candidate.size_bytes / 1_048_576;
-    let ceiling = if candidate.release.is_batch || target.show_type == ShowType::Movie {
-        rules.max_size_mb * 20
+    // ------------------------------------------------------- size policy
+    let is_batch = candidate.release.is_batch
+        || (target.show_type == crate::models::ShowType::Tv
+            && target.wanted_episode.is_some()
+            && candidate.release.episode.is_none()
+            && candidate.show_type != Some(crate::models::ShowType::Movie));
+    let ep_count = if let Some((from, to)) = candidate.release.episode_range {
+        ((to - from + 1.0) as u64).max(1)
     } else {
-        rules.max_size_mb
+        target.total_episodes.unwrap_or(1).max(1) as u64
     };
-    if size_mb < rules.min_size_mb || size_mb > ceiling {
-        return Err(Rejection::SizeOutOfRange {
-            size_mb,
-            min_mb: rules.min_size_mb,
-            max_mb: ceiling,
-        });
+
+    let size_bytes = candidate.size_bytes;
+    let size_mb = size_bytes.div_ceil(1024 * 1024);
+
+    if is_batch {
+        let max_batch_bytes = settings.max_batch_gb.saturating_mul(1024 * 1024 * 1024);
+        if size_bytes > max_batch_bytes {
+            return Err(Rejection::SizeOutOfRange {
+                size_mb,
+                min_mb: settings.min_episode_mb,
+                max_mb: settings.max_batch_gb.saturating_mul(1024),
+            });
+        }
+        let per_ep_bytes = size_bytes / ep_count;
+        let per_ep_mb = per_ep_bytes.div_ceil(1024 * 1024);
+        if per_ep_mb > settings.max_episode_mb || per_ep_mb < settings.min_episode_mb {
+            return Err(Rejection::SizeOutOfRange {
+                size_mb: per_ep_mb,
+                min_mb: settings.min_episode_mb,
+                max_mb: settings.max_episode_mb,
+            });
+        }
+    } else if target.show_type == crate::models::ShowType::Movie {
+        let max_movie_bytes = settings.max_batch_gb.saturating_mul(1024 * 1024 * 1024);
+        if size_bytes > max_movie_bytes || size_mb < settings.min_episode_mb {
+            return Err(Rejection::SizeOutOfRange {
+                size_mb,
+                min_mb: settings.min_episode_mb,
+                max_mb: settings.max_batch_gb.saturating_mul(1024),
+            });
+        }
+    } else {
+        if size_mb > settings.max_episode_mb || size_mb < settings.min_episode_mb {
+            return Err(Rejection::SizeOutOfRange {
+                size_mb,
+                min_mb: settings.min_episode_mb,
+                max_mb: settings.max_episode_mb,
+            });
+        }
     }
 
     // ------------------------------------------------------- title & identity
@@ -84,6 +128,24 @@ pub fn evaluate(
             name: other_match.unwrap_or_default(),
             ratio: best_other,
         });
+    }
+
+    // A release whose raw name explicitly mentions another show (e.g. cross-tagged OVA)
+    // is rejected if that other show is known.
+    for other in target.other_names {
+        let other_norm = other.trim().to_ascii_lowercase();
+        if other_norm.len() >= 4
+            && candidate
+                .release
+                .raw
+                .to_ascii_lowercase()
+                .contains(&other_norm)
+        {
+            return Err(Rejection::TitleIsAnotherShow {
+                name: other.clone(),
+                ratio: 1.0,
+            });
+        }
     }
 
     // ------------------------------------------------------------ stage 2: signals
@@ -127,6 +189,14 @@ pub fn evaluate(
         (Some(_), None) => notes.push("no episode number (batch or feature)".into()),
     }
 
+    if let (Some(wanted), Some((from, to))) =
+        (target.wanted_episode, candidate.release.episode_range)
+    {
+        if wanted < from || wanted > to {
+            return Err(Rejection::WrongEpisode { wanted, found: to });
+        }
+    }
+
     // Type: unknown never rejects; a known mismatch does.
     if let Some(found) = candidate.show_type {
         if found != target.show_type {
@@ -140,14 +210,13 @@ pub fn evaluate(
     }
 
     // Season/part conflict is a reject, a match earns nothing extra.
-    if let Some(found) = candidate.release.season {
-        let found = found as i64;
-        if found != target.season {
-            return Err(Rejection::SeasonConflict {
-                wanted: target.season,
-                found,
-            });
-        }
+    // A release without a season tag represents Season 1, which conflicts with Season 2+.
+    let found_season = candidate.release.season.map(|s| s as i64).unwrap_or(1);
+    if found_season != target.season {
+        return Err(Rejection::SeasonConflict {
+            wanted: target.season,
+            found: found_season,
+        });
     }
 
     // Year: a remake or an unrelated same-title work differs by more than one.
@@ -165,15 +234,24 @@ pub fn evaluate(
     // healthy season batches are prioritized (+50) over single episodes (+30).
     // If the batch has 0 seeders, it is rejected by the zero-seeder check and healthy
     // single episodes are selected instead.
-    if candidate.release.is_batch && target.fully_aired {
+    let is_batch = candidate.release.is_batch
+        || (target.show_type == crate::models::ShowType::Tv
+            && target.wanted_episode.is_some()
+            && candidate.release.episode.is_none()
+            && candidate.show_type != Some(crate::models::ShowType::Movie));
+
+    if is_batch && target.fully_aired {
         if target.wanted_episode.is_some() && rules.prefer_batch_when_finished {
             signal += 50.0;
             notes.push("season batch prioritized over single episodes (+50)".into());
+        } else if target.wanted_episode.is_some() {
+            signal += 30.0;
+            notes.push("batch covering season episodes (+30)".into());
         } else {
             signal += 15.0;
             notes.push("batch for a show that has finished airing".into());
         }
-    } else if candidate.release.is_batch {
+    } else if is_batch {
         notes.push("batch, but the show is still airing".into());
     }
 
@@ -240,6 +318,33 @@ pub fn evaluate(
         notes.push("v2 or newer fix".into());
     }
     ranking += recency;
+
+    // Episode-first mode: multi-episode batch must never win over a single episode
+    if candidate.release.is_batch
+        && target.wanted_episode.is_some()
+        && !(target.fully_aired && rules.prefer_batch_when_finished)
+    {
+        ranking -= 50.0;
+        notes.push("multi-episode batch deprioritized in episode-first mode (-50)".into());
+    }
+
+    // Pure dub without explicit user preference should not outrank sub
+    let is_dub = !candidate.release.dual_audio
+        && (candidate
+            .release
+            .languages
+            .iter()
+            .any(|l| l.eq_ignore_ascii_case("dub") || l.eq_ignore_ascii_case("english dub"))
+            || candidate.release.raw.to_ascii_lowercase().contains("dub"));
+    if is_dub
+        && !rules
+            .preferred_languages
+            .iter()
+            .any(|p| p.to_ascii_lowercase().contains("dub"))
+    {
+        ranking -= 40.0;
+        notes.push("pure dub deprioritized without preference (-40)".into());
+    }
 
     Ok(Scored {
         signal,

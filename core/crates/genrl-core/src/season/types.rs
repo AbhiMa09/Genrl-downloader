@@ -89,11 +89,34 @@ impl SeasonChain {
     }
 
     /// 1-based season number of an entry, or `None` when it is not ours.
+    /// Explicit season markers in the title (e.g. "4th Season", "Season 2")
+    /// take priority over chain position, preventing split cours from shifting numbers.
     pub fn season_of(&self, mal_id: i64) -> Option<i64> {
-        self.entries
-            .iter()
-            .position(|e| e.mal_id == mal_id)
-            .map(|i| i as i64 + 1)
+        let target_pos = self.entries.iter().position(|e| e.mal_id == mal_id)?;
+        let entry = &self.entries[target_pos];
+        if let Some(explicit) = crate::filename::extract_season_from_title(&entry.title) {
+            return Some(explicit);
+        }
+
+        // If this entry is a split cour / part (e.g. "Cour 2", "Part 2"), it inherits
+        // the season of the preceding entry in the chain instead of incrementing.
+        if target_pos > 0 && crate::filename::is_cour_or_part_split(&entry.title) {
+            return self.season_of(self.entries[target_pos - 1].mal_id);
+        }
+
+        // Otherwise compute effective season based on non-cour chain increments
+        let mut season = 1;
+        for i in 0..target_pos {
+            let prev = &self.entries[i];
+            if let Some(exp) = crate::filename::extract_season_from_title(&prev.title) {
+                season = exp + 1;
+            } else if i > 0 && crate::filename::is_cour_or_part_split(&prev.title) {
+                // Cour split does not advance the base season counter
+            } else {
+                season += 1;
+            }
+        }
+        Some(season)
     }
 
     /// The entry at a 1-based season number.

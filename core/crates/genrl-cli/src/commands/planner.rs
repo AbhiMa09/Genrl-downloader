@@ -37,6 +37,14 @@ pub async fn plan_cmd(data_dir: &Path, opts: PlanOptions<'_>) -> Result<()> {
 
     // Targeted single show or episode download
     if let Some(target_id) = mal_id {
+        if !genrl_core::metadata::is_resolved(&db, target_id)? {
+            let settings = Settings::load(&db)?;
+            let gate = Gate::new(db.clone())?;
+            let _ = genrl_core::metadata::fetch_show_metadata(
+                &db, &gate, &settings, &clock, data_dir, target_id, true,
+            )
+            .await;
+        }
         if dry_run {
             if json {
                 println!(

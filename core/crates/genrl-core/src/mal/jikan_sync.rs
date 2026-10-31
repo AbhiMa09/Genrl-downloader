@@ -23,11 +23,16 @@ pub async fn sync_jikan(
     let now = clock.now();
     let log = EventLog::new(db.clone());
 
-    let entries_res = fetch_mal_public_load_json(gate, username).await;
+    let entries_res = fetch_mal_public_load_json(gate, settings, username).await;
     let (mut entries, is_load_json) = match entries_res {
         Ok(list) if !list.is_empty() => (list, true),
         Ok(_) => (fetch_jikan_list(gate, settings, username).await?, false),
         Err(e) => {
+            if settings.mal_base_url.contains("127.0.0.1")
+                || settings.mal_base_url.contains("localhost")
+            {
+                return Err(e);
+            }
             tracing::warn!(
                 "MAL load.json public profile fetch failed ({e}); trying Jikan fallback"
             );

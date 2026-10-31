@@ -311,7 +311,8 @@ pub fn build_chains(entries: &mut [MalEntry], relations: &HashMap<i64, Vec<Relat
             let total = entries.get(index[id]).and_then(|m| m.entry.total_episodes);
             if let Some(entry) = entries.get_mut(index[id]) {
                 entry.entry.franchise = franchise;
-                entry.entry.season = position as i64 + 1;
+                let explicit = crate::filename::extract_season_from_title(&entry.entry.title);
+                entry.entry.season = explicit.unwrap_or(position as i64 + 1);
                 entry.entry.episode_offset = offset.unwrap_or(0);
             }
             offset = offset.and_then(|o| total.map(|t| o + t));

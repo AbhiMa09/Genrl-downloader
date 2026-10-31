@@ -13,6 +13,8 @@ pub enum Choice {
     NoneOfThese,
     /// Match Review: look again with the same names.
     SearchAgain,
+    /// Match Review: user marked release as wrong.
+    WrongRelease,
     /// The release's parsed title is really this show: save it as an alias.
     Alias { name: String },
 

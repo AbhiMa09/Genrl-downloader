@@ -13,9 +13,11 @@ import 'pages/search_page.dart';
 import 'pages/settings_page.dart';
 import 'pages/show_detail_page.dart';
 import 'pages/wizard_page.dart';
+import 'services/core_bridge.dart';
 import 'services/state_provider.dart';
 import 'theme/colors.dart';
 import 'theme/theme.dart';
+import 'theme/typography.dart';
 import 'widgets/app_header.dart';
 import 'widgets/cyber_logo.dart';
 import 'widgets/loading/loading.dart';
@@ -33,8 +35,13 @@ void main(List<String> args) {
   bool isLogo = false;
   bool isGallery = false;
 
+  String? dataDir;
   for (int i = 0; i < args.length; i++) {
-    if (args[i] == '--page' && i + 1 < args.length) {
+    if (args[i].startsWith('--data-dir=')) {
+      dataDir = args[i].substring('--data-dir='.length);
+    } else if (args[i] == '--data-dir' && i + 1 < args.length) {
+      dataDir = args[i + 1];
+    } else if (args[i] == '--page' && i + 1 < args.length) {
       initialPage = int.tryParse(args[i + 1]) ?? 0;
     } else if (args[i] == '--show' && i + 1 < args.length) {
       initialShowId = int.tryParse(args[i + 1]);
@@ -51,6 +58,7 @@ void main(List<String> args) {
 
   runApp(
     GenrlApp(
+      dataDir: dataDir,
       initialPage: initialPage,
       initialShowId: initialShowId,
       isWizard: isWizard,
@@ -61,8 +69,9 @@ void main(List<String> args) {
   );
 }
 
-class GenrlApp extends StatelessWidget {
+class GenrlApp extends StatefulWidget {
   final StateProvider? stateProvider;
+  final String? dataDir;
   final int initialPage;
   final int? initialShowId;
   final bool isWizard;
@@ -73,6 +82,7 @@ class GenrlApp extends StatelessWidget {
   const GenrlApp({
     super.key,
     this.stateProvider,
+    this.dataDir,
     this.initialPage = 0,
     this.initialShowId,
     this.isWizard = false,
@@ -82,17 +92,34 @@ class GenrlApp extends StatelessWidget {
   });
 
   @override
+  State<GenrlApp> createState() => _GenrlAppState();
+}
+
+class _GenrlAppState extends State<GenrlApp> {
+  late bool _showWizard;
+
+  @override
+  void initState() {
+    super.initState();
+    _showWizard = widget.isWizard;
+  }
+
+  @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(
           create: (_) {
-            final sp = stateProvider ?? StateProvider();
-            if (initialPage > 0) {
-              sp.selectPage(initialPage);
+            final sp =
+                widget.stateProvider ??
+                StateProvider(
+                  bridge: CoreBridge(customDataDir: widget.dataDir),
+                );
+            if (widget.initialPage > 0) {
+              sp.selectPage(widget.initialPage);
             }
-            if (initialShowId != null) {
-              sp.loadShowDetail(initialShowId!);
+            if (widget.initialShowId != null) {
+              sp.loadShowDetail(widget.initialShowId!);
             }
             return sp;
           },
@@ -108,17 +135,18 @@ class GenrlApp extends StatelessWidget {
         },
         home: Consumer<StateProvider>(
           builder: (context, sp, _) {
-            if (isGallery && kDebugMode) {
+            if (widget.isGallery && kDebugMode) {
               return const LoadingDebugGallery();
             }
-            if (isWizard || !sp.firstRunCompleted) {
+            if (_showWizard || !sp.firstRunCompleted) {
               return WizardPage(
                 onComplete: () {
+                  setState(() => _showWizard = false);
                   sp.setFirstRunCompleted(true);
                 },
               );
             }
-            if (isTray) {
+            if (widget.isTray) {
               return Scaffold(
                 backgroundColor: ObsidianColors.surface,
                 body: Center(
@@ -126,7 +154,7 @@ class GenrlApp extends StatelessWidget {
                 ),
               );
             }
-            if (isLogo) {
+            if (widget.isLogo) {
               return const Scaffold(
                 backgroundColor: ObsidianColors.surface,
                 body: Center(child: CyberLogo(size: 256)),
@@ -191,6 +219,35 @@ class MainShell extends StatelessWidget {
               children: [
                 // Top Header Bar
                 AppHeader(pageTitle: currentTitle),
+
+                if (state.bridge.customDataDir != null)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 6,
+                    ),
+                    color: ObsidianColors.tertiary.withOpacity(0.15),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.science_outlined,
+                          size: 16,
+                          color: ObsidianColors.tertiary,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'SCRATCH DB: ${state.bridge.customDataDir}',
+                            style: ObsidianTypography.labelBadge(
+                              color: ObsidianColors.tertiary,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
 
                 // Connection status banner
                 const ConnectionBanner(),

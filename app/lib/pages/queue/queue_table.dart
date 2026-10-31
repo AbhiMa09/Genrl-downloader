@@ -7,18 +7,58 @@ import '../../widgets/loading/inline_spinner.dart';
 
 class QueueTable extends StatelessWidget {
   final List<QueueItem> items;
+  final bool groupSeasons;
   final QueueItem? activeItem;
   final ValueChanged<QueueItem> onSelectItem;
 
   const QueueTable({
     super.key,
     required this.items,
+    this.groupSeasons = true,
     required this.activeItem,
     required this.onSelectItem,
   });
 
   @override
   Widget build(BuildContext context) {
+    if (groupSeasons) {
+      final seasons = <(int, int), List<QueueItem>>{};
+      for (final item in items) {
+        seasons.putIfAbsent((item.malId, item.season), () => []).add(item);
+      }
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Queue • ${seasons.length} seasons',
+            style: ObsidianTypography.titleSm(),
+          ),
+          for (final entries in seasons.values)
+            Card(
+              child: ExpansionTile(
+                key: ValueKey(
+                  'queue_season_${entries.first.malId}_${entries.first.season}',
+                ),
+                initiallyExpanded: true,
+                title: Text(
+                  '${entries.first.showTitle} • Season ${entries.first.season}',
+                ),
+                subtitle: Text(
+                  '${entries.length} queued episode jobs • ${entries.where((e) => e.state == QueueState.completed).length} completed',
+                ),
+                children: [
+                  QueueTable(
+                    items: entries,
+                    activeItem: activeItem,
+                    onSelectItem: onSelectItem,
+                    groupSeasons: false,
+                  ),
+                ],
+              ),
+            ),
+        ],
+      );
+    }
     return Container(
       decoration: BoxDecoration(
         color: ObsidianColors.surfaceContainerLow,

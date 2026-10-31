@@ -18,7 +18,7 @@ use commands::*;
 #[derive(Parser, Debug)]
 #[command(
     name = "genrl",
-    version,
+    version = env!("GENRL_VERSION_INFO"),
     about = "Genrl Downloader core utilities",
     long_about = None
 )]
@@ -263,10 +263,19 @@ enum Command {
 #[tokio::main]
 async fn main() -> Result<()> {
     let cli = Cli::parse();
-    let data_dir = cli
-        .data_dir
-        .clone()
-        .unwrap_or_else(genrl_core::default_data_dir);
+    let data_dir = match cli.data_dir {
+        Some(dir) => dir,
+        None => {
+            if std::env::var("GENRL_REQUIRE_SCRATCH").is_ok()
+                || std::env::var("FLUTTER_TEST").is_ok()
+            {
+                anyhow::bail!(
+                    "Refusing to start: running in scratch/test mode but --data-dir was not specified"
+                );
+            }
+            genrl_core::default_data_dir()
+        }
+    };
 
     match cli.command {
         Command::Init => init(&data_dir),

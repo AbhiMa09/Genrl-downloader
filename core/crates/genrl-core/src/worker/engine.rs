@@ -17,6 +17,7 @@ pub struct Engine {
     pub(crate) clock: Arc<dyn Clock>,
     pub(crate) finalizer: Arc<dyn Finalizer>,
     pub(crate) disk: Arc<dyn DiskProbe>,
+    pub(crate) data_dir: std::path::PathBuf,
 }
 
 impl Engine {
@@ -26,6 +27,7 @@ impl Engine {
         clock: Arc<dyn Clock>,
         finalizer: Arc<dyn Finalizer>,
         disk: Arc<dyn DiskProbe>,
+        data_dir: std::path::PathBuf,
     ) -> Self {
         Engine {
             db,
@@ -33,6 +35,7 @@ impl Engine {
             clock,
             finalizer,
             disk,
+            data_dir,
         }
     }
 
@@ -46,6 +49,18 @@ impl Engine {
 
     pub fn clock(&self) -> &dyn Clock {
         self.clock.as_ref()
+    }
+
+    pub fn clock_arc(&self) -> Arc<dyn Clock> {
+        Arc::clone(&self.clock)
+    }
+
+    pub fn gate_arc(&self) -> Arc<Gate> {
+        Arc::clone(&self.gate)
+    }
+
+    pub fn data_dir(&self) -> &std::path::Path {
+        &self.data_dir
     }
 
     /// Restart the stall timer from now.
@@ -122,7 +137,7 @@ impl Engine {
     }
 
     /// Park a job in `blocked`, remembering where it returns to.
-    pub(crate) fn block(&self, job: &Job, reason: &str) -> Result<JobState> {
+    pub fn block(&self, job: &Job, reason: &str) -> Result<JobState> {
         jobs::transition(
             &self.db,
             self.clock.as_ref(),

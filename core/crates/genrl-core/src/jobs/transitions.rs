@@ -82,6 +82,8 @@ pub struct MoveOptions {
     pub reset_attempts: bool,
     /// Bump the attempt counter (a failure).
     pub count_attempt: bool,
+    /// Next time this job may be retried or evaluated.
+    pub next_run_at: Option<i64>,
 }
 
 impl MoveOptions {
@@ -153,6 +155,13 @@ pub fn transition(
             sql.push_str(&format!(", blocked_from = '{}'", sql_text(from.as_str())));
         } else if to != JobState::Blocked {
             sql.push_str(", blocked_from = NULL");
+        }
+        if let Some(next) = opts.next_run_at {
+            sql.push_str(&format!(", next_run_at = {next}"));
+        } else if to == JobState::Blocked {
+            sql.push_str(&format!(", next_run_at = {}", at + 30));
+        } else if to != JobState::Blocked {
+            sql.push_str(", next_run_at = NULL");
         }
         let kind = kind_for(to, current_kind, opts.blocked_from);
         // The reason travels with the row for the two states whose whole

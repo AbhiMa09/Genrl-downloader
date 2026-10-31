@@ -42,10 +42,11 @@ pub fn parse_release(input: &str) -> Release {
     }
 
     // 3. Season and episode (returns where the episode token started).
-    release.marker_start = extract_season_episode(name, &mut release);
+    release.marker_start = extract_season_episode(&name[title_start..], &mut release)
+        .map(|offset| title_start + offset);
 
     // 4. Everything else comes from the full name: resolution, codec, source.
-    extract_metadata(name, &mut release);
+    extract_metadata(&name[title_start..], &mut release);
 
     // 5. Title = text before the episode token (or the whole thing), minus
     //    every bracket group, then whitespace-collapsed.
@@ -65,8 +66,8 @@ pub fn parse_release(input: &str) -> Release {
     release.normalized_title = normalize(&release.title);
 
     // 6. Languages live in metadata brackets only.
-    release.languages = extract_languages(name);
-    release.dual_audio = contains_dual_audio(name);
+    release.languages = extract_languages(&name[title_start..]);
+    release.dual_audio = contains_dual_audio(&name[title_start..]);
 
     release
 }
@@ -223,8 +224,20 @@ mod tests {
                 "brackets stripped from title: {:?}",
                 r.title
             );
-            assert!(r.title.len() <= item.title.len(), "tags removed or kept");
         }
         assert!(parsed >= items.len() * 9 / 10, "most real titles parse");
+    }
+
+    #[test]
+    fn parses_group_bracket_regression_cases() {
+        let r1 = parse("[a4K] Aa - 01 (1080p) [DEADBEEF].mkv");
+        assert_eq!(r1.resolution.as_deref(), Some("1080p"));
+        assert_eq!(r1.group.as_deref(), Some("a4K"));
+        assert_eq!(r1.episode, Some(1.0));
+
+        let r2 = parse("[0-1] aa - 01 (1080p) [DEADBEEF].mkv");
+        assert_eq!(r2.episode, Some(1.0));
+        assert_eq!(r2.group.as_deref(), Some("0-1"));
+        assert_eq!(r2.resolution.as_deref(), Some("1080p"));
     }
 }

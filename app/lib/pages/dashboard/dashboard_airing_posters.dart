@@ -63,7 +63,18 @@ class DashboardAiringPosters extends StatelessWidget {
       );
     }
 
-    final shows = state.shows.take(5).toList();
+    final airing = state.shows.where((s) {
+      final air = s.airingStatus.toLowerCase();
+      return air == 'airing' || air == 'currently_airing';
+    }).toList();
+    final candidateShows = airing.isNotEmpty
+        ? airing
+        : state.shows
+              .where((s) => s.airingStatus.toLowerCase() != 'finished')
+              .toList();
+    final shows = (candidateShows.isNotEmpty ? candidateShows : state.shows)
+        .take(5)
+        .toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -100,9 +111,11 @@ class DashboardAiringPosters extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  'ENABLED',
+                  state.status.automationOn ? 'ENABLED' : 'DISABLED',
                   style: ObsidianTypography.monoCode(
-                    color: ObsidianColors.tertiary,
+                    color: state.status.automationOn
+                        ? ObsidianColors.tertiary
+                        : ObsidianColors.onSurfaceVariant,
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
                   ),
@@ -153,7 +166,10 @@ class DashboardAiringPosters extends StatelessWidget {
                     show: show,
                     onTap: () => state.openShowDetail(show),
                     onOpenFolder: () => _openFileExplorer(
-                      show.folderPath ?? '/mnt/anime/TV/${show.title}',
+                      show.folderPath ??
+                          (state.libraryFolder.isNotEmpty
+                              ? '${state.libraryFolder}/${show.title}'
+                              : ''),
                     ),
                     onRefreshMeta: () => state.forceSyncMal(),
                     onSearch: () {
@@ -273,11 +289,27 @@ class _DashboardPosterCardState extends State<DashboardPosterCard> {
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
-                          show.episodesDownloaded == show.episodesTotal
+                          show.episodesDownloaded == show.episodesTotal &&
+                                  show.episodesTotal > 0
                               ? 'Complete'
-                              : '1080p Remux',
+                              : (show.episodes.any(
+                                      (e) =>
+                                          (e.releaseName
+                                                  ?.toLowerCase()
+                                                  .contains('remux') ??
+                                              false) ||
+                                          e.videoTrack.toLowerCase().contains(
+                                            'remux',
+                                          ),
+                                    )
+                                    ? '${show.episodes.firstWhere((e) => (e.releaseName?.toLowerCase().contains("remux") ?? false) || e.videoTrack.toLowerCase().contains("remux")).videoTrack} Remux'
+                                    : (show.airingStatus.isNotEmpty
+                                          ? show.airingStatus
+                                          : 'Tracking')),
                           style: ObsidianTypography.labelBadge(
-                            color: show.episodesDownloaded == show.episodesTotal
+                            color:
+                                show.episodesDownloaded == show.episodesTotal &&
+                                    show.episodesTotal > 0
                                 ? ObsidianColors.success
                                 : ObsidianColors.tertiary,
                             fontSize: 9,
@@ -389,13 +421,15 @@ class _DashboardPosterCardState extends State<DashboardPosterCard> {
                               color: Colors.white,
                               fontSize: 12,
                             ),
-                            maxLines: 1,
+                            maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
                           Text(
-                            show.status == 'Airing'
+                            show.airingStatus.toLowerCase() == 'airing'
                                 ? 'Airs weekly'
-                                : 'Complete',
+                                : (show.status == 'Watching'
+                                      ? 'In backlog'
+                                      : 'Monitored'),
                             style: ObsidianTypography.monoCode(
                               color: ObsidianColors.onSurfaceVariant,
                               fontSize: 9,

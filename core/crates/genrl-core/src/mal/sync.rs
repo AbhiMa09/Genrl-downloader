@@ -79,6 +79,11 @@ pub async fn sync(client: &MalClient<'_>) -> Result<SyncReport> {
     let settings = client.settings();
     let log = EventLog::new(db.clone());
 
+    // Refresh stored MAL username from /v2/users/@me each sync
+    if let Ok(account) = client.account().await {
+        let _ = crate::settings::write_state(&db, "mal_account", &account.name);
+    }
+
     let fetched = client.fetch().await?;
     let mut report = SyncReport {
         total: fetched.entries.len(),
@@ -286,8 +291,18 @@ pub(crate) fn upsert_show_full(db: &Db, m: &MalEntry) -> Result<()> {
                 auto = excluded.auto,
                 episode_offset = excluded.episode_offset,
                 season = excluded.season,
-                poster_path = COALESCE(excluded.poster_path, shows.poster_path),
-                synopsis = COALESCE(excluded.synopsis, shows.synopsis)",
+                poster_path = CASE
+                    WHEN shows.poster_path IS NOT NULL AND shows.poster_path NOT LIKE 'http%' THEN shows.poster_path
+                    ELSE COALESCE(excluded.poster_path, shows.poster_path)
+                END,
+                synopsis = CASE
+                    WHEN shows.synopsis IS NOT NULL AND trim(shows.synopsis) != '' THEN shows.synopsis
+                    ELSE COALESCE(excluded.synopsis, shows.synopsis)
+                END,
+                metadata_status = CASE
+                    WHEN shows.metadata_status IN ('ready', 'partial') THEN shows.metadata_status
+                    ELSE 'pending'
+                END",
             rusqlite::params![
                 e.mal_id,
                 e.title,

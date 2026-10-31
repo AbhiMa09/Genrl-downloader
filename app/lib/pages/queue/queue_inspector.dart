@@ -91,7 +91,9 @@ class QueueInspector extends StatelessWidget {
                 Icons.folder_open_rounded,
                 'Open Folder',
                 ObsidianColors.outline,
-                onTap: () => onOpenFolder('/mnt/anime/TV'),
+                onTap: () => onOpenFolder(
+                  item.releaseName.isNotEmpty ? item.releaseName : item.title,
+                ),
               ),
               _buildSmallActionPill(
                 Icons.link_rounded,
@@ -176,7 +178,9 @@ class QueueInspector extends StatelessWidget {
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
-                    '/mnt/anime/TV/${item.title}.mkv',
+                    item.releaseName.isNotEmpty
+                        ? item.releaseName
+                        : (item.title.isNotEmpty ? '${item.title}.mkv' : '—'),
                     style: ObsidianTypography.monoCode(
                       color: ObsidianColors.onSurfaceVariant,
                       fontSize: 9,
