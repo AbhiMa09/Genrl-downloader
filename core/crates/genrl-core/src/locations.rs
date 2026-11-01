@@ -102,7 +102,7 @@ pub fn validate_path_safety(path: &Path, allowed_roots: Option<&[&Path]>) -> Res
 
     // Resolve ~ if present
     let resolved = resolve_home_dir(&path_str);
-    if !resolved.is_absolute() {
+    if !resolved.is_absolute() && !resolved.has_root() {
         return Err(Error::Other(format!(
             "location path must be absolute: {path_str}"
         )));

@@ -27,9 +27,14 @@ fn path_safety_rejects_traversal_and_empty() {
     assert!(validate_path_safety(Path::new("/media/anime/../../root"), None).is_err());
 
     // Valid absolute path succeeds
-    let valid = validate_path_safety(Path::new("/var/media/anime"), None);
+    let test_path = if cfg!(windows) {
+        Path::new(r"C:\var\media\anime")
+    } else {
+        Path::new("/var/media/anime")
+    };
+    let valid = validate_path_safety(test_path, None);
     assert!(valid.is_ok());
-    assert_eq!(valid.unwrap(), Path::new("/var/media/anime"));
+    assert_eq!(valid.unwrap(), test_path);
 }
 
 #[test]
