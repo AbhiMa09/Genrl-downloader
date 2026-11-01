@@ -172,6 +172,8 @@ jobs:
       - name: Build Flutter Windows Desktop Runner
         run: |
           cd app
+          flutter config --enable-windows-desktop
+          flutter create --platforms=windows .
           flutter build windows --release
 
       - name: Bundle genrl.exe with Flutter runner
