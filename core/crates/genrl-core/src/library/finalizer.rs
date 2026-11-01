@@ -305,11 +305,9 @@ impl Finalizer for LibraryFinalizer {
             let target_path = show_dir.join(&filename);
 
             // Ensure destination sits inside library root (Path traversal check)
-            let can_target = target_path
-                .canonicalize()
-                .unwrap_or_else(|_| target_path.clone());
+            let can_show_dir = show_dir.canonicalize().unwrap_or_else(|_| show_dir.clone());
             if let Ok(can_root) = library_root.canonicalize() {
-                if !can_target.starts_with(&can_root) {
+                if !can_show_dir.starts_with(&can_root) || filename.contains("..") {
                     return Err(Error::Other(format!(
                         "path traversal detected: target '{}' is outside library root '{}'",
                         target_path.display(),
