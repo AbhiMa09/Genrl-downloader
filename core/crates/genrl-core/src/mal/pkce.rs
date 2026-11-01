@@ -98,10 +98,11 @@ pub(crate) fn pct_decode(s: &str) -> String {
     String::from_utf8_lossy(&out).into_owned()
 }
 
-/// Random characters from the PKCE alphabet (also used for the CSRF `state`).
+/// Random characters from the PKCE unreserved base64url alphabet (also used for CSRF `state`).
+/// Omits `.` and `~` to ensure strict compatibility with provider validation regexes (e.g. MAL).
 pub(crate) fn random_token(len: usize) -> String {
     use rand::Rng;
-    const CHARS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~";
+    const CHARS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
     let mut rng = rand::thread_rng();
     (0..len)
         .map(|_| CHARS[rng.gen_range(0..CHARS.len())] as char)

@@ -119,18 +119,19 @@ pub async fn mal_login_cmd(
         println!("Authorize URL:\n\n  {}\n", login.url());
         println!("Listening on: {}", login.redirect_uri());
     }
+    let _ = std::fs::write(data_dir.join("mal_authorize_url.txt"), login.url());
     if !no_open {
-        let _ = std::process::Command::new("xdg-open")
-            .arg(login.url())
-            .spawn();
+        open_system_browser(login.url());
     }
     if !json {
         println!("waiting for the redirect on 127.0.0.1 (up to 5 minutes)...");
     }
     let client = MalClient::new(&gate, settings, store, &clock);
-    login
+    let finish_res = login
         .finish(&client, std::time::Duration::from_secs(300))
-        .await?;
+        .await;
+    let _ = std::fs::remove_file(data_dir.join("mal_authorize_url.txt"));
+    finish_res?;
     // Credentials are stored now; do not leave the account in public-profile mode
     // if the subsequent profile lookup has a transient network failure.
     settings::write_state(&db, mal::ACCOUNT_SOURCE_STATE_KEY, "mal")?;
@@ -230,4 +231,26 @@ pub async fn mal_sync_cmd(data_dir: &Path) -> Result<()> {
     let report = mal::mal_sync(&db, &gate, &settings, &store, &clock).await?;
     println!("{}", report.summary());
     Ok(())
+}
+
+fn open_system_browser(url: &str) {
+    if std::path::Path::new("/proc/sys/fs/binfmt_misc/WSLInterop").exists()
+        || std::env::var_os("WSL_DISTRO_NAME").is_some()
+    {
+        let script = format!("Start-Process '{}'", url.replace('\'', "''"));
+        if let Ok(mut child) = std::process::Command::new("powershell.exe")
+            .args(["-NoProfile", "-NonInteractive", "-Command", &script])
+            .spawn()
+        {
+            let _ = child.wait();
+            return;
+        }
+    }
+    if let Ok(mut child) = std::process::Command::new("xdg-open").arg(url).spawn() {
+        let _ = child.wait();
+        return;
+    }
+    if let Ok(mut child) = std::process::Command::new("open").arg(url).spawn() {
+        let _ = child.wait();
+    }
 }
