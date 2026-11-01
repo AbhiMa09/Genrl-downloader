@@ -23,6 +23,7 @@ sha2.workspace = true
 url.workspace = true
 bytes.workspace = true
 keyring.workspace = true
+dirs.workspace = true
 fs2.workspace = true
 
 [dev-dependencies]

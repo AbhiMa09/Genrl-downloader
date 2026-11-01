@@ -51,6 +51,7 @@ class StateProvider extends StateContext
 
   // Background timer for live refresh & event stream simulation
   Timer? _pollingTimer;
+  StreamSubscription<bool>? _workerStatusSub;
 
   StateProvider({CoreBridge? bridge, bool startPolling = true})
     : bridge = bridge ?? CoreBridge() {
@@ -58,6 +59,9 @@ class StateProvider extends StateContext
     if (startPolling) {
       _startPolling();
     }
+    _workerStatusSub = this.bridge.supervisor.workerStatusStream.listen((_) {
+      notifyListeners();
+    });
   }
 
   bool _disposed = false;
@@ -66,6 +70,8 @@ class StateProvider extends StateContext
   void dispose() {
     _disposed = true;
     _pollingTimer?.cancel();
+    _workerStatusSub?.cancel();
+    bridge.stopWorker();
     super.dispose();
   }
 
@@ -101,6 +107,19 @@ class StateProvider extends StateContext
   bool get isLoadingStatus => _isLoadingStatus;
   bool get isLoadingInbox => _isLoadingInbox;
   String? get inboxError => _inboxError;
+
+  bool get isWorkerRunning => bridge.isWorkerRunning;
+
+  Future<bool> startWorker() async {
+    final ok = await bridge.startWorker();
+    notifyListeners();
+    return ok;
+  }
+
+  void stopWorker() {
+    bridge.stopWorker();
+    notifyListeners();
+  }
 
   // Navigation
   @override

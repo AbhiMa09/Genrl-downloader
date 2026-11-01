@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -12,6 +14,7 @@ import 'pages/rules_page.dart';
 import 'pages/search_page.dart';
 import 'pages/settings_page.dart';
 import 'pages/show_detail_page.dart';
+import 'pages/wizard/guided_first_run_page.dart';
 import 'pages/wizard_page.dart';
 import 'services/core_bridge.dart';
 import 'services/state_provider.dart';
@@ -139,6 +142,14 @@ class _GenrlAppState extends State<GenrlApp> {
               return const LoadingDebugGallery();
             }
             if (_showWizard || !sp.firstRunCompleted) {
+              if (Platform.isWindows) {
+                return GuidedFirstRunPage(
+                  onComplete: () {
+                    setState(() => _showWizard = false);
+                    sp.setFirstRunCompleted(true);
+                  },
+                );
+              }
               return WizardPage(
                 onComplete: () {
                   setState(() => _showWizard = false);

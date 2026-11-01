@@ -116,3 +116,60 @@ jobs:
         run: |
           cd app
           flutter test --tags golden
+
+  test-windows:
+    name: Windows Test Suite & Build Verification
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache Cargo dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            core/target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Run Windows Cargo Tests
+        run: cargo test --manifest-path core/Cargo.toml --workspace
+
+      - name: Install Flutter dependencies
+        run: |
+          cd app
+          flutter pub get
+
+      - name: Run Windows Flutter Tests
+        run: |
+          cd app
+          flutter test --exclude-tags golden
+
+      - name: Build genrl.exe Core Binary
+        run: cargo build --manifest-path core/Cargo.toml --release --bin genrl
+
+      - name: Build Flutter Windows Desktop Runner
+        run: |
+          cd app
+          flutter build windows --release

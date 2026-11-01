@@ -13,43 +13,9 @@ use super::formatting::{format_nfo, format_synopsis, is_placeholder_synopsis, sa
 use super::icons::create_folder_png;
 use super::types::{FOLDER_ICON_FILE, MARKER_FILE, SYNOPSIS_FILE};
 
-/// Move, copy, or hardlink a file into the library with chmod 644.
+/// Move, copy, or hardlink a file into the library with chmod 644 (no-op on Windows).
 pub fn transfer_file(source: &Path, target: &Path, mode: MoveMode) -> Result<()> {
-    if source == target {
-        return Ok(());
-    }
-
-    if let Some(parent) = target.parent() {
-        fs::create_dir_all(parent)?;
-    }
-
-    match mode {
-        MoveMode::Hardlink => {
-            if fs::hard_link(source, target).is_err() {
-                // Cross-device link fallback: copy
-                fs::copy(source, target)?;
-            }
-        }
-        MoveMode::Move => {
-            if fs::rename(source, target).is_err() {
-                // Cross-device rename fallback: copy then unlink
-                fs::copy(source, target)?;
-                let _ = fs::remove_file(source);
-            }
-        }
-        MoveMode::Copy => {
-            fs::copy(source, target)?;
-        }
-    }
-
-    // Strip execute bits (chmod 644)
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let _ = fs::set_permissions(target, fs::Permissions::from_mode(0o644));
-    }
-
-    Ok(())
+    crate::platform::transfer_file_with_fallback(source, target, mode).map_err(Into::into)
 }
 
 // ---------------------------------------------------------------------------
@@ -331,11 +297,7 @@ pub fn rewrite_show_folder_metadata(db: &Db, mal_id: i64) -> Result<usize> {
         // Rewrite synopsis.txt
         let synopsis_file = dir.join(SYNOPSIS_FILE);
         let _ = fs::write(&synopsis_file, &syn_formatted);
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            let _ = fs::set_permissions(&synopsis_file, fs::Permissions::from_mode(0o644));
-        }
+        let _ = crate::platform::set_file_permissions(&synopsis_file, 0o644);
 
         // Rewrite movie.nfo or tvshow.nfo
         let movie_nfo = dir.join("movie.nfo");
@@ -351,11 +313,7 @@ pub fn rewrite_show_folder_metadata(db: &Db, mal_id: i64) -> Result<usize> {
         };
 
         let _ = fs::write(&target_nfo, &nfo_content);
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            let _ = fs::set_permissions(&target_nfo, fs::Permissions::from_mode(0o644));
-        }
+        let _ = crate::platform::set_file_permissions(&target_nfo, 0o644);
 
         // Ensure marker exists
         let marker_file = dir.join(MARKER_FILE);

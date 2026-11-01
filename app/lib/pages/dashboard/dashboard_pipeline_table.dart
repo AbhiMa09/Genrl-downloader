@@ -121,7 +121,7 @@ class DashboardPipelineTable extends StatelessWidget {
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
-                      '${queueItems.length} IN ACTIVE PIPELINE',
+                      '${queueItems.length} IN PIPELINE',
                       style: ObsidianTypography.labelBadge(
                         color: ObsidianColors.primary,
                       ),

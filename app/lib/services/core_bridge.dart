@@ -7,6 +7,7 @@ import '../models/library_item.dart';
 import '../models/queue_item.dart';
 import '../models/system_status.dart';
 import 'core_bridge_parsers.dart';
+import 'worker_supervisor.dart';
 
 /// The Bridge between Flutter UI and the Rust core (`genrl` CLI & engine).
 /// Per system design: The UI never touches the network or the disk directly;
@@ -14,14 +15,16 @@ import 'core_bridge_parsers.dart';
 class CoreBridge {
   final String genrlBinaryPath;
   final String? customDataDir;
+  final WorkerSupervisor _supervisor;
   String? lastError;
   String? sessionMalRefreshToken;
 
-  CoreBridge({this.genrlBinaryPath = 'genrl', this.customDataDir}) {
-    final home = Platform.environment['HOME'];
-    final defaultDir = home != null
-        ? '$home/.local/share/genrl-downloader'
-        : null;
+  CoreBridge({this.genrlBinaryPath = 'genrl', this.customDataDir})
+    : _supervisor = WorkerSupervisor(
+        customBinaryPath: genrlBinaryPath,
+        customDataDir: customDataDir,
+      ) {
+    final defaultDir = WorkerSupervisor.defaultDataDir();
     if (Platform.environment['GENRL_REQUIRE_SCRATCH'] == '1') {
       if (customDataDir == null || customDataDir == defaultDir) {
         throw StateError(
@@ -31,17 +34,13 @@ class CoreBridge {
     }
   }
 
-  String _resolveBinary() {
-    if (genrlBinaryPath != 'genrl') return genrlBinaryPath;
-    final home = Platform.environment['HOME'];
-    if (home != null) {
-      final localBin = '$home/.local/bin/genrl';
-      if (File(localBin).existsSync()) return localBin;
-      final cargoBin = '$home/.cargo/bin/genrl';
-      if (File(cargoBin).existsSync()) return cargoBin;
-    }
-    return 'genrl';
-  }
+  WorkerSupervisor get supervisor => _supervisor;
+  bool get isWorkerRunning => _supervisor.isWorkerRunning;
+  Future<bool> startWorker({Map<String, String>? environment}) =>
+      _supervisor.startWorker(environment: environment);
+  void stopWorker() => _supervisor.stopWorker();
+
+  String _resolveBinary() => _supervisor.resolveBinary();
 
   /// Execute a `genrl` command line.
   Future<ProcessResult> execute(

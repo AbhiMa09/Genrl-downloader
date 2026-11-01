@@ -47,6 +47,7 @@ pub mod models;
 pub mod names;
 pub mod nyaa;
 pub mod planner;
+pub mod platform;
 pub mod qbit;
 pub mod questions;
 pub mod queue;
@@ -69,26 +70,15 @@ pub use metadata::{
 pub use rules::Rules;
 pub use settings::Settings;
 
-/// Where the app keeps its data when `XDG_DATA_HOME` is set (the default on Linux).
+/// Where the app keeps its data when `--data-dir` is not specified.
 ///
-/// `$XDG_DATA_HOME/genrl-downloader/` holds `genrl.db`, cached posters and backups.
+/// On Windows: `%APPDATA%\Genrl Downloader`
+/// On Linux/Unix: `$XDG_DATA_HOME/genrl-downloader` or `~/.local/share/genrl-downloader`
 pub fn default_data_dir() -> std::path::PathBuf {
-    if std::env::var("GENRL_REQUIRE_SCRATCH").is_ok() {
-        panic!("Refusing to resolve default_data_dir(): GENRL_REQUIRE_SCRATCH=1 is set. All data paths must come from the single data-dir the process was started with.");
-    }
-    if let Ok(xdg) = std::env::var("XDG_DATA_HOME") {
-        if !xdg.is_empty() {
-            return std::path::PathBuf::from(xdg).join("genrl-downloader");
-        }
-    }
-    let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
-    std::path::PathBuf::from(home)
-        .join(".local")
-        .join("share")
-        .join("genrl-downloader")
+    platform::default_data_dir()
 }
 
 /// Path of the SQLite database inside the data folder.
 pub fn default_db_path() -> std::path::PathBuf {
-    default_data_dir().join("genrl.db")
+    platform::default_db_path()
 }

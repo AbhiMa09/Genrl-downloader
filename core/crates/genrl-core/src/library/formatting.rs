@@ -1,50 +1,10 @@
 use std::path::Path;
 
-use super::types::{MAX_NAME_LENGTH, VIDEO_EXTENSIONS};
+use super::types::VIDEO_EXTENSIONS;
 
-/// Strip path separators, control characters, bidi overrides and leading/trailing dots.
+/// Strip path separators, control characters, bidi overrides, reserved Windows names, and leading/trailing dots.
 pub fn sanitize_component(name: &str) -> String {
-    let mut out = String::with_capacity(name.len());
-    for c in name.chars() {
-        // Disallow path separators and unsafe filename characters
-        if matches!(
-            c,
-            '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|' | '\0'
-        ) {
-            out.push('-');
-            continue;
-        }
-        // Disallow control characters
-        if c < ' ' || ('\x7f'..='\u{9F}').contains(&c) {
-            continue;
-        }
-        // Disallow Unicode bidi overrides (Threat model §2)
-        if matches!(
-            c,
-            '\u{200E}'
-                | '\u{200F}'
-                | '\u{202A}'
-                ..='\u{202E}'
-                | '\u{2066}'
-                ..='\u{2069}'
-        ) {
-            continue;
-        }
-        out.push(c);
-    }
-
-    let trimmed = out.trim().trim_matches(|c| c == '.' || c == '-').trim();
-    if trimmed.is_empty() {
-        return "Show".to_string();
-    }
-
-    // Truncate to MAX_NAME_LENGTH characters safely
-    let chars: Vec<char> = trimmed.chars().collect();
-    if chars.len() > MAX_NAME_LENGTH {
-        chars[..MAX_NAME_LENGTH].iter().collect()
-    } else {
-        chars.iter().collect()
-    }
+    crate::platform::sanitize_filename(name)
 }
 
 /// Strip newlines and control characters from single-line headers to prevent injection.

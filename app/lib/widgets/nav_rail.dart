@@ -143,7 +143,7 @@ class NavRail extends StatelessWidget {
             ),
           ),
 
-          // Bottom Daemon Health Indicator
+          // Bottom Daemon & Worker Health Indicators
           Padding(
             padding: const EdgeInsets.all(10),
             child: Container(
@@ -153,45 +153,85 @@ class NavRail extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: ObsidianColors.border, width: 0.5),
               ),
-              child: Row(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    width: 7,
-                    height: 7,
-                    decoration: BoxDecoration(
-                      color: state.status.daemonConnected
-                          ? ObsidianColors.tertiary
-                          : ObsidianColors.error,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color:
-                              (state.status.daemonConnected
-                                      ? ObsidianColors.tertiary
-                                      : ObsidianColors.error)
-                                  .withOpacity(0.5),
-                          blurRadius: 4,
-                          spreadRadius: 1,
+                  Row(
+                    children: [
+                      Container(
+                        width: 7,
+                        height: 7,
+                        decoration: BoxDecoration(
+                          color: state.status.daemonConnected
+                              ? ObsidianColors.tertiary
+                              : ObsidianColors.error,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color:
+                                  (state.status.daemonConnected
+                                          ? ObsidianColors.tertiary
+                                          : ObsidianColors.error)
+                                      .withOpacity(0.5),
+                              blurRadius: 4,
+                              spreadRadius: 1,
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      state.status.daemonConnected
-                          ? 'Daemon OK'
-                          : 'Disconnected',
-                      style: ObsidianTypography.monoCode(
-                        color: ObsidianColors.outline,
                       ),
-                    ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          state.status.daemonConnected
+                              ? 'Daemon OK'
+                              : 'Disconnected',
+                          style: ObsidianTypography.monoCode(
+                            color: ObsidianColors.outline,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        state.status.daemonPort,
+                        style: ObsidianTypography.labelBadge(
+                          color: ObsidianColors.outline,
+                        ),
+                      ),
+                    ],
                   ),
-                  Text(
-                    state.status.daemonPort,
-                    style: ObsidianTypography.labelBadge(
-                      color: ObsidianColors.outline,
-                    ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Container(
+                        width: 7,
+                        height: 7,
+                        decoration: BoxDecoration(
+                          color: state.isWorkerRunning
+                              ? ObsidianColors.tertiary
+                              : ObsidianColors.outlineVariant,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color:
+                                  (state.isWorkerRunning
+                                          ? ObsidianColors.tertiary
+                                          : ObsidianColors.outlineVariant)
+                                      .withOpacity(0.5),
+                              blurRadius: 4,
+                              spreadRadius: 1,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Worker: ${state.isWorkerRunning ? "running" : "stopped"}',
+                          style: ObsidianTypography.monoCode(
+                            color: ObsidianColors.outline,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

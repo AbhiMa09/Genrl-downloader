@@ -69,45 +69,19 @@ pub fn resolve_home_dir(path_str: &str) -> PathBuf {
     PathBuf::from(trimmed)
 }
 
-/// Default download folder (~/Downloads/Genrl or relative to HOME).
+/// Default download folder (~/Downloads/Genrl or relative to HOME / User Profile).
 pub fn default_download_dir() -> PathBuf {
-    let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
-    PathBuf::from(home).join("Downloads").join("Genrl")
+    crate::platform::default_download_dir()
 }
 
-/// Default library folder (~/Videos/Anime or relative to HOME).
+/// Default library folder (~/Videos/Anime or relative to HOME / User Profile).
 pub fn default_library_dir() -> PathBuf {
-    let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
-    PathBuf::from(home).join("Videos").join("Anime")
+    crate::platform::default_library_dir()
 }
 
-/// Check whether two paths reside on the same filesystem.
+/// Check whether two paths reside on the same filesystem / volume.
 pub fn are_on_same_filesystem(path_a: &Path, path_b: &Path) -> bool {
-    #[cfg(unix)]
-    {
-        let dev_a = get_dev_for_path(path_a);
-        let dev_b = get_dev_for_path(path_b);
-        if let (Some(a), Some(b)) = (dev_a, dev_b) {
-            return a == b;
-        }
-    }
-    let _ = (path_a, path_b);
-    false
-}
-
-#[cfg(unix)]
-fn get_dev_for_path(p: &Path) -> Option<u64> {
-    use std::os::unix::fs::MetadataExt;
-    let mut curr = p.to_path_buf();
-    loop {
-        if let Ok(meta) = fs::metadata(&curr) {
-            return Some(meta.dev());
-        }
-        if !curr.pop() {
-            break;
-        }
-    }
-    None
+    crate::platform::are_on_same_volume(path_a, path_b)
 }
 
 /// Validate path for directory containment and traversal threats.

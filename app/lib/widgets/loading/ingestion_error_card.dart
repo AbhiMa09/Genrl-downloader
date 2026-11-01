@@ -49,7 +49,8 @@ class IngestionErrorInfo {
     }
 
     String? pathFromRaw;
-    final dbMatch = RegExp(r'(/[\w\.\-]+)+/genrl\.db').firstMatch(raw);
+    final dbMatch = RegExp(r'([/\\A-Za-z0-9_\.\-:]+)[/\\]genrl\.db')
+        .firstMatch(raw);
     if (dbMatch != null) {
       pathFromRaw = dbMatch.group(0);
     }
@@ -59,9 +60,11 @@ class IngestionErrorInfo {
         : (pathFromRaw ??
               (Platform.environment['GENRL_REQUIRE_SCRATCH'] != null
                   ? '/tmp/genrl-scratch/genrl.db'
-                  : (Platform.isLinux
-                        ? '${Platform.environment['HOME']}/.local/share/genrl-downloader/genrl.db'
-                        : 'genrl.db')));
+                  : (Platform.isWindows
+                        ? '${Platform.environment['APPDATA'] ?? r"C:\Users\User\AppData\Roaming"}\\Genrl Downloader\\genrl.db'
+                        : (Platform.isLinux
+                              ? '${Platform.environment['HOME']}/.local/share/genrl-downloader/genrl.db'
+                              : 'genrl.db'))));
 
     // 1. Stage 1: MAL unreachable
     if (stage == IngestionStage.malSync ||
