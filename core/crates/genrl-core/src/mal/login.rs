@@ -191,7 +191,8 @@ pub async fn redirect_code(
             .and_then(|line| line.split_whitespace().nth(1))
             .unwrap_or("/");
 
-        if target.starts_with("/favicon") {
+        let path = target.split('?').next().unwrap_or("/");
+        if path != "/callback" {
             let _ = stream
                 .write_all(b"HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n")
                 .await;
@@ -214,6 +215,14 @@ pub async fn redirect_code(
             .iter()
             .find(|(k, _)| k == "error")
             .map(|(_, v)| v.clone());
+
+        if code.is_none() && state.is_none() && error.is_none() {
+            let _ = stream
+                .write_all(b"HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\n")
+                .await;
+            let _ = stream.shutdown().await;
+            continue;
+        }
 
         let ok = code.is_some() && state.as_deref() == Some(expected_state) && error.is_none();
         let page = if ok {

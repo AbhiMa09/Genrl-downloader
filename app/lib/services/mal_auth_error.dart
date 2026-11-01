@@ -1,6 +1,9 @@
 /// Classify failures without echoing URLs, codes, secrets, or response bodies.
 String malAuthErrorSummary(String raw) {
   final lower = raw.toLowerCase();
+  if (lower.contains('could not open the default browser')) {
+    return 'Could not open your browser. Set a default HTTPS browser in system settings and retry.';
+  }
   if (lower.contains('keyring') ||
       lower.contains('secret service') ||
       lower.contains('no default store')) {

@@ -44,6 +44,7 @@ class _GuidedFirstRunPageState extends State<GuidedFirstRunPage> {
 
   final _malUserController = TextEditingController(text: 'akumasan2');
   final _malClientIdController = TextEditingController();
+  final _malClientSecretController = TextEditingController();
   final _qbitUrlController = TextEditingController(
     text: 'http://127.0.0.1:8080',
   );
@@ -88,6 +89,7 @@ class _GuidedFirstRunPageState extends State<GuidedFirstRunPage> {
   void dispose() {
     _malUserController.dispose();
     _malClientIdController.dispose();
+    _malClientSecretController.dispose();
     _qbitUrlController.dispose();
     _qbitUserController.dispose();
     _qbitPasswordController.dispose();
@@ -407,6 +409,7 @@ class _GuidedFirstRunPageState extends State<GuidedFirstRunPage> {
         return GuidedMalScreen(
           userController: _malUserController,
           clientIdController: _malClientIdController,
+          clientSecretController: _malClientSecretController,
           state: state,
         );
       case 3:

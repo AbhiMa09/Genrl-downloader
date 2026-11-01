@@ -97,15 +97,7 @@ pub async fn mal_login_cmd(
     } else {
         &keyring_store
     };
-    let is_custom_client = !settings.mal_client_id.trim().is_empty()
-        && settings.mal_client_id.trim() != genrl_core::mal::DEFAULT_MAL_CLIENT_ID;
-    let client_secret = client_secret.or_else(|| {
-        if is_custom_client {
-            std::env::var("GENRL_MAL_CLIENT_SECRET").ok()
-        } else {
-            None
-        }
-    });
+    let client_secret = client_secret.or_else(|| std::env::var("GENRL_MAL_CLIENT_SECRET").ok());
     if let Some(sec) = client_secret {
         let sec = sec.trim();
         if !sec.is_empty() {
@@ -121,7 +113,7 @@ pub async fn mal_login_cmd(
     }
     let _ = std::fs::write(data_dir.join("mal_authorize_url.txt"), login.url());
     if !no_open {
-        open_system_browser(login.url());
+        open_system_browser(login.url())?;
     }
     if !json {
         println!("waiting for the redirect on 127.0.0.1 (up to 5 minutes)...");
@@ -233,24 +225,64 @@ pub async fn mal_sync_cmd(data_dir: &Path) -> Result<()> {
     Ok(())
 }
 
-fn open_system_browser(url: &str) {
-    if std::path::Path::new("/proc/sys/fs/binfmt_misc/WSLInterop").exists()
-        || std::env::var_os("WSL_DISTRO_NAME").is_some()
-    {
+fn browser_command(url: &str, windows: bool, wsl: bool, macos: bool) -> std::process::Command {
+    if windows || wsl {
         let script = format!("Start-Process '{}'", url.replace('\'', "''"));
-        if let Ok(mut child) = std::process::Command::new("powershell.exe")
-            .args(["-NoProfile", "-NonInteractive", "-Command", &script])
-            .spawn()
-        {
-            let _ = child.wait();
-            return;
+        let mut command = std::process::Command::new("powershell.exe");
+        command.args(["-NoProfile", "-NonInteractive", "-Command", &script]);
+        command
+    } else {
+        let mut command = std::process::Command::new(if macos { "open" } else { "xdg-open" });
+        command.arg(url);
+        command
+    }
+}
+
+fn open_system_browser(url: &str) -> Result<()> {
+    let wsl = std::path::Path::new("/proc/sys/fs/binfmt_misc/WSLInterop").exists()
+        || std::env::var_os("WSL_DISTRO_NAME").is_some();
+    let mut command = browser_command(url, cfg!(windows), wsl, cfg!(target_os = "macos"));
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        command.creation_flags(0x08000000); // CREATE_NO_WINDOW for the helper process.
+    }
+    let status = command.status().map_err(|_| anyhow::anyhow!(
+        "Could not open the default browser. Check the default HTTPS browser in system settings and retry."
+    ))?;
+    if !status.success() {
+        bail!("Could not open the default browser. Check the default HTTPS browser in system settings and retry.");
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod browser_tests {
+    use super::browser_command;
+
+    #[test]
+    fn windows_and_wsl_use_default_browser_without_shell_interpolation() {
+        let url = "https://example.invalid/authorize?state=fixture&code_challenge=fixture";
+        for (windows, wsl) in [(true, false), (false, true), (true, true)] {
+            let command = browser_command(url, windows, wsl, false);
+            assert_eq!(command.get_program(), "powershell.exe");
+            let args: Vec<_> = command
+                .get_args()
+                .map(|a| a.to_string_lossy().into_owned())
+                .collect();
+            assert_eq!(args[0], "-NoProfile");
+            assert_eq!(args[1], "-NonInteractive");
+            assert_eq!(args[2], "-Command");
+            assert!(args[3].contains(url));
         }
     }
-    if let Ok(mut child) = std::process::Command::new("xdg-open").arg(url).spawn() {
-        let _ = child.wait();
-        return;
-    }
-    if let Ok(mut child) = std::process::Command::new("open").arg(url).spawn() {
-        let _ = child.wait();
+
+    #[test]
+    fn unix_launchers_keep_url_as_one_argument() {
+        for (macos, program) in [(true, "open"), (false, "xdg-open")] {
+            let command = browser_command("https://example.invalid/?a=1&b=2", false, false, macos);
+            assert_eq!(command.get_program(), program);
+            assert_eq!(command.get_args().count(), 1);
+        }
     }
 }

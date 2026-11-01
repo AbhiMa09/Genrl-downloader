@@ -149,18 +149,16 @@ impl<'a> MalClient<'a> {
         ];
         let is_custom_client = !self.settings.mal_client_id.trim().is_empty()
             && self.settings.mal_client_id.trim() != super::pkce::DEFAULT_MAL_CLIENT_ID;
+        let secret = self.store.client_secret().ok().flatten();
         let secret = if is_custom_client {
-            self.store
-                .client_secret()
-                .ok()
-                .flatten()
-                .or_else(|| std::env::var("GENRL_MAL_CLIENT_SECRET").ok())
+            secret.or_else(|| std::env::var("GENRL_MAL_CLIENT_SECRET").ok())
         } else {
-            None
+            secret
         };
         if let Some(s) = secret {
-            if !s.trim().is_empty() {
-                form.push(("client_secret".to_string(), s.trim().to_string()));
+            let s = s.trim();
+            if !s.is_empty() {
+                form.push(("client_secret".to_string(), s.to_string()));
             }
         }
         self.token_request(&url, &form).await
@@ -185,18 +183,16 @@ impl<'a> MalClient<'a> {
         ];
         let is_custom_client = !self.settings.mal_client_id.trim().is_empty()
             && self.settings.mal_client_id.trim() != super::pkce::DEFAULT_MAL_CLIENT_ID;
+        let secret = self.store.client_secret().ok().flatten();
         let secret = if is_custom_client {
-            self.store
-                .client_secret()
-                .ok()
-                .flatten()
-                .or_else(|| std::env::var("GENRL_MAL_CLIENT_SECRET").ok())
+            secret.or_else(|| std::env::var("GENRL_MAL_CLIENT_SECRET").ok())
         } else {
-            None
+            secret
         };
         if let Some(s) = secret {
-            if !s.trim().is_empty() {
-                form.push(("client_secret".to_string(), s.trim().to_string()));
+            let s = s.trim();
+            if !s.is_empty() {
+                form.push(("client_secret".to_string(), s.to_string()));
             }
         }
         let tokens = self.token_request(&url, &form).await?;

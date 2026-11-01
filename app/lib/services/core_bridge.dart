@@ -133,8 +133,7 @@ class CoreBridge {
     bool sessionOnly = false,
   }) async {
     final args = ['mal', 'connect'];
-    final isCustom = clientId != null && clientId.trim().isNotEmpty;
-    if (isCustom) {
+    if (clientId != null && clientId.trim().isNotEmpty) {
       args.addAll(['--client-id', clientId.trim()]);
     }
     if (port != null) {
@@ -149,9 +148,7 @@ class CoreBridge {
     if (sessionOnly) {
       args.addAll(['--session-only', '--json']);
     }
-    // Only pass secret via environment for explicit custom client flows
-    final env =
-        isCustom && clientSecret != null && clientSecret.trim().isNotEmpty
+    final env = clientSecret != null && clientSecret.trim().isNotEmpty
         ? {'GENRL_MAL_CLIENT_SECRET': clientSecret.trim()}
         : null;
     return await execute(args, environment: env);

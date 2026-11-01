@@ -8,12 +8,14 @@ import '../../theme/typography.dart';
 class GuidedMalScreen extends StatefulWidget {
   final TextEditingController userController;
   final TextEditingController clientIdController;
+  final TextEditingController? clientSecretController;
   final StateProvider state;
 
   const GuidedMalScreen({
     super.key,
     required this.userController,
     required this.clientIdController,
+    this.clientSecretController,
     required this.state,
   });
 
@@ -24,6 +26,7 @@ class GuidedMalScreen extends StatefulWidget {
 class _GuidedMalScreenState extends State<GuidedMalScreen> {
   bool _isConnecting = false;
   bool _isGuestModeExpanded = false;
+  bool _isCredentialsExpanded = false;
   String? _connectError;
 
   Future<void> _startOAuth() async {
@@ -33,8 +36,12 @@ class _GuidedMalScreenState extends State<GuidedMalScreen> {
     });
 
     final clientId = widget.clientIdController.text.trim();
+    final clientSecret = widget.clientSecretController?.text.trim();
     await widget.state.connectMal(
       clientId: clientId.isNotEmpty ? clientId : null,
+      clientSecret: (clientSecret != null && clientSecret.isNotEmpty)
+          ? clientSecret
+          : null,
     );
 
     if (!mounted) return;
@@ -227,6 +234,59 @@ class _GuidedMalScreenState extends State<GuidedMalScreen> {
         ),
 
         const SizedBox(height: 16),
+
+        // Custom credentials expandable section
+        if (widget.clientSecretController != null) ...[
+          Material(
+            color: ObsidianColors.surfaceContainer,
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: ObsidianColors.border),
+              ),
+              child: ExpansionTile(
+                initiallyExpanded: _isCredentialsExpanded,
+                onExpansionChanged: (val) =>
+                    setState(() => _isCredentialsExpanded = val),
+                title: Text(
+                  'Developer / Custom App Credentials',
+                  style: ObsidianTypography.bodySm(
+                    color: ObsidianColors.onSurface,
+                  ).copyWith(fontWeight: FontWeight.w600),
+                ),
+                subtitle: Text(
+                  'Required if your MAL app was created with App Type: "web".',
+                  style: ObsidianTypography.labelBadge(
+                    color: ObsidianColors.outline,
+                  ),
+                ),
+                childrenPadding: const EdgeInsets.all(16),
+                children: [
+                  TextField(
+                    controller: widget.clientIdController,
+                    decoration: const InputDecoration(
+                      labelText: 'Custom Client ID',
+                      hintText: 'Leave empty for default app client ID',
+                      prefixIcon: Icon(Icons.key_rounded),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: widget.clientSecretController,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Client Secret (Required for App Type "web")',
+                      hintText: 'Paste secret from MAL developer portal',
+                      prefixIcon: Icon(Icons.password_rounded),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
 
         // Guest mode expandable section
         Material(

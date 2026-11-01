@@ -7,7 +7,7 @@ pub const TOKEN_URL: &str = "https://myanimelist.net/v1/oauth2/token";
 /// May be overridden at compile time via GENRL_DEFAULT_MAL_CLIENT_ID.
 pub const DEFAULT_MAL_CLIENT_ID: &str = match option_env!("GENRL_DEFAULT_MAL_CLIENT_ID") {
     Some(val) => val,
-    None => "c96e52a6f4b5ea18bc13f176ea27f0ae",
+    None => "6114d00ca681b7701d1e15004a496365",
 };
 /// Token endpoint path relative to the API base (for mocks and custom bases).
 pub const TOKEN_PATH: &str = "/oauth2/token";
