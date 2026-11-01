@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main, ci-check ]
+    branches: [ main, ci-check, windows ]
   pull_request:
-    branches: [ main, ci-check ]
+    branches: [ main, ci-check, windows ]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -173,3 +173,23 @@ jobs:
         run: |
           cd app
           flutter build windows --release
+
+      - name: Bundle genrl.exe with Flutter runner
+        shell: pwsh
+        run: |
+          $candidates = @("core/target/release/genrl.exe", "core/target/x86_64-pc-windows-msvc/release/genrl.exe")
+          $src = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $src) {
+              $src = (Get-ChildItem -Path "core/target" -Filter "genrl.exe" -Recurse | Where-Object { $_.FullName -match "release" } | Select-Object -First 1).FullName
+          }
+          $runnerDir = (Resolve-Path "app/build/windows/*/runner/Release" | Select-Object -First 1).Path
+          Copy-Item $src -Destination "$runnerDir/genrl.exe"
+          Write-Host "Bundled $src into $runnerDir"
+          Get-ChildItem -Path $runnerDir
+
+      - name: Upload Windows Desktop Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: genrl-windows-x64
+          path: app/build/windows/*/runner/Release/
+          if-no-files-found: error
