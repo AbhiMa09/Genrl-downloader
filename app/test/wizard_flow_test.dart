@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:genrl_downloader/main.dart';
+
+import 'dart:io' show Platform;
+
 import 'package:genrl_downloader/pages/wizard_page.dart';
+import 'package:genrl_downloader/pages/wizard/guided_first_run_page.dart';
 import 'package:genrl_downloader/services/state_provider.dart';
 import 'package:genrl_downloader/theme/theme.dart';
 import 'package:genrl_downloader/widgets/loading/ingestion_progress.dart';
@@ -154,14 +158,18 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
 
-    // When firstRunCompleted is false, app displays WizardPage
+    final wizardFinder = Platform.isWindows
+        ? find.byType(GuidedFirstRunPage)
+        : find.byType(WizardPage);
+
+    // When firstRunCompleted is false, app displays wizard
     state.setFirstRunCompleted(false);
 
     await tester.pumpWidget(GenrlApp(stateProvider: state));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.byType(WizardPage), findsOneWidget);
+    expect(wizardFinder, findsOneWidget);
     expect(find.byType(MainShell), findsNothing);
 
     // When firstRunCompleted becomes true, app displays MainShell
@@ -170,14 +178,14 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.byType(MainShell), findsOneWidget);
-    expect(find.byType(WizardPage), findsNothing);
+    expect(wizardFinder, findsNothing);
 
-    // When resetFirstRun() is called, app returns to WizardPage
+    // When resetFirstRun() is called, app returns to wizard
     await state.resetFirstRun();
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.byType(WizardPage), findsOneWidget);
+    expect(wizardFinder, findsOneWidget);
     expect(find.byType(MainShell), findsNothing);
   });
 
