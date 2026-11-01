@@ -28,12 +28,14 @@ class _MalConnectionControlsState extends State<MalConnectionControls> {
               widget.state.settings['mal_client_id'] as String? ??
               widget.state.malClientId ??
               '',
+          keyringAvailable: widget.state.keyringAvailable,
         ),
       );
       if (input != null) {
         await widget.state.connectMal(
-          clientId: input.clientId,
+          clientId: input.clientId.isEmpty ? null : input.clientId,
           clientSecret: input.clientSecret.isEmpty ? null : input.clientSecret,
+          sessionOnly: input.sessionOnly,
         );
       }
     } finally {
@@ -92,12 +94,21 @@ class _MalConnectionControlsState extends State<MalConnectionControls> {
 class _MalCredentials {
   final String clientId;
   final String clientSecret;
-  const _MalCredentials(this.clientId, this.clientSecret);
+  final bool sessionOnly;
+  const _MalCredentials(
+    this.clientId,
+    this.clientSecret, {
+    this.sessionOnly = false,
+  });
 }
 
 class _MalCredentialsDialog extends StatefulWidget {
   final String clientId;
-  const _MalCredentialsDialog({required this.clientId});
+  final bool keyringAvailable;
+  const _MalCredentialsDialog({
+    required this.clientId,
+    this.keyringAvailable = true,
+  });
 
   @override
   State<_MalCredentialsDialog> createState() => _MalCredentialsDialogState();
@@ -107,6 +118,8 @@ class _MalCredentialsDialogState extends State<_MalCredentialsDialog> {
   late final _clientId = TextEditingController(text: widget.clientId);
   final _secret = TextEditingController();
   final _form = GlobalKey<FormState>();
+  bool _useCustomClient = false;
+  late bool _sessionOnly = !widget.keyringAvailable;
 
   @override
   void dispose() {
@@ -117,8 +130,12 @@ class _MalCredentialsDialogState extends State<_MalCredentialsDialog> {
   }
 
   void _authorize() {
-    if (!_form.currentState!.validate()) return;
-    final input = _MalCredentials(_clientId.text.trim(), _secret.text.trim());
+    if (_useCustomClient && !_form.currentState!.validate()) return;
+    final input = _MalCredentials(
+      _useCustomClient ? _clientId.text.trim() : '',
+      _useCustomClient ? _secret.text.trim() : '',
+      sessionOnly: _sessionOnly,
+    );
     _secret.clear();
     Navigator.of(context).pop(input);
   }
@@ -134,28 +151,112 @@ class _MalCredentialsDialogState extends State<_MalCredentialsDialog> {
             key: _form,
             child: Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                TextFormField(
-                  key: const Key('mal_client_id'),
-                  controller: _clientId,
-                  decoration: const InputDecoration(labelText: 'Client ID'),
-                  validator: (value) => value == null || value.trim().isEmpty
-                      ? 'Enter your MAL application Client ID.'
-                      : null,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  key: const Key('mal_client_secret'),
-                  controller: _secret,
-                  obscureText: true,
-                  enableSuggestions: false,
-                  autocorrect: false,
-                  decoration: const InputDecoration(
-                    labelText: 'Client Secret (optional)',
-                    helperText: 'Only if your MAL app requires one. Stored in the local keyring.',
-                    helperMaxLines: 2,
+                Text(
+                  'Authorize Genrl with your MyAnimeList account to synchronize your watching library and status using official OAuth2 PKCE.',
+                  style: ObsidianTypography.bodySm(
+                    color: ObsidianColors.onSurfaceVariant,
                   ),
                 ),
+                if (!widget.keyringAvailable) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: ObsidianColors.warning.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: ObsidianColors.warning.withOpacity(0.3),
+                      ),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(
+                          Icons.info_outline_rounded,
+                          size: 16,
+                          color: ObsidianColors.warning,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'No desktop Secret Service / keyring detected (e.g. headless WSL). Credentials will be kept in memory for this session only.',
+                            style: ObsidianTypography.labelBadge(
+                              color: ObsidianColors.onSurface,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 12),
+                CheckboxListTile(
+                  key: const Key('mal_session_only'),
+                  value: _sessionOnly,
+                  onChanged: (val) =>
+                      setState(() => _sessionOnly = val ?? false),
+                  title: const Text('Session only (memory only, no keyring)'),
+                  subtitle: const Text(
+                    'Refresh token is discarded when Genrl exits',
+                  ),
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  controlAffinity: ListTileControlAffinity.leading,
+                ),
+                const SizedBox(height: 8),
+                InkWell(
+                  key: const Key('mal_advanced_toggle'),
+                  onTap: () =>
+                      setState(() => _useCustomClient = !_useCustomClient),
+                  borderRadius: BorderRadius.circular(4),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          _useCustomClient
+                              ? Icons.arrow_drop_down
+                              : Icons.arrow_right,
+                          size: 20,
+                          color: ObsidianColors.primary,
+                        ),
+                        Text(
+                          'Advanced: use my own client ID',
+                          style: ObsidianTypography.bodySm(
+                            color: ObsidianColors.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                if (_useCustomClient) ...[
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    key: const Key('mal_client_id'),
+                    controller: _clientId,
+                    decoration: const InputDecoration(labelText: 'Client ID'),
+                    validator: (value) => value == null || value.trim().isEmpty
+                        ? 'Enter your MAL application Client ID.'
+                        : null,
+                  ),
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    key: const Key('mal_client_secret'),
+                    controller: _secret,
+                    obscureText: true,
+                    enableSuggestions: false,
+                    autocorrect: false,
+                    decoration: const InputDecoration(
+                      labelText: 'Client Secret (optional)',
+                      helperText: 'Only if your custom MAL app requires one.',
+                      helperMaxLines: 2,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

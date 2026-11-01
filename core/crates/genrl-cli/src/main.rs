@@ -362,13 +362,28 @@ async fn main() -> Result<()> {
                 client_id,
                 client_secret,
                 no_open,
-            } => mal_login_cmd(&data_dir, client_id, client_secret, None, None, no_open).await,
+                session_only,
+            } => {
+                mal_login_cmd(
+                    &data_dir,
+                    client_id,
+                    client_secret,
+                    None,
+                    None,
+                    no_open,
+                    session_only,
+                    false,
+                )
+                .await
+            }
             MalCommand::Connect {
                 client_id,
                 client_secret,
                 port,
                 redirect_uri,
                 no_open,
+                session_only,
+                json,
             } => {
                 mal_login_cmd(
                     &data_dir,
@@ -377,6 +392,8 @@ async fn main() -> Result<()> {
                     port,
                     redirect_uri,
                     no_open,
+                    session_only,
+                    json,
                 )
                 .await
             }

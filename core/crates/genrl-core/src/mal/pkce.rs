@@ -2,6 +2,13 @@
 pub const AUTHORIZE_URL: &str = "https://myanimelist.net/v1/oauth2/authorize";
 /// Real MyAnimeList OAuth token endpoint.
 pub const TOKEN_URL: &str = "https://myanimelist.net/v1/oauth2/token";
+/// Default public client ID shipped with Genrl Downloader for OAuth2 PKCE.
+/// Public clients on MyAnimeList do not require a client secret.
+/// May be overridden at compile time via GENRL_DEFAULT_MAL_CLIENT_ID.
+pub const DEFAULT_MAL_CLIENT_ID: &str = match option_env!("GENRL_DEFAULT_MAL_CLIENT_ID") {
+    Some(val) => val,
+    None => "6114d00ca681b7701d1e15004a496365",
+};
 /// Token endpoint path relative to the API base (for mocks and custom bases).
 pub const TOKEN_PATH: &str = "/oauth2/token";
 /// The current user's list.

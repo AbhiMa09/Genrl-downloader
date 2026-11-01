@@ -60,30 +60,59 @@ pub async fn start_login_with_port(
     start_login_with_options(settings, override_port, None).await
 }
 
+/// Registered loopback redirect ports in priority order.
+pub const OAUTH_REDIRECT_PORTS: [u16; 3] = [21445, 21446, 21447];
+
 /// Start login with an optional explicit port and optional redirect URI override.
 pub async fn start_login_with_options(
     settings: &Settings,
     override_port: Option<u16>,
     override_redirect_uri: Option<&str>,
 ) -> Result<Login> {
-    let client_id = settings.mal_client_id.trim().to_string();
-    if client_id.is_empty() {
+    let client_id = if !settings.mal_client_id.trim().is_empty() {
+        settings.mal_client_id.trim().to_string()
+    } else if !super::pkce::DEFAULT_MAL_CLIENT_ID.is_empty() {
+        super::pkce::DEFAULT_MAL_CLIENT_ID.to_string()
+    } else {
         return Err(Error::Auth {
             service: "mal".to_string(),
             message: "set settings.mal_client_id (myanimelist.net/apiconfig) before logging in"
                 .to_string(),
         });
-    }
-    // A fixed loopback port keeps the redirect URI byte-stable across runs
-    // (MAL requires the redirect_uri to *exactly match* what was registered in
-    // the app form). Override with GENRL_MAL_REDIRECT_PORT or explicit override.
-    let port: u16 = override_port.unwrap_or_else(|| {
+    };
+
+    let explicit_port = override_port.or_else(|| {
         std::env::var("GENRL_MAL_REDIRECT_PORT")
             .ok()
             .and_then(|v| v.trim().parse().ok())
-            .unwrap_or(21445)
     });
-    let listener = tokio::net::TcpListener::bind(("127.0.0.1", port)).await?;
+
+    let (listener, port) = if let Some(p) = explicit_port {
+        let l = tokio::net::TcpListener::bind(("127.0.0.1", p))
+            .await
+            .map_err(|err| Error::Auth {
+                service: "mal".to_string(),
+                message: format!("redirect port {p} on 127.0.0.1 is busy or unavailable ({err})"),
+            })?;
+        (l, p)
+    } else {
+        let mut bound = None;
+        for &p in &OAUTH_REDIRECT_PORTS {
+            if let Ok(l) = tokio::net::TcpListener::bind(("127.0.0.1", p)).await {
+                bound = Some((l, p));
+                break;
+            }
+        }
+        match bound {
+            Some(pair) => pair,
+            None => {
+                return Err(Error::Auth {
+                    service: "mal".to_string(),
+                    message: "all OAuth redirect ports (21445, 21446, 21447) on 127.0.0.1 are busy. Free one of these ports or set GENRL_MAL_REDIRECT_PORT.".to_string(),
+                });
+            }
+        }
+    };
     let redirect_uri = override_redirect_uri
         .map(str::to_string)
         .or_else(|| std::env::var("GENRL_MAL_REDIRECT_URI").ok())

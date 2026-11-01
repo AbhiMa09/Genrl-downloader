@@ -36,8 +36,10 @@ class StepMalAccount extends StatelessWidget {
         TextField(
           controller: userController,
           decoration: const InputDecoration(
-            labelText: 'MAL Username',
+            labelText: 'MAL Username (Guest mode / Jikan fallback)',
             hintText: 'e.g. your_mal_username',
+            helperText: 'Guest mode: read-only, possibly slow (Jikan rate limits). Not default.',
+            helperMaxLines: 2,
             prefixIcon: Icon(Icons.person_outline_rounded),
           ),
         ),
@@ -74,7 +76,7 @@ class StepMalAccount extends StatelessWidget {
                 child: Text(
                   state.isMalConnected
                       ? 'Connected as ${state.malUsername ?? userController.text}'
-                      : 'Unlinked — public profile scraping fallback is enabled by default.',
+                      : 'Unlinked — Guest mode (Jikan) is read-only and rate-limited. OAuth recommended.',
                   style: ObsidianTypography.bodySm(
                     color: ObsidianColors.onSurface,
                   ),

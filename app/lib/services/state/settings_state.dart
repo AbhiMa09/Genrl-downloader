@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import '../../models/activity_item.dart';
 import 'state_context.dart';
 import '../mal_auth_error.dart';
@@ -11,6 +13,8 @@ mixin SettingsStateMixin on StateContext {
   bool _isConnectingMal = false;
   bool get isConnectingMal => _isConnectingMal;
   String? _malClientId;
+  bool _keyringAvailable = true;
+  String? _storageType;
   int _watchingCount = 0;
   int _completedCount = 0;
   int _onHoldCount = 0;
@@ -22,6 +26,8 @@ mixin SettingsStateMixin on StateContext {
   String? get malSource => _malSource;
   String? get malError => _malError;
   String? get malClientId => _malClientId;
+  bool get keyringAvailable => _keyringAvailable;
+  String? get storageType => _storageType;
   int get watchingCount => _watchingCount;
   int get completedCount => _completedCount;
   int get onHoldCount => _onHoldCount;
@@ -44,6 +50,8 @@ mixin SettingsStateMixin on StateContext {
         _malUsername = statusMap['username'] as String?;
         _malSource = statusMap['source'] as String?;
         _malClientId = statusMap['client_id'] as String?;
+        _keyringAvailable = (statusMap['keyring_available'] as bool?) ?? true;
+        _storageType = statusMap['storage_type'] as String?;
         final counts = statusMap['counts'] as Map<String, dynamic>? ?? {};
         _watchingCount = (counts['watching'] as num?)?.toInt() ?? 0;
         _completedCount = (counts['completed'] as num?)?.toInt() ?? 0;
@@ -63,6 +71,7 @@ mixin SettingsStateMixin on StateContext {
     String? clientSecret,
     int? port,
     String? redirectUri,
+    bool sessionOnly = false,
   }) async {
     if (_isConnectingMal) return;
     _isConnectingMal = true;
@@ -74,11 +83,24 @@ mixin SettingsStateMixin on StateContext {
         clientSecret: clientSecret,
         port: port,
         redirectUri: redirectUri,
+        sessionOnly: sessionOnly,
       );
       if (res.exitCode != 0) {
         _malError = malAuthErrorSummary(res.stderr.toString());
-      } else if (clientId != null && clientId.isNotEmpty) {
-        _malClientId = clientId;
+      } else {
+        if (clientId != null && clientId.isNotEmpty) {
+          _malClientId = clientId;
+        }
+        if (sessionOnly && res.stdout.toString().isNotEmpty) {
+          try {
+            final json =
+                jsonDecode(res.stdout.toString()) as Map<String, dynamic>;
+            final token = json['session_token'] as String?;
+            if (token != null && token.isNotEmpty) {
+              bridge.sessionMalRefreshToken = token;
+            }
+          } catch (_) {}
+        }
       }
       await refreshMalStatus();
     } catch (error) {
@@ -90,10 +112,12 @@ mixin SettingsStateMixin on StateContext {
   }
 
   Future<void> disconnectMal() async {
+    bridge.sessionMalRefreshToken = null;
     await bridge.malDisconnect();
     _malStatus = 'not_connected';
     _malUsername = null;
     _malSource = null;
+    _storageType = null;
     addActivityEvent(
       ActivityItem(
         id: DateTime.now().millisecondsSinceEpoch,

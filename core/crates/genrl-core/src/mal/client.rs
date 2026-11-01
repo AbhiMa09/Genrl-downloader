@@ -102,14 +102,17 @@ impl<'a> MalClient<'a> {
     }
 
     fn client_id(&self) -> Result<String> {
-        let id = self.settings.mal_client_id.trim().to_string();
-        if id.is_empty() {
-            return Err(Error::Auth {
-                service: "mal".to_string(),
-                message: "no MAL client id is set; add one to settings.mal_client_id".to_string(),
-            });
+        let id = self.settings.mal_client_id.trim();
+        if !id.is_empty() {
+            return Ok(id.to_string());
         }
-        Ok(id)
+        if !super::pkce::DEFAULT_MAL_CLIENT_ID.is_empty() {
+            return Ok(super::pkce::DEFAULT_MAL_CLIENT_ID.to_string());
+        }
+        Err(Error::Auth {
+            service: "mal".to_string(),
+            message: "no MAL client id is set; add one to settings.mal_client_id".to_string(),
+        })
     }
 
     /// A valid access token, refreshing five minutes before it expires.
@@ -144,12 +147,17 @@ impl<'a> MalClient<'a> {
             ("client_id".to_string(), client_id.to_string()),
             ("refresh_token".to_string(), refresh_token.to_string()),
         ];
-        let secret = self
-            .store
-            .client_secret()
-            .ok()
-            .flatten()
-            .or_else(|| std::env::var("GENRL_MAL_CLIENT_SECRET").ok());
+        let is_custom_client = !self.settings.mal_client_id.trim().is_empty()
+            && self.settings.mal_client_id.trim() != super::pkce::DEFAULT_MAL_CLIENT_ID;
+        let secret = if is_custom_client {
+            self.store
+                .client_secret()
+                .ok()
+                .flatten()
+                .or_else(|| std::env::var("GENRL_MAL_CLIENT_SECRET").ok())
+        } else {
+            None
+        };
         if let Some(s) = secret {
             if !s.trim().is_empty() {
                 form.push(("client_secret".to_string(), s.trim().to_string()));
@@ -160,7 +168,7 @@ impl<'a> MalClient<'a> {
 
     /// Swap a login code for tokens. The token endpoint rotates the refresh
     /// token; the fresh one is stored before this returns.
-    pub(crate) async fn exchange_and_store(
+    pub async fn exchange_and_store(
         &self,
         redirect_uri: &str,
         code: &str,
@@ -175,12 +183,17 @@ impl<'a> MalClient<'a> {
             ("code_verifier".to_string(), verifier.to_string()),
             ("redirect_uri".to_string(), redirect_uri.to_string()),
         ];
-        let secret = self
-            .store
-            .client_secret()
-            .ok()
-            .flatten()
-            .or_else(|| std::env::var("GENRL_MAL_CLIENT_SECRET").ok());
+        let is_custom_client = !self.settings.mal_client_id.trim().is_empty()
+            && self.settings.mal_client_id.trim() != super::pkce::DEFAULT_MAL_CLIENT_ID;
+        let secret = if is_custom_client {
+            self.store
+                .client_secret()
+                .ok()
+                .flatten()
+                .or_else(|| std::env::var("GENRL_MAL_CLIENT_SECRET").ok())
+        } else {
+            None
+        };
         if let Some(s) = secret {
             if !s.trim().is_empty() {
                 form.push(("client_secret".to_string(), s.trim().to_string()));

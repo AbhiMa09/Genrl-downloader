@@ -15,6 +15,7 @@ class CoreBridge {
   final String genrlBinaryPath;
   final String? customDataDir;
   String? lastError;
+  String? sessionMalRefreshToken;
 
   CoreBridge({this.genrlBinaryPath = 'genrl', this.customDataDir}) {
     final home = Platform.environment['HOME'];
@@ -55,7 +56,13 @@ class CoreBridge {
 
     try {
       final bin = _resolveBinary();
-      final res = await Process.run(bin, fullArgs, environment: environment);
+      var env = environment;
+      if (sessionMalRefreshToken != null &&
+          sessionMalRefreshToken!.isNotEmpty) {
+        env = Map<String, String>.from(environment ?? {});
+        env['GENRL_MAL_REFRESH_TOKEN'] = sessionMalRefreshToken!;
+      }
+      final res = await Process.run(bin, fullArgs, environment: env);
       if (res.exitCode != 0) {
         final err = (res.stderr as String).trim();
         lastError = err.isNotEmpty ? err : (res.stdout as String).trim();
@@ -124,9 +131,11 @@ class CoreBridge {
     int? port,
     String? redirectUri,
     bool noOpen = false,
+    bool sessionOnly = false,
   }) async {
     final args = ['mal', 'connect'];
-    if (clientId != null && clientId.trim().isNotEmpty) {
+    final isCustom = clientId != null && clientId.trim().isNotEmpty;
+    if (isCustom) {
       args.addAll(['--client-id', clientId.trim()]);
     }
     if (port != null) {
@@ -138,12 +147,15 @@ class CoreBridge {
     if (noOpen) {
       args.add('--no-open');
     }
-    return await execute(
-      args,
-      environment: clientSecret != null && clientSecret.trim().isNotEmpty
-          ? {'GENRL_MAL_CLIENT_SECRET': clientSecret.trim()}
-          : null,
-    );
+    if (sessionOnly) {
+      args.addAll(['--session-only', '--json']);
+    }
+    // Only pass secret via environment for explicit custom client flows
+    final env =
+        isCustom && clientSecret != null && clientSecret.trim().isNotEmpty
+        ? {'GENRL_MAL_CLIENT_SECRET': clientSecret.trim()}
+        : null;
+    return await execute(args, environment: env);
   }
 
   /// Get MAL status as structured map

@@ -30,6 +30,10 @@ pub struct MalStatusResult {
     pub last_sync_at: Option<i64>,
     pub counts: StatusCounts,
     pub client_id: Option<String>,
+    #[serde(default)]
+    pub keyring_available: bool,
+    #[serde(default)]
+    pub storage_type: Option<String>,
 }
 
 #[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
@@ -59,10 +63,13 @@ pub async fn mal_status(
 ) -> Result<MalStatusResult> {
     let last_sync = settings::read_state_time(db, SYNC_STATE_KEY)?;
     let public_user = settings::read_state(db, JIKAN_USER_STATE_KEY)?;
-    let client_id = if settings.mal_client_id.trim().is_empty() {
-        None
-    } else {
+    let keyring_available = crate::secrets::is_available();
+    let client_id = if !settings.mal_client_id.trim().is_empty() {
         Some(settings.mal_client_id.trim().to_string())
+    } else if !super::pkce::DEFAULT_MAL_CLIENT_ID.is_empty() {
+        Some(super::pkce::DEFAULT_MAL_CLIENT_ID.to_string())
+    } else {
+        None
     };
 
     // Status counts from mal_entries
@@ -88,6 +95,17 @@ pub async fn mal_status(
         Ok(())
     })?;
 
+    let storage_type = if std::env::var("GENRL_MAL_REFRESH_TOKEN")
+        .map(|s| !s.is_empty())
+        .unwrap_or(false)
+    {
+        Some("session".to_string())
+    } else if store.refresh_token().ok().flatten().is_some() {
+        Some("keyring".to_string())
+    } else {
+        None
+    };
+
     // Check OAuth first
     if store.refresh_token().ok().flatten().is_some() {
         let client = MalClient::new(gate, settings.clone(), store, clock);
@@ -103,6 +121,8 @@ pub async fn mal_status(
                     last_sync_at: last_sync,
                     counts,
                     client_id,
+                    keyring_available,
+                    storage_type,
                 });
             }
             Err(Error::Auth { .. }) => {
@@ -115,6 +135,8 @@ pub async fn mal_status(
                     last_sync_at: last_sync,
                     counts,
                     client_id,
+                    keyring_available,
+                    storage_type,
                 });
             }
             Err(_) => {
@@ -127,6 +149,8 @@ pub async fn mal_status(
                     last_sync_at: last_sync,
                     counts,
                     client_id,
+                    keyring_available,
+                    storage_type,
                 });
             }
         }
@@ -143,6 +167,8 @@ pub async fn mal_status(
                 last_sync_at: last_sync,
                 counts,
                 client_id,
+                keyring_available,
+                storage_type: None,
             });
         }
     }
@@ -155,6 +181,8 @@ pub async fn mal_status(
         last_sync_at: last_sync,
         counts,
         client_id,
+        keyring_available,
+        storage_type: None,
     })
 }
 

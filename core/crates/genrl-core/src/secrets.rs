@@ -6,6 +6,9 @@
 //! headless and scripted runs an environment variable (e.g.
 //! `GENRL_QBIT_PASSWORD`) takes precedence — an override, not a store, so a
 //! script can supply the secret without touching the keyring at all.
+//!
+//! Note: Windows Credential Manager support is NOT RUN (untested on Windows).
+//! Verified on Linux with desktop Secret Service.
 
 use crate::error::{Error, Result};
 
@@ -92,11 +95,22 @@ pub fn delete(secret: Secret) -> Result<()> {
     }
 }
 
+/// Check whether the platform keyring service is available.
+pub fn is_available() -> bool {
+    if std::env::var("GENRL_FORCE_NO_KEYRING").as_deref() == Ok("1") {
+        return false;
+    }
+    match keyring::Entry::new(SERVICE, "probe") {
+        Ok(entry) => matches!(entry.get_password(), Ok(_) | Err(keyring::Error::NoEntry)),
+        Err(_) => false,
+    }
+}
+
 /// Every keyring failure carries the environment fallback, because the usual
 /// cause is a locked or absent session keyring on a minimal distro.
 fn keyring_error(secret: Secret, err: keyring::Error) -> Error {
     Error::Other(format!(
-        "keyring unavailable while reading {} ({err}); unlock your desktop keyring or set {} for this run",
+        "keyring unavailable while accessing {} ({err}); no desktop Secret Service detected. Use session-only mode or set {} for this run.",
         secret.label(),
         secret.env_var()
     ))

@@ -107,6 +107,9 @@ void main() {
     );
     await tester.tap(find.byKey(const Key('mal_connect_browser')));
     await tester.pumpAndSettle();
+    // Expand advanced settings to configure custom client
+    await tester.tap(find.byKey(const Key('mal_advanced_toggle')));
+    await tester.pumpAndSettle();
     final fields = tester
         .widgetList<TextField>(find.byType(TextField))
         .toList();
@@ -132,4 +135,28 @@ void main() {
     expect(find.textContaining('Start a fresh browser login'), findsOneWidget);
     expect(find.textContaining('FIXTURE_SECRET'), findsNothing);
   });
+
+  testWidgets(
+    'default connect dialog uses public client and sends no secret via env',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: MalConnectionControls(state: state)),
+        ),
+      );
+      await tester.tap(find.byKey(const Key('mal_connect_browser')));
+      await tester.pumpAndSettle();
+      // By default advanced is collapsed; no client ID or secret text field is visible
+      expect(find.byKey(const Key('mal_client_id')), findsNothing);
+      expect(find.byKey(const Key('mal_client_secret')), findsNothing);
+
+      // Tap authorize directly for default flow
+      await tester.tap(find.byKey(const Key('mal_authorize')));
+      await tester.pumpAndSettle();
+
+      expect(bridge.starts, 1);
+      expect(bridge.arguments, isNot(contains('--client-id')));
+      expect(bridge.childEnvironment, isNull);
+    },
+  );
 }

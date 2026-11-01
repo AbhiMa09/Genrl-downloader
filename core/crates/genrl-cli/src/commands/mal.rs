@@ -21,6 +21,9 @@ pub enum MalCommand {
         /// Don't try to open a browser tab automatically.
         #[arg(long)]
         no_open: bool,
+        /// Store the refresh token in memory for this session only (no system keyring).
+        #[arg(long)]
+        session_only: bool,
     },
     /// Start OAuth login with an optional port and return the auth URL.
     Connect {
@@ -30,7 +33,7 @@ pub enum MalCommand {
         /// Optional client_secret for Web applications.
         #[arg(long)]
         client_secret: Option<String>,
-        /// Explicit port to bind (default: 21445).
+        /// Explicit port to bind (default: tries 21445, 21446, 21447).
         #[arg(long)]
         port: Option<u16>,
         /// Explicit redirect URI (e.g. http://localhost:21445/callback).
@@ -39,6 +42,12 @@ pub enum MalCommand {
         /// Don't try to open a browser tab automatically.
         #[arg(long)]
         no_open: bool,
+        /// Store the refresh token in memory for this session only (no system keyring).
+        #[arg(long)]
+        session_only: bool,
+        /// Output result as JSON.
+        #[arg(long)]
+        json: bool,
     },
     /// Disconnect MAL and delete credentials.
     Disconnect,
@@ -57,6 +66,7 @@ pub enum MalCommand {
     Sync,
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn mal_login_cmd(
     data_dir: &Path,
     client_id: Option<String>,
@@ -64,6 +74,8 @@ pub async fn mal_login_cmd(
     port: Option<u16>,
     redirect_uri: Option<String>,
     no_open: bool,
+    session_only: bool,
+    json: bool,
 ) -> Result<()> {
     let db = open_db(data_dir)?;
     let mut settings = Settings::load(&db)?;
@@ -74,11 +86,26 @@ pub async fn mal_login_cmd(
             settings.save(&db)?;
         }
     }
-    if settings.mal_client_id.trim().is_empty() {
-        bail!("set settings.mal_client_id first (myanimelist.net/apiconfig)");
+    if !session_only && !genrl_core::secrets::is_available() {
+        bail!("System keyring is unavailable (no Secret Service / desktop keyring detected). Use --session-only to keep the refresh token in memory for this session, or provide GENRL_MAL_REFRESH_TOKEN.");
     }
-    let store = KeyringStore;
-    let client_secret = client_secret.or_else(|| std::env::var("GENRL_MAL_CLIENT_SECRET").ok());
+    let memory_store;
+    let keyring_store = KeyringStore;
+    let store: &dyn TokenStore = if session_only {
+        memory_store = genrl_core::mal::MemoryStore::new();
+        &memory_store
+    } else {
+        &keyring_store
+    };
+    let is_custom_client = !settings.mal_client_id.trim().is_empty()
+        && settings.mal_client_id.trim() != genrl_core::mal::DEFAULT_MAL_CLIENT_ID;
+    let client_secret = client_secret.or_else(|| {
+        if is_custom_client {
+            std::env::var("GENRL_MAL_CLIENT_SECRET").ok()
+        } else {
+            None
+        }
+    });
     if let Some(sec) = client_secret {
         let sec = sec.trim();
         if !sec.is_empty() {
@@ -88,15 +115,19 @@ pub async fn mal_login_cmd(
     let gate = Gate::new(db.clone())?;
     let clock = SystemClock;
     let login = mal::mal_connect_start(&settings, port, redirect_uri.as_deref()).await?;
-    println!("Authorize URL:\n\n  {}\n", login.url());
-    println!("Listening on: {}", login.redirect_uri());
+    if !json {
+        println!("Authorize URL:\n\n  {}\n", login.url());
+        println!("Listening on: {}", login.redirect_uri());
+    }
     if !no_open {
         let _ = std::process::Command::new("xdg-open")
             .arg(login.url())
             .spawn();
     }
-    println!("waiting for the redirect on 127.0.0.1 (up to 5 minutes)...");
-    let client = MalClient::new(&gate, settings, &store, &clock);
+    if !json {
+        println!("waiting for the redirect on 127.0.0.1 (up to 5 minutes)...");
+    }
+    let client = MalClient::new(&gate, settings, store, &clock);
     login
         .finish(&client, std::time::Duration::from_secs(300))
         .await?;
@@ -105,7 +136,30 @@ pub async fn mal_login_cmd(
     settings::write_state(&db, mal::ACCOUNT_SOURCE_STATE_KEY, "mal")?;
     let account = client.account().await?;
     settings::write_state(&db, "mal_account", &account.name)?;
-    println!("connected as {} (id {})", account.name, account.id);
+
+    if json {
+        let token_val = if session_only {
+            store.refresh_token()?.unwrap_or_default()
+        } else {
+            String::new()
+        };
+        let mut map = serde_json::Map::new();
+        map.insert("status".into(), "connected".into());
+        map.insert("username".into(), account.name.clone().into());
+        map.insert("user_id".into(), account.id.into());
+        map.insert("session_only".into(), session_only.into());
+        if session_only {
+            map.insert("session_token".into(), token_val.into());
+        }
+        println!("{}", serde_json::to_string(&map)?);
+    } else if session_only {
+        println!(
+            "connected as {} (id {}) [session-only mode: refresh token held in memory]",
+            account.name, account.id
+        );
+    } else {
+        println!("connected as {} (id {})", account.name, account.id);
+    }
     Ok(())
 }
 
