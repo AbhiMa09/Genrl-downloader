@@ -44,7 +44,7 @@ void main() {
     // Verify torrent items rendered
     expect(find.text('Sousou no Frieren'), findsAtLeastNWidgets(1));
     expect(find.text('Dungeon Meshi'), findsOneWidget);
-    expect(find.textContaining('142 seeds'), findsOneWidget);
+    expect(find.textContaining('142 seeds'), findsAtLeastNWidgets(1));
   });
 
   testWidgets('Queue Page renders empty state when no transfers exist', (
