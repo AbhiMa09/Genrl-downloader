@@ -82,4 +82,58 @@ void main() {
       expect(state.selectedShow, isNull);
     },
   );
+
+  testWidgets(
+    'Season card indicates needs_input and button opens Action Inbox',
+    (tester) async {
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      final fakeBridge = FakeCoreBridge(mode: FakeMode.data);
+      fakeBridge.customShowDetail = const LibraryShow(
+        malId: 18119,
+        title: 'Servant x Service',
+        englishTitle: 'Servant x Service',
+        startYear: 2013,
+        totalEpisodes: 13,
+        downloadedEpisodes: 0,
+        watchedEpisodes: 0,
+        score: 7.5,
+        status: 'Watching',
+        airingStatus: 'Finished',
+        genres: ['Comedy', 'Slice of Life'],
+        synopsis: 'Yamagami Lucy has begun working at a government office.',
+        seasons: [
+          SeasonItem(
+            malId: 18119,
+            title: 'Servant x Service',
+            season: 1,
+            totalEpisodes: 13,
+            downloadedEpisodes: 0,
+            activeJobs: 1,
+            needsInput: 1,
+          ),
+        ],
+      );
+
+      final state = StateProvider(bridge: fakeBridge, startPolling: false);
+      await state.refreshAll();
+
+      final testShow = fakeBridge.customShowDetail!;
+      await tester.pumpWidget(createTestApp(state, testShow));
+      await tester.pump();
+
+      // Card indicates waiting on user choice
+      expect(find.text('Waiting for your choice'), findsOneWidget);
+      expect(find.text('WAITING FOR CHOICE'), findsOneWidget);
+      expect(find.text('Open Inbox'), findsOneWidget);
+
+      // Tapping "Open Inbox" navigates to Inbox (page index 1)
+      await tester.tap(find.text('Open Inbox'));
+      await tester.pump();
+      expect(state.selectedPageIndex, 1);
+      expect(state.selectedShow, isNull);
+    },
+  );
 }

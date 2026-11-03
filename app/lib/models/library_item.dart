@@ -47,6 +47,7 @@ class SeasonItem {
   final int downloadedEpisodes;
   final int activeJobs;
   final int failedJobs;
+  final int needsInput;
   final String mediaType;
   final String? posterUrl;
 
@@ -58,6 +59,7 @@ class SeasonItem {
     required this.downloadedEpisodes,
     this.activeJobs = 0,
     this.failedJobs = 0,
+    this.needsInput = 0,
     this.mediaType = 'tv',
     this.posterUrl,
   });

@@ -13,7 +13,13 @@ pub(crate) fn seasons_json(db: &Db, mal_id: i64) -> Result<Vec<serde_json::Value
                     (SELECT COUNT(*) FROM jobs j JOIN episodes e ON e.id = j.episode_id
                       WHERE e.mal_id = s.mal_id AND j.state NOT IN ('done', 'failed')),
                     (SELECT COUNT(*) FROM jobs j JOIN episodes e ON e.id = j.episode_id
-                      WHERE e.mal_id = s.mal_id AND j.state = 'failed')
+                      WHERE e.mal_id = s.mal_id AND j.state = 'failed'),
+                    MAX(
+                      (SELECT COUNT(*) FROM jobs j JOIN episodes e ON e.id = j.episode_id
+                        WHERE e.mal_id = s.mal_id AND j.state = 'needs_input'),
+                      (SELECT COUNT(*) FROM questions q
+                        WHERE q.mal_id = s.mal_id AND q.answer IS NULL)
+                    )
              FROM shows s
              WHERE COALESCE(s.franchise_id, s.mal_id) =
                    (SELECT COALESCE(franchise_id, mal_id) FROM shows WHERE mal_id = ?1)
@@ -33,6 +39,7 @@ pub(crate) fn seasons_json(db: &Db, mal_id: i64) -> Result<Vec<serde_json::Value
                 "downloaded_episodes": r.get::<_, i64>(9)?,
                 "active_jobs": r.get::<_, i64>(10)?,
                 "failed_jobs": r.get::<_, i64>(11)?,
+                "needs_input": r.get::<_, i64>(12)?,
             }))
         })?;
         let mut list = Vec::new();

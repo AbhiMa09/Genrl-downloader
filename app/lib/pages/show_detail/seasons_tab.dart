@@ -119,10 +119,13 @@ class _SeasonCardState extends State<_SeasonCard> {
     final total = season.totalEpisodes;
     final done = season.downloadedEpisodes;
     final complete = total > 0 && done >= total;
-    final active = season.activeJobs > 0;
+    final needsInput = season.needsInput > 0;
+    final active = season.activeJobs > 0 && !needsInput;
     final progress = total > 0 ? (done / total).clamp(0.0, 1.0) : 0.0;
 
-    final statusText = complete
+    final statusText = needsInput
+        ? 'WAITING FOR CHOICE'
+        : complete
         ? 'COMPLETE'
         : active
         ? 'IN QUEUE'
@@ -131,7 +134,9 @@ class _SeasonCardState extends State<_SeasonCard> {
         : done > 0
         ? 'PARTIAL'
         : 'NOT DOWNLOADED';
-    final statusColor = complete
+    final statusColor = needsInput
+        ? ObsidianColors.warning
+        : complete
         ? ObsidianColors.success
         : season.failedJobs > 0 && !active
         ? ObsidianColors.error
@@ -211,11 +216,15 @@ class _SeasonCardState extends State<_SeasonCard> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      total > 0
+                      needsInput
+                          ? 'Waiting for your choice'
+                          : total > 0
                           ? '$done / $total episodes'
                           : 'Episode count not known yet',
                       style: ObsidianTypography.monoCode(
-                        color: ObsidianColors.outline,
+                        color: needsInput
+                            ? ObsidianColors.warning
+                            : ObsidianColors.outline,
                       ).copyWith(fontSize: 11),
                     ),
                   ],
@@ -225,29 +234,49 @@ class _SeasonCardState extends State<_SeasonCard> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Tooltip(
-                    message: 'Download Season',
-                    child: FilledButton.icon(
-                      onPressed: (_busy || active || complete)
-                          ? null
-                          : _downloadSeason,
-                      icon: Icon(
-                        complete ? Icons.check_rounded : Icons.download_rounded,
-                        size: 16,
-                      ),
-                      label: Text(buttonLabel),
+                  if (needsInput)
+                    FilledButton.icon(
+                      onPressed: () =>
+                          context.read<StateProvider>().selectPage(1),
+                      icon: const Icon(Icons.inbox_outlined, size: 16),
+                      label: const Text('Open Inbox'),
                       style: FilledButton.styleFrom(
-                        backgroundColor: ObsidianColors.primaryContainer,
-                        foregroundColor: ObsidianColors.onPrimaryContainer,
+                        backgroundColor: ObsidianColors.warning,
+                        foregroundColor: ObsidianColors.surfaceContainerLowest,
                         textStyle: ObsidianTypography.monoCode(
-                          color: ObsidianColors.onPrimaryContainer,
+                          color: ObsidianColors.surfaceContainerLowest,
                         ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
+                    )
+                  else
+                    Tooltip(
+                      message: 'Download Season',
+                      child: FilledButton.icon(
+                        onPressed: (_busy || active || complete)
+                            ? null
+                            : _downloadSeason,
+                        icon: Icon(
+                          complete
+                              ? Icons.check_rounded
+                              : Icons.download_rounded,
+                          size: 16,
+                        ),
+                        label: Text(buttonLabel),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: ObsidianColors.primaryContainer,
+                          foregroundColor: ObsidianColors.onPrimaryContainer,
+                          textStyle: ObsidianTypography.monoCode(
+                            color: ObsidianColors.onPrimaryContainer,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
                   if (!isMovie)
                     TextButton(
                       onPressed: _toggleEpisodes,

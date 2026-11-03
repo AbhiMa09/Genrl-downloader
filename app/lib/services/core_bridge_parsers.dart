@@ -213,6 +213,7 @@ List<SeasonItem> parseSeasons(List<dynamic> list) {
       downloadedEpisodes: (s['downloaded_episodes'] as num?)?.toInt() ?? 0,
       activeJobs: (s['active_jobs'] as num?)?.toInt() ?? 0,
       failedJobs: (s['failed_jobs'] as num?)?.toInt() ?? 0,
+      needsInput: (s['needs_input'] as num?)?.toInt() ?? 0,
       mediaType: s['media_type']?.toString() ?? 'tv',
       posterUrl: s['poster_url']?.toString(),
     );
