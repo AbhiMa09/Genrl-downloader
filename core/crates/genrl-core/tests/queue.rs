@@ -1595,3 +1595,44 @@ async fn plan_single_marks_its_jobs_manual() {
     let job = single_job(&world);
     assert!(jobs::is_manual(&world.db, job).unwrap());
 }
+
+#[tokio::test]
+async fn finalize_step_resolves_empty_download_folder_when_qbit_forgets_torrent() {
+    let world = World::new().await;
+    let job_id = plan_one(&world);
+    let engine = world.engine();
+
+    drive_until(&engine, job_id, JobState::Finalize).await;
+
+    // qBittorrent has forgotten the torrent
+    world.qbit().present.clear();
+
+    // Ensure settings.download_folder is empty (default)
+    let mut settings = Settings::load(&world.db).unwrap();
+    settings.download_folder = "".to_string();
+    settings.save(&world.db).unwrap();
+
+    let t_name: String = world
+        .db
+        .with(|c| {
+            Ok(c.query_row(
+                "SELECT name FROM torrents WHERE id = (SELECT torrent_id FROM jobs WHERE id = ?1)",
+                [job_id],
+                |r| r.get(0),
+            )
+            .unwrap())
+        })
+        .unwrap();
+
+    let dl_dir = genrl_core::locations::default_download_dir();
+    let batch_dir = dl_dir.join(&t_name);
+    std::fs::create_dir_all(&batch_dir).unwrap();
+    let file_path = batch_dir.join("episode.mkv");
+    std::fs::write(&file_path, b"test content").unwrap();
+
+    let outcome = engine.step(job_id).await.unwrap();
+
+    let _ = std::fs::remove_dir_all(&batch_dir);
+
+    assert_eq!(outcome.to, JobState::Done);
+}

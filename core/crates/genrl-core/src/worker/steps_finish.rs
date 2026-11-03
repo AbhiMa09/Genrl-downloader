@@ -138,7 +138,15 @@ impl Engine {
                 .map(|()| JobState::Finalize);
             }
             None => {
-                let path = Path::new(&settings.download_folder).join(&torrent.name);
+                let dl_str = if settings.download_folder.trim().is_empty() {
+                    crate::locations::default_download_dir()
+                        .display()
+                        .to_string()
+                } else {
+                    settings.download_folder.clone()
+                };
+                let download_dir = crate::locations::resolve_home_dir(&dl_str);
+                let path = download_dir.join(&torrent.name);
                 match std::fs::metadata(&path) {
                     Ok(meta) if meta.len() > 0 => (path.display().to_string(), meta.len() as i64),
                     _ => {
