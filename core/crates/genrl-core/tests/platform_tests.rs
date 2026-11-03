@@ -227,16 +227,12 @@ fn test_are_same_file_detection() {
     fs::hard_link(&file1, &file2).unwrap();
     fs::write(&file3, b"hello").unwrap();
 
-    let meta1 = fs::metadata(&file1).unwrap();
-    let meta2 = fs::metadata(&file2).unwrap();
-    let meta3 = fs::metadata(&file3).unwrap();
-
     assert!(
-        are_same_file(&meta1, &meta2),
+        are_same_file(&file1, &file2),
         "hardlinked files must be detected as same file"
     );
     assert!(
-        !are_same_file(&meta1, &meta3),
+        !are_same_file(&file1, &file3),
         "independent files must not be detected as same file"
     );
 }

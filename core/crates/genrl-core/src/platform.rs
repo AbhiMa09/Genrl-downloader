@@ -159,27 +159,8 @@ pub fn are_windows_file_indices_equal(
 
 /// Check if two files refer to the exact same file on disk (same device & inode on Unix,
 /// or same volume serial number & file index on Windows).
-pub fn are_same_file(m1: &fs::Metadata, m2: &fs::Metadata) -> bool {
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::MetadataExt;
-        m1.dev() == m2.dev() && m1.ino() == m2.ino()
-    }
-    #[cfg(windows)]
-    {
-        use std::os::windows::fs::MetadataExt;
-        are_windows_file_indices_equal(
-            m1.volume_serial_number(),
-            m1.file_index(),
-            m2.volume_serial_number(),
-            m2.file_index(),
-        )
-    }
-    #[cfg(not(any(unix, windows)))]
-    {
-        let _ = (m1, m2);
-        false
-    }
+pub fn are_same_file(p1: impl AsRef<Path>, p2: impl AsRef<Path>) -> bool {
+    same_file::is_same_file(p1, p2).unwrap_or(false)
 }
 
 /// Extract drive letter or UNC prefix from a Windows path string.

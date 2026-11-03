@@ -319,12 +319,10 @@ impl Finalizer for LibraryFinalizer {
             // 4. Collision check
             if target_path.exists() {
                 // If identical file (same inode/hardlink or same path), already filed
-                if let (Ok(m1), Ok(m2)) = (fs::metadata(source_path), fs::metadata(&target_path)) {
-                    if crate::platform::are_same_file(&m1, &m2) {
-                        return Ok(FinalizeOutcome::Done(FinalizeSuccess {
-                            destination_path: target_path.display().to_string(),
-                        }));
-                    }
+                if crate::platform::are_same_file(source_path, &target_path) {
+                    return Ok(FinalizeOutcome::Done(FinalizeSuccess {
+                        destination_path: target_path.display().to_string(),
+                    }));
                 }
 
                 // Check questions table for an existing answer

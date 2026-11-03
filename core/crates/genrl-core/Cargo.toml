@@ -25,6 +25,7 @@ bytes.workspace = true
 keyring.workspace = true
 dirs.workspace = true
 fs2.workspace = true
+same-file.workspace = true
 
 [dev-dependencies]
 wiremock.workspace = true
