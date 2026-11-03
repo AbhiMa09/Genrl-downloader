@@ -7,6 +7,7 @@ enum QueueState {
   needsInput,
   stalled,
   blocked,
+  failed,
 }
 
 class QueueItem {

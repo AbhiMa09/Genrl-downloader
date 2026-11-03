@@ -35,9 +35,7 @@ class QueueFilterBar extends StatelessWidget {
     final blockedCount = items
         .where((i) => i.state == QueueState.blocked)
         .length;
-    final failedCount = items
-        .where((i) => i.state == QueueState.stalled)
-        .length;
+    final failedCount = items.where((i) => i.state == QueueState.failed).length;
     final searchCount = items.where((i) => i.state == QueueState.queued).length;
 
     return Container(

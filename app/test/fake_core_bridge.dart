@@ -14,11 +14,13 @@ class FakeCoreBridge extends CoreBridge {
   String errorMessage;
 
   LibraryShow? customShowDetail;
+  List<QueueItem>? customQueueItems;
 
   FakeCoreBridge({
     this.mode = FakeMode.data,
     this.errorMessage = 'Connection refused by genrl core daemon',
     this.customShowDetail,
+    this.customQueueItems,
   });
 
   /// Every command line the app sent, for tests that check what was asked.
@@ -85,6 +87,9 @@ class FakeCoreBridge extends CoreBridge {
   Future<List<QueueItem>> getQueue() async {
     if (mode == FakeMode.error) {
       throw Exception(errorMessage);
+    }
+    if (customQueueItems != null) {
+      return customQueueItems!;
     }
     if (mode == FakeMode.empty) {
       return [];

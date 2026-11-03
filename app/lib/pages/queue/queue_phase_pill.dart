@@ -34,6 +34,10 @@ class QueuePhasePill extends StatelessWidget {
       label = item.error?.isNotEmpty == true
           ? item.error!
           : 'Swarm Stalled (0 seeds)';
+    } else if (item.state == QueueState.failed) {
+      bg = ObsidianColors.error.withOpacity(0.3);
+      fg = ObsidianColors.error;
+      label = item.error?.isNotEmpty == true ? item.error! : 'Failed';
     } else if (item.seeders <= 1) {
       bg = ObsidianColors.secondaryContainer.withOpacity(0.4);
       fg = ObsidianColors.secondary;

@@ -78,7 +78,7 @@ class _QueuePageState extends State<QueuePage> {
         if (_selectedFilter == 'blocked' && item.state != QueueState.blocked) {
           return false;
         }
-        if (_selectedFilter == 'failed' && item.state != QueueState.stalled) {
+        if (_selectedFilter == 'failed' && item.state != QueueState.failed) {
           return false;
         }
         if (_selectedFilter == 'searching' && item.state != QueueState.queued) {

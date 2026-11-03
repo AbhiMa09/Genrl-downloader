@@ -223,6 +223,19 @@ class QueueTable extends StatelessWidget {
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
+                                  if (item.error != null &&
+                                      item.error!.isNotEmpty) ...[
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      item.error!,
+                                      style: ObsidianTypography.monoCode(
+                                        color: ObsidianColors.error,
+                                        fontSize: 10,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
                                 ],
                               ),
                             ),
@@ -323,10 +336,12 @@ class QueueTable extends StatelessWidget {
                       Expanded(
                         flex: 2,
                         child: Text(
-                          item.eta,
+                          item.state == QueueState.failed ? 'Failed' : item.eta,
                           textAlign: TextAlign.right,
                           style: ObsidianTypography.monoMetric(
-                            color: item.state == QueueState.stalled
+                            color:
+                                (item.state == QueueState.stalled ||
+                                    item.state == QueueState.failed)
                                 ? ObsidianColors.error
                                 : ObsidianColors.primary,
                             fontSize: 11,
@@ -340,35 +355,45 @@ class QueueTable extends StatelessWidget {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            InkWell(
+                            _actionBtn(
+                              tooltip: item.state == QueueState.failed
+                                  ? 'Retry Job'
+                                  : 'Step Job',
+                              icon: item.state == QueueState.failed
+                                  ? Icons.refresh_rounded
+                                  : Icons.restart_alt_rounded,
+                              color: item.state == QueueState.failed
+                                  ? ObsidianColors.primary
+                                  : ObsidianColors.outline,
                               onTap: () async {
-                                final state = context.read<StateProvider>();
-                                final ok = await state.recheckJob(item.id);
+                                final p = context.read<StateProvider>();
+                                final isFailed =
+                                    item.state == QueueState.failed;
+                                final ok = isFailed
+                                    ? await p.retryJob(item.id)
+                                    : await p.recheckJob(item.id);
                                 if (context.mounted) {
+                                  final verb = isFailed ? 'Retried' : 'Stepped';
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text(
                                         ok
-                                            ? 'Stepped job #${item.id}'
-                                            : 'Failed to step job #${item.id}',
+                                            ? '$verb job #${item.id}'
+                                            : 'Failed to $verb job #${item.id}',
                                       ),
                                     ),
                                   );
                                 }
                               },
-                              child: const Padding(
-                                padding: EdgeInsets.all(4.0),
-                                child: Icon(
-                                  Icons.restart_alt_rounded,
-                                  size: 16,
-                                  color: ObsidianColors.outline,
-                                ),
-                              ),
                             ),
-                            InkWell(
+                            _actionBtn(
+                              tooltip: 'Cancel Job',
+                              icon: Icons.delete_outline_rounded,
+                              color: ObsidianColors.outline,
                               onTap: () async {
-                                final state = context.read<StateProvider>();
-                                final ok = await state.cancelJob(item.id);
+                                final ok = await context
+                                    .read<StateProvider>()
+                                    .cancelJob(item.id);
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
@@ -381,14 +406,6 @@ class QueueTable extends StatelessWidget {
                                   );
                                 }
                               },
-                              child: const Padding(
-                                padding: EdgeInsets.all(4.0),
-                                child: Icon(
-                                  Icons.delete_outline_rounded,
-                                  size: 16,
-                                  color: ObsidianColors.outline,
-                                ),
-                              ),
                             ),
                           ],
                         ),
@@ -444,6 +461,24 @@ class QueueTable extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _actionBtn({
+    required String tooltip,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(4.0),
+          child: Icon(icon, size: 16, color: color),
+        ),
       ),
     );
   }

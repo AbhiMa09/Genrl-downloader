@@ -71,6 +71,8 @@ List<QueueItem> parseQueueItems(List<dynamic> list) {
       st = QueueState.needsInput;
     } else if (stateStr == 'choose' || stateStr == 'search') {
       st = QueueState.searching;
+    } else if (stateStr == 'failed') {
+      st = QueueState.failed;
     } else {
       st = QueueState.queued;
     }
