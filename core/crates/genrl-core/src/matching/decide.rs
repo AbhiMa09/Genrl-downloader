@@ -101,6 +101,12 @@ pub fn decide_verdict(
 
             if let Some(picked) = preferred_pick {
                 best = picked;
+            } else if best.scored.signal >= settings.score_threshold
+                && runner_up.scored.signal >= settings.score_threshold
+            {
+                // When every tied option is a confident match (signal >= score_threshold),
+                // treat them as all the right show and auto-select the highest-ranked
+                // (top of `ranked`, already sorted by total score: seeders, quality, size).
             } else {
                 return Verdict::Ask {
                     reason: AskReason::TooClose {

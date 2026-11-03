@@ -1232,10 +1232,10 @@ async fn jikan_timeout_uses_authenticated_mal_partial_metadata_without_sqlite_to
     .unwrap();
     let settings = Settings {
         jikan_base_url: server.uri(),
+        mal_base_url: server.uri(),
+        mal_client_id: "fixture-client".into(),
         ..Default::default()
     };
-    settings.mal_base_url = server.uri();
-    settings.mal_client_id = "fixture-client".into();
     Mock::given(method("GET"))
         .and(path("/v4/anime/1/full"))
         .respond_with(ResponseTemplate::new(200).set_delay(std::time::Duration::from_millis(150)))

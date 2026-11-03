@@ -166,7 +166,7 @@ fn a_confident_match_proceeds_without_asking() {
 }
 
 #[test]
-fn two_good_candidates_ask_which_one() {
+fn two_confident_candidates_auto_selects_higher_ranked() {
     let db = Db::open_in_memory().unwrap();
     seed_show(
         &db,
@@ -192,11 +192,69 @@ fn two_good_candidates_ask_which_one() {
     assert_eq!(ranked.len(), 2);
     assert!((ranked[0].scored.signal - ranked[1].scored.signal).abs() < f64::EPSILON);
     match decide_verdict(ranked, rejected, &inputs, &rules(), &settings()) {
-        Verdict::Ask { reason, ranked } => {
-            assert!(matches!(reason, AskReason::TooClose { .. }), "{reason}");
-            assert_eq!(ranked.len(), 2, "the card shows both");
+        Verdict::Auto { chosen, .. } => {
+            assert_eq!(
+                chosen.candidate.release.group.as_deref(),
+                Some("SubsPlease")
+            );
         }
-        other => panic!("expected Ask, got {other:?}"),
+        other => panic!("expected Auto, got {other:?}"),
+    }
+}
+
+#[test]
+fn servant_x_service_confident_options_auto_selects_top_ranked_neohevc() {
+    let db = Db::open_in_memory().unwrap();
+    seed_show(
+        &db,
+        18119,
+        "Servant x Service",
+        "tv",
+        false,
+        &[("Servant x Service", NameSource::Mal, PRIORITY_MAIN)],
+    );
+    let inputs = TargetInputs::load(&db, 18119).unwrap();
+
+    let cand_neo = make_ranked_candidate(
+        "[neoHEVC] Servant x Service [BD 1080p x265 10bit AAC] (Batch)",
+        "neoHEVC",
+        100.0,
+        45.1,
+        32,
+    );
+    let cand_pizza = make_ranked_candidate(
+        "[Pizza] Servant x Service [BD 1080p AVC FLAC] (Batch)",
+        "Pizza",
+        100.0,
+        42.8,
+        14,
+    );
+    let cand_bbt = make_ranked_candidate(
+        "[BBT-RMX] Servant x Service (BD 1080p) [Batch]",
+        "BBT-RMX",
+        100.0,
+        40.2,
+        5,
+    );
+    let cand_horrible = make_ranked_candidate(
+        "[HorribleSubs] Servant x Service [720p] (Batch)",
+        "HorribleSubs",
+        100.0,
+        22.0,
+        1,
+    );
+
+    let ranked = vec![cand_neo, cand_pizza, cand_bbt, cand_horrible];
+    let verdict = decide_verdict(ranked, vec![], &inputs, &rules(), &settings());
+    match verdict {
+        Verdict::Auto { chosen, .. } => {
+            assert_eq!(
+                chosen.candidate.release.group.as_deref(),
+                Some("neoHEVC"),
+                "Should auto-select highest-ranked neoHEVC instead of asking when all tied are confident"
+            );
+        }
+        other => panic!("expected Auto(neoHEVC), got {other:?}"),
     }
 }
 

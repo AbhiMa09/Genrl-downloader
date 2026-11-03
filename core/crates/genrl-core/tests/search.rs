@@ -469,8 +469,9 @@ fn test_oni_no_hanayome_batch_only_candidate_offered() {
     match verdict {
         genrl_core::matching::Verdict::Auto { chosen, .. } => {
             assert!(
-                chosen.candidate.release.raw.contains("Judas"),
-                "Judas batch chosen"
+                chosen.candidate.release.raw.contains("SubsPlease")
+                    || chosen.candidate.release.raw.contains("Judas"),
+                "Confident batch candidate chosen"
             );
         }
         genrl_core::matching::Verdict::Ask { ranked, .. } => {
@@ -922,15 +923,25 @@ fn test_oni_no_hanayome_ties_auto_pick_by_preferred_group_order() {
         other => panic!("Expected Auto pick for SubsPlease, got {other:?}"),
     }
 
-    // 3. With empty rules.groups: returns Verdict::Ask
+    // 3. With empty rules.groups: auto-selects top of ranked (SubsPlease)
     let mut rules_empty = genrl_core::rules::Rules::default();
     rules_empty.groups = vec![];
     let (ranked3, rej3) =
         genrl_core::matching::rank(candidates, &inputs, Some(1.0), &rules_empty, &settings, now);
     let verdict3 =
         genrl_core::matching::decide_verdict(ranked3, rej3, &inputs, &rules_empty, &settings);
-    assert!(matches!(
-        verdict3,
-        genrl_core::matching::Verdict::Ask { .. }
-    ));
+    match verdict3 {
+        genrl_core::matching::Verdict::Auto { chosen, .. } => {
+            assert!(chosen
+                .candidate
+                .release
+                .group
+                .as_deref()
+                .unwrap()
+                .eq_ignore_ascii_case("SubsPlease"));
+        }
+        other => {
+            panic!("Expected Auto pick for SubsPlease when no preferred group set, got {other:?}")
+        }
+    }
 }
