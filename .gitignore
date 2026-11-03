@@ -14,7 +14,6 @@ app/pubspec.lock.bak
 **/*.gr.dart'
 app/android/
 app/ios/
-app/linux/
 app/macos/
 app/web/
 
