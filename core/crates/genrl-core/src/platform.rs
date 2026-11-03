@@ -309,17 +309,19 @@ pub fn transfer_file_with_fallback(
 
     match mode {
         crate::settings::MoveMode::Hardlink => {
-            // Check same volume first if known
-            let can_hardlink = are_on_same_volume(source, target);
-            if can_hardlink {
-                if fs::hard_link(source, target).is_err() {
-                    fs::copy(source, target)?;
-                }
-            } else {
-                // Different volume or unknown: try hard_link, fall back to copy
-                if fs::hard_link(source, target).is_err() {
-                    fs::copy(source, target)?;
-                }
+            if let Err(err) = fs::hard_link(source, target) {
+                tracing::warn!(
+                    "hardlink failed from '{}' to '{}' ({err}); falling back to copy",
+                    source.display(),
+                    target.display()
+                );
+                tracing::warn!(
+                    target: "genrl_activity",
+                    "hardlink failed from '{}' to '{}', fell back to copy: {err}",
+                    source.display(),
+                    target.display()
+                );
+                fs::copy(source, target)?;
             }
         }
         crate::settings::MoveMode::Move => {

@@ -240,3 +240,56 @@ fn test_are_same_file_detection() {
         "independent files must not be detected as same file"
     );
 }
+
+use std::sync::{Arc, Mutex};
+use tracing_subscriber::layer::SubscriberExt;
+
+struct LogCapture(Arc<Mutex<Vec<String>>>);
+impl<S: tracing::Subscriber> tracing_subscriber::Layer<S> for LogCapture {
+    fn on_event(
+        &self,
+        event: &tracing::Event<'_>,
+        _ctx: tracing_subscriber::layer::Context<'_, S>,
+    ) {
+        let mut visitor = LogVisitor(String::new());
+        event.record(&mut visitor);
+        self.0.lock().unwrap().push(visitor.0);
+    }
+}
+
+struct LogVisitor(String);
+impl tracing::field::Visit for LogVisitor {
+    fn record_debug(&mut self, _field: &tracing::field::Field, value: &dyn std::fmt::Debug) {
+        self.0.push_str(&format!("{value:?} "));
+    }
+    fn record_str(&mut self, _field: &tracing::field::Field, value: &str) {
+        self.0.push_str(value);
+    }
+}
+
+#[test]
+fn test_hardlink_fallback_records_warning() {
+    let dir = tempdir().unwrap();
+    let src = dir.path().join("source.mkv");
+    let target = dir.path().join("target.mkv");
+
+    fs::write(&src, b"new content").expect("write source");
+    // Create target so hard_link fails with AlreadyExists
+    fs::write(&target, b"old content").expect("write target");
+
+    let logs = Arc::new(Mutex::new(Vec::new()));
+    let subscriber = tracing_subscriber::registry().with(LogCapture(Arc::clone(&logs)));
+
+    tracing::subscriber::with_default(subscriber, || {
+        transfer_file_with_fallback(&src, &target, MoveMode::Hardlink).expect("transfer");
+    });
+
+    let recorded = logs.lock().unwrap().clone();
+    assert_eq!(fs::read(&target).unwrap(), b"new content");
+    assert!(
+        recorded
+            .iter()
+            .any(|msg| msg.contains("hardlink failed") && msg.contains("falling back to copy")),
+        "fallback must record a warning naming hardlink failure: {recorded:?}"
+    );
+}
