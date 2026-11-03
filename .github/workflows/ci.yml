@@ -128,6 +128,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: x86_64-pc-windows-msvc
+          components: clippy
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -152,6 +153,9 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-
+
+      - name: Run Windows Clippy
+        run: cargo clippy --manifest-path core/Cargo.toml --workspace -- -D warnings
 
       - name: Run Windows Cargo Tests
         run: cargo test --manifest-path core/Cargo.toml --workspace
