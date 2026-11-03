@@ -1672,3 +1672,60 @@ async fn finalize_step_resolves_batch_directory_when_qbit_forgets_torrent() {
 
     assert_eq!(outcome.to, JobState::Done);
 }
+
+#[tokio::test]
+async fn vanished_file_sends_job_back_to_search_with_torrent_cleared() {
+    let world = World::new().await;
+    let job_id = plan_one(&world);
+    let engine = world.engine();
+
+    drive_until(&engine, job_id, JobState::Finalize).await;
+
+    // Verify torrent_id is currently Some before stepping
+    let initial_torrent_id: Option<i64> = world
+        .db
+        .with(|c| {
+            Ok(
+                c.query_row("SELECT torrent_id FROM jobs WHERE id = ?1", [job_id], |r| {
+                    r.get(0)
+                })
+                .unwrap(),
+            )
+        })
+        .unwrap();
+    assert!(
+        initial_torrent_id.is_some(),
+        "job in Finalize must have a chosen torrent"
+    );
+
+    // qBittorrent has forgotten the torrent AND the file has vanished from disk
+    world.qbit().present.clear();
+
+    let dl_temp = tempfile::tempdir().unwrap();
+    let mut settings = Settings::load(&world.db).unwrap();
+    settings.download_folder = dl_temp.path().display().to_string();
+    settings.save(&world.db).unwrap();
+
+    // Do NOT create the file in dl_temp — it has vanished!
+    let outcome = engine.step(job_id).await.unwrap();
+
+    // The job must transition back to Search
+    assert_eq!(outcome.to, JobState::Search);
+
+    // The chosen torrent must be cleared from the job
+    let final_torrent_id: Option<i64> = world
+        .db
+        .with(|c| {
+            Ok(
+                c.query_row("SELECT torrent_id FROM jobs WHERE id = ?1", [job_id], |r| {
+                    r.get(0)
+                })
+                .unwrap(),
+            )
+        })
+        .unwrap();
+    assert_eq!(
+        final_torrent_id, None,
+        "torrent_id must be cleared when searching again"
+    );
+}

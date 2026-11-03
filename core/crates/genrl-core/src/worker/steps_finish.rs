@@ -150,14 +150,11 @@ impl Engine {
                         (path.display().to_string(), size)
                     }
                     _ => {
-                        return jobs::transition(
-                            &self.db,
-                            self.clock.as_ref(),
-                            job.id,
-                            JobState::Search,
+                        return self.next_candidate(
+                            job,
+                            context.mal_id,
                             "the finished file is gone; searching again",
-                            &MoveOptions::default(),
-                        )
+                        );
                     }
                 }
             }

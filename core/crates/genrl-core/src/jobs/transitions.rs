@@ -34,6 +34,7 @@ pub const TRANSITIONS: &[(JobState, JobState)] = &[
     (JobState::Monitor, JobState::NeedsInput),
     (JobState::Monitor, JobState::Blocked),
     (JobState::Monitor, JobState::Failed),
+    (JobState::Finalize, JobState::Search),
     (JobState::Finalize, JobState::NeedsInput),
     (JobState::Finalize, JobState::Blocked),
     (JobState::Finalize, JobState::Failed),
