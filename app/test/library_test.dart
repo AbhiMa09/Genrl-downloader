@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
+import 'package:genrl_downloader/models/library_item.dart';
+import 'package:genrl_downloader/models/system_status.dart';
 import 'package:genrl_downloader/pages/library_page.dart';
 import 'package:genrl_downloader/services/state_provider.dart';
 import 'package:genrl_downloader/theme/theme.dart';
@@ -93,4 +95,99 @@ void main() {
       expect(find.text('Sousou no Frieren'), findsOneWidget);
     },
   );
+
+  test('StateProvider reloads shows when shows_changed_at advances in telemetry', () async {
+    final fakeBridge = ShowsReloadingCoreBridge();
+    fakeBridge.currentShowsChangedAt = 1000;
+    fakeBridge.returnedShows = const [
+      LibraryShow(
+        malId: 52991,
+        title: 'Sousou no Frieren',
+        startYear: 2023,
+        totalEpisodes: 28,
+        downloadedEpisodes: 28,
+        watchedEpisodes: 28,
+        score: 9.38,
+        status: 'Watching',
+        airingStatus: 'Finished',
+        genres: ['Adventure'],
+        synopsis: 'Frieren...',
+        auto: true,
+      ),
+    ];
+
+    final state = StateProvider(bridge: fakeBridge, startPolling: false);
+    await state.refreshAll();
+    await state.refreshLiveTelemetry();
+    final initialCalls = fakeBridge.getShowsCallCount;
+    expect(state.shows.length, 1);
+    expect(state.shows.first.title, 'Sousou no Frieren');
+
+    // Simulate MAL sync saving "Servant x Service" and advancing showsChangedAt
+    fakeBridge.currentShowsChangedAt = 1005;
+    fakeBridge.returnedShows = const [
+      LibraryShow(
+        malId: 52991,
+        title: 'Sousou no Frieren',
+        startYear: 2023,
+        totalEpisodes: 28,
+        downloadedEpisodes: 28,
+        watchedEpisodes: 28,
+        score: 9.38,
+        status: 'Watching',
+        airingStatus: 'Finished',
+        genres: ['Adventure'],
+        synopsis: 'Frieren...',
+        auto: true,
+      ),
+      LibraryShow(
+        malId: 18119,
+        title: 'Servant x Service',
+        startYear: 2013,
+        totalEpisodes: 13,
+        downloadedEpisodes: 0,
+        watchedEpisodes: 1,
+        score: 7.5,
+        status: 'Watching',
+        airingStatus: 'Finished',
+        genres: ['Comedy', 'Slice of Life'],
+        synopsis: 'Workplace comedy...',
+        auto: true,
+      ),
+    ];
+
+    // Background telemetry poll runs
+    await state.refreshLiveTelemetry();
+    expect(fakeBridge.getShowsCallCount, initialCalls + 1);
+    expect(state.shows.length, 2);
+    expect(state.shows.any((s) => s.malId == 18119), isTrue);
+
+    // Another telemetry poll with unchanged timestamp does not re-fetch shows
+    await state.refreshLiveTelemetry();
+    expect(fakeBridge.getShowsCallCount, initialCalls + 1);
+
+    state.dispose();
+  });
+}
+
+class ShowsReloadingCoreBridge extends FakeCoreBridge {
+  int getShowsCallCount = 0;
+  int? currentShowsChangedAt;
+  List<LibraryShow> returnedShows = [];
+
+  ShowsReloadingCoreBridge() : super(mode: FakeMode.data);
+
+  @override
+  Future<SystemStatus?> getSystemStatus() async {
+    return SystemStatus(
+      daemonConnected: true,
+      showsChangedAt: currentShowsChangedAt,
+    );
+  }
+
+  @override
+  Future<List<LibraryShow>> getShows({String? status}) async {
+    getShowsCallCount++;
+    return returnedShows;
+  }
 }

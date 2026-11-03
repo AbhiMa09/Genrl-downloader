@@ -161,6 +161,7 @@ pub(crate) async fn apply_jikan_metadata(
 
     // Rewrite synopsis.txt and movie.nfo/tvshow.nfo across all existing folders of this show
     let _ = crate::library::rewrite_show_folder_metadata(db, mal_id);
+    let _ = crate::settings::write_state_now(db, "shows_changed_at");
 
     let _ = log.info(
         None,
@@ -289,6 +290,7 @@ pub(crate) async fn apply_mal_metadata(
 
     // Rewrite synopsis.txt and movie.nfo/tvshow.nfo across all existing folders of this show
     let _ = crate::library::rewrite_show_folder_metadata(db, mal_id);
+    let _ = crate::settings::write_state_now(db, "shows_changed_at");
 
     let _ = log.info(
         None,

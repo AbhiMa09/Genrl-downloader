@@ -50,6 +50,7 @@ SystemStatus parseSystemStatus(Map<String, dynamic> data) {
     freeDiskSpaceGb: (data['free_disk_space_gb'] as num?)?.toInt() ?? 0,
     totalDiskSpaceGb: (data['total_disk_space_gb'] as num?)?.toInt() ?? 0,
     lastMalSync: lastSync,
+    showsChangedAt: (data['shows_changed_at'] as num?)?.toInt(),
   );
 }
 

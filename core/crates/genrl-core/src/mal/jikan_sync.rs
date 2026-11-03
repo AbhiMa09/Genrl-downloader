@@ -199,6 +199,9 @@ pub async fn sync_jikan(
     }
 
     settings::write_state(db, SYNC_STATE_KEY, &now.to_string())?;
+    if report.added > 0 || report.updated > 0 || report.removed > 0 {
+        crate::settings::write_state_now(db, "shows_changed_at")?;
+    }
     report.entries = entries.into_iter().map(|m| m.entry).collect();
     let _ = log.info(
         None,

@@ -104,6 +104,9 @@ async fn sync_inner(client: &MalClient<'_>) -> Result<SyncReport> {
             fresh.insert(m.mal_id());
         }
     }
+    if !fresh.is_empty() {
+        crate::settings::write_state_now(&db, "shows_changed_at")?;
+    }
 
     let relations_failed = client.chain_entries(&mut listed).await?;
     let fetched = super::models::FetchedList {
@@ -208,6 +211,9 @@ async fn sync_inner(client: &MalClient<'_>) -> Result<SyncReport> {
     }
 
     settings::write_state(&db, SYNC_STATE_KEY, &now.to_string())?;
+    if report.added > 0 || report.updated > 0 || report.removed > 0 {
+        crate::settings::write_state_now(&db, "shows_changed_at")?;
+    }
     report.entries = fetched.entries.into_iter().map(|m| m.entry).collect();
     let _ = log.info(
         None,

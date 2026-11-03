@@ -65,6 +65,7 @@ pub async fn status_cmd(data_dir: &Path, json: bool) -> Result<()> {
 
     // Last sync
     let last_sync_time = settings::read_state_time(&db, "last_mal_sync_at")?;
+    let shows_changed_at = settings::read_state_time(&db, "shows_changed_at")?;
 
     let report = serde_json::json!({
         "daemon_connected": true,
@@ -81,6 +82,7 @@ pub async fn status_cmd(data_dir: &Path, json: bool) -> Result<()> {
         "free_disk_space_gb": free_disk_space_gb,
         "total_disk_space_gb": free_disk_space_gb + 100, // Approximate available
         "last_mal_sync": last_sync_time,
+        "shows_changed_at": shows_changed_at,
     });
 
     if json {

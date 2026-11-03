@@ -253,6 +253,12 @@ async fn metadata_429_placeholder_and_retry_fills_it() {
     assert_eq!(final_status, "ready");
     assert_eq!(final_retry, 0);
     assert!(final_err.is_none());
+    assert!(
+        genrl_core::settings::read_state_time(&db, "shows_changed_at")
+            .unwrap()
+            .is_some(),
+        "shows_changed_at must be recorded on Jikan metadata update"
+    );
 
     // Verify synopsis.txt is cleanly replaced with real synopsis
     let syn_txt_after = std::fs::read_to_string(show_folder.join("synopsis.txt")).unwrap();
@@ -1282,6 +1288,12 @@ async fn jikan_timeout_uses_authenticated_mal_partial_metadata_without_sqlite_to
         })
         .unwrap();
     assert_eq!(row, ("partial".into(), 12, 2024));
+    assert!(
+        genrl_core::settings::read_state_time(&db, "shows_changed_at")
+            .unwrap()
+            .is_some(),
+        "shows_changed_at must be recorded on MAL partial metadata update"
+    );
     let tokens: i64 = db
         .with(|c| {
             Ok(c.query_row(

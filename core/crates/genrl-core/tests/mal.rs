@@ -1029,3 +1029,51 @@ async fn token_failures_never_echo_response_secrets() {
         assert!(!error.contains("FIXTURE_SECRET_MARKER"));
     }
 }
+
+#[tokio::test]
+async fn sync_stores_shows_and_updates_shows_changed_at() {
+    let server = MockServer::start().await;
+
+    Mock::given(method("POST"))
+        .and(path("/oauth2/token"))
+        .respond_with(token_response("at"))
+        .mount(&server)
+        .await;
+
+    Mock::given(method("GET"))
+        .and(path("/users/@me/animelist"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(list_page(
+            &[list_entry(18119, "Servant x Service", "watching", 1, 13)],
+            false,
+        )))
+        .mount(&server)
+        .await;
+
+    mock_relations_for(&server, 18119, &[]).await;
+
+    let db = db();
+    let gate = Gate::with_policies(
+        db.clone(),
+        &[(genrl_core::http::Service::Mal, fast_mal_policy())],
+    )
+    .unwrap();
+    let store = MemoryStore::with("rt");
+    let clock = clock();
+    let settings = settings_for(&server);
+
+    assert_eq!(
+        genrl_core::settings::read_state_time(&db, "shows_changed_at").unwrap(),
+        None,
+        "shows_changed_at starts unset"
+    );
+
+    let client = MalClient::new(&gate, settings, &store, &clock);
+    let report = mal::sync(&client).await.unwrap();
+    assert_eq!(report.added, 1);
+
+    let changed_at = genrl_core::settings::read_state_time(&db, "shows_changed_at").unwrap();
+    assert!(
+        changed_at.is_some(),
+        "shows_changed_at must be recorded when sync stores shows"
+    );
+}

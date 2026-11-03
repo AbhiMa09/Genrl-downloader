@@ -53,6 +53,7 @@ class StateProvider extends StateContext
   // Background timer for live refresh & event stream simulation
   Timer? _pollingTimer;
   String? _queueFingerprint;
+  int? _lastShowsChangedAt;
   StreamSubscription<bool>? _workerStatusSub;
 
   StateProvider({CoreBridge? bridge, bool startPolling = true})
@@ -172,6 +173,11 @@ class StateProvider extends StateContext
         _status = statusRes;
         _isCoreConnected = true;
         _coreError = null;
+        if (statusRes.showsChangedAt != null &&
+            statusRes.showsChangedAt != _lastShowsChangedAt) {
+          _lastShowsChangedAt = statusRes.showsChangedAt;
+          unawaited(refreshShows());
+        }
       } else {
         _isCoreConnected = false;
         _coreError = 'Core daemon unreachable (Process exit non-zero or genrl not found)';
@@ -209,6 +215,7 @@ class StateProvider extends StateContext
       final res = await bridge.getSystemStatus();
       if (res != null) {
         _status = res;
+        _lastShowsChangedAt = res.showsChangedAt;
         _isCoreConnected = true;
         _coreError = null;
       } else {

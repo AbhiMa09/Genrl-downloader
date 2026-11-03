@@ -13,6 +13,7 @@ class SystemStatus {
   final int freeDiskSpaceGb;
   final int totalDiskSpaceGb;
   final DateTime? lastMalSync;
+  final int? showsChangedAt;
   final String? activeError;
 
   const SystemStatus({
@@ -30,6 +31,7 @@ class SystemStatus {
     this.freeDiskSpaceGb = 0,
     this.totalDiskSpaceGb = 0,
     this.lastMalSync,
+    this.showsChangedAt,
     this.activeError,
   });
 
