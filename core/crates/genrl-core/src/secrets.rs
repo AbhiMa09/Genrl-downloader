@@ -62,6 +62,9 @@ pub fn get(secret: Secret) -> Result<Option<String>> {
             return Ok(Some(value));
         }
     }
+    if std::env::var("GENRL_FORCE_NO_KEYRING").as_deref() == Ok("1") {
+        return Err(keyring_error(secret, keyring::Error::NoDefaultStore));
+    }
     let entry =
         keyring::Entry::new(SERVICE, secret.key()).map_err(|err| keyring_error(secret, err))?;
     match entry.get_password() {

@@ -52,6 +52,11 @@ impl Qbit {
         &self.base
     }
 
+    /// Whether a password was configured or found in the keyring.
+    pub fn has_password(&self) -> bool {
+        self.password.is_some()
+    }
+
     fn url(&self, path: &str) -> String {
         format!("{}{}", self.base, path)
     }

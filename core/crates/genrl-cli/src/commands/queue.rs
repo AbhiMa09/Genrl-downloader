@@ -425,3 +425,42 @@ pub async fn step_cmd(data_dir: &Path, job_id: i64) -> Result<()> {
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn reconcile_error_does_not_end_run_cmd() {
+        let temp = tempfile::tempdir().unwrap();
+        let db = open_db(temp.path()).unwrap();
+        let mut settings = Settings::load(&db).unwrap();
+        // Point qBittorrent to a closed local port so reconcile fails immediately.
+        settings.qbit_url = "http://127.0.0.1:1".to_string();
+        settings.save(&db).unwrap();
+
+        // Run with exit_with_parent = false so it doesn't read stdin.
+        // If reconcile failure caused run_cmd to exit (the bug), this future would
+        // resolve to Err(...) immediately. With the fix, run_cmd logs a warning and
+        // keeps running, so the short timeout elapses.
+        let result = tokio::time::timeout(
+            std::time::Duration::from_secs(3),
+            run_cmd(temp.path(), false),
+        )
+        .await;
+
+        assert!(
+            result.is_err(),
+            "run_cmd must keep running despite reconcile failure"
+        );
+
+        // Verify the warning was logged to EventLog
+        let events = EventLog::new(db).recent(10).unwrap();
+        assert!(
+            events
+                .iter()
+                .any(|e| e.message.contains("startup recovery skipped")),
+            "warning should be recorded in event log"
+        );
+    }
+}

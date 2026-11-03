@@ -364,3 +364,23 @@ fn magnets_are_the_only_link_that_yields_a_hash_here() {
     );
     assert_eq!(magnet_info_hash("https://nyaa.si/download/1.torrent"), None);
 }
+
+#[test]
+fn from_settings_succeeds_when_keyring_unavailable() {
+    std::env::set_var("GENRL_FORCE_NO_KEYRING", "1");
+    std::env::remove_var("GENRL_QBIT_PASSWORD");
+    let settings = genrl_core::Settings::default();
+    let client = Qbit::from_settings(&settings);
+    std::env::remove_var("GENRL_FORCE_NO_KEYRING");
+
+    assert!(
+        client.is_ok(),
+        "from_settings must succeed with Ok when keyring is unavailable"
+    );
+    let client = client.unwrap();
+    assert_eq!(client.base(), settings.qbit_url.trim_end_matches('/'));
+    assert!(
+        !client.has_password(),
+        "password must be None when keyring is unavailable"
+    );
+}
