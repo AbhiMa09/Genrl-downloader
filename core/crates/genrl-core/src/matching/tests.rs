@@ -5,7 +5,7 @@ use crate::models::NameSource;
 use crate::names::{self, PRIORITY_MAIN, PRIORITY_USER};
 use crate::nyaa::FeedItem;
 use crate::rules::Rules;
-use crate::score::{Candidate, Rejection};
+use crate::score::{Candidate, Rejection, Scored};
 use crate::settings::Settings;
 
 fn now() -> i64 {
@@ -327,7 +327,7 @@ fn thin_seeds_ask_unless_the_show_is_on_the_auto_list() {
     );
     match decide_verdict(ranked, rejected, &manual, &rules(), &settings()) {
         Verdict::Ask { reason, .. } => {
-            assert!(matches!(reason, AskReason::ThinSeeds { seeders: 4 }))
+            assert!(matches!(reason, AskReason::ThinSeeds { seeders: 4, .. }))
         }
         other => panic!("expected Ask, got {other:?}"),
     }
@@ -470,4 +470,123 @@ fn a_show_without_names_cannot_be_matched() {
     .unwrap();
     assert!(TargetInputs::load(&db, 1).is_err());
     assert!(TargetInputs::load(&db, 999).is_err());
+}
+
+fn make_ranked_candidate(
+    raw: &str,
+    group: &str,
+    signal: f64,
+    ranking: f64,
+    seeders: u32,
+) -> Ranked {
+    let mut candidate = candidate_from(&filename::parse_release(raw), &item(raw, seeders));
+    candidate.release.group = Some(group.to_string());
+    Ranked {
+        candidate,
+        scored: Scored {
+            signal,
+            ranking,
+            title_ratio: 1.0,
+            matched_name: Some("test".into()),
+            notes: vec![],
+        },
+    }
+}
+
+#[test]
+fn preferred_group_pick_must_not_be_below_score_threshold() {
+    let db = Db::open_in_memory().unwrap();
+    seed_show(
+        &db,
+        1,
+        "Test Show",
+        "tv",
+        false,
+        &[("Test Show", NameSource::Mal, PRIORITY_MAIN)],
+    );
+    let inputs = TargetInputs::load(&db, 1).unwrap();
+    let mut r = rules();
+    r.groups = vec!["SubsPlease".into()];
+    let s = settings();
+
+    let cand_erai = make_ranked_candidate(
+        "[Erai-raws] Test Show - 01 [1080p].mkv",
+        "Erai-raws",
+        85.0,
+        10.0,
+        20,
+    );
+    let cand_subs = make_ranked_candidate(
+        "[SubsPlease] Test Show - 01 [1080p].mkv",
+        "SubsPlease",
+        75.0,
+        10.0,
+        20,
+    );
+
+    let ranked = vec![cand_erai, cand_subs];
+    let verdict = decide_verdict(ranked, vec![], &inputs, &r, &s);
+    match verdict {
+        Verdict::Ask { reason, .. } => {
+            assert!(
+                matches!(reason, AskReason::TooClose { .. }),
+                "must ask TooClose instead of auto-picking candidate below threshold"
+            );
+        }
+        other => panic!("expected Ask(TooClose), got {other:?}"),
+    }
+}
+
+#[test]
+fn thin_seeds_asks_about_judged_preferred_release_not_first_ranked() {
+    let db = Db::open_in_memory().unwrap();
+    seed_show(
+        &db,
+        1,
+        "Test Show",
+        "tv",
+        false,
+        &[("Test Show", NameSource::Mal, PRIORITY_MAIN)],
+    );
+    let inputs = TargetInputs::load(&db, 1).unwrap();
+    let mut r = rules();
+    r.groups = vec!["SubsPlease".into()];
+    let s = settings();
+
+    let cand_erai = make_ranked_candidate(
+        "[Erai-raws] Test Show - 01 [1080p].mkv",
+        "Erai-raws",
+        90.0,
+        10.0,
+        20,
+    );
+    let cand_subs = make_ranked_candidate(
+        "[SubsPlease] Test Show - 01 [1080p].mkv",
+        "SubsPlease",
+        85.0,
+        10.0,
+        3,
+    );
+
+    let ranked = vec![cand_erai, cand_subs];
+    let verdict = decide_verdict(ranked, vec![], &inputs, &r, &s);
+    match verdict {
+        Verdict::Ask {
+            reason: AskReason::ThinSeeds { seeders, chosen },
+            ranked,
+        } => {
+            assert_eq!(seeders, 3);
+            assert_eq!(
+                chosen.candidate.release.group.as_deref(),
+                Some("SubsPlease"),
+                "chosen release must be the judged preferred candidate"
+            );
+            assert_eq!(
+                ranked[0].candidate.release.group.as_deref(),
+                Some("SubsPlease"),
+                "ranked[0] must be reordered to match the chosen candidate"
+            );
+        }
+        other => panic!("expected Ask(ThinSeeds), got {other:?}"),
+    }
 }

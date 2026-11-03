@@ -86,12 +86,13 @@ pub fn decide_verdict(
                     continue;
                 }
                 if let Some(cand) = tied.iter().find(|r| {
-                    r.candidate
-                        .release
-                        .group
-                        .as_deref()
-                        .map(|g| g.trim().to_ascii_lowercase() == pref_norm)
-                        .unwrap_or(false)
+                    r.scored.signal >= settings.score_threshold
+                        && r.candidate
+                            .release
+                            .group
+                            .as_deref()
+                            .map(|g| g.trim().to_ascii_lowercase() == pref_norm)
+                            .unwrap_or(false)
                 }) {
                     preferred_pick = Some((*cand).clone());
                     break;
@@ -110,6 +111,17 @@ pub fn decide_verdict(
                     ranked,
                 };
             }
+        }
+    }
+
+    let mut ranked = ranked;
+    if let Some(pos) = ranked
+        .iter()
+        .position(|r| r.candidate.info_hash == best.candidate.info_hash)
+    {
+        if pos != 0 {
+            let item = ranked.remove(pos);
+            ranked.insert(0, item);
         }
     }
 
@@ -132,6 +144,7 @@ pub fn decide_verdict(
         SeedHealth::Thin if !inputs.auto => Verdict::Ask {
             reason: AskReason::ThinSeeds {
                 seeders: best.candidate.seeders,
+                chosen: Box::new(best.clone()),
             },
             ranked,
         },

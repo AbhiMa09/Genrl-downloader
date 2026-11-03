@@ -202,15 +202,14 @@ impl Engine {
                 )
             }
             matching::Verdict::Ask {
-                reason: matching::AskReason::ThinSeeds { seeders },
-                ranked,
+                reason: matching::AskReason::ThinSeeds { seeders, chosen },
+                ..
             } => {
-                let best = &ranked[0];
-                self.set_chosen(job.id, &best.candidate.info_hash)?;
+                self.set_chosen(job.id, &chosen.candidate.info_hash)?;
                 let payload = Payload::LowSeeds {
                     seeders,
-                    release: best.candidate.release.raw.clone(),
-                    magnet: best.candidate.magnet.clone(),
+                    release: chosen.candidate.release.raw.clone(),
+                    magnet: chosen.candidate.magnet.clone(),
                     auto_list: inputs.auto,
                 };
                 self.ask(

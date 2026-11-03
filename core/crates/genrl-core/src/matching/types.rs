@@ -127,7 +127,7 @@ pub enum AskReason {
         margin: f64,
     },
     /// The winner is thin, and this show is not on the auto list.
-    ThinSeeds { seeders: u32 },
+    ThinSeeds { seeders: u32, chosen: Box<Ranked> },
     /// Release or batch size exceeds confirmation threshold.
     SizeReview { reason: String },
 }
@@ -143,7 +143,7 @@ impl std::fmt::Display for AskReason {
                 f,
                 "runner-up scored {runner_up:.0} against the best {best:.0}, closer than the {margin:.0} margin"
             ),
-            AskReason::ThinSeeds { seeders } => {
+            AskReason::ThinSeeds { seeders, .. } => {
                 write!(f, "only {seeders} seeders, which is below your auto-download line")
             }
             AskReason::SizeReview { reason } => write!(f, "{reason}"),
