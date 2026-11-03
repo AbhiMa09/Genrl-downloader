@@ -16,7 +16,7 @@ use genrl_core::events::EventLog;
 use genrl_core::library::resolve_show_folder;
 use genrl_core::locations::{
     are_on_same_filesystem, check_directory, default_download_dir, default_library_dir,
-    effective_download_dir, get_locations, get_show_folder, move_existing_library,
+    effective_download_dir, expand_home, get_locations, get_show_folder, move_existing_library,
     resolve_home_dir, set_location, validate_path_safety,
 };
 use genrl_core::settings::Settings;
@@ -272,65 +272,83 @@ fn test_effective_download_dir_does_not_create_outside_tempdir() {
     settings.download_folder = custom_dl.display().to_string();
     assert_eq!(effective_download_dir(&settings), custom_dl);
 
-    // 3. Tilde path resolution (pure resolution, no filesystem modification)
+    // 3. Tilde path resolution delegates to resolve_home_dir without touching filesystem
     settings.download_folder = "~/test_dl".to_string();
-    let expected = dirs::home_dir()
-        .map(|h| h.join("test_dl"))
-        .unwrap_or_else(|| PathBuf::from("~/test_dl"));
-    assert_eq!(effective_download_dir(&settings), expected);
+    assert_eq!(
+        effective_download_dir(&settings),
+        resolve_home_dir(&settings.download_folder)
+    );
 
     #[cfg(windows)]
     {
         settings.download_folder = r"~\test_dl".to_string();
-        assert_eq!(effective_download_dir(&settings), expected);
+        assert_eq!(
+            effective_download_dir(&settings),
+            resolve_home_dir(&settings.download_folder)
+        );
     }
 }
 
 #[test]
-fn test_resolve_home_dir_falls_back_to_dirs_when_home_is_unset() {
-    let original_home = std::env::var_os("HOME");
-    std::env::remove_var("HOME");
+fn test_expand_home_with_explicit_values() {
+    let mock_home = Path::new("/mock/user/home");
 
-    struct Restore(Option<std::ffi::OsString>);
-    impl Drop for Restore {
-        fn drop(&mut self) {
-            if let Some(ref val) = self.0 {
-                std::env::set_var("HOME", val);
-            }
-        }
-    }
-    let _guard = Restore(original_home);
+    // 1. "~" expands to home
+    assert_eq!(
+        expand_home("~", Some(mock_home)),
+        PathBuf::from("/mock/user/home")
+    );
+    assert_eq!(
+        expand_home("  ~  ", Some(mock_home)),
+        PathBuf::from("/mock/user/home")
+    );
+    assert_eq!(
+        expand_home("~/", Some(mock_home)),
+        PathBuf::from("/mock/user/home")
+    );
 
-    if let Some(home) = dirs::home_dir() {
-        assert_eq!(resolve_home_dir("~"), home);
-        assert_eq!(resolve_home_dir("~/test_dl"), home.join("test_dl"));
-        #[cfg(windows)]
-        assert_eq!(resolve_home_dir(r"~\test_dl"), home.join("test_dl"));
-    } else {
-        assert_eq!(resolve_home_dir("~/test_dl"), PathBuf::from("~/test_dl"));
-    }
-}
+    // 2. "~/x" expands to home/x
+    assert_eq!(
+        expand_home("~/x", Some(mock_home)),
+        PathBuf::from("/mock/user/home/x")
+    );
+    assert_eq!(
+        expand_home("  ~/my_downloads  ", Some(mock_home)),
+        PathBuf::from("/mock/user/home/my_downloads")
+    );
 
-#[test]
-fn test_resolve_home_dir_uses_home_when_set() {
-    let original_home = std::env::var_os("HOME");
-    let temp = tempfile::tempdir().unwrap();
-    std::env::set_var("HOME", temp.path());
-
-    struct Restore(Option<std::ffi::OsString>);
-    impl Drop for Restore {
-        fn drop(&mut self) {
-            if let Some(ref val) = self.0 {
-                std::env::set_var("HOME", val);
-            } else {
-                std::env::remove_var("HOME");
-            }
-        }
-    }
-    let _guard = Restore(original_home);
-
-    assert_eq!(resolve_home_dir("~"), temp.path());
-    assert_eq!(resolve_home_dir("~/test_dl"), temp.path().join("test_dl"));
+    // 3. "~\x" on Windows expands to home/x
     #[cfg(windows)]
-    assert_eq!(resolve_home_dir(r"~\test_dl"), temp.path().join("test_dl"));
+    {
+        let win_home = Path::new(r"C:\Users\testuser");
+        assert_eq!(
+            expand_home(r"~\x", Some(win_home)),
+            PathBuf::from(r"C:\Users\testuser\x")
+        );
+        assert_eq!(
+            expand_home(r"~\", Some(win_home)),
+            PathBuf::from(r"C:\Users\testuser")
+        );
+    }
+
+    // 4. no home (None) leaves tilde paths untouched
+    assert_eq!(expand_home("~", None), PathBuf::from("~"));
+    assert_eq!(expand_home("~/x", None), PathBuf::from("~/x"));
+    #[cfg(windows)]
+    assert_eq!(expand_home(r"~\x", None), PathBuf::from(r"~\x"));
+
+    // 5. plain path without tilde is left untouched regardless of home
+    assert_eq!(
+        expand_home("/var/data", Some(mock_home)),
+        PathBuf::from("/var/data")
+    );
+    assert_eq!(
+        expand_home("relative/path", Some(mock_home)),
+        PathBuf::from("relative/path")
+    );
+    assert_eq!(
+        expand_home("relative/path", None),
+        PathBuf::from("relative/path")
+    );
+    assert_eq!(expand_home("", Some(mock_home)), PathBuf::from(""));
 }

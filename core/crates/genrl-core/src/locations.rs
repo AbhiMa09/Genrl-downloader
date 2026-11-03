@@ -54,9 +54,9 @@ pub struct MoveLibraryReport {
     pub errors: Vec<String>,
 }
 
-/// Resolve `~` prefix to current user's HOME directory.
-pub fn resolve_home_dir(path_str: &str) -> PathBuf {
-    let trimmed = path_str.trim();
+/// Pure helper to expand a `~` prefix given an optional home path.
+pub fn expand_home(path: &str, home: Option<&Path>) -> PathBuf {
+    let trimmed = path.trim();
     let rest = if trimmed == "~" {
         Some("")
     } else if let Some(rest) = trimmed.strip_prefix("~/") {
@@ -67,21 +67,23 @@ pub fn resolve_home_dir(path_str: &str) -> PathBuf {
         None
     };
 
-    if let Some(rest) = rest {
-        let home = std::env::var("HOME")
-            .ok()
-            .filter(|h| !h.is_empty())
-            .map(PathBuf::from)
-            .or_else(dirs::home_dir);
-        if let Some(home) = home {
-            return if rest.is_empty() {
-                home
-            } else {
-                home.join(rest)
-            };
-        }
+    if let (Some(rest), Some(home)) = (rest, home) {
+        return if rest.is_empty() {
+            home.to_path_buf()
+        } else {
+            home.join(rest)
+        };
     }
     PathBuf::from(trimmed)
+}
+
+/// Resolve `~` prefix to current user's HOME directory.
+pub fn resolve_home_dir(path_str: &str) -> PathBuf {
+    let home = std::env::var_os("HOME")
+        .filter(|h| !h.is_empty())
+        .map(PathBuf::from)
+        .or_else(dirs::home_dir);
+    expand_home(path_str, home.as_deref())
 }
 
 /// Default download folder (~/Downloads/Genrl or relative to HOME / User Profile).
