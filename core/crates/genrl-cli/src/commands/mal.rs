@@ -217,6 +217,19 @@ pub async fn mal_status_cmd(data_dir: &Path, json: bool) -> Result<()> {
 }
 
 pub async fn mal_sync_cmd(data_dir: &Path) -> Result<()> {
+    let _lock = match mal::try_lock_mal_sync(data_dir)? {
+        Some(l) => l,
+        None => {
+            println!(
+                "{}",
+                serde_json::json!({
+                    "status": "already_running",
+                    "message": "MAL sync already in progress"
+                })
+            );
+            return Ok(());
+        }
+    };
     let db = open_db(data_dir)?;
     let settings = Settings::load(&db)?;
     let gate = Gate::new(db.clone())?;

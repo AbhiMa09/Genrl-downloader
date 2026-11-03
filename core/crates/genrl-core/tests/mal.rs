@@ -1077,3 +1077,49 @@ async fn sync_stores_shows_and_updates_shows_changed_at() {
         "shows_changed_at must be recorded when sync stores shows"
     );
 }
+
+#[tokio::test]
+async fn concurrent_mal_syncs_prevented_by_lock() {
+    let dir = tempfile::tempdir().unwrap();
+
+    // First process acquires lock
+    let lock1 = mal::try_lock_mal_sync(dir.path()).unwrap();
+    assert!(lock1.is_some(), "first sync process must acquire lock");
+
+    // Second concurrent process attempts lock
+    let lock2 = mal::try_lock_mal_sync(dir.path()).unwrap();
+    assert!(
+        lock2.is_none(),
+        "second concurrent sync must fail to acquire held lock"
+    );
+
+    // Worker periodic sync skips if lock held
+    let server = MockServer::start().await;
+    let db = db();
+    let gate = Gate::with_policies(
+        db.clone(),
+        &[(genrl_core::http::Service::Mal, fast_mal_policy())],
+    )
+    .unwrap();
+    let store = MemoryStore::with("rt");
+    let clock = clock();
+
+    let settings = settings_for(&server);
+    settings.save(&db).unwrap();
+
+    let worker_skipped = mal::sync_if_due(&db, &gate, &clock, &store, dir.path()).await;
+    assert!(
+        worker_skipped.is_none(),
+        "sync_if_due must skip tick when mal_sync.lock is held"
+    );
+
+    // Release first lock
+    drop(lock1);
+
+    // Now lock can be acquired again
+    let lock3 = mal::try_lock_mal_sync(dir.path()).unwrap();
+    assert!(
+        lock3.is_some(),
+        "lock must be available after previous sync process ends"
+    );
+}

@@ -195,12 +195,14 @@ impl Scheduler {
                     let db = self.engine.db().clone();
                     let gate = self.engine.gate_arc();
                     let clock = self.engine.clock_arc();
+                    let data_dir = self.engine.data_dir().to_path_buf();
                     let handle = tokio::spawn(async move {
                         if let Some(report) = crate::mal::sync_if_due(
                             &db,
                             &gate,
                             clock.as_ref(),
                             &crate::mal::KeyringStore,
+                            &data_dir,
                         )
                         .await
                         {

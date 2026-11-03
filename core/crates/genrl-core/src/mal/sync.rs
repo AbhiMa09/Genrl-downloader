@@ -365,6 +365,26 @@ pub(crate) fn upsert_show_full(db: &Db, m: &MalEntry) -> Result<()> {
 // The cadence
 // ---------------------------------------------------------------------------
 
+pub const MAL_SYNC_LOCK_NAME: &str = "mal_sync.lock";
+
+/// Try to acquire an exclusive lock on `<data_dir>/mal_sync.lock`.
+/// Returns `Ok(Some(File))` if acquired (held until dropped),
+/// or `Ok(None)` if another process holds it.
+pub fn try_lock_mal_sync(data_dir: &std::path::Path) -> Result<Option<std::fs::File>> {
+    std::fs::create_dir_all(data_dir)?;
+    let file = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .open(data_dir.join(MAL_SYNC_LOCK_NAME))?;
+    if fs2::FileExt::try_lock_exclusive(&file).is_ok() {
+        Ok(Some(file))
+    } else {
+        Ok(None)
+    }
+}
+
 /// The design's "sync at most every 30 minutes": due when the last sync is
 /// older than the interval, or has never happened. Cheap — a settings read.
 pub fn is_due(db: &Db, clock: &dyn Clock, interval_min: u32) -> Result<bool> {
@@ -382,6 +402,7 @@ pub async fn sync_if_due(
     gate: &Gate,
     clock: &dyn Clock,
     store: &dyn TokenStore,
+    data_dir: &std::path::Path,
 ) -> Option<SyncReport> {
     let settings = match Settings::load(db) {
         Ok(settings) => settings,
@@ -397,6 +418,13 @@ pub async fn sync_if_due(
         Ok(true) => {}
         _ => return None,
     }
+    let _lock = match try_lock_mal_sync(data_dir).ok().flatten() {
+        Some(l) => l,
+        None => {
+            tracing::debug!("MAL sync already in progress, skipping tick");
+            return None;
+        }
+    };
     store.refresh_token().ok().flatten()?;
     let client = MalClient::new(gate, settings, store, clock);
     match sync(&client).await {
