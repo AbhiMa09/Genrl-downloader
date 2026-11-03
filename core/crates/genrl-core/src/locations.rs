@@ -235,14 +235,23 @@ fn is_path_writable(path: &Path) -> bool {
     }
 }
 
+/// Resolve the effective download directory based on settings.
+///
+/// If `settings.download_folder` is empty or only whitespace, returns `default_download_dir()`.
+/// Otherwise, resolves any home directory tilde prefix via `resolve_home_dir`.
+pub fn effective_download_dir(settings: &Settings) -> PathBuf {
+    if settings.download_folder.trim().is_empty() {
+        default_download_dir()
+    } else {
+        resolve_home_dir(&settings.download_folder)
+    }
+}
+
 /// Retrieve effective locations report based on current settings.
 pub fn get_locations(db: &Db) -> Result<LocationsReport> {
     let settings = Settings::load(db)?;
-    let dl_path = if settings.download_folder.trim().is_empty() {
-        default_download_dir().display().to_string()
-    } else {
-        settings.download_folder.clone()
-    };
+    let path_a = effective_download_dir(&settings);
+    let dl_path = path_a.display().to_string();
 
     let lib_path = if settings.library_folder.trim().is_empty() {
         default_library_dir().display().to_string()
@@ -253,7 +262,6 @@ pub fn get_locations(db: &Db) -> Result<LocationsReport> {
     let download_check = check_directory(&dl_path, false);
     let library_check = check_directory(&lib_path, false);
 
-    let path_a = resolve_home_dir(&dl_path);
     let path_b = resolve_home_dir(&lib_path);
     let same_fs = are_on_same_filesystem(&path_a, &path_b);
 

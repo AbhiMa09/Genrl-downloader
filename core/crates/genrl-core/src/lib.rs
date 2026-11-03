@@ -64,7 +64,10 @@ pub use error::{Error, Result};
 pub use events::{EventLog, Level};
 pub use http::{Gate, Service};
 pub use library::{rescan_library, rewrite_show_folder_metadata, LibraryFinalizer, RescanReport};
-pub use locations::{check_directory, get_locations, set_location, LocationCheck, LocationsReport};
+pub use locations::{
+    check_directory, effective_download_dir, get_locations, set_location, LocationCheck,
+    LocationsReport,
+};
 pub use metadata::{
     fetch_show_metadata, process_metadata_queue, queue_stale_metadata, MetadataOutcome,
 };

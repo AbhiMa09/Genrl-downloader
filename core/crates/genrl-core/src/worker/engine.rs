@@ -111,14 +111,7 @@ impl Engine {
     /// folder is missing; qBittorrent being unreachable is per-job (blocked),
     /// because a running download is not ours to stop.
     pub fn blocking_reason(&self, settings: &Settings) -> Option<String> {
-        let folder = if settings.download_folder.trim().is_empty() {
-            crate::locations::default_download_dir()
-                .display()
-                .to_string()
-        } else {
-            settings.download_folder.clone()
-        };
-        let resolved = crate::locations::resolve_home_dir(&folder);
+        let resolved = crate::locations::effective_download_dir(settings);
         match self.disk.free_bytes(&resolved) {
             None => Some(format!("download folder {} is missing", resolved.display())),
             Some(free) => {

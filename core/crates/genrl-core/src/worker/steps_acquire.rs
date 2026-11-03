@@ -296,14 +296,7 @@ impl Engine {
             return Ok(JobState::NeedsInput);
         }
 
-        let dl_str = if settings.download_folder.trim().is_empty() {
-            crate::locations::default_download_dir()
-                .display()
-                .to_string()
-        } else {
-            settings.download_folder.clone()
-        };
-        let download_path = crate::locations::resolve_home_dir(&dl_str);
+        let download_path = crate::locations::effective_download_dir(&settings);
         if !download_path.exists() {
             return self.block(
                 job,

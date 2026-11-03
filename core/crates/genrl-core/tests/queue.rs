@@ -1607,9 +1607,10 @@ async fn finalize_step_resolves_empty_download_folder_when_qbit_forgets_torrent(
     // qBittorrent has forgotten the torrent
     world.qbit().present.clear();
 
-    // Ensure settings.download_folder is empty (default)
+    // Use a tempdir download folder so no real user directories are touched
+    let dl_temp = tempfile::tempdir().unwrap();
     let mut settings = Settings::load(&world.db).unwrap();
-    settings.download_folder = "".to_string();
+    settings.download_folder = dl_temp.path().display().to_string();
     settings.save(&world.db).unwrap();
 
     let t_name: String = world
@@ -1624,15 +1625,10 @@ async fn finalize_step_resolves_empty_download_folder_when_qbit_forgets_torrent(
         })
         .unwrap();
 
-    let dl_dir = genrl_core::locations::default_download_dir();
-    let batch_dir = dl_dir.join(&t_name);
-    std::fs::create_dir_all(&batch_dir).unwrap();
-    let file_path = batch_dir.join("episode.mkv");
+    let file_path = dl_temp.path().join(&t_name);
     std::fs::write(&file_path, b"test content").unwrap();
 
     let outcome = engine.step(job_id).await.unwrap();
-
-    let _ = std::fs::remove_dir_all(&batch_dir);
 
     assert_eq!(outcome.to, JobState::Done);
 }

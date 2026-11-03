@@ -9,15 +9,17 @@
 //! 6. Explicit confirmed library migration moves files and updates show folder paths.
 
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use genrl_core::db::Db;
 use genrl_core::events::EventLog;
 use genrl_core::library::resolve_show_folder;
 use genrl_core::locations::{
     are_on_same_filesystem, check_directory, default_download_dir, default_library_dir,
-    get_locations, get_show_folder, move_existing_library, set_location, validate_path_safety,
+    effective_download_dir, get_locations, get_show_folder, move_existing_library, set_location,
+    validate_path_safety,
 };
+use genrl_core::settings::Settings;
 
 #[test]
 fn path_safety_rejects_traversal_and_empty() {
@@ -251,4 +253,29 @@ fn explicit_library_migration() {
         })
         .unwrap();
     assert_eq!(updated_path, new_show_dir.display().to_string());
+}
+
+#[test]
+fn test_effective_download_dir_does_not_create_outside_tempdir() {
+    let mut settings = Settings::default();
+
+    // 1. Empty and whitespace settings fall back to default_download_dir()
+    settings.download_folder = String::new();
+    assert_eq!(effective_download_dir(&settings), default_download_dir());
+
+    settings.download_folder = "   \t\n".to_string();
+    assert_eq!(effective_download_dir(&settings), default_download_dir());
+
+    // 2. Custom path inside a tempdir
+    let temp = tempfile::tempdir().unwrap();
+    let custom_dl = temp.path().join("my_downloads");
+    settings.download_folder = custom_dl.display().to_string();
+    assert_eq!(effective_download_dir(&settings), custom_dl);
+
+    // 3. Tilde path resolution (pure resolution, no filesystem modification)
+    settings.download_folder = "~/test_dl".to_string();
+    let expected = dirs::home_dir()
+        .map(|h| h.join("test_dl"))
+        .unwrap_or_else(|| PathBuf::from("~/test_dl"));
+    assert_eq!(effective_download_dir(&settings), expected);
 }
