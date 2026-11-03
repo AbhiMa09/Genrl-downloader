@@ -16,6 +16,16 @@ enum IngestionStage {
   failed,
 }
 
+/// "~1h 05m", "~12m 30s", "~45s".
+String formatEta(int seconds) {
+  final h = seconds ~/ 3600;
+  final m = (seconds % 3600) ~/ 60;
+  final s = seconds % 60;
+  if (h > 0) return '~${h}h ${m.toString().padLeft(2, '0')}m';
+  if (m > 0) return '~${m}m ${s.toString().padLeft(2, '0')}s';
+  return '~${s}s';
+}
+
 /// Shared IngestionProgress widget adhering to the Stitch design specifications.
 /// Features a headline, concentric loader, dual-segmented progress bar,
 /// 4 real core stage tiles, telemetry counts/ETA, and action controls.
@@ -25,6 +35,9 @@ class IngestionProgress extends StatelessWidget {
   final int processedCount;
   final int totalCount;
   final int? etaSeconds;
+
+  /// What the core says it is doing right now; replaces the count line.
+  final String? phaseLabel;
   final bool isPaused;
   final String? errorMessage;
   final String? dbPath;
@@ -41,6 +54,7 @@ class IngestionProgress extends StatelessWidget {
     this.processedCount = 0,
     this.totalCount = 0,
     this.etaSeconds,
+    this.phaseLabel,
     this.isPaused = false,
     this.errorMessage,
     this.dbPath,
@@ -73,7 +87,7 @@ class IngestionProgress extends StatelessWidget {
       case IngestionStage.malSync:
         return 'Fetching watching and plan-to-watch series from MAL API.';
       case IngestionStage.metadata:
-        return 'Resolving watching shows first (21 shows). Remaining shows continue in the background (~21 min, Jikan limit).';
+        return 'Resolving the shows you are watching first. The rest continue in the background.';
       case IngestionStage.planQueue:
         return 'Evaluating episode missing states against active rules.';
       case IngestionStage.createJobs:
@@ -156,7 +170,9 @@ class IngestionProgress extends StatelessWidget {
                       final effectiveStage = stage == IngestionStage.failed
                           ? (failedStage ?? IngestionStage.createJobs)
                           : stage;
-                      final label = effectiveStage == IngestionStage.malSync
+                      final label = phaseLabel != null
+                          ? phaseLabel!
+                          : effectiveStage == IngestionStage.malSync
                           ? '$processedCount / $totalCount entries synced'
                           : (effectiveStage == IngestionStage.metadata
                                 ? '$processedCount / $totalCount watching shows resolved'
@@ -238,8 +254,11 @@ class IngestionProgress extends StatelessWidget {
                   ),
                   Text(
                     etaSeconds != null && etaSeconds! > 0
-                        ? 'Time remaining: ~${etaSeconds}s'
-                        : '',
+                        ? 'Time remaining: ${formatEta(etaSeconds!)}'
+                        : (stage == IngestionStage.failed ||
+                                  stage == IngestionStage.completed
+                              ? ''
+                              : 'Estimating time…'),
                     style: ObsidianTypography.monoCode(
                       color: ObsidianColors.outline,
                     ),

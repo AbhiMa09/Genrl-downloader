@@ -432,6 +432,7 @@ async fn main() -> Result<()> {
             MalCommand::PublicProfile { username } => mal_public_profile_cmd(&data_dir, &username),
             MalCommand::Status { json } => mal_status_cmd(&data_dir, json).await,
             MalCommand::Sync => mal_sync_cmd(&data_dir).await,
+            MalCommand::Progress => mal_progress_cmd(&data_dir),
         },
         Command::Rules { command } => match command {
             RulesCommand::Get { mal_id, .. } => rules_get_cmd(&data_dir, mal_id),

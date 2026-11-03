@@ -101,10 +101,54 @@ pub async fn process_metadata_queue(
     data_dir: &Path,
     limit: Option<usize>,
 ) -> Result<MetadataBatchReport> {
+    process_metadata_queue_reporting(db, gate, settings, clock, data_dir, limit, false).await
+}
+
+/// As [`process_metadata_queue`], optionally publishing live progress for the
+/// app (the background worker's quiet passes leave it off).
+pub async fn process_metadata_queue_reporting(
+    db: &Db,
+    gate: &Gate,
+    settings: &Settings,
+    clock: &dyn Clock,
+    data_dir: &Path,
+    limit: Option<usize>,
+    report_progress: bool,
+) -> Result<MetadataBatchReport> {
+    let result = process_queue(db, gate, settings, clock, data_dir, limit, report_progress).await;
+    if report_progress {
+        crate::progress::finish(db, crate::progress::METADATA);
+    }
+    result
+}
+
+async fn process_queue(
+    db: &Db,
+    gate: &Gate,
+    settings: &Settings,
+    clock: &dyn Clock,
+    data_dir: &Path,
+    limit: Option<usize>,
+    report_progress: bool,
+) -> Result<MetadataBatchReport> {
     let max_items = limit.unwrap_or(20);
     let mut report = MetadataBatchReport::default();
     let store = KeyringStore;
     let mal = MalClient::new(gate, settings.clone(), &store, clock);
+    let started_at = clock.now();
+    let progress = |done: usize| {
+        if report_progress {
+            crate::progress::report(
+                db,
+                crate::progress::METADATA,
+                "metadata",
+                done,
+                max_items,
+                started_at,
+            );
+        }
+    };
+    progress(0);
 
     for _ in 0..max_items {
         let now = clock.now();
@@ -133,6 +177,7 @@ pub async fn process_metadata_queue(
             }
             Err(_) => report.failed += 1,
         }
+        progress(report.processed);
 
         if limit.is_some() {
             let delay_ms = (1000.0 / settings.jikan_per_second.max(0.1)) as u64;

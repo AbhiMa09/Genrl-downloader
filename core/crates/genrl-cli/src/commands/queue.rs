@@ -348,12 +348,24 @@ pub async fn run_cmd(data_dir: &Path, exit_with_parent: bool) -> Result<()> {
         Arc::new(FsDiskProbe),
         data_dir.to_path_buf(),
     ));
-    let report = queue::reconcile(&engine).await?;
-    println!(
-        "reconcile: {} resumed, {} waiting",
-        report.resumed.len(),
-        report.waiting.len()
-    );
+    // qBittorrent may not be up yet (just after boot, or across a VM
+    // boundary). Each step already blocks and retries on an unreachable
+    // client, so a failed recovery pass is reported, never fatal.
+    match queue::reconcile(&engine).await {
+        Ok(report) => println!(
+            "reconcile: {} resumed, {} waiting",
+            report.resumed.len(),
+            report.waiting.len()
+        ),
+        Err(err) => {
+            eprintln!("reconcile skipped: {err}");
+            let _ = EventLog::new(db.clone()).warn(
+                None,
+                None,
+                format!("startup recovery skipped, jobs will retry on their own: {err}"),
+            );
+        }
+    }
     if !settings.automation_on {
         println!("automation is paused; `genrl resume` starts dispatching");
     }

@@ -115,9 +115,16 @@ pub async fn metadata_sync_cmd(data_dir: &Path, limit: usize, json: bool) -> Res
     let settings = Settings::load(&db)?;
     let clock = genrl_core::clock::SystemClock;
 
-    let report =
-        genrl_core::process_metadata_queue(&db, &gate, &settings, &clock, data_dir, Some(limit))
-            .await?;
+    let report = genrl_core::metadata::process_metadata_queue_reporting(
+        &db,
+        &gate,
+        &settings,
+        &clock,
+        data_dir,
+        Some(limit),
+        true,
+    )
+    .await?;
 
     if json {
         println!(

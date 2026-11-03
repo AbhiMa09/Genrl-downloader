@@ -64,6 +64,8 @@ pub enum MalCommand {
     },
     /// Fetch the list, diff it against the database, store added/changed/removed shows.
     Sync,
+    /// Live progress of a running sync or metadata pass, as JSON.
+    Progress,
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -222,6 +224,12 @@ pub async fn mal_sync_cmd(data_dir: &Path) -> Result<()> {
     let clock = SystemClock;
     let report = mal::mal_sync(&db, &gate, &settings, &store, &clock).await?;
     println!("{}", report.summary());
+    Ok(())
+}
+
+pub fn mal_progress_cmd(data_dir: &Path) -> Result<()> {
+    let db = open_db(data_dir)?;
+    println!("{}", genrl_core::progress::read_all(&db));
     Ok(())
 }
 

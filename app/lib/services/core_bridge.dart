@@ -98,6 +98,17 @@ class CoreBridge with CoreBridgeJobControls {
     return res.exitCode == 0;
   }
 
+  /// Live progress of a running MAL sync / metadata pass, keyed by task.
+  Future<Map<String, dynamic>> getProgress() async {
+    final res = await execute(['mal', 'progress']);
+    if (res.exitCode == 0) {
+      try {
+        return jsonDecode(res.stdout as String) as Map<String, dynamic>;
+      } catch (_) {}
+    }
+    return const {};
+  }
+
   /// Trigger Library rescan
   Future<bool> rescanLibrary() async {
     final res = await execute(['library', 'rescan']);

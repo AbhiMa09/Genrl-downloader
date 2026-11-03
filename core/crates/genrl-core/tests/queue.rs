@@ -973,7 +973,8 @@ async fn a_missing_download_folder_blocks_the_add_until_it_exists() {
     scheduler.settle().await;
 
     let state = drive(&engine, job).await;
-    assert_eq!(state, JobState::Done, "folder back, job finished");
+    let why = jobs::get(&world.db, job).unwrap().unwrap().last_error;
+    assert_eq!(state, JobState::Done, "folder back, job finished: {why:?}");
     assert_eq!(episode_state(&world.db), "done");
 }
 

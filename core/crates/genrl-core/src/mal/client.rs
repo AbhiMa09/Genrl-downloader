@@ -290,14 +290,42 @@ impl<'a> MalClient<'a> {
         let mut lookups = 0usize;
         let mut first_error: Option<Error> = None;
 
+        let mut to_fetch = Vec::new();
         for entry in entries.iter() {
             let id = entry.entry.mal_id;
-            if let Some(cached) = self.cached_relations(id)? {
-                relations.insert(id, cached);
-                continue;
+            match self.cached_relations(id)? {
+                Some(cached) => {
+                    relations.insert(id, cached);
+                }
+                None => to_fetch.push(id),
             }
+        }
+
+        // One lookup per uncached show, about a second each: report every one
+        // so the app can show a real count and time remaining.
+        let started_at = self.clock.now();
+        let total = to_fetch.len();
+        let db = self.db().clone();
+        crate::progress::report(
+            &db,
+            crate::progress::MAL_SYNC,
+            "seasons",
+            0,
+            total,
+            started_at,
+        );
+        for id in to_fetch {
             lookups += 1;
-            match self.relations(id).await {
+            let result = self.relations(id).await;
+            crate::progress::report(
+                &db,
+                crate::progress::MAL_SYNC,
+                "seasons",
+                lookups,
+                total,
+                started_at,
+            );
+            match result {
                 Ok(rels) => {
                     self.cache_relations(id, &rels)?;
                     relations.insert(id, rels);

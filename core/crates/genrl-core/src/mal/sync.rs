@@ -75,9 +75,17 @@ impl StoredEntry {
 /// a separate (confirmed) step.
 pub async fn sync(client: &MalClient<'_>) -> Result<SyncReport> {
     let db = client.db().clone();
+    let result = sync_inner(client).await;
+    crate::progress::finish(&db, crate::progress::MAL_SYNC);
+    result
+}
+
+async fn sync_inner(client: &MalClient<'_>) -> Result<SyncReport> {
+    let db = client.db().clone();
     let now = client.clock().now();
     let settings = client.settings();
     let log = EventLog::new(db.clone());
+    crate::progress::report(&db, crate::progress::MAL_SYNC, "list", 0, 0, now);
 
     // Refresh stored MAL username from /v2/users/@me each sync
     if let Ok(account) = client.account().await {

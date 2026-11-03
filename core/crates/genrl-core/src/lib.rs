@@ -48,6 +48,7 @@ pub mod names;
 pub mod nyaa;
 pub mod planner;
 pub mod platform;
+pub mod progress;
 pub mod qbit;
 pub mod questions;
 pub mod queue;

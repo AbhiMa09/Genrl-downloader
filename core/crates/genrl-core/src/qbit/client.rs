@@ -23,7 +23,13 @@ impl Qbit {
     /// Build from settings, reading the password out of the keyring (or the
     /// `GENRL_QBIT_PASSWORD` override).
     pub fn from_settings(settings: &Settings) -> Result<Self> {
-        let password = secrets::get(Secret::QbitPassword)?;
+        // No keyring (WSL, a minimal distro) means no stored password, not a
+        // dead worker: a WebUI without auth still works, and one that needs it
+        // answers with an auth error that becomes a single Inbox notice.
+        let password = secrets::get(Secret::QbitPassword).unwrap_or_else(|err| {
+            tracing::warn!("{err}");
+            None
+        });
         Ok(Self::new(
             &settings.qbit_url,
             &settings.qbit_username,

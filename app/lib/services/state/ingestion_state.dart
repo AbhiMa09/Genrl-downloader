@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import '../../models/activity_item.dart';
 import '../../widgets/loading/ingestion_progress.dart';
 import 'state_context.dart';
@@ -13,6 +15,51 @@ mixin IngestionStateMixin on StateContext {
   String? _ingestionError;
   bool _firstRunCompleted =
       true; // Set to true after initial run or loaded from settings
+
+  String? _ingestionPhaseLabel;
+  String? get ingestionPhaseLabel => _ingestionPhaseLabel;
+
+  /// Whole setup progress, 0..1, across the four stages.
+  double get ingestionOverallProgress {
+    final index = _ingestionStage.index;
+    if (_ingestionStage == IngestionStage.completed) return 1.0;
+    if (index > IngestionStage.createJobs.index) return 0.0;
+    final fraction = _ingestionTotalCount > 0
+        ? (_ingestionProcessedCount / _ingestionTotalCount).clamp(0.0, 1.0)
+        : 0.0;
+    return (index + fraction) / 4.0;
+  }
+
+  /// Poll the core's live progress for [task] while a long command runs, so
+  /// counts, the bar and the time estimate move in real time.
+  Timer _watchProgress(String task, String Function(int done, int total) label) {
+    return Timer.periodic(const Duration(seconds: 1), (_) async {
+      final all = await bridge.getProgress();
+      final p = all[task];
+      if (p is! Map) return;
+      final phase = p['phase']?.toString();
+      final done = (p['done'] as num?)?.toInt() ?? 0;
+      final total = (p['total'] as num?)?.toInt() ?? 0;
+      final startedAt = (p['started_at'] as num?)?.toInt() ?? 0;
+      if (phase == 'list') {
+        _ingestionPhaseLabel = 'Fetching your list from MyAnimeList…';
+        _ingestionProcessedCount = 0;
+        _ingestionTotalCount = 0;
+        _ingestionEtaSeconds = null;
+      } else {
+        _ingestionPhaseLabel = label(done, total);
+        _ingestionProcessedCount = done;
+        _ingestionTotalCount = total;
+        final elapsed =
+            DateTime.now().millisecondsSinceEpoch ~/ 1000 - startedAt;
+        // A few samples first, or the estimate swings wildly.
+        _ingestionEtaSeconds = done >= 3 && total > done && elapsed > 0
+            ? (elapsed / done * (total - done)).round()
+            : null;
+      }
+      notifyListeners();
+    });
+  }
 
   IngestionStage get ingestionStage => _ingestionStage;
   bool get isIngesting => _isIngesting;
@@ -172,19 +219,20 @@ mixin IngestionStateMixin on StateContext {
     if (resumeFrom == IngestionStage.malSync) {
       _ingestionProcessedCount = 0;
     }
-    _ingestionTotalCount = _plannedEpisodesCount > 0
-        ? _plannedEpisodesCount
-        : 100;
-    _ingestionEtaSeconds = 45;
+    _ingestionTotalCount = 0;
+    _ingestionEtaSeconds = null;
+    _ingestionPhaseLabel = null;
     notifyListeners();
+    Timer? watcher;
 
     try {
       // Stage 1: MAL Sync
       if (resumeFrom.index <= IngestionStage.malSync.index) {
         _ingestionStage = IngestionStage.malSync;
         _ingestionProcessedCount = 0;
-        _ingestionTotalCount = 1040;
+        _ingestionTotalCount = 0;
         _ingestionEtaSeconds = null;
+        _ingestionPhaseLabel = 'Connecting to MyAnimeList…';
         notifyListeners();
 
         addActivityEvent(
@@ -199,7 +247,13 @@ mixin IngestionStateMixin on StateContext {
         if (shows.isEmpty) {
           await refreshShows();
         }
+        watcher = _watchProgress(
+          'mal_sync',
+          (done, total) => '$done / $total shows checked for seasons',
+        );
         final syncRes = await bridge.execute(['mal', 'sync']);
+        watcher.cancel();
+        _ingestionPhaseLabel = null;
         if (syncRes.exitCode != 0) {
           final err = (syncRes.stderr as String).trim();
           final out = (syncRes.stdout as String).trim();
@@ -212,8 +266,9 @@ mixin IngestionStateMixin on StateContext {
           );
         }
         await refreshShows();
-        _ingestionProcessedCount = shows.isNotEmpty ? shows.length : 1040;
-        _ingestionTotalCount = _ingestionProcessedCount;
+        _ingestionProcessedCount = shows.length;
+        _ingestionTotalCount = shows.length;
+        _ingestionEtaSeconds = null;
         notifyListeners();
         if (onStageCompleted != null) {
           await onStageCompleted!(IngestionStage.malSync);
@@ -248,6 +303,10 @@ mixin IngestionStateMixin on StateContext {
 
         final alreadyResolved = readyCount == watchingCount;
         if (!alreadyResolved) {
+          watcher = _watchProgress(
+            'metadata',
+            (done, total) => '$done / $total shows resolved',
+          );
           final metaRes = await bridge.execute([
             'metadata',
             'sync',
@@ -255,6 +314,9 @@ mixin IngestionStateMixin on StateContext {
             watchingCount.toString(),
             '--json',
           ]);
+          watcher.cancel();
+          _ingestionPhaseLabel = null;
+          _ingestionEtaSeconds = null;
           if (metaRes.exitCode != 0) {
             final err = (metaRes.stderr as String).trim();
             throw Exception(
@@ -304,7 +366,7 @@ mixin IngestionStateMixin on StateContext {
       if (resumeFrom.index <= IngestionStage.planQueue.index) {
         _ingestionStage = IngestionStage.planQueue;
         await refreshPlanPreview();
-        final showsEvaluated = _plannedShowsCount > 0 ? _plannedShowsCount : 11;
+        final showsEvaluated = _plannedShowsCount;
         _ingestionProcessedCount = showsEvaluated;
         _ingestionTotalCount = showsEvaluated;
         _ingestionEtaSeconds = null;
@@ -336,9 +398,7 @@ mixin IngestionStateMixin on StateContext {
         _isPlanReadyAwaitingConfirm = false;
         _isIngesting = true;
         _ingestionStage = IngestionStage.createJobs;
-        final plannedJobs = _plannedEpisodesCount > 0
-            ? _plannedEpisodesCount
-            : 16;
+        final plannedJobs = _plannedEpisodesCount;
         _ingestionProcessedCount = 0;
         _ingestionTotalCount = plannedJobs;
         _ingestionEtaSeconds = null;
@@ -400,6 +460,9 @@ mixin IngestionStateMixin on StateContext {
 
       notifyListeners();
     } catch (e) {
+      watcher?.cancel();
+      _ingestionPhaseLabel = null;
+      _ingestionEtaSeconds = null;
       _failedStage = _ingestionStage;
       _ingestionStage = IngestionStage.failed;
       _ingestionError = e.toString().replaceFirst(

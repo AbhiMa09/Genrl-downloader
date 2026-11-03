@@ -241,8 +241,11 @@ class _GuidedFirstRunPageState extends State<GuidedFirstRunPage> {
                   ),
 
                   // Progress Bar
+                  // Setup steps first; once ingestion runs, its real progress.
                   LinearProgressIndicator(
-                    value: (_currentStep + 1) / 5.0,
+                    value: isIngestingOrFailed
+                        ? state.ingestionOverallProgress
+                        : (_currentStep + 1) / 5.0,
                     backgroundColor: ObsidianColors.surfaceContainerHighest,
                     valueColor: const AlwaysStoppedAnimation<Color>(
                       ObsidianColors.primary,
@@ -278,6 +281,7 @@ class _GuidedFirstRunPageState extends State<GuidedFirstRunPage> {
                             processedCount: state.ingestionProcessedCount,
                             totalCount: state.ingestionTotalCount,
                             etaSeconds: state.ingestionEtaSeconds,
+                            phaseLabel: state.ingestionPhaseLabel,
                             isPaused: state.isIngestionPaused,
                             errorMessage: state.ingestionError,
                             dbPath: state.bridge.customDataDir,

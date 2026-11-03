@@ -225,6 +225,7 @@ class _WizardPageState extends State<WizardPage> {
                             processedCount: state.ingestionProcessedCount,
                             totalCount: state.ingestionTotalCount,
                             etaSeconds: state.ingestionEtaSeconds,
+                            phaseLabel: state.ingestionPhaseLabel,
                             isPaused: state.isIngestionPaused,
                             errorMessage: state.ingestionError,
                             dbPath: state.bridge.customDataDir,
