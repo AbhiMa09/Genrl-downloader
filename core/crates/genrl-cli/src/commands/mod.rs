@@ -6,6 +6,7 @@ pub mod metadata;
 pub mod planner;
 pub mod queue;
 pub mod rules;
+pub mod seasons;
 pub mod shows;
 pub mod system;
 pub mod torrents;

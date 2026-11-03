@@ -6,16 +6,18 @@ import '../models/inbox_item.dart';
 import '../models/library_item.dart';
 import '../models/queue_item.dart';
 import '../models/system_status.dart';
+import 'core_bridge_downloads.dart';
 import 'core_bridge_jobs.dart';
 import 'core_bridge_parsers.dart';
 import 'worker_supervisor.dart';
 
+export 'core_bridge_downloads.dart';
 export 'core_bridge_jobs.dart';
 
 /// The Bridge between Flutter UI and the Rust core (`genrl` CLI & engine).
 /// Per system design: The UI never touches the network or the disk directly;
 /// it routes commands and reads states through the Rust core.
-class CoreBridge with CoreBridgeJobControls {
+class CoreBridge with CoreBridgeJobControls, CoreBridgeDownloads {
   final String genrlBinaryPath;
   final String? customDataDir;
   final WorkerSupervisor _supervisor;
@@ -96,17 +98,6 @@ class CoreBridge with CoreBridgeJobControls {
   Future<bool> syncMal() async {
     final res = await execute(['mal', 'sync']);
     return res.exitCode == 0;
-  }
-
-  /// Live progress of a running MAL sync / metadata pass, keyed by task.
-  Future<Map<String, dynamic>> getProgress() async {
-    final res = await execute(['mal', 'progress']);
-    if (res.exitCode == 0) {
-      try {
-        return jsonDecode(res.stdout as String) as Map<String, dynamic>;
-      } catch (_) {}
-    }
-    return const {};
   }
 
   /// Trigger Library rescan
@@ -235,7 +226,8 @@ class CoreBridge with CoreBridgeJobControls {
     return await updateRule('auto_plan_to_watch', auto, malId: malId);
   }
 
-  /// Trigger download/planning of a specific episode
+  /// Trigger download/planning of a specific episode. It stays in this file:
+  /// the contract check looks here for each command's UI method.
   Future<bool> downloadEpisode(int malId, int episodeNumber) async {
     final res = await execute([
       'plan',
@@ -246,62 +238,6 @@ class CoreBridge with CoreBridgeJobControls {
       '--confirm',
     ]);
     return res.exitCode == 0;
-  }
-
-  /// Trigger download/planning of an entire season
-  Future<bool> downloadSeason(int malId) async {
-    final res = await execute([
-      'plan',
-      '--mal-id',
-      malId.toString(),
-      '--confirm',
-      '--json',
-    ]);
-    _lastQueued = _queuedFrom(res);
-    return res.exitCode == 0;
-  }
-
-  int? _lastQueued;
-
-  /// How many jobs the last season download queued, when the core reported it.
-  int? get lastQueued => _lastQueued;
-
-  int? _queuedFrom(ProcessResult res) {
-    if (res.exitCode != 0) return null;
-    try {
-      final decoded = jsonDecode(res.stdout as String);
-      return (decoded['queued'] as num?)?.toInt();
-    } catch (_) {
-      return null;
-    }
-  }
-
-  /// Get plan dry-run preview as structured data
-  Future<Map<String, dynamic>?> getPlanPreview() async {
-    final res = await execute(['plan', '--dry-run', '--json']);
-    if (res.exitCode == 0) {
-      try {
-        return jsonDecode(res.stdout as String) as Map<String, dynamic>;
-      } catch (_) {}
-    }
-    return null;
-  }
-
-  /// Confirm initial plan or apply batch
-  Future<Map<String, dynamic>?> confirmPlan({
-    bool bypassDailyCap = false,
-  }) async {
-    final args = ['plan', '--confirm', '--json'];
-    if (bypassDailyCap) {
-      args.add('--bypass-cap');
-    }
-    final res = await execute(args);
-    if (res.exitCode == 0) {
-      try {
-        return jsonDecode(res.stdout as String) as Map<String, dynamic>;
-      } catch (_) {}
-    }
-    return null;
   }
 
   /// Get current system settings map
