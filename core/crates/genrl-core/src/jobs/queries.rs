@@ -9,6 +9,39 @@ use super::transitions::sql_text;
 
 /// Jobs whose time has come, oldest first.
 pub fn due_jobs(db: &Db, now: i64, kinds: &[JobKind], limit: usize) -> Result<Vec<Job>> {
+    due_jobs_filtered(db, now, kinds, limit, false)
+}
+
+/// Mark a job as asked for by hand: it runs even while automation is paused.
+pub fn mark_manual(db: &Db, job_id: i64) -> Result<()> {
+    db.with(|c| {
+        c.execute("UPDATE jobs SET manual = 1 WHERE id = ?1", [job_id])?;
+        Ok(())
+    })
+}
+
+/// Was this job asked for by hand?
+pub fn is_manual(db: &Db, job_id: i64) -> Result<bool> {
+    db.with(|c| {
+        Ok(
+            c.query_row("SELECT manual FROM jobs WHERE id = ?1", [job_id], |r| {
+                r.get::<_, i64>(0)
+            })
+            .optional()?
+            .unwrap_or(0)
+                != 0,
+        )
+    })
+}
+
+/// Due jobs, optionally only those asked for by hand.
+pub fn due_jobs_filtered(
+    db: &Db,
+    now: i64,
+    kinds: &[JobKind],
+    limit: usize,
+    manual_only: bool,
+) -> Result<Vec<Job>> {
     // The kind placeholders must be numbered `?3…`: a bare `?` here would be
     // assigned index 2 by SQLite — the same slot `LIMIT ?2` already owns — and
     // the statement would silently accept one parameter fewer than it needs.
@@ -18,11 +51,12 @@ pub fn due_jobs(db: &Db, now: i64, kinds: &[JobKind], limit: usize) -> Result<Ve
     } else {
         format!(" AND kind IN ({})", placeholders.join(","))
     };
+    let manual_filter = if manual_only { " AND manual = 1" } else { "" };
     let sql = format!(
         "SELECT id, episode_id, kind, state, attempts, next_run_at, last_error, torrent_id,
                 created_at, updated_at, progress, last_progress_at, blocked_from
          FROM jobs
-         WHERE (next_run_at IS NULL OR next_run_at <= ?1){kind_filter}
+         WHERE (next_run_at IS NULL OR next_run_at <= ?1){kind_filter}{manual_filter}
            AND state NOT IN ('blocked', 'needs_input', 'failed', 'done')
          ORDER BY created_at LIMIT ?2"
     );

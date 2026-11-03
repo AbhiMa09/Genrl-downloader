@@ -1533,3 +1533,64 @@ async fn test_slow_fake_sync_does_not_stall_job_dispatch() {
 
     slow_sync_handle.await.unwrap();
 }
+
+/// A blocker the scheduler can't check (qBittorrent) is resumed on trust, so
+/// it must wait out its backoff instead of bouncing every tick.
+#[tokio::test]
+async fn an_unverifiable_block_waits_out_its_backoff_before_resuming() {
+    let world = World::new().await;
+    let id = plan_one(&world);
+    let engine = Arc::new(world.engine());
+    let job = jobs::get(&world.db, id).unwrap().unwrap();
+    engine
+        .block(&job, "qBittorrent is not reachable: connection refused")
+        .unwrap();
+    let scheduler = Scheduler::new(engine);
+
+    assert!(
+        scheduler.tick().await.unwrap().resumed.is_empty(),
+        "still inside the backoff"
+    );
+    world.clock.advance(31);
+    let report = scheduler.tick().await.unwrap();
+    assert!(report.resumed.contains(&(id, JobState::Search)));
+}
+
+/// Automation off stops automatic work only: a job the user asked for by hand
+/// still runs.
+#[tokio::test]
+async fn a_manual_job_runs_while_automation_is_paused() {
+    let world = World::new().await;
+    let id = plan_one(&world);
+    let mut settings = Settings::load(&world.db).unwrap();
+    settings.automation_on = false;
+    settings.save(&world.db).unwrap();
+    let scheduler = Scheduler::new(Arc::new(world.engine()));
+
+    let report = scheduler.tick().await.unwrap();
+    assert!(report.paused);
+    assert!(report.dispatched.is_empty(), "automatic jobs wait");
+
+    jobs::mark_manual(&world.db, id).unwrap();
+    let report = scheduler.tick().await.unwrap();
+    assert_eq!(report.dispatched, vec![(JobKind::Search, id)]);
+    scheduler.settle().await;
+}
+
+/// A season download is a manual job.
+#[tokio::test]
+async fn plan_single_marks_its_jobs_manual() {
+    let world = World::new().await;
+    let id = plan_one(&world);
+    world
+        .db
+        .with(|c| {
+            c.execute("DELETE FROM jobs", [])?;
+            Ok(())
+        })
+        .unwrap();
+    assert_ne!(id, 0);
+    planner::plan_single(&world.db, &world.clock, 200, Some(5.0)).unwrap();
+    let job = single_job(&world);
+    assert!(jobs::is_manual(&world.db, job).unwrap());
+}

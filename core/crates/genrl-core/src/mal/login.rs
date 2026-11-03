@@ -60,8 +60,10 @@ pub async fn start_login_with_port(
     start_login_with_options(settings, override_port, None).await
 }
 
-/// Registered loopback redirect ports in priority order.
-pub const OAUTH_REDIRECT_PORTS: [u16; 3] = [21445, 21446, 21447];
+/// The one loopback redirect registered with MAL. MAL compares the redirect
+/// URI as a single exact string, so falling back to another port can only end
+/// in a rejected login.
+pub const OAUTH_REDIRECT_PORT: u16 = 21445;
 
 /// Start login with an optional explicit port and optional redirect URI override.
 pub async fn start_login_with_options(
@@ -87,32 +89,15 @@ pub async fn start_login_with_options(
             .and_then(|v| v.trim().parse().ok())
     });
 
-    let (listener, port) = if let Some(p) = explicit_port {
-        let l = tokio::net::TcpListener::bind(("127.0.0.1", p))
-            .await
-            .map_err(|err| Error::Auth {
-                service: "mal".to_string(),
-                message: format!("redirect port {p} on 127.0.0.1 is busy or unavailable ({err})"),
-            })?;
-        (l, p)
-    } else {
-        let mut bound = None;
-        for &p in &OAUTH_REDIRECT_PORTS {
-            if let Ok(l) = tokio::net::TcpListener::bind(("127.0.0.1", p)).await {
-                bound = Some((l, p));
-                break;
-            }
-        }
-        match bound {
-            Some(pair) => pair,
-            None => {
-                return Err(Error::Auth {
-                    service: "mal".to_string(),
-                    message: "all OAuth redirect ports (21445, 21446, 21447) on 127.0.0.1 are busy. Free one of these ports or set GENRL_MAL_REDIRECT_PORT.".to_string(),
-                });
-            }
-        }
-    };
+    let port = explicit_port.unwrap_or(OAUTH_REDIRECT_PORT);
+    let listener = tokio::net::TcpListener::bind(("127.0.0.1", port))
+        .await
+        .map_err(|err| Error::Auth {
+            service: "mal".to_string(),
+            message: format!(
+                "redirect port {port} on 127.0.0.1 is busy or unavailable ({err}). Close whatever is using it and try again; another port only works if its redirect URL is registered on MAL and GENRL_MAL_REDIRECT_PORT is set."
+            ),
+        })?;
     let redirect_uri = override_redirect_uri
         .map(str::to_string)
         .or_else(|| std::env::var("GENRL_MAL_REDIRECT_URI").ok())

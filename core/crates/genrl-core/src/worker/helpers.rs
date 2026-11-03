@@ -102,11 +102,9 @@ impl Engine {
     // ------------------------------------------------------------------ helpers
 
     /// If single-episode download is used, ensure sibling missing episodes have search jobs queued.
-    pub(crate) fn enqueue_sibling_episodes_if_needed(
-        &self,
-        mal_id: i64,
-        current_episode_id: i64,
-    ) -> Result<()> {
+    pub(crate) fn enqueue_sibling_episodes_if_needed(&self, job: &Job, mal_id: i64) -> Result<()> {
+        let current_episode_id = job.episode_id;
+        let manual = jobs::is_manual(&self.db, job.id)?;
         let missing_ids: Vec<i64> = self.db.with(|c| {
             let mut stmt = c.prepare(
                 "SELECT e.id FROM episodes e
@@ -126,7 +124,10 @@ impl Engine {
         })?;
 
         for ep_id in missing_ids {
-            crate::jobs::enqueue_search(&self.db, self.clock.as_ref(), ep_id)?;
+            let sibling = crate::jobs::enqueue_search(&self.db, self.clock.as_ref(), ep_id)?;
+            if manual {
+                jobs::mark_manual(&self.db, sibling)?;
+            }
         }
         Ok(())
     }
@@ -158,6 +159,9 @@ impl Engine {
                 self.now() + jobs::backoff_delay(job.attempts + 1).as_secs() as i64,
                 reason,
             )?;
+            // Every failed try counts, or a job that keeps finding nothing
+            // would back off forever and never reach the question above.
+            jobs::count_attempt(&self.db, job.id)?;
             Ok(job.state)
         }
     }

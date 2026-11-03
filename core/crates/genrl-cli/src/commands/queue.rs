@@ -312,7 +312,25 @@ pub fn answer_cmd(data_dir: &Path, id: i64, choice_str: &str, always: bool) -> R
 }
 
 /// Reconcile after a crash, then run the workers until Ctrl-C.
-pub async fn run_cmd(data_dir: &Path) -> Result<()> {
+pub async fn run_cmd(data_dir: &Path, exit_with_parent: bool) -> Result<()> {
+    // One worker per data folder: two would race on every job. The OS drops
+    // the lock when this process ends, however it ends.
+    std::fs::create_dir_all(data_dir)?;
+    let lock = std::fs::File::create(data_dir.join("worker.lock"))?;
+    if fs2::FileExt::try_lock_exclusive(&lock).is_err() {
+        anyhow::bail!("another genrl worker is already running for this data folder");
+    }
+
+    // The app holds our stdin open; when it goes away, however it goes, the
+    // read ends and the worker follows. Job state is written before the work
+    // it enables, so stopping mid-step is safe to recover from.
+    if exit_with_parent {
+        std::thread::spawn(|| {
+            let _ = std::io::copy(&mut std::io::stdin(), &mut std::io::sink());
+            std::process::exit(0);
+        });
+    }
+
     let db = open_db(data_dir)?;
     let settings = Settings::load(&db)?;
     let gate = Arc::new(Gate::new(db.clone())?);

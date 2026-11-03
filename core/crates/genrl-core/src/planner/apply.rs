@@ -208,13 +208,15 @@ pub fn plan_single(
         // Enqueue one search job for the season (associated with first missing episode)
         if let Some(&first_ep) = eps_to_queue.first() {
             let episode_id = ensure_episode(db, clock, mal_id, first_ep)?;
-            crate::jobs::enqueue_search(db, clock, episode_id)?;
+            let job = crate::jobs::enqueue_search(db, clock, episode_id)?;
+            crate::jobs::mark_manual(db, job)?;
             queued += 1;
         }
     } else {
         for ep in eps_to_queue {
             let episode_id = ensure_episode(db, clock, mal_id, ep)?;
-            crate::jobs::enqueue_search(db, clock, episode_id)?;
+            let job = crate::jobs::enqueue_search(db, clock, episode_id)?;
+            crate::jobs::mark_manual(db, job)?;
             queued += 1;
         }
     }

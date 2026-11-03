@@ -98,38 +98,21 @@ async fn test_oauth_timeout() {
 }
 
 #[tokio::test]
-async fn test_oauth_port_busy_fallback_and_exhaustion() {
+async fn test_oauth_busy_port_is_a_clear_error_not_a_fallback() {
     let settings = Settings::default();
 
-    // 1. When 21445 is occupied, start_login falls back to 21446
-    let guard1 = tokio::net::TcpListener::bind(("127.0.0.1", 21445)).await;
-    if let Ok(_busy1) = guard1 {
-        let login = mal::start_login(&settings).await.unwrap();
-        assert_eq!(login.port(), 21446);
-        assert!(login.redirect_uri().contains("21446"));
-
-        // 2. When 21445 and 21446 are occupied, falls back to 21447
-        let guard2 = tokio::net::TcpListener::bind(("127.0.0.1", 21446)).await;
-        if let Ok(_busy2) = guard2 {
-            let login2 = mal::start_login(&settings).await.unwrap();
-            assert_eq!(login2.port(), 21447);
-            assert!(login2.redirect_uri().contains("21447"));
-
-            // 3. When all 3 are occupied, returns clear error
-            let guard3 = tokio::net::TcpListener::bind(("127.0.0.1", 21447)).await;
-            if let Ok(_busy3) = guard3 {
-                let err = match mal::start_login(&settings).await {
-                    Err(e) => e.to_string(),
-                    Ok(_) => panic!("expected error when all redirect ports are busy"),
-                };
-                assert!(
-                    err.contains(
-                        "all OAuth redirect ports (21445, 21446, 21447) on 127.0.0.1 are busy"
-                    ),
-                    "unexpected error: {err}"
-                );
-            }
-        }
+    // MAL only accepts the one registered redirect, so a busy port must fail
+    // up front rather than send the user to a login MAL would reject.
+    let guard = tokio::net::TcpListener::bind(("127.0.0.1", 21445)).await;
+    if let Ok(_busy) = guard {
+        let err = match mal::start_login(&settings).await {
+            Err(e) => e.to_string(),
+            Ok(_) => panic!("expected an error while the redirect port is busy"),
+        };
+        assert!(
+            err.contains("redirect port 21445 on 127.0.0.1 is busy"),
+            "unexpected error: {err}"
+        );
     }
 }
 

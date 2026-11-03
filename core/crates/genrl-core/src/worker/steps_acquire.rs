@@ -169,7 +169,14 @@ impl Engine {
             };
             self.set_chosen(job.id, &best.candidate.info_hash)?;
             self.ask(job, context.mal_id, payload, "only a batch is available")?;
-            return Ok(JobState::NeedsInput);
+            return jobs::transition(
+                &self.db,
+                self.clock.as_ref(),
+                job.id,
+                JobState::NeedsInput,
+                "only a batch is available",
+                &MoveOptions::default(),
+            );
         }
 
         match matching::decide_verdict(ranked, rejected, &inputs, &rules, &settings) {
@@ -369,7 +376,7 @@ impl Engine {
                 Ok(())
             })?;
         } else {
-            self.enqueue_sibling_episodes_if_needed(context.mal_id, job.episode_id)?;
+            self.enqueue_sibling_episodes_if_needed(job, context.mal_id)?;
         }
 
         crate::events::EventLog::new(self.db.clone()).info(

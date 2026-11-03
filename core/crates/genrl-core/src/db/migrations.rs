@@ -29,4 +29,8 @@ pub const MIGRATIONS: &[Migration] = &[
         version: 5,
         sql: include_str!("migrations/005_show_metadata.sql"),
     },
+    Migration {
+        version: 6,
+        sql: include_str!("migrations/006_seasons_and_manual_jobs.sql"),
+    },
 ];

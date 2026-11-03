@@ -33,7 +33,7 @@ pub enum MalCommand {
         /// Optional client_secret for Web applications.
         #[arg(long)]
         client_secret: Option<String>,
-        /// Explicit port to bind (default: tries 21445, 21446, 21447).
+        /// Explicit port to bind (default: 21445, the redirect registered on MAL).
         #[arg(long)]
         port: Option<u16>,
         /// Explicit redirect URI (e.g. http://localhost:21445/callback).

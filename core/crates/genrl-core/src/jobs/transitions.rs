@@ -252,6 +252,17 @@ pub fn reschedule(db: &Db, clock: &dyn Clock, job_id: i64, at: i64, reason: &str
     })
 }
 
+/// Bump the attempt counter of a job that stays in its state.
+pub fn count_attempt(db: &Db, job_id: i64) -> Result<()> {
+    db.with(|c| {
+        c.execute(
+            "UPDATE jobs SET attempts = attempts + 1 WHERE id = ?1",
+            [job_id],
+        )?;
+        Ok(())
+    })
+}
+
 /// Record the most recent error without moving the job.
 pub fn record_error(db: &Db, job_id: i64, message: &str) -> Result<()> {
     db.with(|c| {

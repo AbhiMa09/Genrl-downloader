@@ -181,7 +181,11 @@ enum Command {
     },
 
     /// Reconcile after a crash, then run the workers until Ctrl-C.
-    Run,
+    Run {
+        /// Stop when stdin closes, so the workers never outlive the app.
+        #[arg(long)]
+        exit_with_parent: bool,
+    },
 
     /// Stop dispatching new work (downloads already running keep going).
     Pause,
@@ -356,7 +360,7 @@ async fn main() -> Result<()> {
         Command::Answer { id, choice, always } => answer_cmd(&data_dir, id, &choice, always),
         Command::Shows { status, json } => shows_cmd(&data_dir, status.as_deref(), json),
         Command::Show { mal_id, json } => show_detail_cmd(&data_dir, mal_id, json).await,
-        Command::Run => run_cmd(&data_dir).await,
+        Command::Run { exit_with_parent } => run_cmd(&data_dir, exit_with_parent).await,
         Command::Pause => automation_cmd(&data_dir, false),
         Command::Resume => automation_cmd(&data_dir, true),
         Command::Plan {

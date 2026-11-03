@@ -89,19 +89,15 @@ impl Scheduler {
         self.reap();
 
         let settings = Settings::load(self.engine.db())?;
-        if !settings.automation_on {
-            // The pause switch stops the scheduler, not the downloads that are
-            // already running: qBittorrent keeps going either way.
-            return Ok(TickReport {
-                paused: true,
-                ..Default::default()
-            });
-        }
+        // The pause switch stops automatic work, not the downloads that are
+        // already running (qBittorrent keeps going either way) and not what
+        // the user just asked for by hand.
+        let manual_only = !settings.automation_on;
 
         let resource_reason = self.engine.blocking_reason(&settings);
         let mut resumed = Vec::new();
         if resource_reason.is_none() {
-            resumed = self.resume_blocked(&settings);
+            resumed = self.resume_blocked(&settings, manual_only);
         }
 
         let mut dispatched = Vec::new();
@@ -117,8 +113,13 @@ impl Scheduler {
                 if room == 0 {
                     continue;
                 }
-                let due =
-                    jobs::due_jobs(self.engine.db(), self.engine.clock().now(), &[kind], room)?;
+                let due = jobs::due_jobs_filtered(
+                    self.engine.db(),
+                    self.engine.clock().now(),
+                    &[kind],
+                    room,
+                    manual_only,
+                )?;
                 for job in due {
                     // A side state is never "due work"; only main steps run.
                     if !job.state.is_active() {
@@ -131,7 +132,7 @@ impl Scheduler {
         }
 
         Ok(TickReport {
-            paused: false,
+            paused: manual_only,
             resource_reason,
             dispatched,
             resumed,
@@ -343,7 +344,7 @@ impl Scheduler {
     /// breaker is read from the gate. qBittorrent blocks resume *optimistically*:
     /// one failed step costs a health check and re-blocks itself, which is
     /// cheaper than a second health path with its own failure modes.
-    fn resume_blocked(&self, settings: &Settings) -> Vec<(i64, JobState)> {
+    fn resume_blocked(&self, settings: &Settings, manual_only: bool) -> Vec<(i64, JobState)> {
         let mut out = Vec::new();
         let blocked = match jobs::list(self.engine.db(), Some(JobState::Blocked), 512) {
             Ok(blocked) => blocked,
@@ -353,11 +354,25 @@ impl Scheduler {
             }
         };
         let gate: &Gate = self.engine.gate();
+        let now = self.engine.clock().now();
         for job in blocked {
             let Some(from) = job.blocked_from else {
                 continue;
             };
+            if manual_only && !jobs::is_manual(self.engine.db(), job.id).unwrap_or(false) {
+                continue;
+            }
             let reason = job.last_error.clone().unwrap_or_default();
+            let checkable = reason.starts_with("Metadata unresolved")
+                || reason.contains("Nyaa")
+                || ((reason.contains("space") || reason.contains("folder"))
+                    && !reason.contains("destination"));
+            // A blocker we can't check is resumed on trust, so it waits out the
+            // backoff set when it blocked: otherwise a job whose blocker is
+            // still there would bounce every tick and flood the Activity log.
+            if !checkable && job.next_run_at.is_some_and(|at| at > now) {
+                continue;
+            }
             let cleared = if reason.starts_with("Metadata unresolved") {
                 self.engine
                     .db()

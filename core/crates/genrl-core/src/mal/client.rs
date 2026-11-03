@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Mutex;
 
+use rusqlite::OptionalExtension;
 use serde::Deserialize;
 
 use crate::clock::Clock;
@@ -17,6 +18,9 @@ use super::pkce::{
     TOKEN_URL,
 };
 use super::token::{TokenStore, Tokens};
+
+/// How long a show's sequel/prequel links are trusted before a fresh lookup.
+const RELATION_CACHE_SECS: i64 = 30 * 24 * 3600;
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct TokenResponse {
@@ -271,14 +275,31 @@ impl<'a> MalClient<'a> {
     /// The whole list, paged, with chains built from MAL relations.
     pub async fn fetch(&self) -> Result<FetchedList> {
         let mut entries = self.fetch_list().await?;
+        let relations_failed = self.chain_entries(&mut entries).await?;
+        Ok(FetchedList {
+            entries,
+            relations_failed,
+        })
+    }
+
+    /// Fill seasons and franchises from MAL's relations, looking up only what
+    /// the cache doesn't already know. Returns how many lookups failed.
+    pub(crate) async fn chain_entries(&self, entries: &mut [MalEntry]) -> Result<usize> {
         let mut relations: HashMap<i64, Vec<Relation>> = HashMap::new();
         let mut relations_failed = 0usize;
+        let mut lookups = 0usize;
         let mut first_error: Option<Error> = None;
 
-        for entry in &entries {
+        for entry in entries.iter() {
             let id = entry.entry.mal_id;
+            if let Some(cached) = self.cached_relations(id)? {
+                relations.insert(id, cached);
+                continue;
+            }
+            lookups += 1;
             match self.relations(id).await {
                 Ok(rels) => {
+                    self.cache_relations(id, &rels)?;
                     relations.insert(id, rels);
                 }
                 Err(err) => {
@@ -294,7 +315,7 @@ impl<'a> MalClient<'a> {
             }
         }
 
-        if relations_failed > 0 && relations_failed == entries.len() {
+        if relations_failed > 0 && relations_failed == lookups {
             // Every lookup failed: something systematic (expired token, MAL
             // down). Swallowing it would hide a real outage behind a wall of
             // singleton chains.
@@ -303,14 +324,51 @@ impl<'a> MalClient<'a> {
             }
         }
 
-        build_chains(&mut entries, &relations);
-        Ok(FetchedList {
-            entries,
-            relations_failed,
+        build_chains(entries, &relations);
+        Ok(relations_failed)
+    }
+
+    /// Relations stored by an earlier sync, if they are still recent enough.
+    fn cached_relations(&self, mal_id: i64) -> Result<Option<Vec<Relation>>> {
+        let oldest = self.clock.now() - RELATION_CACHE_SECS;
+        let raw: Option<String> = self.db().with(|c| {
+            Ok(c.query_row(
+                "SELECT relations FROM mal_relation_cache
+                 WHERE mal_id = ?1 AND fetched_at >= ?2",
+                rusqlite::params![mal_id, oldest],
+                |r| r.get(0),
+            )
+            .optional()?)
+        })?;
+        Ok(raw.and_then(|raw| serde_json::from_str(&raw).ok()))
+    }
+
+    fn cache_relations(&self, mal_id: i64, relations: &[Relation]) -> Result<()> {
+        let stored: Vec<serde_json::Value> = relations
+            .iter()
+            .map(|r| {
+                serde_json::json!({
+                    "node": { "id": r.node.id },
+                    "relation_type": r.relation_type,
+                })
+            })
+            .collect();
+        let body = serde_json::to_string(&stored)?;
+        let now = self.clock.now();
+        self.db().with(|c| {
+            c.execute(
+                "INSERT INTO mal_relation_cache (mal_id, relations, fetched_at)
+                 VALUES (?1, ?2, ?3)
+                 ON CONFLICT (mal_id) DO UPDATE SET
+                    relations = excluded.relations,
+                    fetched_at = excluded.fetched_at",
+                rusqlite::params![mal_id, body, now],
+            )?;
+            Ok(())
         })
     }
 
-    async fn fetch_list(&self) -> Result<Vec<MalEntry>> {
+    pub(crate) async fn fetch_list(&self) -> Result<Vec<MalEntry>> {
         let mut out = Vec::new();
         let mut offset = 0usize;
         for _ in 0..MAX_PAGES {

@@ -84,7 +84,24 @@ pub async fn sync(client: &MalClient<'_>) -> Result<SyncReport> {
         let _ = crate::settings::write_state(&db, "mal_account", &account.name);
     }
 
-    let fetched = client.fetch().await?;
+    // Store new entries as soon as the list is in: season lookups for a large
+    // first sync take minutes, and the Library shouldn't stay empty meanwhile.
+    let mut listed = client.fetch_list().await?;
+    let mut fresh = std::collections::HashSet::new();
+    for m in &listed {
+        if load_mal_entry(&db, m.mal_id())?.is_none() {
+            upsert_show_full(&db, m)?;
+            crate::planner::upsert_names(&db, &m.entry)?;
+            save_mal_entry(&db, m)?;
+            fresh.insert(m.mal_id());
+        }
+    }
+
+    let relations_failed = client.chain_entries(&mut listed).await?;
+    let fetched = super::models::FetchedList {
+        entries: listed,
+        relations_failed,
+    };
     let mut report = SyncReport {
         total: fetched.entries.len(),
         relations_failed: fetched.relations_failed,
@@ -110,7 +127,12 @@ pub async fn sync(client: &MalClient<'_>) -> Result<SyncReport> {
             )
         })?;
 
-        match load_mal_entry(&db, id)? {
+        let stored = if fresh.contains(&id) {
+            None
+        } else {
+            load_mal_entry(&db, id)?
+        };
+        match stored {
             None => {
                 save_mal_entry(&db, m)?;
                 report.added += 1;
@@ -279,9 +301,11 @@ pub(crate) fn upsert_show_full(db: &Db, m: &MalEntry) -> Result<()> {
     db.with(|c| {
         c.execute(
             "INSERT INTO shows (mal_id, title, english_title, type, status, total_episodes,
-                                start_year, auto, episode_offset, season, poster_path, synopsis)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)
+                                start_year, auto, episode_offset, season, poster_path, synopsis,
+                                franchise_id)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)
              ON CONFLICT (mal_id) DO UPDATE SET
+                franchise_id = excluded.franchise_id,
                 title = excluded.title,
                 english_title = COALESCE(excluded.english_title, shows.english_title),
                 type = excluded.type,
@@ -316,6 +340,7 @@ pub(crate) fn upsert_show_full(db: &Db, m: &MalEntry) -> Result<()> {
                 e.season,
                 m.poster_url,
                 m.synopsis,
+                e.franchise,
             ],
         )?;
         Ok(())
