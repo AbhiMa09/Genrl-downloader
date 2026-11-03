@@ -14,7 +14,11 @@ use super::icons::create_folder_png;
 use super::types::{FOLDER_ICON_FILE, MARKER_FILE, SYNOPSIS_FILE};
 
 /// Move, copy, or hardlink a file into the library with chmod 644 (no-op on Windows).
-pub fn transfer_file(source: &Path, target: &Path, mode: MoveMode) -> Result<()> {
+pub fn transfer_file(
+    source: &Path,
+    target: &Path,
+    mode: MoveMode,
+) -> Result<crate::platform::TransferOutcome> {
     crate::platform::transfer_file_with_fallback(source, target, mode).map_err(Into::into)
 }
 

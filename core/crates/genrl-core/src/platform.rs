@@ -274,21 +274,29 @@ pub fn sanitize_filename(name: &str) -> String {
     }
 }
 
+/// Result outcome of a file transfer operation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TransferOutcome {
+    Linked,
+    Copied,
+    Moved,
+}
+
 /// Transfer a file to the target path with fallback for cross-volume hardlinks.
 pub fn transfer_file_with_fallback(
     source: &Path,
     target: &Path,
     mode: crate::settings::MoveMode,
-) -> std::io::Result<()> {
+) -> std::io::Result<TransferOutcome> {
     if source == target {
-        return Ok(());
+        return Ok(TransferOutcome::Linked);
     }
 
     if let Some(parent) = target.parent() {
         fs::create_dir_all(parent)?;
     }
 
-    match mode {
+    let outcome = match mode {
         crate::settings::MoveMode::Hardlink => {
             if let Err(err) = fs::hard_link(source, target) {
                 tracing::warn!(
@@ -303,6 +311,9 @@ pub fn transfer_file_with_fallback(
                     target.display()
                 );
                 fs::copy(source, target)?;
+                TransferOutcome::Copied
+            } else {
+                TransferOutcome::Linked
             }
         }
         crate::settings::MoveMode::Move => {
@@ -310,12 +321,14 @@ pub fn transfer_file_with_fallback(
                 fs::copy(source, target)?;
                 let _ = fs::remove_file(source);
             }
+            TransferOutcome::Moved
         }
         crate::settings::MoveMode::Copy => {
             fs::copy(source, target)?;
+            TransferOutcome::Copied
         }
-    }
+    };
 
     let _ = set_file_permissions(target, 0o644);
-    Ok(())
+    Ok(outcome)
 }

@@ -35,6 +35,7 @@
 mod common;
 
 use std::fs;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use tempfile::tempdir;
@@ -799,6 +800,87 @@ async fn move_modes_work_as_configured() {
     assert!(library_dir
         .join("Move Show (2024)/Move Show - S01E01.mkv")
         .exists());
+}
+
+#[tokio::test]
+async fn hardlink_fallback_records_activity_event_in_event_log() {
+    let mock = MockServer::start().await;
+    let temp = tempdir().unwrap();
+    let library_dir = temp.path().join("Anime");
+    let downloads_dir = temp.path().join("Downloads");
+    let data_dir = temp.path().join("data");
+    fs::create_dir_all(&library_dir).unwrap();
+    fs::create_dir_all(&downloads_dir).unwrap();
+    fs::create_dir_all(&data_dir).unwrap();
+
+    let database = db();
+    let clk = Arc::new(clock());
+
+    let mut settings = Settings::load(&database).unwrap();
+    settings.library_folder = library_dir.display().to_string();
+    settings.download_folder = downloads_dir.display().to_string();
+    settings.jikan_base_url = mock.uri();
+    settings.move_mode = MoveMode::Hardlink;
+    Settings::save(&settings, &database).unwrap();
+
+    let gate = Arc::new(Gate::with_policies(database.clone(), &[]).unwrap());
+    let finalizer = LibraryFinalizer::new(database.clone(), gate, clk.clone(), data_dir);
+
+    insert_show(&database, 301, "Fallback Show", None, "tv", Some(2024), 1);
+    let (ep_id, job) = insert_episode_and_job(&database, 301, 1.0);
+
+    // Cross-volume / cross-device directory (/dev/shm on Linux/WSL, D:\ on multi-volume Windows)
+    let cross_volume_dir = if Path::new("/dev/shm").is_dir() {
+        Some(PathBuf::from("/dev/shm"))
+    } else {
+        let drives = ["D:\\", "C:\\", "E:\\"];
+        drives
+            .iter()
+            .map(PathBuf::from)
+            .find(|d| d.is_dir() && !library_dir.starts_with(d))
+    };
+
+    let Some(cross_dir) = cross_volume_dir else {
+        return;
+    };
+
+    let test_dir = cross_dir.join(format!("genrl_test_{}", std::process::id()));
+    let _ = fs::create_dir_all(&test_dir);
+    let down = test_dir.join("file_cross_dev.mkv");
+    fs::write(&down, b"payload cross dev").unwrap();
+
+    let ctx = FinalizeContext {
+        job: &job,
+        episode_id: ep_id,
+        mal_id: 301,
+        content_path: down.to_str().unwrap(),
+        size_bytes: 17,
+    };
+
+    finalizer.finalize(&ctx).await.unwrap();
+    let _ = fs::remove_dir_all(&test_dir);
+
+    let dest = library_dir.join("Fallback Show (2024)/Fallback Show - S01E01.mkv");
+    assert!(
+        dest.exists(),
+        "destination file should exist after fallback copy"
+    );
+
+    // Verify Activity row was written into events table
+    let events: Vec<(String, String)> = database
+        .with(|c| {
+            let mut stmt = c.prepare("SELECT level, message FROM events WHERE job_id = ?1")?;
+            let rows = stmt.query_map([job.id], |r| Ok((r.get(0)?, r.get(1)?)))?;
+            Ok(rows.flatten().collect())
+        })
+        .unwrap();
+
+    assert!(
+        events.iter().any(|(lvl, msg)| lvl == "warn"
+            && msg.contains("hardlink failed")
+            && msg.contains("fell back to copy")),
+        "must record warning event in EventLog on hardlink copy fallback: {events:?}"
+    );
 }
 
 // ---------------------------------------------------------------------------

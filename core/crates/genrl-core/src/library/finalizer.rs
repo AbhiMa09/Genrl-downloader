@@ -9,7 +9,7 @@ use crate::error::{Error, Result};
 use crate::events::EventLog;
 use crate::models::ShowType;
 use crate::questions::{Answer, Choice, Payload, QuestionStore};
-use crate::settings::Settings;
+use crate::settings::{MoveMode, Settings};
 use crate::worker::{FinalizeContext, FinalizeOutcome, FinalizeSuccess, Finalizer};
 
 use super::folders::{resolve_show_folder, transfer_file};
@@ -350,7 +350,16 @@ impl Finalizer for LibraryFinalizer {
                             }
                             Choice::Replace => {
                                 let _ = fs::remove_file(&target_path);
-                                transfer_file(source_path, &target_path, settings.move_mode)?;
+                                let outcome =
+                                    transfer_file(source_path, &target_path, settings.move_mode)?;
+                                self.record_copy_fallback_warning_if_needed(
+                                    context.job.id,
+                                    context.mal_id,
+                                    source_path,
+                                    &target_path,
+                                    settings.move_mode,
+                                    outcome,
+                                );
                                 return Ok(FinalizeOutcome::Done(FinalizeSuccess {
                                     destination_path: target_path.display().to_string(),
                                 }));
@@ -362,7 +371,16 @@ impl Finalizer for LibraryFinalizer {
                                     .unwrap_or("episode");
                                 let alt_filename = format!("{stem} (v2).{ext}");
                                 let alt_path = show_dir.join(alt_filename);
-                                transfer_file(source_path, &alt_path, settings.move_mode)?;
+                                let outcome =
+                                    transfer_file(source_path, &alt_path, settings.move_mode)?;
+                                self.record_copy_fallback_warning_if_needed(
+                                    context.job.id,
+                                    context.mal_id,
+                                    source_path,
+                                    &alt_path,
+                                    settings.move_mode,
+                                    outcome,
+                                );
                                 return Ok(FinalizeOutcome::Done(FinalizeSuccess {
                                     destination_path: alt_path.display().to_string(),
                                 }));
@@ -401,11 +419,43 @@ impl Finalizer for LibraryFinalizer {
             }
 
             // 5. Transfer file into show folder
-            transfer_file(source_path, &target_path, settings.move_mode)?;
+            let outcome = transfer_file(source_path, &target_path, settings.move_mode)?;
+            self.record_copy_fallback_warning_if_needed(
+                context.job.id,
+                context.mal_id,
+                source_path,
+                &target_path,
+                settings.move_mode,
+                outcome,
+            );
 
             Ok(FinalizeOutcome::Done(FinalizeSuccess {
                 destination_path: target_path.display().to_string(),
             }))
         })
+    }
+}
+
+impl LibraryFinalizer {
+    pub(crate) fn record_copy_fallback_warning_if_needed(
+        &self,
+        job_id: i64,
+        mal_id: i64,
+        source: &Path,
+        target: &Path,
+        mode: MoveMode,
+        outcome: crate::platform::TransferOutcome,
+    ) {
+        if outcome == crate::platform::TransferOutcome::Copied && mode == MoveMode::Hardlink {
+            let _ = EventLog::new(self.db.clone()).warn(
+                Some(job_id),
+                Some(mal_id),
+                format!(
+                    "hardlink failed from '{}' to '{}', fell back to copy",
+                    source.display(),
+                    target.display()
+                ),
+            );
+        }
     }
 }

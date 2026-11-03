@@ -4,7 +4,7 @@ use tempfile::tempdir;
 use genrl_core::platform::{
     are_same_file, are_windows_file_indices_equal, are_windows_volumes_equal, default_download_dir,
     default_library_dir, extract_windows_volume, is_reserved_windows_name, sanitize_filename,
-    set_file_permissions, transfer_file_with_fallback, MAX_FILENAME_LENGTH,
+    set_file_permissions, transfer_file_with_fallback, TransferOutcome, MAX_FILENAME_LENGTH,
 };
 use genrl_core::settings::MoveMode;
 
@@ -155,17 +155,23 @@ fn test_platform_transfer_file_with_fallback() {
     fs::write(&src, b"video content payload").expect("write source");
 
     // Copy mode
-    transfer_file_with_fallback(&src, &target_copy, MoveMode::Copy).expect("copy transfer");
+    let outcome_copy =
+        transfer_file_with_fallback(&src, &target_copy, MoveMode::Copy).expect("copy transfer");
+    assert_eq!(outcome_copy, TransferOutcome::Copied);
     assert!(target_copy.exists());
     assert_eq!(fs::read(&target_copy).unwrap(), b"video content payload");
 
     // Hardlink mode (within same temp dir)
-    transfer_file_with_fallback(&src, &target_link, MoveMode::Hardlink).expect("hardlink transfer");
+    let outcome_link = transfer_file_with_fallback(&src, &target_link, MoveMode::Hardlink)
+        .expect("hardlink transfer");
+    assert_eq!(outcome_link, TransferOutcome::Linked);
     assert!(target_link.exists());
     assert_eq!(fs::read(&target_link).unwrap(), b"video content payload");
 
     // Move mode
-    transfer_file_with_fallback(&src, &target_move, MoveMode::Move).expect("move transfer");
+    let outcome_move =
+        transfer_file_with_fallback(&src, &target_move, MoveMode::Move).expect("move transfer");
+    assert_eq!(outcome_move, TransferOutcome::Moved);
     assert!(target_move.exists());
     assert!(!src.exists(), "source must be unlinked after move");
 }
@@ -276,10 +282,13 @@ fn test_hardlink_fallback_records_warning() {
     let logs = Arc::new(Mutex::new(Vec::new()));
     let subscriber = tracing_subscriber::registry().with(LogCapture(Arc::clone(&logs)));
 
+    let mut outcome = None;
     tracing::subscriber::with_default(subscriber, || {
-        transfer_file_with_fallback(&src, &target, MoveMode::Hardlink).expect("transfer");
+        outcome =
+            Some(transfer_file_with_fallback(&src, &target, MoveMode::Hardlink).expect("transfer"));
     });
 
+    assert_eq!(outcome, Some(TransferOutcome::Copied));
     let recorded = logs.lock().unwrap().clone();
     assert_eq!(fs::read(&target).unwrap(), b"new content");
     assert!(

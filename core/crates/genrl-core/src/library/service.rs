@@ -371,7 +371,16 @@ impl LibraryFinalizer {
                 .map(|m| m.len() as i64)
                 .unwrap_or(0);
             if !target_path.exists() {
-                let _ = transfer_file(&file_path, &target_path, settings.move_mode);
+                if let Ok(outcome) = transfer_file(&file_path, &target_path, settings.move_mode) {
+                    self.record_copy_fallback_warning_if_needed(
+                        context.job.id,
+                        context.mal_id,
+                        &file_path,
+                        &target_path,
+                        settings.move_mode,
+                        outcome,
+                    );
+                }
             }
 
             let final_dest = target_path.display().to_string();
