@@ -195,3 +195,64 @@ jobs:
           name: genrl-windows-x64
           path: app/build/windows/*/runner/Release/
           if-no-files-found: error
+
+  build-linux:
+    name: Linux Desktop Build & Packaging
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Cache Cargo dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            core/target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Build genrl Core Binary
+        run: cargo build --manifest-path core/Cargo.toml --release --bin genrl
+
+      - name: Install Flutter dependencies
+        run: |
+          cd app
+          flutter pub get
+
+      - name: Build Flutter Linux Desktop App
+        run: |
+          cd app
+          flutter config --enable-linux-desktop
+          flutter build linux --release
+
+      - name: Bundle genrl with Flutter runner
+        run: |
+          cp core/target/release/genrl app/build/linux/x64/release/bundle/genrl
+          chmod +x app/build/linux/x64/release/bundle/genrl
+          ls -la app/build/linux/x64/release/bundle/
+
+      - name: Upload Linux Desktop Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: genrl-linux-x64
+          path: app/build/linux/x64/release/bundle/
+          if-no-files-found: error
