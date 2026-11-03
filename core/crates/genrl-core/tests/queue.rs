@@ -1632,3 +1632,43 @@ async fn finalize_step_resolves_empty_download_folder_when_qbit_forgets_torrent(
 
     assert_eq!(outcome.to, JobState::Done);
 }
+
+#[tokio::test]
+async fn finalize_step_resolves_batch_directory_when_qbit_forgets_torrent() {
+    let world = World::new().await;
+    let job_id = plan_one(&world);
+    let engine = world.engine();
+
+    drive_until(&engine, job_id, JobState::Finalize).await;
+
+    // qBittorrent has forgotten the torrent
+    world.qbit().present.clear();
+
+    // Configure a dedicated tempdir for download_folder
+    let dl_temp = tempfile::tempdir().unwrap();
+    let mut settings = Settings::load(&world.db).unwrap();
+    settings.download_folder = dl_temp.path().display().to_string();
+    settings.save(&world.db).unwrap();
+
+    let t_name: String = world
+        .db
+        .with(|c| {
+            Ok(c.query_row(
+                "SELECT name FROM torrents WHERE id = (SELECT torrent_id FROM jobs WHERE id = ?1)",
+                [job_id],
+                |r| r.get(0),
+            )
+            .unwrap())
+        })
+        .unwrap();
+
+    // Create a batch directory (len() == 0 on Windows) containing video file
+    let batch_dir = dl_temp.path().join(&t_name);
+    std::fs::create_dir_all(&batch_dir).unwrap();
+    let file_path = batch_dir.join("episode.mkv");
+    std::fs::write(&file_path, b"test content in batch directory").unwrap();
+
+    let outcome = engine.step(job_id).await.unwrap();
+
+    assert_eq!(outcome.to, JobState::Done);
+}

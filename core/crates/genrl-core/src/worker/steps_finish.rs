@@ -141,7 +141,14 @@ impl Engine {
                 let download_dir = crate::locations::effective_download_dir(&settings);
                 let path = download_dir.join(&torrent.name);
                 match std::fs::metadata(&path) {
-                    Ok(meta) if meta.len() > 0 => (path.display().to_string(), meta.len() as i64),
+                    Ok(meta) if meta.is_dir() || meta.len() > 0 => {
+                        let size = if meta.is_dir() {
+                            compute_dir_size(&path)
+                        } else {
+                            meta.len() as i64
+                        };
+                        (path.display().to_string(), size)
+                    }
                     _ => {
                         return jobs::transition(
                             &self.db,
@@ -281,4 +288,25 @@ impl Engine {
             &MoveOptions::default(),
         )
     }
+}
+
+/// Compute the total size of all files within a directory recursively.
+fn compute_dir_size(dir: &Path) -> i64 {
+    let mut total: i64 = 0;
+    let mut stack = vec![dir.to_path_buf()];
+    while let Some(current) = stack.pop() {
+        if let Ok(entries) = std::fs::read_dir(current) {
+            for entry in entries.flatten() {
+                let p = entry.path();
+                if p.is_dir() {
+                    stack.push(p);
+                } else if p.is_file() {
+                    if let Ok(m) = p.metadata() {
+                        total += m.len() as i64;
+                    }
+                }
+            }
+        }
+    }
+    total
 }
