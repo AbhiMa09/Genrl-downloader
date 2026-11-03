@@ -45,7 +45,8 @@ class _LibraryPosterCardState extends State<LibraryPosterCard> {
     final percent = (downloaded / (total > 0 ? total : 1)).clamp(0.0, 1.0);
     final percentInt = (percent * 100).toInt();
     final isAiring = group.any(
-      (s) => s.airingStatus.toLowerCase().contains('airing') &&
+      (s) =>
+          s.airingStatus.toLowerCase().contains('airing') &&
           !s.airingStatus.toLowerCase().contains('not'),
     );
     final isMovie = show.mediaType == 'movie';
@@ -208,7 +209,6 @@ class _LibraryPosterCardState extends State<LibraryPosterCard> {
                           ),
                         ),
                       ),
-
                   ],
                 ),
               ),

@@ -82,9 +82,8 @@ class _SeasonCardState extends State<_SeasonCard> {
   }
 
   void _notify(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _downloadSeason() async {
@@ -233,9 +232,7 @@ class _SeasonCardState extends State<_SeasonCard> {
                           ? null
                           : _downloadSeason,
                       icon: Icon(
-                        complete
-                            ? Icons.check_rounded
-                            : Icons.download_rounded,
+                        complete ? Icons.check_rounded : Icons.download_rounded,
                         size: 16,
                       ),
                       label: Text(buttonLabel),

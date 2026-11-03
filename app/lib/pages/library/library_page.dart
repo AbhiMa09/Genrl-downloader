@@ -29,7 +29,6 @@ class _LibraryPageState extends State<LibraryPage> {
     super.dispose();
   }
 
-
   @override
   Widget build(BuildContext context) {
     final state = context.watch<StateProvider>();
