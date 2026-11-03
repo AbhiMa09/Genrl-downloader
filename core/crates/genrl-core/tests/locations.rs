@@ -16,8 +16,8 @@ use genrl_core::events::EventLog;
 use genrl_core::library::resolve_show_folder;
 use genrl_core::locations::{
     are_on_same_filesystem, check_directory, default_download_dir, default_library_dir,
-    effective_download_dir, get_locations, get_show_folder, move_existing_library, set_location,
-    validate_path_safety,
+    effective_download_dir, get_locations, get_show_folder, move_existing_library,
+    resolve_home_dir, set_location, validate_path_safety,
 };
 use genrl_core::settings::Settings;
 
@@ -278,4 +278,59 @@ fn test_effective_download_dir_does_not_create_outside_tempdir() {
         .map(|h| h.join("test_dl"))
         .unwrap_or_else(|| PathBuf::from("~/test_dl"));
     assert_eq!(effective_download_dir(&settings), expected);
+
+    #[cfg(windows)]
+    {
+        settings.download_folder = r"~\test_dl".to_string();
+        assert_eq!(effective_download_dir(&settings), expected);
+    }
+}
+
+#[test]
+fn test_resolve_home_dir_falls_back_to_dirs_when_home_is_unset() {
+    let original_home = std::env::var_os("HOME");
+    std::env::remove_var("HOME");
+
+    struct Restore(Option<std::ffi::OsString>);
+    impl Drop for Restore {
+        fn drop(&mut self) {
+            if let Some(ref val) = self.0 {
+                std::env::set_var("HOME", val);
+            }
+        }
+    }
+    let _guard = Restore(original_home);
+
+    if let Some(home) = dirs::home_dir() {
+        assert_eq!(resolve_home_dir("~"), home);
+        assert_eq!(resolve_home_dir("~/test_dl"), home.join("test_dl"));
+        #[cfg(windows)]
+        assert_eq!(resolve_home_dir(r"~\test_dl"), home.join("test_dl"));
+    } else {
+        assert_eq!(resolve_home_dir("~/test_dl"), PathBuf::from("~/test_dl"));
+    }
+}
+
+#[test]
+fn test_resolve_home_dir_uses_home_when_set() {
+    let original_home = std::env::var_os("HOME");
+    let temp = tempfile::tempdir().unwrap();
+    std::env::set_var("HOME", temp.path());
+
+    struct Restore(Option<std::ffi::OsString>);
+    impl Drop for Restore {
+        fn drop(&mut self) {
+            if let Some(ref val) = self.0 {
+                std::env::set_var("HOME", val);
+            } else {
+                std::env::remove_var("HOME");
+            }
+        }
+    }
+    let _guard = Restore(original_home);
+
+    assert_eq!(resolve_home_dir("~"), temp.path());
+    assert_eq!(resolve_home_dir("~/test_dl"), temp.path().join("test_dl"));
+    #[cfg(windows)]
+    assert_eq!(resolve_home_dir(r"~\test_dl"), temp.path().join("test_dl"));
 }

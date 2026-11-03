@@ -57,13 +57,28 @@ pub struct MoveLibraryReport {
 /// Resolve `~` prefix to current user's HOME directory.
 pub fn resolve_home_dir(path_str: &str) -> PathBuf {
     let trimmed = path_str.trim();
-    if trimmed == "~" {
-        if let Ok(home) = std::env::var("HOME") {
-            return PathBuf::from(home);
-        }
+    let rest = if trimmed == "~" {
+        Some("")
     } else if let Some(rest) = trimmed.strip_prefix("~/") {
-        if let Ok(home) = std::env::var("HOME") {
-            return PathBuf::from(home).join(rest);
+        Some(rest)
+    } else if cfg!(windows) {
+        trimmed.strip_prefix(r"~\")
+    } else {
+        None
+    };
+
+    if let Some(rest) = rest {
+        let home = std::env::var("HOME")
+            .ok()
+            .filter(|h| !h.is_empty())
+            .map(PathBuf::from)
+            .or_else(dirs::home_dir);
+        if let Some(home) = home {
+            return if rest.is_empty() {
+                home
+            } else {
+                home.join(rest)
+            };
         }
     }
     PathBuf::from(trimmed)
