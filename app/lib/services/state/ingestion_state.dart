@@ -32,7 +32,10 @@ mixin IngestionStateMixin on StateContext {
 
   /// Poll the core's live progress for [task] while a long command runs, so
   /// counts, the bar and the time estimate move in real time.
-  Timer _watchProgress(String task, String Function(int done, int total) label) {
+  Timer _watchProgress(
+    String task,
+    String Function(int done, int total) label,
+  ) {
     return Timer.periodic(const Duration(seconds: 1), (_) async {
       final all = await bridge.getProgress();
       final p = all[task];
