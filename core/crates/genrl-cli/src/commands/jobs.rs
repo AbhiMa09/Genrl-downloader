@@ -7,22 +7,16 @@ use super::common::open_db;
 
 pub async fn job_retry_cmd(data_dir: &Path, job_id: i64) -> Result<()> {
     let db = open_db(data_dir)?;
-    let count = db.with(|c| {
-        Ok(c.execute(
-            "UPDATE jobs SET state = 'search', attempts = 0, next_run_at = NULL, last_error = NULL WHERE id = ?1 AND state != 'done'",
-            [job_id],
-        )?)
-    })?;
-    if count == 0 {
-        anyhow::bail!("Job {job_id} not found or already completed");
+    let clock = genrl_core::clock::SystemClock;
+    let outcome = genrl_core::jobs::retry_job(&db, &clock, job_id)?;
+    match outcome {
+        genrl_core::jobs::RetryOutcome::Retried => {
+            println!("Job {job_id} reset to search");
+        }
+        genrl_core::jobs::RetryOutcome::SkippedEpisodeDone => {
+            println!("Job {job_id} skipped: episode already done");
+        }
     }
-    let log = EventLog::new(db);
-    log.info(
-        None,
-        Some(job_id),
-        format!("Retried job #{job_id} by user request"),
-    )?;
-    println!("Job {job_id} reset to search");
     Ok(())
 }
 
@@ -58,19 +52,21 @@ pub async fn job_cancel_cmd(data_dir: &Path, job_id: i64, delete_files: bool) ->
 
 pub async fn job_retry_all_cmd(data_dir: &Path) -> Result<()> {
     let db = open_db(data_dir)?;
-    let count = db.with(|c| {
-        Ok(c.execute(
-            "UPDATE jobs SET state = 'search', attempts = 0, next_run_at = NULL, last_error = NULL WHERE state IN ('failed', 'blocked', 'needs_input')",
-            [],
-        )?)
-    })?;
+    let clock = genrl_core::clock::SystemClock;
+    let summary = genrl_core::jobs::retry_all_jobs(&db, &clock)?;
     let log = EventLog::new(db);
     log.info(
         None,
         None,
-        format!("Retried {count} stuck jobs by user request"),
+        format!(
+            "Retried {} stuck jobs ({} skipped: episode already done) by user request",
+            summary.retried, summary.skipped
+        ),
     )?;
-    println!("Retried {count} jobs");
+    println!(
+        "Retried {} jobs ({} skipped: episode already done)",
+        summary.retried, summary.skipped
+    );
     Ok(())
 }
 

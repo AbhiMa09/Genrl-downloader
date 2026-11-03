@@ -52,6 +52,7 @@ pub const TRANSITIONS: &[(JobState, JobState)] = &[
     (JobState::Blocked, JobState::Monitor),
     (JobState::Blocked, JobState::Finalize),
     (JobState::Blocked, JobState::Failed),
+    (JobState::Blocked, JobState::Done),
     // A retry after failure is a fresh attempt at the first step.
     (JobState::Failed, JobState::Search),
     (JobState::Failed, JobState::Done),
@@ -308,4 +309,122 @@ fn kind_of_state(state: JobState) -> JobKind {
         JobState::Finalize => JobKind::Finalize,
         _ => JobKind::Search,
     }
+}
+
+/// The outcome of retrying a job.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RetryOutcome {
+    /// The job was legally reset to search.
+    Retried,
+    /// The job's episode is already done, so the job was completed or skipped.
+    SkippedEpisodeDone,
+}
+
+/// Summary of a bulk retry operation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct RetrySummary {
+    pub retried: usize,
+    pub skipped: usize,
+}
+
+/// Retry a job through the state machine.
+///
+/// If the job's episode is already marked 'done' (e.g. completed via a batch
+/// download), the job is transitioned to Done (or skipped) rather than re-downloading.
+/// Otherwise, the job is transitioned to Search with attempts and previous torrents cleared.
+pub fn retry_job(db: &Db, clock: &dyn Clock, job_id: i64) -> Result<RetryOutcome> {
+    let (state_str, ep_state, mal_id): (String, Option<String>, Option<i64>) = db
+        .with(|c| {
+            Ok(c.query_row(
+                "SELECT j.state, e.state, e.mal_id
+             FROM jobs j
+             LEFT JOIN episodes e ON e.id = j.episode_id
+             WHERE j.id = ?1",
+                [job_id],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+            )?)
+        })
+        .map_err(|_| Error::Other(format!("no job with id {job_id}")))?;
+
+    let state = JobState::parse(&state_str);
+    if state == JobState::Done {
+        return Err(Error::Other(format!("job {job_id} is already completed")));
+    }
+
+    if ep_state.as_deref() == Some("done") {
+        if is_allowed(state, JobState::Done) {
+            let _ = transition(
+                db,
+                clock,
+                job_id,
+                JobState::Done,
+                "episode already done",
+                &MoveOptions::default(),
+            )?;
+        } else {
+            let at = clock.now();
+            let msg = format!("job {job_id}: skipped retry (episode already done)");
+            db.with(|c| events::record_in(c, Level::Info, Some(job_id), mal_id, &msg, at))?;
+        }
+        return Ok(RetryOutcome::SkippedEpisodeDone);
+    }
+
+    if state == JobState::Search {
+        let at = clock.now();
+        db.with(|c| {
+            c.execute(
+                "UPDATE jobs SET attempts = 0, next_run_at = NULL, last_error = NULL, updated_at = ?2 WHERE id = ?1",
+                rusqlite::params![job_id, at],
+            )?;
+            events::record_in(
+                c,
+                Level::Info,
+                Some(job_id),
+                mal_id,
+                &format!("job {job_id}: retried by user"),
+                at,
+            )
+        })?;
+        return Ok(RetryOutcome::Retried);
+    }
+
+    let opts = MoveOptions {
+        clear_torrent: true,
+        reset_attempts: true,
+        ..Default::default()
+    };
+    transition(
+        db,
+        clock,
+        job_id,
+        JobState::Search,
+        "retried by user",
+        &opts,
+    )?;
+    Ok(RetryOutcome::Retried)
+}
+
+/// Bulk-retry all failed, blocked, and needs_input jobs.
+pub fn retry_all_jobs(db: &Db, clock: &dyn Clock) -> Result<RetrySummary> {
+    let candidate_ids: Vec<i64> = db.with(|c| {
+        let mut stmt = c.prepare(
+            "SELECT id FROM jobs WHERE state IN ('failed', 'blocked', 'needs_input') ORDER BY id ASC",
+        )?;
+        let rows = stmt.query_map([], |r| r.get(0))?;
+        let mut list = Vec::new();
+        for r in rows {
+            list.push(r?);
+        }
+        Ok(list)
+    })?;
+
+    let mut summary = RetrySummary::default();
+    for job_id in candidate_ids {
+        match retry_job(db, clock, job_id) {
+            Ok(RetryOutcome::Retried) => summary.retried += 1,
+            Ok(RetryOutcome::SkippedEpisodeDone) => summary.skipped += 1,
+            Err(_) => {}
+        }
+    }
+    Ok(summary)
 }

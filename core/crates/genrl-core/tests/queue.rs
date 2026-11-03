@@ -1729,3 +1729,115 @@ async fn vanished_file_sends_job_back_to_search_with_torrent_cleared() {
         "torrent_id must be cleared when searching again"
     );
 }
+
+#[tokio::test]
+async fn retry_failed_job_transitions_to_search_cleanly() {
+    let world = World::new().await;
+    let job_id = plan_one(&world);
+
+    // Fail the job
+    jobs::transition(
+        &world.db,
+        &world.clock,
+        job_id,
+        JobState::Failed,
+        "test failure",
+        &jobs::MoveOptions::default(),
+    )
+    .unwrap();
+
+    let outcome = jobs::retry_job(&world.db, &world.clock, job_id).unwrap();
+    assert_eq!(outcome, jobs::RetryOutcome::Retried);
+
+    let state: String = world
+        .db
+        .with(|c| {
+            Ok(
+                c.query_row("SELECT state FROM jobs WHERE id = ?1", [job_id], |r| {
+                    r.get(0)
+                })
+                .unwrap(),
+            )
+        })
+        .unwrap();
+    assert_eq!(state, "search");
+}
+
+#[tokio::test]
+async fn retry_job_whose_episode_is_done_skips_and_marks_done() {
+    let world = World::new().await;
+    let job_id = plan_one(&world);
+
+    // Mark the episode done (e.g. completed via batch)
+    world
+        .db
+        .with(|c| {
+            c.execute(
+                "UPDATE episodes SET state = 'done' WHERE id = (SELECT episode_id FROM jobs WHERE id = ?1)",
+                [job_id],
+            )?;
+            Ok(())
+        })
+        .unwrap();
+
+    // Put job in Failed state
+    jobs::transition(
+        &world.db,
+        &world.clock,
+        job_id,
+        JobState::Failed,
+        "test failure",
+        &jobs::MoveOptions::default(),
+    )
+    .unwrap();
+
+    let outcome = jobs::retry_job(&world.db, &world.clock, job_id).unwrap();
+    assert_eq!(outcome, jobs::RetryOutcome::SkippedEpisodeDone);
+
+    let state: String = world
+        .db
+        .with(|c| {
+            Ok(
+                c.query_row("SELECT state FROM jobs WHERE id = ?1", [job_id], |r| {
+                    r.get(0)
+                })
+                .unwrap(),
+            )
+        })
+        .unwrap();
+    assert_eq!(
+        state, "done",
+        "skipped retry marks job done rather than queueing search"
+    );
+}
+
+#[tokio::test]
+async fn retry_all_jobs_reports_retried_and_skipped_counts() {
+    let world = World::new().await;
+    let job_id = plan_one(&world);
+
+    world
+        .db
+        .with(|c| {
+            c.execute(
+                "UPDATE episodes SET state = 'done' WHERE id = (SELECT episode_id FROM jobs WHERE id = ?1)",
+                [job_id],
+            )?;
+            Ok(())
+        })
+        .unwrap();
+
+    jobs::transition(
+        &world.db,
+        &world.clock,
+        job_id,
+        JobState::Failed,
+        "test failure",
+        &jobs::MoveOptions::default(),
+    )
+    .unwrap();
+
+    let summary = jobs::retry_all_jobs(&world.db, &world.clock).unwrap();
+    assert_eq!(summary.retried, 0);
+    assert_eq!(summary.skipped, 1);
+}
