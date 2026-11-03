@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
-if ! command -v cargo &>/dev/null; then
-  [ -f "$HOME/.cargo/env" ] && source "$HOME/.cargo/env"
+# Prefer the SDKs in $HOME: under WSL, PATH also carries the Windows
+# toolchains from /mnt/c, whose scripts have CRLF endings and fail in bash.
+if [ -f "$HOME/.cargo/env" ]; then
+    . "$HOME/.cargo/env"
 fi
-if ! command -v dart &>/dev/null; then
-  [ -d "$HOME/flutter/bin" ] && export PATH="$HOME/flutter/bin:$PATH"
+if [ -d "$HOME/flutter/bin" ]; then
+    export PATH="$HOME/flutter/bin:$PATH"
 fi
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
