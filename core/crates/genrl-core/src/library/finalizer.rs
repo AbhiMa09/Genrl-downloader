@@ -320,14 +320,10 @@ impl Finalizer for LibraryFinalizer {
             if target_path.exists() {
                 // If identical file (same inode/hardlink or same path), already filed
                 if let (Ok(m1), Ok(m2)) = (fs::metadata(source_path), fs::metadata(&target_path)) {
-                    #[cfg(unix)]
-                    {
-                        use std::os::unix::fs::MetadataExt;
-                        if m1.dev() == m2.dev() && m1.ino() == m2.ino() {
-                            return Ok(FinalizeOutcome::Done(FinalizeSuccess {
-                                destination_path: target_path.display().to_string(),
-                            }));
-                        }
+                    if crate::platform::are_same_file(&m1, &m2) {
+                        return Ok(FinalizeOutcome::Done(FinalizeSuccess {
+                            destination_path: target_path.display().to_string(),
+                        }));
                     }
                 }
 

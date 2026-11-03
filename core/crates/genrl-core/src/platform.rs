@@ -27,7 +27,7 @@ pub fn default_data_dir() -> PathBuf {
                 return PathBuf::from(appdata).join("Genrl Downloader");
             }
         }
-        return PathBuf::from(r"C:\Genrl Downloader");
+        PathBuf::from(r"C:\Genrl Downloader")
     }
 
     #[cfg(not(windows))]
@@ -141,6 +141,44 @@ pub fn are_windows_volumes_equal(p1: &str, p2: &str) -> bool {
     match (vol1, vol2) {
         (Some(v1), Some(v2)) => v1.eq_ignore_ascii_case(&v2),
         _ => false,
+    }
+}
+
+/// Compare Windows volume serial and file index identifiers.
+pub fn are_windows_file_indices_equal(
+    v1: Option<u32>,
+    i1: Option<u64>,
+    v2: Option<u32>,
+    i2: Option<u64>,
+) -> bool {
+    match (v1, v2, i1, i2) {
+        (Some(vol1), Some(vol2), Some(idx1), Some(idx2)) => vol1 == vol2 && idx1 == idx2,
+        _ => false,
+    }
+}
+
+/// Check if two files refer to the exact same file on disk (same device & inode on Unix,
+/// or same volume serial number & file index on Windows).
+pub fn are_same_file(m1: &fs::Metadata, m2: &fs::Metadata) -> bool {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::MetadataExt;
+        m1.dev() == m2.dev() && m1.ino() == m2.ino()
+    }
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::MetadataExt;
+        are_windows_file_indices_equal(
+            m1.volume_serial_number(),
+            m1.file_index(),
+            m2.volume_serial_number(),
+            m2.file_index(),
+        )
+    }
+    #[cfg(not(any(unix, windows)))]
+    {
+        let _ = (m1, m2);
+        false
     }
 }
 

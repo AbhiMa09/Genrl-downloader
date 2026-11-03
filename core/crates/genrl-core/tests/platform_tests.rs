@@ -2,9 +2,9 @@ use std::fs;
 use tempfile::tempdir;
 
 use genrl_core::platform::{
-    are_windows_volumes_equal, default_download_dir, default_library_dir, extract_windows_volume,
-    is_reserved_windows_name, sanitize_filename, set_file_permissions, transfer_file_with_fallback,
-    MAX_FILENAME_LENGTH,
+    are_same_file, are_windows_file_indices_equal, are_windows_volumes_equal, default_download_dir,
+    default_library_dir, extract_windows_volume, is_reserved_windows_name, sanitize_filename,
+    set_file_permissions, transfer_file_with_fallback, MAX_FILENAME_LENGTH,
 };
 use genrl_core::settings::MoveMode;
 
@@ -177,4 +177,66 @@ fn test_platform_default_download_and_library_dirs() {
 
     assert!(dl.to_string_lossy().ends_with("Genrl"));
     assert!(lib.to_string_lossy().ends_with("Anime"));
+}
+
+#[test]
+fn test_are_windows_file_indices_equal() {
+    assert!(are_windows_file_indices_equal(
+        Some(12345),
+        Some(67890),
+        Some(12345),
+        Some(67890),
+    ));
+    // Different volume serial
+    assert!(!are_windows_file_indices_equal(
+        Some(12345),
+        Some(67890),
+        Some(99999),
+        Some(67890),
+    ));
+    // Different file index
+    assert!(!are_windows_file_indices_equal(
+        Some(12345),
+        Some(67890),
+        Some(12345),
+        Some(11111),
+    ));
+    // Missing volume serial or file index
+    assert!(!are_windows_file_indices_equal(
+        None,
+        Some(67890),
+        Some(12345),
+        Some(67890),
+    ));
+    assert!(!are_windows_file_indices_equal(
+        Some(12345),
+        None,
+        Some(12345),
+        Some(67890),
+    ));
+}
+
+#[test]
+fn test_are_same_file_detection() {
+    let dir = tempdir().unwrap();
+    let file1 = dir.path().join("file1.bin");
+    let file2 = dir.path().join("file2.bin");
+    let file3 = dir.path().join("file3.bin");
+
+    fs::write(&file1, b"hello").unwrap();
+    fs::hard_link(&file1, &file2).unwrap();
+    fs::write(&file3, b"hello").unwrap();
+
+    let meta1 = fs::metadata(&file1).unwrap();
+    let meta2 = fs::metadata(&file2).unwrap();
+    let meta3 = fs::metadata(&file3).unwrap();
+
+    assert!(
+        are_same_file(&meta1, &meta2),
+        "hardlinked files must be detected as same file"
+    );
+    assert!(
+        !are_same_file(&meta1, &meta3),
+        "independent files must not be detected as same file"
+    );
 }
