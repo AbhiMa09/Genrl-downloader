@@ -64,33 +64,38 @@ mixin ShowDetailStateMixin on StateContext {
   }
 
   @override
-  Future<void> downloadEpisode(int malId, int episodeNumber) async {
-    await bridge.downloadEpisode(malId, episodeNumber);
-    addActivityEvent(
-      ActivityItem(
-        id: DateTime.now().millisecondsSinceEpoch,
-        level: ActivityLevel.info,
-        message:
-            'Dispatched download for episode $episodeNumber of show #$malId',
-        timestamp: DateTime.now(),
-        malId: malId,
-      ),
+  Future<String> downloadEpisode(int malId, int episodeNumber) async {
+    final ok = await bridge.downloadEpisode(malId, episodeNumber);
+    return _afterDownload(
+      malId,
+      ok,
+      ok ? 'Episode $episodeNumber queued.' : null,
     );
-    await Future.wait([
-      refreshQueue(),
-      refreshStatus(),
-      refreshEvents(),
-      loadShowDetail(malId),
-    ]);
   }
 
-  Future<void> downloadSeason(int malId) async {
-    await bridge.downloadSeason(malId);
+  /// Queue one season; the answer is the sentence to show the user.
+  Future<String> downloadSeason(int malId) async {
+    final ok = await bridge.downloadSeason(malId);
+    final queued = bridge.lastQueued;
+    return _afterDownload(
+      malId,
+      ok,
+      ok
+          ? (queued == 0
+                ? 'Nothing to download: this season is already complete.'
+                : 'Season queued.')
+          : null,
+    );
+  }
+
+  Future<String> _afterDownload(int malId, bool ok, String? success) async {
+    final message =
+        success ?? (bridge.lastError ?? 'The download could not be queued.');
     addActivityEvent(
       ActivityItem(
         id: DateTime.now().millisecondsSinceEpoch,
-        level: ActivityLevel.info,
-        message: 'Dispatched season download for show #$malId',
+        level: ok ? ActivityLevel.info : ActivityLevel.error,
+        message: 'Show #$malId: $message',
         timestamp: DateTime.now(),
         malId: malId,
       ),
@@ -99,8 +104,9 @@ mixin ShowDetailStateMixin on StateContext {
       refreshQueue(),
       refreshStatus(),
       refreshEvents(),
-      loadShowDetail(malId),
+      if (selectedShow != null) loadShowDetail(selectedShow!.malId),
     ]);
+    return message;
   }
 
   Future<bool> saveShowFolder(int malId, String path) async {

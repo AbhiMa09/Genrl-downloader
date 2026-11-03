@@ -26,5 +26,5 @@ abstract class StateContext extends ChangeNotifier {
   LibraryShow? get selectedShow;
   set selectedShow(LibraryShow? value);
 
-  Future<void> downloadEpisode(int malId, int episodeNumber);
+  Future<String> downloadEpisode(int malId, int episodeNumber);
 }

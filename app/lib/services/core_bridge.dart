@@ -244,8 +244,25 @@ class CoreBridge with CoreBridgeJobControls {
       '--mal-id',
       malId.toString(),
       '--confirm',
+      '--json',
     ]);
+    _lastQueued = _queuedFrom(res);
     return res.exitCode == 0;
+  }
+
+  int? _lastQueued;
+
+  /// How many jobs the last season download queued, when the core reported it.
+  int? get lastQueued => _lastQueued;
+
+  int? _queuedFrom(ProcessResult res) {
+    if (res.exitCode != 0) return null;
+    try {
+      final decoded = jsonDecode(res.stdout as String);
+      return (decoded['queued'] as num?)?.toInt();
+    } catch (_) {
+      return null;
+    }
   }
 
   /// Get plan dry-run preview as structured data

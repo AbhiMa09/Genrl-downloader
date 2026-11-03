@@ -20,13 +20,16 @@ class ShowDetailTabBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final epCount = show.episodes.isNotEmpty
-        ? show.episodes.length
-        : (show.totalEpisodes > 0 ? show.totalEpisodes : 1);
-    final aliasCount = show.aliases.isNotEmpty ? show.aliases.length : 4;
-    final allDone =
-        show.downloadedEpisodes >=
-        (show.totalEpisodes > 0 ? show.totalEpisodes : 1);
+    final seasons = show.seasons.isNotEmpty
+        ? show.seasons
+        : [SeasonItem.fromShow(show)];
+    final epCount = seasons.fold<int>(0, (sum, s) => sum + s.totalEpisodes);
+    final downloaded = seasons.fold<int>(
+      0,
+      (sum, s) => sum + s.downloadedEpisodes,
+    );
+    final aliasCount = show.aliases.length;
+    final allDone = epCount > 0 && downloaded >= epCount;
 
     return Container(
       padding: const EdgeInsets.all(6),
@@ -44,8 +47,8 @@ class ShowDetailTabBar extends StatelessWidget {
                 _buildTabButton(
                   tab: ShowDetailTab.episodes,
                   icon: Icons.movie_outlined,
-                  label: 'Episodes / Files',
-                  badgeText: '$epCount',
+                  label: 'Seasons',
+                  badgeText: '${seasons.length}',
                 ),
                 const SizedBox(width: 4),
                 _buildTabButton(
@@ -93,7 +96,7 @@ class ShowDetailTabBar extends StatelessWidget {
                     Text(
                       allDone
                           ? 'All $epCount Files Present'
-                          : '${show.downloadedEpisodes} / $epCount Downloaded',
+                          : '$downloaded / $epCount Downloaded',
                       style: ObsidianTypography.monoCode(
                         color: ObsidianColors.outline,
                       ).copyWith(fontSize: 11),

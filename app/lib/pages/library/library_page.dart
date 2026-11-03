@@ -1,10 +1,10 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../models/library_item.dart';
 import '../../services/state_provider.dart';
 import '../../widgets/state_views.dart';
+import '../show_detail/show_detail_utils.dart';
 import 'library_control_bar.dart';
 import 'library_poster_card.dart';
 import 'library_telemetry_banner.dart';
@@ -29,11 +29,6 @@ class _LibraryPageState extends State<LibraryPage> {
     super.dispose();
   }
 
-  void _openFileExplorer(String path) {
-    if (!Platform.environment.containsKey('FLUTTER_TEST')) {
-      Process.run('xdg-open', [path]);
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -61,7 +56,7 @@ class _LibraryPageState extends State<LibraryPage> {
             title: 'MyAnimeList Not Connected',
             description: 'Connect your MyAnimeList account to sync your plan to watch and watching lists automatically.',
             action: ElevatedButton(
-              onPressed: () => state.selectPage(5),
+              onPressed: () => state.selectPage(7),
               child: const Text('Connect MAL in Settings'),
             ),
           ),
@@ -135,6 +130,24 @@ class _LibraryPageState extends State<LibraryPage> {
       }
     });
 
+    // One card per show: its seasons collapse behind the earliest one, which
+    // keeps its place in the sort order above.
+    final seasonsByFranchise = <int, List<LibraryShow>>{};
+    for (final show in allShows) {
+      final key = show.franchiseId != 0 ? show.franchiseId : show.malId;
+      seasonsByFranchise.putIfAbsent(key, () => []).add(show);
+    }
+    final seenFranchises = <int>{};
+    final cards = <LibraryShow>[];
+    for (final show in filteredShows) {
+      final key = show.franchiseId != 0 ? show.franchiseId : show.malId;
+      if (seenFranchises.add(key)) {
+        final seasons = seasonsByFranchise[key]!
+          ..sort((a, b) => a.season.compareTo(b.season));
+        cards.add(seasons.first);
+      }
+    }
+
     final totalTb =
         (allShows.fold<num>(0, (sum, s) => sum + s.onDiskBytes) /
                 (1024 * 1024 * 1024 * 1024))
@@ -179,7 +192,7 @@ class _LibraryPageState extends State<LibraryPage> {
           // 3. Main Grid Area
           Padding(
             padding: const EdgeInsets.all(24),
-            child: filteredShows.isEmpty
+            child: cards.isEmpty
                 ? const EmptyStateView(
                     icon: Icons.video_library_outlined,
                     title: 'No Anime Matches Filter',
@@ -217,27 +230,36 @@ class _LibraryPageState extends State<LibraryPage> {
                       final itemWidth =
                           (constraints.maxWidth - (columns - 1) * 16) / columns;
 
-                      return Wrap(
-                        spacing: 16,
-                        runSpacing: 16,
-                        children: filteredShows.map((show) {
-                          return SizedBox(
-                            width: itemWidth,
-                            child: LibraryPosterCard(
-                              show: show,
-                              density: _density,
-                              onTap: () => state.openShowDetail(show),
-                              onOpenFolder: () => _openFileExplorer(
-                                show.folderPath ??
-                                    (libraryPath != '—'
-                                        ? '$libraryPath/${show.title}'
-                                        : ''),
-                              ),
-                              onToggleAuto: () =>
-                                  state.toggleShowAuto(show.malId),
+                      // Built lazily: a list of a thousand shows must not
+                      // decode a thousand posters up front.
+                      return GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: columns,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                          mainAxisExtent: itemWidth * 1.5 + 90,
+                        ),
+                        itemCount: cards.length,
+                        itemBuilder: (context, index) {
+                          final show = cards[index];
+                          final key = show.franchiseId != 0
+                              ? show.franchiseId
+                              : show.malId;
+                          return LibraryPosterCard(
+                            show: show,
+                            seasons: seasonsByFranchise[key] ?? [show],
+                            density: _density,
+                            onTap: () => state.openShowDetail(show),
+                            onOpenFolder: () => openFileOrFolder(
+                              show.folderPath ??
+                                  (libraryPath != '—' ? libraryPath : null),
                             ),
+                            onToggleAuto: () =>
+                                state.toggleShowAuto(show.malId),
                           );
-                        }).toList(),
+                        },
                       );
                     },
                   ),

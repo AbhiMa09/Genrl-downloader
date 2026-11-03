@@ -1,11 +1,10 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/queue_item.dart';
 import '../../services/state_provider.dart';
 import '../../widgets/state_views.dart';
+import '../show_detail/show_detail_utils.dart';
 import 'queue_filter_bar.dart';
 import 'queue_inspector.dart';
 import 'queue_table.dart';
@@ -29,11 +28,7 @@ class _QueuePageState extends State<QueuePage> {
     super.dispose();
   }
 
-  void _openFileExplorer(String path) {
-    if (!Platform.environment.containsKey('FLUTTER_TEST')) {
-      Process.run('xdg-open', [path]);
-    }
-  }
+  void _openFileExplorer(String path) => openFileOrFolder(path);
 
   @override
   Widget build(BuildContext context) {

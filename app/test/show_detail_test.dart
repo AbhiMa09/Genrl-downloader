@@ -13,7 +13,8 @@ Widget createTestApp(StateProvider stateProvider, LibraryShow show) {
     value: stateProvider,
     child: MaterialApp(
       theme: ObsidianTheme.darkTheme,
-      home: ShowDetailPage(show: show),
+      // In the app the page sits inside MainShell's Scaffold.
+      home: Scaffold(body: ShowDetailPage(show: show)),
     ),
   );
 }
@@ -24,7 +25,7 @@ void main() {
   });
 
   testWidgets(
-    'Show Detail Page renders show info, folder override, and episodes matrix',
+    'Show Detail Page lists seasons with season downloads; episodes are optional',
     (tester) async {
       tester.view.physicalSize = const Size(1280, 800);
       tester.view.devicePixelRatio = 1.0;
@@ -54,20 +55,25 @@ void main() {
       await tester.pumpWidget(createTestApp(state, testShow));
       await tester.pump();
 
-      // Verify title, synopsis, and matrix
+      // Seasons are the unit: no episode rows until asked for.
       expect(find.text('Sousou no Frieren'), findsWidgets);
-      expect(find.text('EPISODES MATRIX'), findsOneWidget);
+      expect(find.text('2 SEASONS'), findsOneWidget);
+      expect(find.text('Season 1'), findsOneWidget);
+      expect(find.text('Season 2'), findsOneWidget);
+      expect(find.text('EP 1'), findsNothing);
+
+      // Season 1 is complete, so only Season 2 offers a download.
+      expect(find.byTooltip('Download Season'), findsNWidgets(2));
+      expect(find.text('Download Season 2'), findsOneWidget);
+      await tester.tap(find.text('Download Season 2'));
+      await tester.pump();
+      expect(fakeBridge.executed.last, contains('54959'));
+
+      // Picking single episodes is an option inside a season.
+      await tester.tap(find.text('Choose episodes').last);
+      await tester.pump();
+      await tester.pump();
       expect(find.text('EP 1'), findsOneWidget);
-      expect(find.text('EP 28'), findsOneWidget);
-
-      // Verify Season Download action in AppBar
-      expect(find.byTooltip('Download Season'), findsOneWidget);
-      await tester.tap(find.byTooltip('Download Season'));
-      await tester.pump();
-
-      // Verify Episode tile click
-      await tester.tap(find.text('EP 1'));
-      await tester.pump();
 
       // Verify Back to Library button clears selected show
       expect(find.text('Back to Library'), findsOneWidget);

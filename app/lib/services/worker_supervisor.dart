@@ -12,6 +12,9 @@ class WorkerSupervisor {
   Process? _workerProcess;
   bool _isWorkerRunning = false;
   StreamController<bool>? _workerStatusController;
+  bool _wanted = false;
+  Timer? _restartTimer;
+  Map<String, String>? _lastEnvironment;
 
   WorkerSupervisor({this.customBinaryPath = 'genrl', this.customDataDir});
 
@@ -85,8 +88,12 @@ class WorkerSupervisor {
     if (customDataDir != null && customDataDir!.isNotEmpty) {
       args.addAll(['--data-dir', customDataDir!]);
     }
-    args.add('run');
+    // The worker stops when our end of its stdin closes, so it can't outlive
+    // the app even if the app is killed.
+    args.addAll(['run', '--exit-with-parent']);
 
+    _wanted = true;
+    _lastEnvironment = environment;
     try {
       final proc = await Process.start(
         bin,
@@ -100,12 +107,18 @@ class WorkerSupervisor {
       _isWorkerRunning = true;
       _workerStatusController?.add(true);
 
+      // Nobody reads the worker's output, but an undrained pipe would fill up
+      // and freeze it.
+      proc.stdout.drain<void>();
+      proc.stderr.drain<void>();
+
       // Handle worker process exit
       proc.exitCode.then((exitCode) {
         if (_workerProcess == proc) {
           _isWorkerRunning = false;
           _workerProcess = null;
           _workerStatusController?.add(false);
+          _scheduleRestart();
         }
       });
 
@@ -114,12 +127,25 @@ class WorkerSupervisor {
       _isWorkerRunning = false;
       _workerProcess = null;
       _workerStatusController?.add(false);
+      _scheduleRestart();
       return false;
     }
   }
 
+  void _scheduleRestart() {
+    if (!_wanted) return;
+    _restartTimer?.cancel();
+    _restartTimer = Timer(const Duration(seconds: 10), () {
+      if (_wanted && !_isWorkerRunning) {
+        startWorker(environment: _lastEnvironment);
+      }
+    });
+  }
+
   /// Terminate the supervised worker process.
   void stopWorker() {
+    _wanted = false;
+    _restartTimer?.cancel();
     if (_workerProcess != null) {
       try {
         _workerProcess!.kill();

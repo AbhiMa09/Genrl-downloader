@@ -5,11 +5,11 @@ import '../../models/library_item.dart';
 import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
 import 'aliases_tab.dart';
-import 'episodes_tab.dart';
 import 'hero_section.dart';
 import 'left_rail.dart';
 import 'related_works_section.dart';
 import 'rules_tab.dart';
+import 'seasons_tab.dart';
 import 'show_detail_utils.dart';
 import 'sub_header.dart';
 import 'tab_bar.dart';
@@ -41,11 +41,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
     final state = context.watch<StateProvider>();
     final show = state.selectedShow ?? widget.show;
 
-    final onDiskString = show.onDiskBytes > 0
-        ? formatBytes(show.onDiskBytes)
-        : (show.downloadedEpisodes > 0
-              ? '${(show.downloadedEpisodes * 1.4).toStringAsFixed(2)} GiB'
-              : '0 B');
+    final onDiskString = formatBytes(show.onDiskBytes);
 
     final isMovie = show.mediaType.toLowerCase() == 'movie';
     final formatLabel = isMovie
@@ -188,7 +184,7 @@ class _ShowDetailPageState extends State<ShowDetailPage> {
 
         // Active Tab View
         if (_activeTab == ShowDetailTab.episodes)
-          ShowDetailEpisodesTab(show: show, isMovie: isMovie)
+          ShowDetailSeasonsTab(show: show)
         else if (_activeTab == ShowDetailTab.aliases)
           ShowDetailAliasesTab(show: show, aliases: effectiveAliases)
         else

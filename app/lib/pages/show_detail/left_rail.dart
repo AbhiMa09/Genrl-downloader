@@ -51,51 +51,6 @@ class ShowDetailLeftRail extends StatelessWidget {
                 ),
               ),
 
-              // Poster Top Badges
-              Positioned(
-                top: 10,
-                left: 10,
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: ObsidianColors.surfaceContainerLowest
-                            .withOpacity(0.9),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        'BD 1080p',
-                        style: ObsidianTypography.labelBadge(
-                          color: ObsidianColors.tertiary,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: ObsidianColors.surfaceContainerLowest
-                            .withOpacity(0.9),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        'HEVC',
-                        style: ObsidianTypography.labelBadge(
-                          color: ObsidianColors.primary,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
               // Bookmark Monitored Button
               Positioned(
                 top: 10,

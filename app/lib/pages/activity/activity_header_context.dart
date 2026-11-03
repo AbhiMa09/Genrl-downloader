@@ -104,13 +104,20 @@ class ActivityHeaderContext extends StatelessWidget {
                     )
                     .join('\n');
                 Clipboard.setData(ClipboardData(text: exportStr));
+                final logPath =
+                    '${Directory.systemTemp.path}${Platform.pathSeparator}genrl-activity.log';
+                var written = true;
                 try {
-                  File('/tmp/genrl-activity.log').writeAsStringSync(exportStr);
-                } catch (_) {}
+                  File(logPath).writeAsStringSync(exportStr);
+                } catch (_) {
+                  written = false;
+                }
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
-                      'Exported ${state.events.length} events to /tmp/genrl-activity.log & clipboard',
+                      written
+                          ? 'Exported ${state.events.length} events to $logPath and the clipboard'
+                          : 'Copied ${state.events.length} events to the clipboard (writing $logPath failed)',
                     ),
                     backgroundColor: ObsidianColors.surfaceContainerHigh,
                   ),

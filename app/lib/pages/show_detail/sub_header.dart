@@ -101,35 +101,6 @@ class ShowDetailSubHeader extends StatelessWidget {
 
             const SizedBox(width: 24),
 
-            // Download Season Button
-            Tooltip(
-              message: show.metadataResolved
-                  ? 'Download Season'
-                  : 'Resolve metadata before downloading',
-              child: FilledButton.icon(
-                onPressed: show.metadataResolved
-                    ? () => state.downloadSeason(show.malId)
-                    : null,
-                icon: const Icon(Icons.download_rounded, size: 16),
-                label: Text(isMovie ? 'Download Movie' : 'Download Season'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: ObsidianColors.primaryContainer,
-                  foregroundColor: ObsidianColors.onPrimaryContainer,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 8,
-                  ),
-                  textStyle: ObsidianTypography.monoCode(
-                    color: ObsidianColors.onPrimaryContainer,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-
             // Refresh Metadata Button
             OutlinedButton.icon(
               onPressed: show.metadataStatus == 'fetching'
@@ -171,16 +142,14 @@ class ShowDetailSubHeader extends StatelessWidget {
             ),
             const SizedBox(width: 8),
 
-            // Recheck Hashes Button
+            // Rescan Library Button
             OutlinedButton.icon(
               onPressed: () async {
                 await state.bridge.rescanLibrary();
                 await state.loadShowDetail(show.malId);
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Library rescanned and hashes rechecked.'),
-                    ),
+                    const SnackBar(content: Text('Library rescanned.')),
                   );
                 }
               },
@@ -190,7 +159,7 @@ class ShowDetailSubHeader extends StatelessWidget {
                 color: ObsidianColors.primary,
               ),
               label: Text(
-                'Recheck Hashes',
+                'Rescan Library',
                 style: ObsidianTypography.monoCode(
                   color: ObsidianColors.onSurface,
                 ),

@@ -1,22 +1,17 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 
 import '../../models/library_item.dart';
 import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
+import '../show_detail/show_detail_utils.dart';
 
 class DashboardAiringPosters extends StatelessWidget {
   final StateProvider state;
 
   const DashboardAiringPosters({super.key, required this.state});
 
-  void _openFileExplorer(String path) {
-    if (!Platform.environment.containsKey('FLUTTER_TEST')) {
-      Process.run('xdg-open', [path]);
-    }
-  }
+  void _openFileExplorer(String path) => openFileOrFolder(path);
 
   @override
   Widget build(BuildContext context) {

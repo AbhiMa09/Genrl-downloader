@@ -38,8 +38,46 @@ class EpisodeItem {
   });
 }
 
+/// One season in a show's chain, as a unit the user can download.
+class SeasonItem {
+  final int malId;
+  final String title;
+  final int season;
+  final int totalEpisodes;
+  final int downloadedEpisodes;
+  final int activeJobs;
+  final int failedJobs;
+  final String mediaType;
+  final String? posterUrl;
+
+  const SeasonItem({
+    required this.malId,
+    required this.title,
+    required this.season,
+    required this.totalEpisodes,
+    required this.downloadedEpisodes,
+    this.activeJobs = 0,
+    this.failedJobs = 0,
+    this.mediaType = 'tv',
+    this.posterUrl,
+  });
+
+  /// The show itself, until its detail (and season chain) has loaded.
+  factory SeasonItem.fromShow(LibraryShow show) => SeasonItem(
+    malId: show.malId,
+    title: show.title,
+    season: show.season,
+    totalEpisodes: show.totalEpisodes,
+    downloadedEpisodes: show.downloadedEpisodes,
+    mediaType: show.mediaType,
+    posterUrl: show.posterUrl,
+  );
+}
+
 class LibraryShow {
   final int malId;
+  final int franchiseId;
+  final List<SeasonItem> seasons;
   final String title;
   final String? englishTitle;
   final String? japaneseTitle;
@@ -79,6 +117,8 @@ class LibraryShow {
 
   const LibraryShow({
     required this.malId,
+    this.franchiseId = 0,
+    this.seasons = const [],
     required this.title,
     this.englishTitle,
     this.japaneseTitle,
@@ -130,6 +170,8 @@ class LibraryShow {
   }) {
     return LibraryShow(
       malId: malId,
+      franchiseId: franchiseId,
+      seasons: seasons,
       title: title,
       englishTitle: englishTitle,
       japaneseTitle: japaneseTitle,

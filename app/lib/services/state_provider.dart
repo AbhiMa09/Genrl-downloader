@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import '../models/activity_item.dart';
 import '../models/inbox_item.dart';
@@ -51,6 +52,7 @@ class StateProvider extends StateContext
 
   // Background timer for live refresh & event stream simulation
   Timer? _pollingTimer;
+  String? _queueFingerprint;
   StreamSubscription<bool>? _workerStatusSub;
 
   StateProvider({CoreBridge? bridge, bool startPolling = true})
@@ -58,6 +60,11 @@ class StateProvider extends StateContext
     refreshAll();
     if (startPolling) {
       _startPolling();
+      // Queued jobs only move while the worker runs. It stays idle on automatic
+      // work while automation is off, so starting it is always safe.
+      if (!Platform.environment.containsKey('FLUTTER_TEST')) {
+        this.bridge.startWorker();
+      }
     }
     _workerStatusSub = this.bridge.supervisor.workerStatusStream.listen((_) {
       notifyListeners();
@@ -172,6 +179,15 @@ class StateProvider extends StateContext
 
       if (queueRes != null) {
         setQueueFromTelemetry(queueRes);
+        // A job moved: the Library and the open show follow without a click.
+        final fingerprint = queueRes
+            .map((q) => '${q.id}:${q.state.name}')
+            .join(',');
+        if (fingerprint != _queueFingerprint) {
+          _queueFingerprint = fingerprint;
+          unawaited(refreshShows());
+          unawaited(refreshInbox());
+        }
       }
 
       if (eventsRes != null) {
@@ -257,6 +273,7 @@ class StateProvider extends StateContext
 
   @override
   Future<void> forceSyncMal() async {
+    if (_isSyncing) return; // Two syncs would only race each other.
     _isSyncing = true;
     notifyListeners();
     await bridge.syncMal();

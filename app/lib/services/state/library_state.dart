@@ -27,13 +27,10 @@ mixin LibraryStateMixin on StateContext {
     try {
       final items = await bridge.getShows(status: status);
       _shows = List<LibraryShow>.from(items);
+      // The list row has no seasons or episodes: reload the open show rather
+      // than replacing its detail with the row.
       if (selectedShow != null) {
-        final updated = items
-            .where((s) => s.malId == selectedShow!.malId)
-            .firstOrNull;
-        if (updated != null) {
-          selectedShow = updated;
-        }
+        await loadShowDetail(selectedShow!.malId);
       }
     } catch (e) {
       _showsError = e.toString();

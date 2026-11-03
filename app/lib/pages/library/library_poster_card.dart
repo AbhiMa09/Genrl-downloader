@@ -3,11 +3,14 @@ import 'package:flutter/material.dart';
 import '../../models/library_item.dart';
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
-import '../../widgets/loading/skeleton_poster_card.dart';
+import '../../widgets/anime_poster.dart';
 import 'poster_density.dart';
 
 class LibraryPosterCard extends StatefulWidget {
   final LibraryShow show;
+
+  /// Every season of this show on the list; the card speaks for all of them.
+  final List<LibraryShow> seasons;
   final PosterDensity density;
   final VoidCallback onTap;
   final VoidCallback onOpenFolder;
@@ -16,6 +19,7 @@ class LibraryPosterCard extends StatefulWidget {
   const LibraryPosterCard({
     super.key,
     required this.show,
+    this.seasons = const [],
     required this.density,
     required this.onTap,
     required this.onOpenFolder,
@@ -32,10 +36,24 @@ class _LibraryPosterCardState extends State<LibraryPosterCard> {
   @override
   Widget build(BuildContext context) {
     final show = widget.show;
-    final downloaded = show.episodesDownloaded;
-    final total = show.episodesTotal;
+    final group = widget.seasons.isNotEmpty ? widget.seasons : [show];
+    final downloaded = group.fold<int>(
+      0,
+      (sum, s) => sum + s.episodesDownloaded,
+    );
+    final total = group.fold<int>(0, (sum, s) => sum + s.episodesTotal);
     final percent = (downloaded / (total > 0 ? total : 1)).clamp(0.0, 1.0);
     final percentInt = (percent * 100).toInt();
+    final isAiring = group.any(
+      (s) => s.airingStatus.toLowerCase().contains('airing') &&
+          !s.airingStatus.toLowerCase().contains('not'),
+    );
+    final isMovie = show.mediaType == 'movie';
+    final seasonLabel = isMovie
+        ? 'Movie'
+        : group.length == 1
+        ? '1 Season'
+        : '${group.length} Seasons';
 
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
@@ -73,14 +91,9 @@ class _LibraryPosterCardState extends State<LibraryPosterCard> {
                   fit: StackFit.expand,
                   children: [
                     if (show.posterUrl != null && show.posterUrl!.isNotEmpty)
-                      Image.network(
-                        show.posterUrl!,
-                        fit: BoxFit.cover,
-                        loadingBuilder: (context, child, progress) {
-                          if (progress == null) return child;
-                          return const SkeletonPosterCard();
-                        },
-                        errorBuilder: (_, __, ___) => _buildPlaceholder(show),
+                      AnimePoster(
+                        urlOrPath: show.posterUrl,
+                        borderRadius: BorderRadius.zero,
                       )
                     else
                       _buildPlaceholder(show),
@@ -107,46 +120,46 @@ class _LibraryPosterCardState extends State<LibraryPosterCard> {
                       left: 6,
                       child: Row(
                         children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 5,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: ObsidianColors.secondaryContainer
-                                  .withOpacity(0.9),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              'AUTO',
-                              style: ObsidianTypography.labelBadge(
-                                color: ObsidianColors.onSecondaryContainer,
-                                fontSize: 8,
+                          if (show.auto) ...[
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 5,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: ObsidianColors.secondaryContainer
+                                    .withOpacity(0.9),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                'AUTO',
+                                style: ObsidianTypography.labelBadge(
+                                  color: ObsidianColors.onSecondaryContainer,
+                                  fontSize: 8,
+                                ),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 4),
+                            const SizedBox(width: 4),
+                          ],
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 5,
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: show.status == 'Completed'
-                                  ? ObsidianColors.surfaceContainerHighest
+                              color: isAiring
+                                  ? ObsidianColors.tertiaryContainer
                                         .withOpacity(0.85)
-                                  : ObsidianColors.tertiaryContainer
+                                  : ObsidianColors.surfaceContainerHighest
                                         .withOpacity(0.85),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
-                              show.status == 'Completed'
-                                  ? 'COMPLETED'
-                                  : 'AIRING',
+                              isAiring ? 'AIRING' : show.status.toUpperCase(),
                               style: ObsidianTypography.labelBadge(
-                                color: show.status == 'Completed'
-                                    ? ObsidianColors.onSurfaceVariant
-                                    : ObsidianColors.onTertiary,
+                                color: isAiring
+                                    ? ObsidianColors.onTertiary
+                                    : ObsidianColors.onSurfaceVariant,
                                 fontSize: 8,
                               ),
                             ),
@@ -196,20 +209,6 @@ class _LibraryPosterCardState extends State<LibraryPosterCard> {
                         ),
                       ),
 
-                    // Bottom Quality Badge
-                    Positioned(
-                      bottom: 6,
-                      left: 6,
-                      right: 6,
-                      child: Text(
-                        '1080p HEVC · Erai',
-                        style: ObsidianTypography.monoCode(
-                          color: ObsidianColors.tertiary,
-                          fontSize: 9,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -232,7 +231,9 @@ class _LibraryPosterCardState extends State<LibraryPosterCard> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Season ${show.season} · ${show.studio ?? "Anime"}',
+                      show.startYear > 0
+                          ? '$seasonLabel · ${show.startYear}'
+                          : seasonLabel,
                       style: ObsidianTypography.monoCode(
                         color: ObsidianColors.outline,
                         fontSize: 10,

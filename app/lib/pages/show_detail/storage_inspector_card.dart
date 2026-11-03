@@ -84,7 +84,7 @@ class StorageInspectorCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
             ),
             child: SelectableText(
-              show.folderPath ?? '/mnt/anime/${show.title}/',
+              show.folderPath ?? 'Not filed yet: the folder is created with the first download',
               style: ObsidianTypography.monoCode(
                 color: ObsidianColors.onSurfaceVariant,
               ).copyWith(fontSize: 11),

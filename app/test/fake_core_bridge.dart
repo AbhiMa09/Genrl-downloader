@@ -21,11 +21,15 @@ class FakeCoreBridge extends CoreBridge {
     this.customShowDetail,
   });
 
+  /// Every command line the app sent, for tests that check what was asked.
+  final List<String> executed = [];
+
   @override
   Future<ProcessResult> execute(
     List<String> args, {
     Map<String, String>? environment,
   }) async {
+    executed.add(args.join(' '));
     if (mode == FakeMode.error) {
       return ProcessResult(1, 1, '', errorMessage);
     }
@@ -187,6 +191,22 @@ class FakeCoreBridge extends CoreBridge {
       posterUrl: null,
       folderPath: '/mnt/anime/Sousou no Frieren (2023)',
       auto: true,
+      seasons: [
+        SeasonItem(
+          malId: 52991,
+          title: 'Sousou no Frieren',
+          season: 1,
+          totalEpisodes: 28,
+          downloadedEpisodes: 28,
+        ),
+        SeasonItem(
+          malId: 54959,
+          title: 'Sousou no Frieren 2nd Season',
+          season: 2,
+          totalEpisodes: 10,
+          downloadedEpisodes: 0,
+        ),
+      ],
     );
   }
 

@@ -193,7 +193,27 @@ List<LibraryShow> parseShowsList(List<dynamic> list) {
       auto: m['auto'] == true,
       metadataStatus: m['metadata_status']?.toString() ?? 'ready',
       metadataError: m['metadata_error']?.toString(),
+      franchiseId: (m['franchise_id'] as num?)?.toInt() ?? 0,
+      season: (m['season'] as num?)?.toInt() ?? 1,
+      mediaType: m['media_type']?.toString() ?? 'tv',
       episodes: const [],
+    );
+  }).toList();
+}
+
+List<SeasonItem> parseSeasons(List<dynamic> list) {
+  return list.map((item) {
+    final s = item as Map<String, dynamic>;
+    return SeasonItem(
+      malId: (s['mal_id'] as num).toInt(),
+      title: s['title']?.toString() ?? '',
+      season: (s['season'] as num?)?.toInt() ?? 1,
+      totalEpisodes: (s['total_episodes'] as num?)?.toInt() ?? 0,
+      downloadedEpisodes: (s['downloaded_episodes'] as num?)?.toInt() ?? 0,
+      activeJobs: (s['active_jobs'] as num?)?.toInt() ?? 0,
+      failedJobs: (s['failed_jobs'] as num?)?.toInt() ?? 0,
+      mediaType: s['media_type']?.toString() ?? 'tv',
+      posterUrl: s['poster_url']?.toString(),
     );
   }).toList();
 }
@@ -265,6 +285,7 @@ LibraryShow parseShowDetail(Map<String, dynamic> m) {
     metadataError: m['metadata_error']?.toString(),
     metadataNextRetryAt: (m['metadata_next_retry_at'] as num?)?.toInt(),
     metadataUpdatedAt: (m['metadata_updated_at'] as num?)?.toInt(),
+    seasons: parseSeasons(m['seasons'] as List<dynamic>? ?? const []),
     episodes: epList,
   );
 }
