@@ -435,32 +435,44 @@ mod tests {
         let temp = tempfile::tempdir().unwrap();
         let db = open_db(temp.path()).unwrap();
         let mut settings = Settings::load(&db).unwrap();
-        // Point qBittorrent to a closed local port so reconcile fails immediately.
+        // Point qBittorrent to a closed local port so reconcile fails.
         settings.qbit_url = "http://127.0.0.1:1".to_string();
         settings.save(&db).unwrap();
 
         // Run with exit_with_parent = false so it doesn't read stdin.
-        // If reconcile failure caused run_cmd to exit (the bug), this future would
-        // resolve to Err(...) immediately. With the fix, run_cmd logs a warning and
-        // keeps running, so the short timeout elapses.
-        let result = tokio::time::timeout(
-            std::time::Duration::from_secs(3),
-            run_cmd(temp.path(), false),
-        )
-        .await;
+        let path = temp.path().to_path_buf();
+        let handle = tokio::spawn(async move { run_cmd(&path, false).await });
+
+        // Poll EventLog every 100 ms up to 30 s for "startup recovery skipped".
+        let mut event_found = false;
+        let event_log = EventLog::new(db);
+        for _ in 0..300 {
+            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+            if let Ok(events) = event_log.recent(10) {
+                if events
+                    .iter()
+                    .any(|e| e.message.contains("startup recovery skipped"))
+                {
+                    event_found = true;
+                    break;
+                }
+            }
+            if handle.is_finished() {
+                break;
+            }
+        }
 
         assert!(
-            result.is_err(),
+            event_found,
+            "startup recovery skipped event should appear in event log"
+        );
+        assert!(
+            !handle.is_finished(),
             "run_cmd must keep running despite reconcile failure"
         );
 
-        // Verify the warning was logged to EventLog
-        let events = EventLog::new(db).recent(10).unwrap();
-        assert!(
-            events
-                .iter()
-                .any(|e| e.message.contains("startup recovery skipped")),
-            "warning should be recorded in event log"
-        );
+        handle.abort();
+        let _ = handle.await;
+        drop(temp);
     }
 }
