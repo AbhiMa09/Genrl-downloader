@@ -1161,8 +1161,10 @@ async fn open_jikan_breaker_leaves_remaining_metadata_unclaimed() {
         Ok(())
     })
     .unwrap();
-    let mut settings = Settings::default();
-    settings.jikan_base_url = server.uri();
+    let settings = Settings {
+        jikan_base_url: server.uri(),
+        ..Default::default()
+    };
     let mut policy = fast_policy();
     policy.breaker_threshold = 1;
     let gate = Gate::with_policies(db.clone(), &[(Service::Jikan, policy)]).unwrap();
@@ -1195,8 +1197,10 @@ async fn metadata_retry_honors_server_retry_after() {
         Ok(())
     })
     .unwrap();
-    let mut settings = Settings::default();
-    settings.jikan_base_url = server.uri();
+    let settings = Settings {
+        jikan_base_url: server.uri(),
+        ..Default::default()
+    };
     let mut policy = fast_policy();
     policy.breaker_threshold = 1;
     let gate = Gate::with_policies(db.clone(), &[(Service::Jikan, policy)]).unwrap();
@@ -1226,8 +1230,10 @@ async fn jikan_timeout_uses_authenticated_mal_partial_metadata_without_sqlite_to
         Ok(())
     })
     .unwrap();
-    let mut settings = Settings::default();
-    settings.jikan_base_url = server.uri();
+    let settings = Settings {
+        jikan_base_url: server.uri(),
+        ..Default::default()
+    };
     settings.mal_base_url = server.uri();
     settings.mal_client_id = "fixture-client".into();
     Mock::given(method("GET"))
@@ -1492,5 +1498,80 @@ async fn test_download_season_for_finished_show_prefers_exact_season_batch() {
         jobs.len(),
         1,
         "Exactly 1 search job must be queued for season batch"
+    );
+}
+
+#[tokio::test]
+async fn test_open_jikan_breaker_pauses_batch_without_retrying_or_failing_remaining_shows() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .respond_with(ResponseTemplate::new(500))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let db = Db::open_in_memory().unwrap();
+    db.with(|c| {
+        for id in 1..=5 {
+            c.execute(
+                "INSERT INTO shows (mal_id, title, metadata_status, metadata_retry_count) VALUES (?1, 'Show', 'pending', 0)",
+                [id],
+            )?;
+        }
+        Ok(())
+    })
+    .unwrap();
+
+    let settings = Settings {
+        jikan_base_url: server.uri(),
+        ..Default::default()
+    };
+    let mut policy = fast_policy();
+    policy.breaker_threshold = 1;
+    let gate = Gate::with_policies(db.clone(), &[(Service::Jikan, policy)]).unwrap();
+    let dir = tempdir().unwrap();
+
+    // First batch: show 1 gets 500, trips breaker, remaining shows 2..5 are NOT processed
+    let report1 = process_metadata_queue(&db, &gate, &settings, &clock(), dir.path(), Some(5))
+        .await
+        .unwrap();
+    assert_eq!(report1.processed, 1);
+    assert_eq!(report1.failed, 1);
+
+    // Second batch: breaker is already open. It must stop immediately without claiming or failing any show
+    let report2 = process_metadata_queue(&db, &gate, &settings, &clock(), dir.path(), Some(5))
+        .await
+        .unwrap();
+    assert_eq!(report2.processed, 0);
+    assert_eq!(report2.failed, 0);
+
+    // Shows 2..5 must still be pending with retry count 0
+    let pending_cnt: i64 = db
+        .with(|c| {
+            Ok(c.query_row(
+                "SELECT count(*) FROM shows WHERE mal_id IN (2, 3, 4, 5) AND metadata_status = 'pending' AND metadata_retry_count = 0",
+                [],
+                |r| r.get(0),
+            )?)
+        })
+        .unwrap();
+    assert_eq!(
+        pending_cnt, 4,
+        "Remaining shows must be untouched with retry count 0"
+    );
+
+    // Edge-only logging: exactly 1 warning about breaker being open was written to EventLog
+    let log_count: i64 = db
+        .with(|c| {
+            Ok(c.query_row(
+                "SELECT count(*) FROM events WHERE message LIKE '%Jikan circuit breaker open%'",
+                [],
+                |r| r.get(0),
+            )?)
+        })
+        .unwrap();
+    assert_eq!(
+        log_count, 1,
+        "Must log at most one warning for breaker open, not one per show or per tick"
     );
 }

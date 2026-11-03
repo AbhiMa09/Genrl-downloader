@@ -154,6 +154,7 @@ pub async fn fetch_show_metadata_with_client(
     let mut jikan_fetched_data: Option<JikanFullData> = None;
     let mut last_error: Option<String> = None;
     let mut is_404 = false;
+    let mut is_breaker_open = false;
     let mut minimum_retry_secs = 0i64;
 
     let service_retry_at =
@@ -195,6 +196,7 @@ pub async fn fetch_show_metadata_with_client(
                     ..
                 } => i64::try_from(delay.as_secs()).unwrap_or(i64::MAX),
                 crate::Error::BreakerOpen { retry_in_secs, .. } => {
+                    is_breaker_open = true;
                     i64::try_from(*retry_in_secs).unwrap_or(i64::MAX)
                 }
                 _ => 0,
@@ -355,6 +357,25 @@ pub async fn fetch_show_metadata_with_client(
         return Ok(MetadataOutcome::Failed {
             mal_id,
             error: err_str,
+        });
+    }
+
+    // Circuit breaker open: halt without penalising the show or spamming warnings
+    if is_breaker_open {
+        let _ = db.with(|c| {
+            c.execute(
+                "UPDATE shows SET
+                    metadata_status = 'pending',
+                    metadata_error = 'Jikan circuit breaker open'
+                 WHERE mal_id = ?1",
+                [mal_id],
+            )?;
+            Ok(())
+        });
+        return Ok(MetadataOutcome::PendingRetry {
+            mal_id,
+            next_run_at: now,
+            error: "Jikan circuit breaker open".to_string(),
         });
     }
 

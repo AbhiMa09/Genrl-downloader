@@ -122,6 +122,26 @@ pub async fn process_metadata_queue_reporting(
     result
 }
 
+fn handle_breaker_open(db: &Db) -> Result<()> {
+    if crate::settings::read_state(db, "jikan_breaker_open_logged")?.as_deref() != Some("1") {
+        let log = crate::events::EventLog::new(db.clone());
+        let _ = log.warn(
+            None,
+            None,
+            "Jikan circuit breaker open; pausing metadata queue",
+        );
+        let _ = crate::settings::write_state(db, "jikan_breaker_open_logged", "1");
+    }
+    Ok(())
+}
+
+fn handle_breaker_closed(db: &Db) -> Result<()> {
+    if crate::settings::read_state(db, "jikan_breaker_open_logged")?.as_deref() == Some("1") {
+        let _ = crate::settings::write_state(db, "jikan_breaker_open_logged", "0");
+    }
+    Ok(())
+}
+
 async fn process_queue(
     db: &Db,
     gate: &Gate,
@@ -152,6 +172,11 @@ async fn process_queue(
 
     for _ in 0..max_items {
         let now = clock.now();
+        if !gate.would_allow(crate::http::Service::Jikan) {
+            handle_breaker_open(db)?;
+            break;
+        }
+
         let mal_id = match claim_next_metadata_job(db, now)? {
             Some(id) => id,
             None => break,
@@ -163,8 +188,17 @@ async fn process_queue(
         )
         .await
         {
-            Ok(MetadataOutcome::Updated { .. }) => report.updated += 1,
+            Ok(MetadataOutcome::Updated { .. }) => {
+                report.updated += 1;
+                handle_breaker_closed(db)?;
+            }
             Ok(MetadataOutcome::Cached { .. }) => report.cached += 1,
+            Ok(MetadataOutcome::PendingRetry { ref error, .. })
+                if error.contains("circuit breaker open") =>
+            {
+                handle_breaker_open(db)?;
+                break;
+            }
             Ok(MetadataOutcome::PendingRetry { .. }) | Ok(MetadataOutcome::Failed { .. }) => {
                 report.failed += 1;
                 // Do not claim and instantly fail every remaining show.
@@ -172,6 +206,7 @@ async fn process_queue(
                     crate::settings::read_state_time(db, "jikan_retry_after_at")?.unwrap_or(0);
                 if !gate.would_allow(crate::http::Service::Jikan) || service_retry_at > clock.now()
                 {
+                    handle_breaker_open(db)?;
                     break;
                 }
             }
