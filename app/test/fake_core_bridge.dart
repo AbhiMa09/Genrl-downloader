@@ -24,6 +24,14 @@ class FakeCoreBridge extends CoreBridge {
   /// Every command line the app sent, for tests that check what was asked.
   final List<String> executed = [];
 
+  Map<String, dynamic> fakeProgress = const {};
+
+  @override
+  Future<Map<String, dynamic>> getProgress() async {
+    if (mode == FakeMode.error) return const {};
+    return fakeProgress;
+  }
+
   @override
   Future<ProcessResult> execute(
     List<String> args, {

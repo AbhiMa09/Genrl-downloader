@@ -169,6 +169,18 @@ class DashboardOperationalBar extends StatelessWidget {
                 ),
               ),
 
+              if (state.malSyncProgress != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Text(
+                    state.malSyncProgress!,
+                    style: ObsidianTypography.monoCode(
+                      color: ObsidianColors.primary,
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
+
               OutlinedButton.icon(
                 onPressed: state.isScanning
                     ? null

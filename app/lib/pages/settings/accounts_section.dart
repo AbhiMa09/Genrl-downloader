@@ -215,8 +215,19 @@ class SettingsAccountsSection extends StatelessWidget {
                       runSpacing: 6,
                       children: [
                         ElevatedButton.icon(
-                          onPressed: () => state.syncNow(),
-                          icon: const Icon(Icons.sync_rounded, size: 16),
+                          onPressed: state.isSyncing
+                              ? null
+                              : () => state.syncNow(),
+                          icon: state.isSyncing
+                              ? const SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: ObsidianColors.primary,
+                                  ),
+                                )
+                              : const Icon(Icons.sync_rounded, size: 16),
                           label: const Text('Sync Now'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor:
@@ -225,6 +236,17 @@ class SettingsAccountsSection extends StatelessWidget {
                             elevation: 0,
                           ),
                         ),
+                        if (state.malSyncProgress != null)
+                          Padding(
+                            padding: const EdgeInsets.only(left: 4, top: 8),
+                            child: Text(
+                              state.malSyncProgress!,
+                              style: ObsidianTypography.monoCode(
+                                color: ObsidianColors.primary,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ),
                         MalConnectionControls(state: state),
                         if (isMalAuth)
                           OutlinedButton.icon(

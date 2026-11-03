@@ -5,6 +5,7 @@ import '../models/activity_item.dart';
 import '../models/inbox_item.dart';
 import '../models/queue_item.dart';
 import '../models/system_status.dart';
+import '../widgets/loading/ingestion_progress.dart' show formatEta;
 import 'core_bridge.dart';
 import 'state/activity_state.dart';
 import 'state/ingestion_state.dart';
@@ -41,6 +42,7 @@ class StateProvider extends StateContext
   SystemStatus _status = const SystemStatus(daemonConnected: false);
   List<InboxItem> _inbox = [];
   bool _isSyncing = false;
+  String? _malSyncProgress;
   bool _isScanning = false;
 
   // Real Core connection & loading states
@@ -107,7 +109,8 @@ class StateProvider extends StateContext
 
   List<InboxItem> get inbox => _inbox;
   int get inboxCount => _inbox.length;
-  bool get isSyncing => _isSyncing;
+  bool get isSyncing => _isSyncing || _malSyncProgress != null;
+  String? get malSyncProgress => _malSyncProgress;
   bool get isScanning => _isScanning;
 
   bool get isCoreConnected => _isCoreConnected;
@@ -199,6 +202,7 @@ class StateProvider extends StateContext
       if (eventsRes != null) {
         await setEventsFromTelemetry(eventsRes);
       }
+      await _pollMalSyncProgress();
     } catch (e) {
       _isCoreConnected = false;
       _coreError = e.toString();
@@ -283,7 +287,15 @@ class StateProvider extends StateContext
     if (_isSyncing) return; // Two syncs would only race each other.
     _isSyncing = true;
     notifyListeners();
-    await bridge.syncMal();
+    final progressTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      unawaited(_pollMalSyncProgress());
+    });
+    try {
+      await bridge.syncMal();
+    } finally {
+      progressTimer.cancel();
+      _malSyncProgress = null;
+    }
     await Future.wait([
       refreshMalStatus(),
       refreshShows(),
@@ -292,6 +304,41 @@ class StateProvider extends StateContext
     ]);
     _isSyncing = false;
     notifyListeners();
+  }
+
+  Future<void> _pollMalSyncProgress() async {
+    try {
+      final all = await bridge.getProgress();
+      final p = all['mal_sync'];
+      String? newProgress;
+      if (p is Map) {
+        final phase = p['phase']?.toString();
+        final done = (p['done'] as num?)?.toInt() ?? 0;
+        final total = (p['total'] as num?)?.toInt() ?? 0;
+        final startedAt = (p['started_at'] as num?)?.toInt() ?? 0;
+
+        if (phase == 'list') {
+          newProgress = 'Fetching list...';
+        } else if (phase == 'seasons' || total > 0) {
+          final elapsed =
+              DateTime.now().millisecondsSinceEpoch ~/ 1000 - startedAt;
+          final eta = (done >= 3 && total > done && elapsed > 0)
+              ? (elapsed / done * (total - done)).round()
+              : null;
+          if (eta != null && eta > 0) {
+            newProgress = 'Seasons $done / $total · ${formatEta(eta)} left';
+          } else {
+            newProgress = 'Seasons $done / $total';
+          }
+        } else {
+          newProgress = 'Syncing...';
+        }
+      }
+      if (newProgress != _malSyncProgress) {
+        _malSyncProgress = newProgress;
+        notifyListeners();
+      }
+    } catch (_) {}
   }
 
   Future<void> manualDiskScan() async {

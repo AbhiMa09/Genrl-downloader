@@ -103,4 +103,36 @@ void main() {
       expect(find.text('ACTIVE DOWNLOAD TRANSFERS'), findsOneWidget);
     },
   );
+
+  testWidgets(
+    'Dashboard displays live MAL sync progress next to Sync MyAnimeList button',
+    (tester) async {
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      final fakeBridge = FakeCoreBridge(mode: FakeMode.data);
+      final nowSec = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      fakeBridge.fakeProgress = {
+        'mal_sync': {
+          'phase': 'seasons',
+          'done': 120,
+          'total': 410,
+          'started_at': nowSec - 120,
+        },
+      };
+
+      final state = StateProvider(bridge: fakeBridge, startPolling: false);
+      await state.refreshAll();
+      await state.refreshLiveTelemetry();
+
+      await tester.pumpWidget(createTestApp(state));
+      await tester.pump();
+
+      expect(find.text('Sync MyAnimeList'), findsOneWidget);
+      expect(find.textContaining('Seasons 120 / 410'), findsOneWidget);
+
+      state.dispose();
+    },
+  );
 }

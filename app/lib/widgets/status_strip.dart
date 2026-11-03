@@ -156,7 +156,7 @@ class StatusStrip extends StatelessWidget {
                         const SizedBox(width: 4),
                         Text(
                           state.isSyncing
-                              ? 'Syncing...'
+                              ? (state.malSyncProgress ?? 'Syncing...')
                               : status.formattedLastSync,
                           style: ObsidianTypography.monoCode(
                             color: state.isSyncing
