@@ -392,16 +392,42 @@ class DashboardPipelineTable extends StatelessWidget {
                               color: ObsidianColors.outline,
                             ),
                             tooltip: 'Force Check',
-                            onPressed: () {},
+                            onPressed: () async {
+                              final ok = await state.recheckJob(item.id);
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      ok
+                                          ? 'Job #${item.id} stepped'
+                                          : 'Failed to step job #${item.id}',
+                                    ),
+                                  ),
+                                );
+                              }
+                            },
                           ),
                           IconButton(
                             icon: const Icon(
-                              Icons.pause_rounded,
+                              Icons.cancel_outlined,
                               size: 16,
                               color: ObsidianColors.outline,
                             ),
-                            tooltip: 'Pause',
-                            onPressed: () {},
+                            tooltip: 'Cancel Job',
+                            onPressed: () async {
+                              final ok = await state.cancelJob(item.id);
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      ok
+                                          ? 'Job #${item.id} cancelled'
+                                          : 'Failed to cancel job #${item.id}',
+                                    ),
+                                  ),
+                                );
+                              }
+                            },
                           ),
                         ],
                       ),

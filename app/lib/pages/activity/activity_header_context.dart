@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
@@ -92,10 +95,22 @@ class ActivityHeaderContext extends StatelessWidget {
             const SizedBox(width: 10),
             ElevatedButton.icon(
               onPressed: () {
+                final exportStr = state.events
+                    .map(
+                      (e) =>
+                          '[${e.timestamp.toIso8601String()}] [${e.level.name.toUpperCase()}] '
+                          '${e.jobId != null ? "Job #${e.jobId} " : ""}'
+                          '${e.message}',
+                    )
+                    .join('\n');
+                Clipboard.setData(ClipboardData(text: exportStr));
+                try {
+                  File('/tmp/genrl-activity.log').writeAsStringSync(exportStr);
+                } catch (_) {}
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
+                  SnackBar(
                     content: Text(
-                      'Audit log exported to /tmp/genrl-activity.log',
+                      'Exported ${state.events.length} events to /tmp/genrl-activity.log & clipboard',
                     ),
                     backgroundColor: ObsidianColors.surfaceContainerHigh,
                   ),
@@ -120,19 +135,20 @@ class ActivityHeaderContext extends StatelessWidget {
             const SizedBox(width: 8),
             OutlinedButton.icon(
               onPressed: () {
+                state.refreshEvents();
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Logs older than 30 days purged'),
+                    content: Text('Activity logs refreshed and synchronized'),
                     backgroundColor: ObsidianColors.surfaceContainerHigh,
                   ),
                 );
               },
               icon: const Icon(
-                Icons.delete_sweep_rounded,
+                Icons.refresh_rounded,
                 size: 16,
                 color: ObsidianColors.outline,
               ),
-              label: const Text('Purge > 30d'),
+              label: const Text('Sync / Refresh'),
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: ObsidianColors.border),
                 foregroundColor: ObsidianColors.onSurfaceVariant,

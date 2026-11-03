@@ -6,13 +6,16 @@ import '../models/inbox_item.dart';
 import '../models/library_item.dart';
 import '../models/queue_item.dart';
 import '../models/system_status.dart';
+import 'core_bridge_jobs.dart';
 import 'core_bridge_parsers.dart';
 import 'worker_supervisor.dart';
+
+export 'core_bridge_jobs.dart';
 
 /// The Bridge between Flutter UI and the Rust core (`genrl` CLI & engine).
 /// Per system design: The UI never touches the network or the disk directly;
 /// it routes commands and reads states through the Rust core.
-class CoreBridge {
+class CoreBridge with CoreBridgeJobControls {
   final String genrlBinaryPath;
   final String? customDataDir;
   final WorkerSupervisor _supervisor;
@@ -43,6 +46,7 @@ class CoreBridge {
   String _resolveBinary() => _supervisor.resolveBinary();
 
   /// Execute a `genrl` command line.
+  @override
   Future<ProcessResult> execute(
     List<String> args, {
     Map<String, String>? environment,

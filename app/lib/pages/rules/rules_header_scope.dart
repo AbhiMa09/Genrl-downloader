@@ -174,15 +174,32 @@ class RulesHeaderScope extends StatelessWidget {
 
                 // Test RSS Button
                 OutlinedButton.icon(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                  onPressed: () async {
+                    final messenger = ScaffoldMessenger.of(context);
+                    messenger.showSnackBar(
                       const SnackBar(
-                        content: Text(
-                          'Testing indexers: Nyaa.si reached successfully',
-                        ),
-                        backgroundColor: ObsidianColors.surfaceContainerHigh,
+                        content: Text('Querying Nyaa.si indexer...'),
+                        duration: Duration(seconds: 1),
                       ),
                     );
+                    try {
+                      final results = await state.bridge.search('One Piece');
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Nyaa.si reached successfully: ${results.length} releases discovered',
+                          ),
+                          backgroundColor: ObsidianColors.success,
+                        ),
+                      );
+                    } catch (e) {
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: Text('Indexer test failed: $e'),
+                          backgroundColor: ObsidianColors.error,
+                        ),
+                      );
+                    }
                   },
                   icon: const Icon(
                     Icons.science_rounded,

@@ -104,7 +104,9 @@ class ShowDetailEpisodesTab extends StatelessWidget {
                             style: ObsidianTypography.titleSm(),
                           ),
                           Text(
-                            'Found 48 files in /Scans/ directory (Lossless PNG, 820 MB)',
+                            show.folderPath != null
+                                ? 'Directory: ${show.folderPath}/Scans'
+                                : 'No production scans folder discovered',
                             style: ObsidianTypography.monoCode(
                               color: ObsidianColors.outline,
                             ),

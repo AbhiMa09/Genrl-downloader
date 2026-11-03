@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
 import '../../theme/typography.dart';
 
@@ -29,6 +31,25 @@ class _StepQualityGroupsState extends State<StepQualityGroups> {
     'HorribleSubs',
     'Commie',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final state = context.read<StateProvider>();
+      if (state.globalRule != null && state.globalRule!.groups.isNotEmpty) {
+        setState(() {
+          for (final g in state.globalRule!.groups) {
+            final clean = g.replaceAll('[', '').replaceAll(']', '').trim();
+            if (!_availableGroups.contains(clean)) {
+              _availableGroups.add(clean);
+            }
+          }
+        });
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

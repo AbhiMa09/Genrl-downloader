@@ -33,22 +33,28 @@ class StorageInspectorCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  const Icon(
-                    Icons.folder_outlined,
-                    size: 16,
-                    color: ObsidianColors.tertiary,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    'ROOT DIRECTORY',
-                    style: ObsidianTypography.monoCode(
-                      color: ObsidianColors.outline,
+              Expanded(
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.folder_outlined,
+                      size: 16,
+                      color: ObsidianColors.tertiary,
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'ROOT DIRECTORY',
+                        style: ObsidianTypography.monoCode(
+                          color: ObsidianColors.outline,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
@@ -56,7 +62,10 @@ class StorageInspectorCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
-                  'EXT4',
+                  state.locationsReport?['library']?['fs_type']
+                          ?.toString()
+                          .toUpperCase() ??
+                      (state.sameFilesystem ? 'HARDLINK' : 'CROSS-FS'),
                   style: ObsidianTypography.labelBadge(
                     color: ObsidianColors.tertiary,
                   ),

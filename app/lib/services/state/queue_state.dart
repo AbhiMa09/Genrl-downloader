@@ -40,4 +40,33 @@ mixin QueueStateMixin on StateContext {
     _queue.removeWhere((item) => item.id == id);
     notifyListeners();
   }
+
+  Future<bool> recheckJob(int jobId) async {
+    final ok = await bridge.stepJob(jobId);
+    await refreshQueue();
+    await refreshStatus();
+    return ok;
+  }
+
+  Future<bool> cancelJob(int jobId, {bool deleteFiles = false}) async {
+    final ok = await bridge.cancelJob(jobId, deleteFiles: deleteFiles);
+    removeQueueItem(jobId);
+    await refreshQueue();
+    await refreshStatus();
+    return ok;
+  }
+
+  Future<bool> retryJob(int jobId) async {
+    final ok = await bridge.retryJob(jobId);
+    await refreshQueue();
+    await refreshStatus();
+    return ok;
+  }
+
+  Future<bool> retryAllJobs() async {
+    final ok = await bridge.retryAllJobs();
+    await refreshQueue();
+    await refreshStatus();
+    return ok;
+  }
 }

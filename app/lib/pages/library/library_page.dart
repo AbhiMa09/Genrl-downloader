@@ -233,7 +233,8 @@ class _LibraryPageState extends State<LibraryPage> {
                                         ? '$libraryPath/${show.title}'
                                         : ''),
                               ),
-                              onToggleAuto: () {},
+                              onToggleAuto: () =>
+                                  state.toggleShowAuto(show.malId),
                             ),
                           );
                         }).toList(),

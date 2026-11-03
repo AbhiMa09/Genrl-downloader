@@ -258,6 +258,33 @@ enum Command {
 
     /// Step a single job directly through the engine.
     Step { job_id: i64 },
+
+    /// Manage individual jobs (retry, cancel, retry-all).
+    Job {
+        #[command(subcommand)]
+        command: JobCommand,
+    },
+
+    /// List scored candidate torrents for a show.
+    Candidates {
+        mal_id: i64,
+        #[arg(long)]
+        json: bool,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+pub enum JobCommand {
+    /// Retry a failed or blocked job from the beginning (sets state to search).
+    Retry { job_id: i64 },
+    /// Cancel a job and remove any active torrent from qBittorrent.
+    Cancel {
+        job_id: i64,
+        #[arg(long)]
+        delete_files: bool,
+    },
+    /// Retry all failed and blocked jobs.
+    RetryAll,
 }
 
 #[tokio::main]
@@ -440,5 +467,14 @@ async fn main() -> Result<()> {
             }
         },
         Command::Step { job_id } => step_cmd(&data_dir, job_id).await,
+        Command::Job { command } => match command {
+            JobCommand::Retry { job_id } => job_retry_cmd(&data_dir, job_id).await,
+            JobCommand::Cancel {
+                job_id,
+                delete_files,
+            } => job_cancel_cmd(&data_dir, job_id, delete_files).await,
+            JobCommand::RetryAll => job_retry_all_cmd(&data_dir).await,
+        },
+        Command::Candidates { mal_id, json } => candidates_cmd(&data_dir, mal_id, json),
     }
 }

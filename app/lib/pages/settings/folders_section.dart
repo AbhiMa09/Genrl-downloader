@@ -89,7 +89,8 @@ class _SettingsFoldersSectionState extends State<SettingsFoldersSection> {
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
-                  'Btrfs / CoW Aware',
+                  widget.state.locationsReport?['filesystem'] as String? ??
+                      'Filesystem Ready',
                   style: ObsidianTypography.labelBadge(
                     color: ObsidianColors.onSurfaceVariant,
                   ),
@@ -102,7 +103,9 @@ class _SettingsFoldersSectionState extends State<SettingsFoldersSection> {
           // Anime Library Path
           _buildPathPicker(
             label: 'Anime Library Root Path',
-            metric: '3.42 TB / 8.00 TB used (57% free)',
+            metric: widget.state.status.formattedDiskSpace.isNotEmpty
+                ? widget.state.status.formattedDiskSpace
+                : 'Storage Ready',
             icon: Icons.folder_special_rounded,
             controller: widget.libraryFolderController,
             state: widget.state,
@@ -112,7 +115,9 @@ class _SettingsFoldersSectionState extends State<SettingsFoldersSection> {
           // Download Staging Path
           _buildPathPicker(
             label: 'Download Staging / Client Incomplete Ingestion',
-            metric: 'NVMe Scratch Cache',
+            metric:
+                widget.state.downloadCheck?['filesystem'] as String? ??
+                'Staging Cache',
             icon: Icons.hourglass_top_rounded,
             controller: widget.downloadFolderController,
             state: widget.state,

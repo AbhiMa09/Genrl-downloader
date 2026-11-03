@@ -5,8 +5,28 @@ import '../../theme/typography.dart';
 
 class BitrateSparklineCard extends StatelessWidget {
   final String durationLabel;
+  final int? onDiskBytes;
+  final int? downloadedEpisodes;
 
-  const BitrateSparklineCard({super.key, required this.durationLabel});
+  const BitrateSparklineCard({
+    super.key,
+    required this.durationLabel,
+    this.onDiskBytes,
+    this.downloadedEpisodes,
+  });
+
+  String get _bitrateString {
+    if (onDiskBytes != null &&
+        onDiskBytes! > 0 &&
+        downloadedEpisodes != null &&
+        downloadedEpisodes! > 0) {
+      final totalBits = onDiskBytes! * 8.0;
+      final totalSeconds = downloadedEpisodes! * 24 * 60;
+      final mbps = totalBits / (totalSeconds * 1000000.0);
+      return 'Avg ${mbps.toStringAsFixed(1)} Mbps';
+    }
+    return 'Target: ~18 Mbps';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +53,7 @@ class BitrateSparklineCard extends StatelessWidget {
               ),
               const SizedBox(width: 4),
               Text(
-                'Avg 18.7 Mbps',
+                _bitrateString,
                 style: ObsidianTypography.monoMetric(
                   color: ObsidianColors.tertiary,
                 ).copyWith(fontSize: 10),

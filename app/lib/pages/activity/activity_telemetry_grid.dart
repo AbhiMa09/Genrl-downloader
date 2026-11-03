@@ -12,6 +12,46 @@ class ActivityTelemetryGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final totalEvents = state.events.length;
+    final recentMinutes = state.events.isNotEmpty
+        ? DateTime.now()
+              .difference(state.events.last.timestamp)
+              .inMinutes
+              .clamp(1, 60)
+        : 1;
+    final rate = totalEvents > 0
+        ? (totalEvents / recentMinutes).toStringAsFixed(1)
+        : '0.0';
+    final rateProgress = (totalEvents / 30.0).clamp(0.0, 1.0);
+
+    final autoCommits = state.events
+        .where(
+          (e) =>
+              e.message.toLowerCase().contains('grab') ||
+              e.message.toLowerCase().contains('added') ||
+              e.message.toLowerCase().contains('download') ||
+              e.message.toLowerCase().contains('commit'),
+        )
+        .length;
+    final ratio = totalEvents > 0 ? (autoCommits / totalEvents) : 1.0;
+    final acceptancePercent = '${(ratio * 100).toStringAsFixed(1)}%';
+
+    final filtered = state.events
+        .where(
+          (e) =>
+              e.message.toLowerCase().contains('reject') ||
+              e.message.toLowerCase().contains('discard') ||
+              e.message.toLowerCase().contains('ignore') ||
+              e.message.toLowerCase().contains('filtered'),
+        )
+        .length;
+    final filteredProgress = (filtered / 20.0).clamp(0.0, 1.0);
+
+    final errors = state.events
+        .where((e) => e.level == ActivityLevel.error)
+        .length;
+    final errorProgress = (errors / 10.0).clamp(0.0, 1.0);
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final cardWidth = (constraints.maxWidth - 36) / 4;
@@ -23,9 +63,9 @@ class ActivityTelemetryGrid extends StatelessWidget {
               title: 'INGESTION RATE',
               icon: Icons.bolt_rounded,
               iconColor: ObsidianColors.tertiary,
-              value: '19.4',
+              value: rate,
               unit: 'events/min',
-              progress: 0.65,
+              progress: rateProgress,
               progressColor: ObsidianColors.tertiary,
               width: cardWidth,
             ),
@@ -33,9 +73,9 @@ class ActivityTelemetryGrid extends StatelessWidget {
               title: 'DECISION ACCEPTANCE',
               icon: Icons.rule_folder_rounded,
               iconColor: ObsidianColors.primary,
-              value: '94.2%',
+              value: acceptancePercent,
               unit: 'auto-commit',
-              progress: 0.942,
+              progress: ratio.clamp(0.0, 1.0),
               progressColor: ObsidianColors.primary,
               width: cardWidth,
             ),
@@ -43,9 +83,9 @@ class ActivityTelemetryGrid extends StatelessWidget {
               title: 'DISCARDED RELEASES',
               icon: Icons.filter_list_off_rounded,
               iconColor: ObsidianColors.secondary,
-              value: '148',
+              value: '$filtered',
               unit: 'filtered',
-              progress: 0.38,
+              progress: filteredProgress,
               progressColor: ObsidianColors.secondary,
               width: cardWidth,
             ),
@@ -53,10 +93,9 @@ class ActivityTelemetryGrid extends StatelessWidget {
               title: 'ERROR EXCLUSIONS',
               icon: Icons.error_outline_rounded,
               iconColor: ObsidianColors.error,
-              value:
-                  '${state.events.where((e) => e.level == ActivityLevel.error).length}',
+              value: '$errors',
               unit: 'unresolved',
-              progress: 0.15,
+              progress: errorProgress,
               progressColor: ObsidianColors.error,
               width: cardWidth,
             ),

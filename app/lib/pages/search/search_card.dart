@@ -165,82 +165,185 @@ class SearchCard extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 6),
-                        Container(
-                          height: 44,
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          decoration: BoxDecoration(
-                            color: ObsidianColors.surfaceContainerLowest,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: ObsidianColors.border),
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 28,
-                                height: 32,
-                                decoration: BoxDecoration(
-                                  color: ObsidianColors.surfaceContainerHighest,
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                clipBehavior: Clip.antiAlias,
-                                child:
-                                    (state.selectedShow?.posterUrl ??
-                                            (state.shows.isNotEmpty
-                                                ? state.shows.first.posterUrl
-                                                : null)) !=
-                                        null
-                                    ? Image.network(
-                                        (state.selectedShow?.posterUrl ??
-                                            state.shows.first.posterUrl)!,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) =>
-                                            const Icon(
-                                              Icons.movie_rounded,
-                                              size: 14,
-                                              color: ObsidianColors.outline,
+                        InkWell(
+                          onTap: state.shows.isEmpty
+                              ? null
+                              : () {
+                                  showModalBottomSheet<void>(
+                                    context: context,
+                                    backgroundColor:
+                                        ObsidianColors.surfaceContainer,
+                                    shape: const RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.vertical(
+                                        top: Radius.circular(16),
+                                      ),
+                                    ),
+                                    builder: (ctx) {
+                                      return SafeArea(
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Padding(
+                                              padding: const EdgeInsets.all(
+                                                16.0,
+                                              ),
+                                              child: Text(
+                                                'Select Library Target Binding',
+                                                style:
+                                                    ObsidianTypography.headlineMd(),
+                                              ),
                                             ),
-                                      )
-                                    : const Icon(
-                                        Icons.movie_rounded,
-                                        size: 14,
-                                        color: ObsidianColors.outline,
-                                      ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      state.selectedShow?.title ??
-                                          (state.shows.isNotEmpty
-                                              ? state.shows.first.title
-                                              : 'No Target Bound'),
-                                      style: ObsidianTypography.titleSm(
-                                        fontSize: 11,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    Text(
-                                      state.shows.isNotEmpty
-                                          ? 'S01 • Monitored'
-                                          : 'Manual Indexer Search',
-                                      style: ObsidianTypography.monoCode(
-                                        color: ObsidianColors.outline,
-                                        fontSize: 9,
-                                      ),
-                                    ),
-                                  ],
+                                            const Divider(
+                                              height: 1,
+                                              color: ObsidianColors.border,
+                                            ),
+                                            Flexible(
+                                              child: ListView.builder(
+                                                shrinkWrap: true,
+                                                itemCount: state.shows.length,
+                                                itemBuilder: (ctx, idx) {
+                                                  final show = state.shows[idx];
+                                                  return ListTile(
+                                                    leading:
+                                                        show.posterUrl != null
+                                                        ? ClipRRect(
+                                                            borderRadius:
+                                                                BorderRadius.circular(
+                                                                  4,
+                                                                ),
+                                                            child: Image.network(
+                                                              show.posterUrl!,
+                                                              width: 32,
+                                                              height: 44,
+                                                              fit: BoxFit.cover,
+                                                              errorBuilder:
+                                                                  (
+                                                                    _,
+                                                                    __,
+                                                                    ___,
+                                                                  ) => const Icon(
+                                                                    Icons
+                                                                        .movie_rounded,
+                                                                  ),
+                                                            ),
+                                                          )
+                                                        : const Icon(
+                                                            Icons.movie_rounded,
+                                                          ),
+                                                    title: Text(
+                                                      show.title,
+                                                      style:
+                                                          ObsidianTypography.titleSm(),
+                                                    ),
+                                                    subtitle: Text(
+                                                      'MAL ID:  • ',
+                                                      style:
+                                                          ObsidianTypography.bodySm(
+                                                            color:
+                                                                ObsidianColors
+                                                                    .outline,
+                                                          ),
+                                                    ),
+                                                    onTap: () {
+                                                      state.openShowDetail(
+                                                        show,
+                                                      );
+                                                      searchController.text =
+                                                          show.title;
+                                                      Navigator.of(ctx).pop();
+                                                    },
+                                                  );
+                                                },
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  );
+                                },
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            height: 44,
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            decoration: BoxDecoration(
+                              color: ObsidianColors.surfaceContainerLowest,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: ObsidianColors.border),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 28,
+                                  height: 32,
+                                  decoration: BoxDecoration(
+                                    color:
+                                        ObsidianColors.surfaceContainerHighest,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  clipBehavior: Clip.antiAlias,
+                                  child:
+                                      (state.selectedShow?.posterUrl ??
+                                              (state.shows.isNotEmpty
+                                                  ? state.shows.first.posterUrl
+                                                  : null)) !=
+                                          null
+                                      ? Image.network(
+                                          (state.selectedShow?.posterUrl ??
+                                              state.shows.first.posterUrl)!,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, __, ___) =>
+                                              const Icon(
+                                                Icons.movie_rounded,
+                                                size: 14,
+                                                color: ObsidianColors.outline,
+                                              ),
+                                        )
+                                      : const Icon(
+                                          Icons.movie_rounded,
+                                          size: 14,
+                                          color: ObsidianColors.outline,
+                                        ),
                                 ),
-                              ),
-                              const Icon(
-                                Icons.unfold_more_rounded,
-                                size: 16,
-                                color: ObsidianColors.outline,
-                              ),
-                            ],
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        state.selectedShow?.title ??
+                                            (state.shows.isNotEmpty
+                                                ? state.shows.first.title
+                                                : 'No Target Bound'),
+                                        style: ObsidianTypography.titleSm(
+                                          fontSize: 11,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      Text(
+                                        state.shows.isNotEmpty
+                                            ? 'S01 • Monitored'
+                                            : 'Manual Indexer Search',
+                                        style: ObsidianTypography.monoCode(
+                                          color: ObsidianColors.outline,
+                                          fontSize: 9,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const Icon(
+                                  Icons.unfold_more_rounded,
+                                  size: 16,
+                                  color: ObsidianColors.outline,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ],

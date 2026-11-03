@@ -108,7 +108,7 @@ class _SettingsPageState extends State<SettingsPage> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Preferences saved to /etc/genrl/core.yaml'),
+          content: Text('Preferences saved to daemon configuration'),
           backgroundColor: ObsidianColors.success,
         ),
       );

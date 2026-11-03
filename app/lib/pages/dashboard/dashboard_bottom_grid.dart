@@ -153,7 +153,7 @@ class DashboardBottomGrid extends StatelessWidget {
                             size: 16,
                             color: ObsidianColors.outline,
                           ),
-                          onPressed: () {},
+                          onPressed: () => state.refreshAll(),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
                         ),
@@ -202,7 +202,7 @@ class DashboardBottomGrid extends StatelessWidget {
                                   ),
                                 ),
                                 Text(
-                                  'Sync Queue: 0 pending',
+                                  'Sync Queue: ${state.queue.where((j) => j.isQueued).length} pending',
                                   style: ObsidianTypography.monoCode(
                                     color: ObsidianColors.outline,
                                     fontSize: 10,

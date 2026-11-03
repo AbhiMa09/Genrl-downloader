@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
-if [ -f "$HOME/.cargo/env" ]; then
-    . "$HOME/.cargo/env"
+if ! command -v cargo &>/dev/null; then
+  [ -f "$HOME/.cargo/env" ] && source "$HOME/.cargo/env"
 fi
-if [ -d "$HOME/flutter/bin" ]; then
-    export PATH="$HOME/flutter/bin:$PATH"
+if ! command -v dart &>/dev/null; then
+  [ -d "$HOME/flutter/bin" ] && export PATH="$HOME/flutter/bin:$PATH"
 fi
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
