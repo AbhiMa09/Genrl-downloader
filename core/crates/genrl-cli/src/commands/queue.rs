@@ -297,12 +297,12 @@ pub fn answer_cmd(data_dir: &Path, id: i64, choice_str: &str, always: bool) -> R
             }
         }
     };
+    let q =
+        QuestionStore::get(&db, id)?.ok_or_else(|| anyhow::anyhow!("question #{id} not found"))?;
     let ans = genrl_core::questions::Answer { choice, always };
+    let clock = genrl_core::clock::SystemClock;
+    genrl_core::worker::apply_answer(&db, &clock, &q, &ans)?;
     QuestionStore::answer(&db, id, &ans)?;
-    if let Ok(Some(q)) = QuestionStore::get(&db, id) {
-        let clock = genrl_core::clock::SystemClock;
-        let _ = genrl_core::worker::apply_answer(&db, &clock, &q, &ans);
-    }
     let log = EventLog::new(db);
     log.info(
         None,

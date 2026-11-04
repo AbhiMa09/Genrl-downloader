@@ -81,12 +81,27 @@ class InboxDynamicCard extends StatelessWidget {
             children: item.choices.map((choice) {
               final isPrimary = choice.key == item.choices.first.key;
               return ElevatedButton(
-                onPressed: () {
-                  onResolve(
-                    'item-${item.id}',
-                    '${choice.label} for ${item.title}',
+                onPressed: () async {
+                  final messenger = ScaffoldMessenger.maybeOf(context);
+                  final ok = await state.answerInboxQuestion(
+                    item.id,
+                    choice.key,
                   );
-                  state.answerInboxQuestion(item.id, choice.key);
+                  if (ok) {
+                    onResolve(
+                      'item-${item.id}',
+                      '${choice.label} for ${item.title}',
+                    );
+                  } else {
+                    messenger?.showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Job #${item.jobId ?? item.id} was cancelled — retry it first',
+                        ),
+                        backgroundColor: ObsidianColors.error,
+                      ),
+                    );
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: isPrimary

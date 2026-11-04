@@ -25,6 +25,18 @@ pub fn apply_answer(
     let Some(job) = jobs::get(db, job_id)? else {
         return Ok(None);
     };
+    if job.state == JobState::Failed
+        && !matches!(answer.choice, Choice::RetryLater | Choice::SkipEpisode)
+    {
+        return Err(crate::error::Error::Other(format!(
+            "job #{job_id} was cancelled — retry it first"
+        )));
+    }
+    if job.state == JobState::Done {
+        return Err(crate::error::Error::Other(format!(
+            "job #{job_id} already completed — retry it first"
+        )));
+    }
     // Only a job actually waiting on the Inbox may be answered; anything else
     // was answered, expired or moved on, and applying twice must be safe.
     if !matches!(job.state, JobState::NeedsInput | JobState::Failed) {

@@ -1988,3 +1988,89 @@ async fn cancel_job_with_shared_torrent_preserves_torrent_for_other_active_job()
         "no remaining active jobs, torrent must be removed"
     );
 }
+
+#[tokio::test]
+async fn answer_question_for_cancelled_or_failed_job_returns_error() {
+    let world = World::new().await;
+    let job_id = plan_one(&world);
+
+    // Insert an open match_review question for this job
+    let question_id: i64 = world
+        .db
+        .with(|c| {
+            c.execute(
+                "INSERT INTO questions (job_id, mal_id, kind, payload, answer, created_at)
+                 VALUES (?1, 200, 'match_review', '{}', NULL, ?2)",
+                rusqlite::params![job_id, world.clock.now()],
+            )?;
+            Ok(c.last_insert_rowid())
+        })
+        .unwrap();
+
+    // Cancel / fail the job
+    jobs::transition(
+        &world.db,
+        &world.clock,
+        job_id,
+        JobState::Failed,
+        "Cancelled by user",
+        &jobs::MoveOptions::default(),
+    )
+    .unwrap();
+
+    let question = QuestionStore::get(&world.db, question_id).unwrap().unwrap();
+    let answer = Answer {
+        choice: Choice::UseThis {
+            info_hash: "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef".to_string(),
+        },
+        always: false,
+    };
+
+    let err = apply_answer(&world.db, &world.clock, &question, &answer).unwrap_err();
+    assert!(
+        err.to_string().contains("was cancelled — retry it first"),
+        "expected cancelled error, got: {err}"
+    );
+}
+
+#[tokio::test]
+async fn answer_question_for_done_job_returns_error() {
+    let world = World::new().await;
+    let job_id = plan_one(&world);
+
+    let question_id: i64 = world
+        .db
+        .with(|c| {
+            c.execute(
+                "INSERT INTO questions (job_id, mal_id, kind, payload, answer, created_at)
+                 VALUES (?1, 200, 'match_review', '{}', NULL, ?2)",
+                rusqlite::params![job_id, world.clock.now()],
+            )?;
+            Ok(c.last_insert_rowid())
+        })
+        .unwrap();
+
+    // Finish the job
+    world
+        .db
+        .with(|c| {
+            c.execute("UPDATE jobs SET state = 'done' WHERE id = ?1", [job_id])?;
+            Ok(())
+        })
+        .unwrap();
+
+    let question = QuestionStore::get(&world.db, question_id).unwrap().unwrap();
+    let answer = Answer {
+        choice: Choice::UseThis {
+            info_hash: "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef".to_string(),
+        },
+        always: false,
+    };
+
+    let err = apply_answer(&world.db, &world.clock, &question, &answer).unwrap_err();
+    assert!(
+        err.to_string()
+            .contains("already completed — retry it first"),
+        "expected completed error, got: {err}"
+    );
+}

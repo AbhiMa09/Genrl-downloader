@@ -250,16 +250,20 @@ class StateProvider extends StateContext
     }
   }
 
-  Future<void> answerInboxQuestion(
+  Future<bool> answerInboxQuestion(
     int id,
     String choiceKey, {
     bool always = false,
   }) async {
+    bool ok = false;
     try {
-      await bridge.answerQuestion(id, choiceKey, always: always);
+      ok = await bridge.answerQuestion(id, choiceKey, always: always);
     } catch (_) {}
-    _inbox.removeWhere((i) => i.id == id);
-    notifyListeners();
+    if (ok) {
+      _inbox.removeWhere((i) => i.id == id);
+      notifyListeners();
+    }
+    return ok;
   }
 
   Future<void> answerQuestion(
