@@ -61,7 +61,7 @@ pub const VIDEO_EXTENSIONS: &[&str] = &["mkv", "mp4", "avi", "m2ts", "ts", "wmv"
 pub fn extract_season_episode(name: &str, release: &mut Release) -> Option<usize> {
     // `S01E01-E11` / `S01E01-11` range batch
     if let Some(caps) =
-        re(r"(?i)\bS(\d{1,2})\s*[- ]?\s*E(\d{1,3})\s*-\s*E?(\d{1,3})\b").captures(name)
+        re(r"(?i)\bS(\d{1,2})\s*[- ]?\s*E?(\d{1,3})\s*[-~～]\s*E?(\d{1,3})\b").captures(name)
     {
         release.season = caps[1].parse().ok();
         release.is_batch = true;
@@ -96,7 +96,9 @@ pub fn extract_season_episode(name: &str, release: &mut Release) -> Option<usize
     }
 
     // `01-12` range: a batch, and deliberately not an episode.
-    if let Some(caps) = re(r"(?:^|[\s\[(])(\d{1,3})\s*-\s*(\d{1,3})(?:\s|[\])]|$)").captures(name) {
+    if let Some(caps) =
+        re(r"(?:^|[\s\[(])(\d{1,3})\s*[-~～]\s*(\d{1,3})(?:\s|[\])]|$)").captures(name)
+    {
         let from: f64 = caps[1].parse().unwrap_or(0.0);
         let to: f64 = caps[2].parse().unwrap_or(0.0);
         if to > from {
@@ -178,7 +180,10 @@ pub fn extract_metadata(name: &str, release: &mut Release) {
         .captures(name)
         .and_then(|c| c[1].parse().ok());
 
-    if re(r"(?i)\b(batch|complete|compilation)\b").is_match(name) {
+    if re(r"(?i)\b(batch|complete|compilation|all\s+episodes|entire\s+season)\b").is_match(name) {
+        release.is_batch = true;
+    }
+    if release.episode.is_none() && release.season.is_some() {
         release.is_batch = true;
     }
 }

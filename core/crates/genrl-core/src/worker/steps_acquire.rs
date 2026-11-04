@@ -348,7 +348,38 @@ impl Engine {
         }
 
         let is_batch = torrent.name.to_ascii_lowercase().contains("batch")
-            || crate::filename::parse_release(&torrent.name).is_batch;
+            || crate::filename::parse_release(&torrent.name).is_batch
+            || {
+                let release = crate::filename::parse_release(&torrent.name);
+                release.episode.is_none()
+                    && self
+                        .db
+                        .with(|c| {
+                            use rusqlite::OptionalExtension;
+                            let total: Option<i64> = c
+                                .query_row(
+                                    "SELECT total_episodes FROM shows WHERE mal_id = ?1",
+                                    [context.mal_id],
+                                    |r| r.get(0),
+                                )
+                                .optional()?
+                                .flatten();
+                            let count: i64 = c.query_row(
+                                "SELECT COUNT(*) FROM episodes WHERE mal_id = ?1",
+                                [context.mal_id],
+                                |r| r.get(0),
+                            )?;
+                            let show_type: String = c
+                                .query_row(
+                                    "SELECT type FROM shows WHERE mal_id = ?1",
+                                    [context.mal_id],
+                                    |r| r.get(0),
+                                )
+                                .unwrap_or_else(|_| "tv".to_string());
+                            Ok(show_type != "movie" && (total.unwrap_or(0) > 1 || count > 1))
+                        })
+                        .unwrap_or(false)
+            };
 
         if is_batch {
             self.db.with(|c| {

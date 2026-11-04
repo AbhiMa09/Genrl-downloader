@@ -121,6 +121,20 @@ mod tests {
         assert_eq!(r.codec.as_deref(), Some("hevc"));
         assert_eq!(r.source.as_deref(), Some("webrip"));
         assert!(r.languages.contains(&"multisub".to_string()));
+
+        let r = parse("[Group] Show - 01~12 [1080p]");
+        assert!(r.is_batch, "tilde range is a batch: {r:?}");
+        assert_eq!(r.episode, None);
+
+        let r = parse("[Group] Show - 01～12 [1080p]");
+        assert!(r.is_batch, "fullwidth tilde range is a batch: {r:?}");
+        assert_eq!(r.episode, None);
+
+        let r = parse("[SubsPlease] Show S01 [1080p]");
+        assert!(r.is_batch, "whole season without episode is a batch: {r:?}");
+
+        let r = parse("[Judas] Oni no Hanayome wa Taberaretai - 01 [1080p]");
+        assert!(!r.is_batch, "single episode is not a batch");
     }
 
     #[test]

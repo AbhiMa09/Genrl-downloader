@@ -2208,3 +2208,73 @@ async fn large_download_above_2gb_asks_once_and_parks_legally_in_needs_input() {
     let outcome3 = engine.step(job_id).await.unwrap();
     assert_eq!(outcome3.to, JobState::Monitor);
 }
+
+#[tokio::test]
+async fn whole_season_release_without_batch_keyword_is_treated_as_batch_in_add() {
+    let world = World::new().await;
+    let job_id = plan_one(&world);
+    let engine = world.engine();
+
+    // Show 2 has 2 episodes. Add episode 2 into episodes table and a job for it:
+    world
+        .db
+        .with(|c| {
+            c.execute(
+                "INSERT INTO episodes (mal_id, number, state) VALUES (200, 2, 'missing')",
+                [],
+            )?;
+            let ep2_id = c.last_insert_rowid();
+            c.execute(
+                "INSERT INTO jobs (episode_id, kind, state, attempts, next_run_at, created_at, updated_at)
+                 VALUES (?1, 'search', 'queued', 0, 0, 0, 0)",
+                [ep2_id],
+            )?;
+            Ok(())
+        })
+        .unwrap();
+
+    // Drive job 1 to Add
+    drive_until(&engine, job_id, JobState::Add).await;
+
+    // Update the chosen torrent name to a whole season release without the word "batch"
+    world
+        .db
+        .with(|c| {
+            c.execute(
+                "UPDATE torrents SET name = '[neoHEVC] Show 2 [BD 1080p x265 HEVC AAC]' WHERE id = (SELECT torrent_id FROM jobs WHERE id = ?1)",
+                [job_id],
+            )?;
+            Ok(())
+        })
+        .unwrap();
+
+    // Step the job in Add
+    let outcome = engine.step(job_id).await.unwrap();
+    assert_eq!(outcome.to, JobState::Monitor);
+
+    // Verify all episodes for show 200 are now downloading
+    world
+        .db
+        .with(|c| {
+            let mut stmt =
+                c.prepare("SELECT number, state FROM episodes WHERE mal_id = 200 ORDER BY number")?;
+            let rows: Vec<(f64, String)> = stmt
+                .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?
+                .collect::<Result<Vec<_>, _>>()?;
+            assert_eq!(rows.len(), 2);
+            assert_eq!(rows[0].1, "downloading");
+            assert_eq!(rows[1].1, "downloading");
+
+            // Verify sibling job for episode 2 was deleted
+            let remaining_jobs: i64 =
+                c.query_row("SELECT COUNT(*) FROM jobs WHERE id != ?1", [job_id], |r| {
+                    r.get(0)
+                })?;
+            assert_eq!(
+                remaining_jobs, 0,
+                "sibling search job must be deleted when batch is added"
+            );
+            Ok(())
+        })
+        .unwrap();
+}

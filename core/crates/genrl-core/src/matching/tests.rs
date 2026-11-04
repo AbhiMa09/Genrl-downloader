@@ -648,3 +648,61 @@ fn thin_seeds_asks_about_judged_preferred_release_not_first_ranked() {
         other => panic!("expected Ask(ThinSeeds), got {other:?}"),
     }
 }
+
+#[test]
+fn tv_show_release_without_episode_number_is_batch_in_rank() {
+    let db = Db::open_in_memory().unwrap();
+    seed_show(
+        &db,
+        18119,
+        "Servant x Service",
+        "tv",
+        true,
+        &[("Servant x Service", NameSource::Mal, PRIORITY_MAIN)],
+    );
+    let mut inputs = TargetInputs::load(&db, 18119).unwrap();
+    inputs.total_episodes = Some(13);
+
+    let rules = rules();
+    let settings = settings();
+    let candidate = candidate_from(
+        &filename::parse_release("[neoHEVC] Servant x Service [BD 1080p x265 HEVC AAC]"),
+        &item("[neoHEVC] Servant x Service [BD 1080p x265 HEVC AAC]", 32),
+    );
+
+    let (ranked, _) = rank(vec![candidate], &inputs, None, &rules, &settings, 0);
+    assert!(!ranked.is_empty());
+    assert!(
+        ranked[0].candidate.release.is_batch,
+        "release without episode number for multi-episode TV show must be treated as batch"
+    );
+}
+
+#[test]
+fn movie_release_without_episode_number_is_not_batch_in_rank() {
+    let db = Db::open_in_memory().unwrap();
+    seed_show(
+        &db,
+        32281,
+        "Kimi no Na wa.",
+        "movie",
+        true,
+        &[("Kimi no Na wa.", NameSource::Mal, PRIORITY_MAIN)],
+    );
+    let mut inputs = TargetInputs::load(&db, 32281).unwrap();
+    inputs.total_episodes = Some(1);
+
+    let rules = rules();
+    let settings = settings();
+    let candidate = candidate_from(
+        &filename::parse_release("Kimi no Na wa (2016) [BD1080p] [Dual Audio].mkv"),
+        &item("Kimi no Na wa (2016) [BD1080p] [Dual Audio].mkv", 20),
+    );
+
+    let (ranked, _) = rank(vec![candidate], &inputs, None, &rules, &settings, 0);
+    assert!(!ranked.is_empty());
+    assert!(
+        !ranked[0].candidate.release.is_batch,
+        "movie without episode number must NOT be treated as batch"
+    );
+}

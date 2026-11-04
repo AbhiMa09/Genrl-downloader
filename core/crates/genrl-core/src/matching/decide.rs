@@ -17,7 +17,15 @@ pub fn rank(
     let target = inputs.score_target(wanted_episode);
     let mut ranked: Vec<Ranked> = Vec::new();
     let mut rejected: Vec<(String, Rejection)> = Vec::new();
-    for candidate in candidates {
+    for mut candidate in candidates {
+        if !candidate.release.is_batch
+            && target.show_type == crate::models::ShowType::Tv
+            && target.total_episodes.unwrap_or(0) > 1
+            && candidate.release.episode.is_none()
+            && candidate.show_type != Some(crate::models::ShowType::Movie)
+        {
+            candidate.release.is_batch = true;
+        }
         match score::evaluate(&candidate, &target, rules, settings, now) {
             Ok(scored) => ranked.push(Ranked { candidate, scored }),
             Err(rejection) => rejected.push((candidate.release.raw.clone(), rejection)),
