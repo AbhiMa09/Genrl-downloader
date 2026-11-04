@@ -212,6 +212,12 @@ pub fn transition(
             )
         };
         events::record_in(&tx, Level::Info, Some(job_id), mal_id, &message, at)?;
+        if matches!(to, JobState::Done | JobState::Failed) {
+            tx.execute(
+                "UPDATE questions SET answer = 'expired', expires_at = ?2 WHERE job_id = ?1 AND answer IS NULL",
+                rusqlite::params![job_id, at],
+            )?;
+        }
         tx.commit()?;
         Ok(from)
     })?;

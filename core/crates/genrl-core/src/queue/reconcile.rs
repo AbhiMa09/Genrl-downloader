@@ -27,6 +27,18 @@ pub struct ReconcileReport {
 /// Launch-time recovery: compare every non-terminal job with qBittorrent and
 /// resume it.
 pub async fn reconcile(engine: &Engine) -> Result<ReconcileReport> {
+    let now = engine.clock().now();
+    engine.db().with(|c| {
+        c.execute(
+            "UPDATE questions SET answer = 'expired', expires_at = ?1
+             WHERE answer IS NULL AND job_id IN (
+                 SELECT id FROM jobs WHERE state IN ('done', 'failed')
+             )",
+            rusqlite::params![now],
+        )?;
+        Ok(())
+    })?;
+
     let settings = Settings::load(engine.db())?;
     let client = qbit::Qbit::from_settings(&settings)?;
     let health = client.health(engine.gate()).await?;

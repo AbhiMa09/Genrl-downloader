@@ -9,7 +9,19 @@ use crate::questions::QuestionStore;
 
 /// Expire stale questions and return their episodes to `missing`.
 pub fn sweep(db: &Db, clock: &dyn Clock) -> Result<usize> {
-    let expired = QuestionStore::expire(db, clock.now())?;
+    let now = clock.now();
+    db.with(|c| {
+        c.execute(
+            "UPDATE questions SET answer = 'expired', expires_at = ?1
+             WHERE answer IS NULL AND job_id IN (
+                 SELECT id FROM jobs WHERE state IN ('done', 'failed')
+             )",
+            rusqlite::params![now],
+        )?;
+        Ok(())
+    })?;
+
+    let expired = QuestionStore::expire(db, now)?;
     let mut released = 0;
     for question in &expired {
         let Some(job_id) = question.job_id else {

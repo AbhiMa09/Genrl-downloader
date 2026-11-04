@@ -2278,3 +2278,108 @@ async fn whole_season_release_without_batch_keyword_is_treated_as_batch_in_add()
         })
         .unwrap();
 }
+
+#[tokio::test]
+async fn terminal_job_transitions_and_sweep_close_stale_open_questions() {
+    let world = World::new().await;
+    let job_id = plan_one(&world);
+    let engine = world.engine();
+
+    // Ask a question for the job
+    let payload = Payload::AllFailed {
+        candidates_tried: 0,
+    };
+    let qid = QuestionStore::ask(
+        &world.db,
+        Some(job_id),
+        Some(200),
+        &payload,
+        world.clock.now(),
+        None,
+    )
+    .unwrap();
+    assert_eq!(
+        QuestionStore::open_count(&world.db, world.clock.now()).unwrap(),
+        1
+    );
+
+    // Transitioning job to Failed must close/expire the open question
+    jobs::transition(
+        &world.db,
+        &world.clock,
+        job_id,
+        JobState::Failed,
+        "job failed",
+        &jobs::MoveOptions::default(),
+    )
+    .unwrap();
+
+    assert_eq!(
+        QuestionStore::open_count(&world.db, world.clock.now()).unwrap(),
+        0,
+        "question must be closed when job reaches Failed"
+    );
+
+    let q = QuestionStore::get(&world.db, qid).unwrap().unwrap();
+    assert!(q.answer.is_some(), "answer must be set for closed question");
+
+    // Test sweep cleans up orphaned open questions for terminal jobs
+    let qid2 = QuestionStore::ask(
+        &world.db,
+        Some(job_id),
+        Some(200),
+        &payload,
+        world.clock.now(),
+        None,
+    )
+    .unwrap();
+    // Force answer to NULL to simulate stale open question
+    world
+        .db
+        .with(|c| {
+            c.execute("UPDATE questions SET answer = NULL WHERE id = ?1", [qid2])?;
+            Ok(())
+        })
+        .unwrap();
+    assert_eq!(
+        QuestionStore::open_count(&world.db, world.clock.now()).unwrap(),
+        1
+    );
+
+    // Run sweep
+    genrl_core::queue::sweep(&world.db, &world.clock).unwrap();
+    assert_eq!(
+        QuestionStore::open_count(&world.db, world.clock.now()).unwrap(),
+        0,
+        "sweep must expire stale questions for terminal jobs"
+    );
+
+    // Test reconcile also cleans up orphaned open questions
+    let qid3 = QuestionStore::ask(
+        &world.db,
+        Some(job_id),
+        Some(200),
+        &payload,
+        world.clock.now(),
+        None,
+    )
+    .unwrap();
+    world
+        .db
+        .with(|c| {
+            c.execute("UPDATE questions SET answer = NULL WHERE id = ?1", [qid3])?;
+            Ok(())
+        })
+        .unwrap();
+    assert_eq!(
+        QuestionStore::open_count(&world.db, world.clock.now()).unwrap(),
+        1
+    );
+
+    genrl_core::queue::reconcile(&engine).await.unwrap();
+    assert_eq!(
+        QuestionStore::open_count(&world.db, world.clock.now()).unwrap(),
+        0,
+        "reconcile must expire stale questions for terminal jobs"
+    );
+}
