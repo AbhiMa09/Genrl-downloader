@@ -122,6 +122,8 @@ class _GenrlAppState extends State<GenrlApp> {
               sp.selectPage(widget.initialPage);
             }
             if (widget.initialShowId != null) {
+              // The show page lives under Library (page 3).
+              if (widget.initialPage == 0) sp.selectPage(3);
               sp.loadShowDetail(widget.initialShowId!);
             }
             return sp;

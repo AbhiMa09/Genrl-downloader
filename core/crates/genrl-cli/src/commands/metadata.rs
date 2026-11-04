@@ -94,15 +94,19 @@ pub async fn metadata_fetch_cmd(
             genrl_core::MetadataOutcome::Cached { mal_id } => {
                 println!("Metadata is fresh (cached within 7 days) for show #{mal_id}");
             }
+            // Text mode fails like any command that failed; `--json` (what
+            // the app reads) reports the outcome in the body and exits 0.
             genrl_core::MetadataOutcome::PendingRetry {
                 mal_id,
                 next_run_at,
                 error,
             } => {
-                println!("Metadata fetch failed for show #{mal_id}: {error}. Next retry at {next_run_at}");
+                anyhow::bail!(
+                    "Metadata fetch failed for show #{mal_id}: {error}. Next retry at {next_run_at}"
+                );
             }
             genrl_core::MetadataOutcome::Failed { mal_id, error } => {
-                println!("Metadata fetch failed for show #{mal_id}: {error}");
+                anyhow::bail!("Metadata fetch failed for show #{mal_id}: {error}");
             }
         }
     }
