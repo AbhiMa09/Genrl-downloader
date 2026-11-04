@@ -22,30 +22,28 @@ pub async fn job_retry_cmd(data_dir: &Path, job_id: i64) -> Result<()> {
 
 pub async fn job_cancel_cmd(data_dir: &Path, job_id: i64, delete_files: bool) -> Result<()> {
     let db = open_db(data_dir)?;
-    let info_hash: Option<String> = db.with(|c| {
+    let clock = genrl_core::clock::SystemClock;
+    let mal_id: Option<i64> = db.with(|c| {
         use rusqlite::OptionalExtension;
         Ok(c.query_row(
-            "SELECT t.info_hash FROM jobs j JOIN torrents t ON t.id = j.torrent_id WHERE j.id = ?1",
+            "SELECT e.mal_id FROM jobs j JOIN episodes e ON e.id = j.episode_id WHERE j.id = ?1",
             [job_id],
             |r| r.get(0),
         )
         .optional()?)
     })?;
-    if let Some(hash) = info_hash {
+
+    let torrent_to_remove = genrl_core::jobs::cancel_job(&db, &clock, job_id)?;
+    if let Some(hash) = torrent_to_remove {
         let settings = Settings::load(&db)?;
         let gate = Gate::new(db.clone())?;
         if let Ok(client) = qbit::Qbit::from_settings(&settings) {
             let _ = client.remove(&gate, &hash, delete_files).await;
         }
     }
-    db.with(|c| {
-        Ok(c.execute(
-            "UPDATE jobs SET state = 'failed', last_error = 'Cancelled by user' WHERE id = ?1",
-            [job_id],
-        )?)
-    })?;
+
     let log = EventLog::new(db);
-    log.warn(None, Some(job_id), format!("Cancelled job #{job_id}"))?;
+    log.warn(Some(job_id), mal_id, format!("Cancelled job #{job_id}"))?;
     println!("Job {job_id} cancelled");
     Ok(())
 }

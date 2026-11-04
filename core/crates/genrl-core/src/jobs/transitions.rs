@@ -428,3 +428,49 @@ pub fn retry_all_jobs(db: &Db, clock: &dyn Clock) -> Result<RetrySummary> {
     }
     Ok(summary)
 }
+
+/// Safely cancel a job through the state machine.
+pub fn cancel_job(db: &Db, clock: &dyn Clock, job_id: i64) -> Result<Option<String>> {
+    let at = clock.now();
+    let info_hash: Option<String> = db.with(|c| {
+        c.query_row(
+            "SELECT t.info_hash FROM jobs j JOIN torrents t ON t.id = j.torrent_id WHERE j.id = ?1",
+            [job_id],
+            |r| r.get(0),
+        )
+        .optional()
+        .map_err(Error::from)
+    })?;
+
+    transition(
+        db,
+        clock,
+        job_id,
+        JobState::Failed,
+        "Cancelled by user",
+        &MoveOptions::default(),
+    )?;
+
+    db.with(|c| {
+        c.execute(
+            "UPDATE questions SET answer = 'cancelled', expires_at = ?2 WHERE job_id = ?1 AND answer IS NULL",
+            rusqlite::params![job_id, at],
+        )?;
+        Ok(())
+    })?;
+
+    if let Some(hash) = info_hash {
+        let other: i64 = db.with(|c| {
+            c.query_row(
+                "SELECT COUNT(*) FROM jobs j JOIN torrents t ON t.id = j.torrent_id WHERE t.info_hash = ?1 AND j.state NOT IN ('done', 'failed')",
+                [&hash],
+                |r| r.get(0),
+            )
+            .map_err(Error::from)
+        })?;
+        if other == 0 {
+            return Ok(Some(hash));
+        }
+    }
+    Ok(None)
+}

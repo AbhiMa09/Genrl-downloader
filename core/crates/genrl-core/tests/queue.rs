@@ -1841,3 +1841,150 @@ async fn retry_all_jobs_reports_retried_and_skipped_counts() {
     assert_eq!(summary.retried, 0);
     assert_eq!(summary.skipped, 1);
 }
+
+#[tokio::test]
+async fn cancel_job_transitions_to_failed_and_closes_questions() {
+    let world = World::new().await;
+    let job_id = plan_one(&world);
+
+    // Insert an open question for this job
+    world
+        .db
+        .with(|c| {
+            c.execute(
+                "INSERT INTO questions (job_id, mal_id, kind, payload, answer, created_at)
+                 VALUES (?1, 200, 'low_seeds', '{}', NULL, ?2)",
+                rusqlite::params![job_id, world.clock.now()],
+            )?;
+            Ok(())
+        })
+        .unwrap();
+
+    let torrent_to_remove = jobs::cancel_job(&world.db, &world.clock, job_id).unwrap();
+    assert_eq!(torrent_to_remove, None); // no torrent attached yet in search
+
+    let (state, last_error): (String, Option<String>) = world
+        .db
+        .with(|c| {
+            Ok(c.query_row(
+                "SELECT state, last_error FROM jobs WHERE id = ?1",
+                [job_id],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .unwrap())
+        })
+        .unwrap();
+    assert_eq!(state, "failed");
+    assert_eq!(last_error.as_deref(), Some("Cancelled by user"));
+
+    let question_answer: Option<String> = world
+        .db
+        .with(|c| {
+            Ok(c.query_row(
+                "SELECT answer FROM questions WHERE job_id = ?1",
+                [job_id],
+                |r| r.get(0),
+            )
+            .unwrap())
+        })
+        .unwrap();
+    assert_eq!(question_answer.as_deref(), Some("cancelled"));
+}
+
+#[tokio::test]
+async fn cancelled_job_cannot_be_resurrected_by_in_flight_worker_step() {
+    let world = World::new().await;
+    let job_id = plan_one(&world);
+
+    // Cancel while search is running
+    jobs::cancel_job(&world.db, &world.clock, job_id).unwrap();
+
+    // Now simulated search finishes and attempts transition to choose
+    let res = jobs::transition(
+        &world.db,
+        &world.clock,
+        job_id,
+        JobState::Choose,
+        "search completed",
+        &jobs::MoveOptions::default(),
+    );
+    assert!(
+        res.is_err(),
+        "transition from failed to choose must be rejected"
+    );
+
+    let state: String = world
+        .db
+        .with(|c| {
+            Ok(
+                c.query_row("SELECT state FROM jobs WHERE id = ?1", [job_id], |r| {
+                    r.get(0)
+                })
+                .unwrap(),
+            )
+        })
+        .unwrap();
+    assert_eq!(state, "failed", "job must remain failed");
+}
+
+#[tokio::test]
+async fn cancel_job_with_shared_torrent_preserves_torrent_for_other_active_job() {
+    let world = World::new().await;
+    let job1 = plan_one(&world);
+
+    // Create a second episode and job sharing the show
+    let job2: i64 = world
+        .db
+        .with(|c| {
+            c.execute(
+                "INSERT INTO episodes (mal_id, number, state) VALUES (200, 2, 'queued')",
+                [],
+            )?;
+            let ep2 = c.last_insert_rowid();
+            c.execute(
+                "INSERT INTO jobs (episode_id, kind, state, attempts, created_at, updated_at)
+                 VALUES (?1, 'monitor', 'monitor', 0, ?2, ?2)",
+                rusqlite::params![ep2, world.clock.now()],
+            )?;
+            Ok(c.last_insert_rowid())
+        })
+        .unwrap();
+
+    // Insert a torrent and attach to both jobs
+    let info_hash = "1111222233334444555566667777888899990000";
+    world
+        .db
+        .with(|c| {
+            c.execute(
+                "INSERT INTO torrents (name, magnet, info_hash, size, seeders, leechers, score, found_at)
+                 VALUES ('Batch torrent', 'magnet:?', ?1, 1000, 10, 1, 100.0, ?2)",
+                rusqlite::params![info_hash, world.clock.now()],
+            )?;
+            let tid = c.last_insert_rowid();
+            c.execute(
+                "UPDATE jobs SET torrent_id = ?1, state = 'monitor' WHERE id = ?2",
+                rusqlite::params![tid, job1],
+            )?;
+            c.execute(
+                "UPDATE jobs SET torrent_id = ?1, state = 'monitor' WHERE id = ?2",
+                rusqlite::params![tid, job2],
+            )?;
+            Ok(tid)
+        })
+        .unwrap();
+
+    // Cancel job 1: job 2 is still active, so torrent must NOT be removed from qBit
+    let to_remove1 = jobs::cancel_job(&world.db, &world.clock, job1).unwrap();
+    assert_eq!(
+        to_remove1, None,
+        "torrent is shared with active job2, must not be removed"
+    );
+
+    // Cancel job 2: now no active jobs use it, so torrent SHOULD be removed
+    let to_remove2 = jobs::cancel_job(&world.db, &world.clock, job2).unwrap();
+    assert_eq!(
+        to_remove2,
+        Some(info_hash.to_string()),
+        "no remaining active jobs, torrent must be removed"
+    );
+}
