@@ -61,7 +61,7 @@ class SystemStatus {
   }
 
   String get formattedLastSync {
-    if (lastMalSync == null) return 'Synced recently';
+    if (lastMalSync == null) return 'Never synced';
     final diff = DateTime.now().difference(lastMalSync!);
     if (diff.inMinutes < 1) return 'Synced just now';
     if (diff.inMinutes < 60) return 'Synced ${diff.inMinutes}m ago';

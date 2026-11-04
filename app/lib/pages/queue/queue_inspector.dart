@@ -202,10 +202,7 @@ class QueueInspector extends StatelessWidget {
                   'Peers Swarm',
                   '${item.seeders} seeds · ${item.leechers} leech',
                 ),
-                _buildMetricRow(
-                  'Share Ratio',
-                  '0.14 (Uploading ${item.uploadSpeed})',
-                ),
+                _buildMetricRow('Uploading', item.uploadSpeed),
                 _buildMetricRow(
                   'ETA Countdown',
                   '~${item.eta} remaining',

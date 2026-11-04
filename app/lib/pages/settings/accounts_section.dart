@@ -286,14 +286,17 @@ class SettingsAccountsSection extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     _buildAccountMetric(
-                      'SCROBBLE SUCCESS',
-                      '99.8%',
+                      'WATCHING',
+                      '${state.trackedShows.where((s) => s.status == 'Watching').length}',
                       ObsidianColors.tertiary,
                     ),
                     const SizedBox(width: 8),
                     _buildAccountMetric(
-                      'RATE LIMIT BUDGET',
-                      '420/500',
+                      'LAST SYNC',
+                      state.status.formattedLastSync.replaceFirst(
+                        'Synced ',
+                        '',
+                      ),
                       ObsidianColors.onSurface,
                     ),
                   ],

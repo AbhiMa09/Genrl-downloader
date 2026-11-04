@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import '../../services/state_provider.dart';
@@ -153,7 +155,7 @@ class SettingsNavTree extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        'ENV: LINUX x86_64',
+                        'ENV: ${Platform.operatingSystem.toUpperCase()}',
                         style: ObsidianTypography.labelBadge(
                           color: ObsidianColors.outline,
                         ),
@@ -162,28 +164,18 @@ class SettingsNavTree extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      'RPC OK',
+                      state.isCoreConnected ? 'CORE OK' : 'CORE DOWN',
                       style: ObsidianTypography.labelBadge(
-                        color: ObsidianColors.tertiary,
+                        color: state.isCoreConnected
+                            ? ObsidianColors.tertiary
+                            : ObsidianColors.error,
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 6),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(2),
-                  child: const LinearProgressIndicator(
-                    value: 0.75,
-                    backgroundColor: ObsidianColors.surfaceContainer,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      ObsidianColors.tertiary,
-                    ),
-                    minHeight: 4,
-                  ),
-                ),
-                const SizedBox(height: 6),
                 Text(
-                  'Conf: /etc/genrl/core.yaml',
+                  'Data: ${state.bridge.customDataDir ?? 'default folder'}',
                   style: ObsidianTypography.labelBadge(
                     color: ObsidianColors.onSurfaceVariant,
                   ),
