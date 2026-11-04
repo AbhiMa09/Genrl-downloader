@@ -30,15 +30,30 @@ pub async fn ensure_running(gate: &Gate, settings: &Settings) -> Result<Health> 
 /// instructions if WebUI is disabled". Public so the CLI's health check can
 /// show it instead of a raw connection error.
 pub fn setup_help(settings: &Settings) -> Error {
+    #[cfg(windows)]
+    let start = "open qBittorrent, enable Tools → Options → Web UI";
+    #[cfg(not(windows))]
+    let start = "start qBittorrent (or install qbittorrent-nox) and enable Settings → WebUI";
     Error::Other(format!(
-        "no qBittorrent WebUI at {} — start qBittorrent (or install qbittorrent-nox) and \
-         enable Settings → WebUI on that port, then set the password with `genrl qbit password`",
+        "no qBittorrent WebUI at {} — {start} on that port, then set the password with \
+         `genrl qbit password`",
         settings.qbit_url
+    ))
+}
+
+/// Windows has no headless qBittorrent, and the desktop app is not started for
+/// the user (see below): say how to open it instead.
+#[cfg(windows)]
+fn start_daemon() -> Result<()> {
+    Err(Error::Other(
+        "qBittorrent is not running; open qBittorrent and enable Tools → Options → Web UI"
+            .to_string(),
     ))
 }
 
 /// Start `qbittorrent-nox --daemon` when it is installed. The GUI binary is
 /// deliberately not started: a desktop window is the user's call to make.
+#[cfg(not(windows))]
 fn start_daemon() -> Result<()> {
     use std::process::{Command, Stdio};
     match Command::new("qbittorrent-nox")
