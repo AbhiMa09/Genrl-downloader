@@ -2074,3 +2074,137 @@ async fn answer_question_for_done_job_returns_error() {
         "expected completed error, got: {err}"
     );
 }
+
+#[tokio::test]
+async fn large_download_above_2gb_asks_once_and_parks_legally_in_needs_input() {
+    let world = World::new().await;
+    let job_id = plan_one(&world);
+    let engine = world.engine();
+
+    // Drive job to Add
+    drive_until(&engine, job_id, JobState::Add).await;
+
+    // Update the chosen torrent size to > 2 GB (2.5 GB)
+    world
+        .db
+        .with(|c| {
+            c.execute(
+                "UPDATE torrents SET size = 2500000000 WHERE id = (SELECT torrent_id FROM jobs WHERE id = ?1)",
+                [job_id],
+            )?;
+            Ok(())
+        })
+        .unwrap();
+
+    // Step the job in Add: should confirm large download and transition to NeedsInput
+    let outcome = engine.step(job_id).await.unwrap();
+    assert_eq!(outcome.to, JobState::NeedsInput);
+
+    let state = jobs::get(&world.db, job_id).unwrap().unwrap().state;
+    assert_eq!(state, JobState::NeedsInput);
+
+    // Verify exactly 1 question was created
+    let questions_count: i64 = world
+        .db
+        .with(|c| {
+            Ok(c.query_row(
+                "SELECT COUNT(*) FROM questions WHERE job_id = ?1",
+                [job_id],
+                |r| r.get(0),
+            )
+            .unwrap())
+        })
+        .unwrap();
+    assert_eq!(
+        questions_count, 1,
+        "exactly 1 large download question must be asked"
+    );
+
+    // If the job re-enters Add while the question is still open,
+    // stepping it parks back in NeedsInput without creating a duplicate question:
+    jobs::transition(
+        &world.db,
+        &world.clock,
+        job_id,
+        JobState::Add,
+        "retry add step",
+        &jobs::MoveOptions::default(),
+    )
+    .unwrap();
+
+    let outcome2 = engine.step(job_id).await.unwrap();
+    assert_eq!(outcome2.to, JobState::NeedsInput);
+
+    let questions_count2: i64 = world
+        .db
+        .with(|c| {
+            Ok(c.query_row(
+                "SELECT COUNT(*) FROM questions WHERE job_id = ?1",
+                [job_id],
+                |r| r.get(0),
+            )
+            .unwrap())
+        })
+        .unwrap();
+    assert_eq!(questions_count2, 1, "no duplicate questions asked");
+
+    // Verify 0 illegal transition events were logged
+    let illegal_events: i64 = world
+        .db
+        .with(|c| {
+            Ok(c.query_row(
+                "SELECT COUNT(*) FROM events WHERE message LIKE '%illegal%transition%'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap())
+        })
+        .unwrap();
+    assert_eq!(
+        illegal_events, 0,
+        "must have zero illegal transition events"
+    );
+
+    // Answering the question with Choice::UseThis moves job back to Add and it proceeds!
+    let question_id: i64 = world
+        .db
+        .with(|c| {
+            Ok(c.query_row(
+                "SELECT id FROM questions WHERE job_id = ?1",
+                [job_id],
+                |r| r.get(0),
+            )
+            .unwrap())
+        })
+        .unwrap();
+
+    let question = QuestionStore::get(&world.db, question_id).unwrap().unwrap();
+    let torrent_hash: String = world
+        .db
+        .with(|c| {
+            Ok(c.query_row(
+                "SELECT info_hash FROM torrents WHERE id = (SELECT torrent_id FROM jobs WHERE id = ?1)",
+                [job_id],
+                |r| r.get(0),
+            )
+            .unwrap())
+        })
+        .unwrap();
+
+    let answer = Answer {
+        choice: Choice::UseThis {
+            info_hash: torrent_hash,
+        },
+        always: false,
+    };
+    QuestionStore::answer(&world.db, question_id, &answer).unwrap();
+    let next_state = apply_answer(&world.db, &world.clock, &question, &answer).unwrap();
+    assert_eq!(next_state, Some(JobState::Add));
+
+    let job_state_after_answer = jobs::get(&world.db, job_id).unwrap().unwrap().state;
+    assert_eq!(job_state_after_answer, JobState::Add);
+
+    // Now stepping in Add proceeds past the 2 GB check because it is approved!
+    let outcome3 = engine.step(job_id).await.unwrap();
+    assert_eq!(outcome3.to, JobState::Monitor);
+}

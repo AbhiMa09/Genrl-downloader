@@ -27,6 +27,7 @@ pub const TRANSITIONS: &[(JobState, JobState)] = &[
     (JobState::Choose, JobState::NeedsInput),
     (JobState::Choose, JobState::Blocked),
     (JobState::Choose, JobState::Failed),
+    (JobState::Add, JobState::NeedsInput),
     (JobState::Add, JobState::Blocked),
     (JobState::Add, JobState::Failed),
     // A stalled torrent loops back to search for the next candidate.

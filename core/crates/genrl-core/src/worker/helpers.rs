@@ -59,6 +59,27 @@ impl Engine {
         if approved {
             return Ok(true);
         }
+        let has_open = self.db.with(|c| {
+            let count: i64 = c.query_row(
+                "SELECT COUNT(*) FROM questions WHERE job_id = ?1 AND answer IS NULL AND kind = 'match_review'",
+                [job.id],
+                |r| r.get(0),
+            )?;
+            Ok(count > 0)
+        })?;
+        if has_open {
+            if job.state != JobState::NeedsInput {
+                jobs::transition(
+                    &self.db,
+                    self.clock.as_ref(),
+                    job.id,
+                    JobState::NeedsInput,
+                    REASON,
+                    &MoveOptions::default(),
+                )?;
+            }
+            return Ok(false);
+        }
         let inputs = crate::matching::TargetInputs::load(&self.db, mal_id)?;
         let options = self
             .candidate_rows(mal_id)?
