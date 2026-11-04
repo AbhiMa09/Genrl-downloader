@@ -24,6 +24,14 @@ use crate::models::{Question, QuestionKind};
 /// Create, answer, expire and list the Inbox.
 pub struct QuestionStore;
 
+/// The stored answer of a question nobody answered in time.
+fn expired_answer() -> Result<String> {
+    Ok(serde_json::to_string(&Answer {
+        choice: Choice::Expired,
+        always: false,
+    })?)
+}
+
 impl QuestionStore {
     /// Queue a question. The caller supplies `now` and the expiry, so the
     /// function stays pure time-wise and the tests never wait.
@@ -94,6 +102,41 @@ impl QuestionStore {
         })
     }
 
+    /// Close a stopped job's open questions with the same `expired` answer a
+    /// timeout writes, so every reader that parses answers sees a choice.
+    /// A failed job keeps its own `all_failed` notice unless `include_notice`.
+    pub fn close_for_job(
+        c: &rusqlite::Connection,
+        job_id: i64,
+        at: i64,
+        include_notice: bool,
+    ) -> Result<usize> {
+        let sql = if include_notice {
+            "UPDATE questions SET answer = ?1, expires_at = ?3
+             WHERE job_id = ?2 AND answer IS NULL"
+        } else {
+            "UPDATE questions SET answer = ?1, expires_at = ?3
+             WHERE job_id = ?2 AND answer IS NULL AND kind != 'all_failed'"
+        };
+        Ok(c.execute(sql, rusqlite::params![expired_answer()?, job_id, at])?)
+    }
+
+    /// Sweep form of [`Self::close_for_job`]: every done or failed job at once.
+    pub fn close_for_stopped_jobs(db: &Db, now: i64) -> Result<usize> {
+        let answer = expired_answer()?;
+        db.with(|c| {
+            Ok(c.execute(
+                "UPDATE questions SET answer = ?1, expires_at = ?2
+                 WHERE answer IS NULL AND (
+                     job_id IN (SELECT id FROM jobs WHERE state = 'done')
+                     OR (job_id IN (SELECT id FROM jobs WHERE state = 'failed')
+                         AND kind != 'all_failed')
+                 )",
+                rusqlite::params![answer, now],
+            )?)
+        })
+    }
+
     /// One question by id, with its payload parsed.
     pub fn get(db: &Db, id: i64) -> Result<Option<Question>> {
         db.with(|c| {
@@ -151,10 +194,7 @@ impl QuestionStore {
         })?;
 
         if !expired.is_empty() {
-            let expired_answer = serde_json::to_string(&Answer {
-                choice: Choice::Expired,
-                always: false,
-            })?;
+            let expired_answer = expired_answer()?;
             db.with(|c| {
                 let tx = c.unchecked_transaction()?;
                 for question in &expired {

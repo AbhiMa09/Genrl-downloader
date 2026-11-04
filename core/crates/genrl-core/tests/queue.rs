@@ -1888,7 +1888,9 @@ async fn cancel_job_transitions_to_failed_and_closes_questions() {
             .unwrap())
         })
         .unwrap();
-    assert_eq!(question_answer.as_deref(), Some("cancelled"));
+    // Closed with a real answer every reader can parse, not bare text.
+    let stored: Answer = serde_json::from_str(question_answer.as_deref().unwrap()).unwrap();
+    assert!(matches!(stored.choice, Choice::Expired), "{stored:?}");
 }
 
 #[tokio::test]
@@ -2286,8 +2288,10 @@ async fn terminal_job_transitions_and_sweep_close_stale_open_questions() {
     let engine = world.engine();
 
     // Ask a question for the job
-    let payload = Payload::AllFailed {
-        candidates_tried: 0,
+    let payload = Payload::FileExists {
+        episode: 1.0,
+        existing: "existing.mkv".into(),
+        candidate: "candidate.mkv".into(),
     };
     let qid = QuestionStore::ask(
         &world.db,
@@ -2321,7 +2325,36 @@ async fn terminal_job_transitions_and_sweep_close_stale_open_questions() {
     );
 
     let q = QuestionStore::get(&world.db, qid).unwrap().unwrap();
-    assert!(q.answer.is_some(), "answer must be set for closed question");
+    let stored: Answer = serde_json::from_str(q.answer.as_deref().expect("answer set"))
+        .expect("closed questions store a real answer, not bare text");
+    assert!(matches!(stored.choice, Choice::Expired), "{stored:?}");
+
+    // A failed job's own "all candidates failed" notice stays open: it is
+    // what the owner acts on (retry later / skip).
+    let notice = QuestionStore::ask(
+        &world.db,
+        Some(job_id),
+        Some(200),
+        &Payload::AllFailed {
+            candidates_tried: 3,
+        },
+        world.clock.now(),
+        None,
+    )
+    .unwrap();
+    genrl_core::queue::sweep(&world.db, &world.clock).unwrap();
+    let notice_row = QuestionStore::get(&world.db, notice).unwrap().unwrap();
+    assert!(
+        notice_row.answer.is_none(),
+        "all_failed notice must stay open"
+    );
+    world
+        .db
+        .with(|c| {
+            c.execute("DELETE FROM questions WHERE id = ?1", [notice])?;
+            Ok(())
+        })
+        .unwrap();
 
     // Test sweep cleans up orphaned open questions for terminal jobs
     let qid2 = QuestionStore::ask(

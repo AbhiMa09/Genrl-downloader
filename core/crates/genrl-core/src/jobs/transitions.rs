@@ -5,6 +5,7 @@ use crate::db::Db;
 use crate::error::{Error, Result};
 use crate::events::{self, Level};
 use crate::models::{JobKind, JobState};
+use crate::questions::QuestionStore;
 
 /// Every legal move.
 ///
@@ -213,10 +214,7 @@ pub fn transition(
         };
         events::record_in(&tx, Level::Info, Some(job_id), mal_id, &message, at)?;
         if matches!(to, JobState::Done | JobState::Failed) {
-            tx.execute(
-                "UPDATE questions SET answer = 'expired', expires_at = ?2 WHERE job_id = ?1 AND answer IS NULL",
-                rusqlite::params![job_id, at],
-            )?;
+            QuestionStore::close_for_job(&tx, job_id, at, to == JobState::Done)?;
         }
         tx.commit()?;
         Ok(from)
@@ -458,13 +456,7 @@ pub fn cancel_job(db: &Db, clock: &dyn Clock, job_id: i64) -> Result<Option<Stri
         &MoveOptions::default(),
     )?;
 
-    db.with(|c| {
-        c.execute(
-            "UPDATE questions SET answer = 'cancelled', expires_at = ?2 WHERE job_id = ?1 AND answer IS NULL",
-            rusqlite::params![job_id, at],
-        )?;
-        Ok(())
-    })?;
+    db.with(|c| QuestionStore::close_for_job(c, job_id, at, true))?;
 
     if let Some(hash) = info_hash {
         let other: i64 = db.with(|c| {
