@@ -266,18 +266,18 @@ impl Engine {
         let episode_file_size = match std::fs::metadata(&dest_path) {
             Ok(meta) if meta.is_file() => meta.len() as i64,
             _ => {
-                let recorded: Option<i64> = self.db.with(|c| {
+                let recorded: Option<Option<i64>> = self.db.with(|c| {
                     use rusqlite::OptionalExtension;
                     let s = c
                         .query_row(
                             "SELECT size FROM episodes WHERE id = ?1",
                             [job.episode_id],
-                            |r| r.get(0),
+                            |r| r.get::<_, Option<i64>>(0),
                         )
                         .optional()?;
                     Ok(s)
                 })?;
-                match recorded {
+                match recorded.flatten() {
                     Some(s) if s > 0 && s != size_bytes => s,
                     _ => size_bytes,
                 }
