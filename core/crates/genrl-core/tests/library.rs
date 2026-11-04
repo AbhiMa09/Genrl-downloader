@@ -1007,3 +1007,100 @@ fn desktop_folder_icons_methods() {
     apply_folder_icon(IconMethod::Off, &show_dir, &icon_png).unwrap();
     assert!(!show_dir.join(DIRECTORY_FILE).exists());
 }
+
+#[tokio::test]
+async fn batch_finalize_records_individual_episode_file_size() {
+    let temp = tempdir().unwrap();
+    let library_dir = temp.path().join("Anime");
+    let downloads_dir = temp.path().join("Downloads");
+    let data_dir = temp.path().join("data");
+    fs::create_dir_all(&library_dir).unwrap();
+    fs::create_dir_all(&downloads_dir).unwrap();
+    fs::create_dir_all(&data_dir).unwrap();
+
+    let database = db();
+    let clk = Arc::new(clock());
+
+    let mut settings = Settings::load(&database).unwrap();
+    settings.library_folder = library_dir.display().to_string();
+    settings.download_folder = downloads_dir.display().to_string();
+    settings.folder_icon_method = IconMethod::Off;
+    Settings::save(&settings, &database).unwrap();
+
+    let gate = Arc::new(Gate::with_policies(database.clone(), &[]).unwrap());
+    let finalizer = LibraryFinalizer::new(database.clone(), gate, clk.clone(), data_dir);
+
+    // Show with 2 episodes
+    insert_show(
+        &database,
+        18119,
+        "Servant x Service",
+        Some("Servant x Service"),
+        "tv",
+        Some(2013),
+        1,
+    );
+    database
+        .with(|c| {
+            c.execute(
+                "UPDATE shows SET synopsis = 'A synopsis', poster_path = 'poster.png' WHERE mal_id = 18119",
+                [],
+            )?;
+            Ok(())
+        })
+        .unwrap();
+    let (ep1_id, job1) = insert_episode_and_job(&database, 18119, 1.0);
+    let (ep2_id, _job2) = insert_episode_and_job(&database, 18119, 2.0);
+
+    // Create a batch directory in downloads with 2 episode files
+    let batch_folder = downloads_dir.join("[neoHEVC] Servant x Service [BD 1080p]");
+    fs::create_dir_all(&batch_folder).unwrap();
+
+    let ep1_file = batch_folder.join("[neoHEVC] Servant x Service - 01 [BD 1080p].mkv");
+    let ep2_file = batch_folder.join("[neoHEVC] Servant x Service - 02 [BD 1080p].mkv");
+    fs::write(&ep1_file, vec![0u8; 1500]).unwrap(); // 1500 bytes
+    fs::write(&ep2_file, vec![0u8; 2500]).unwrap(); // 2500 bytes
+
+    // Total torrent size is 10,000,000 bytes (e.g. 10 MB)
+    let ctx = FinalizeContext {
+        job: &job1,
+        episode_id: ep1_id,
+        mal_id: 18119,
+        content_path: batch_folder.to_str().unwrap(),
+        size_bytes: 10_000_000,
+    };
+
+    let outcome = finalizer.finalize(&ctx).await.unwrap();
+    match outcome {
+        FinalizeOutcome::Done(res) => {
+            assert!(
+                res.destination_path.contains("S01E01"),
+                "must target episode 1"
+            );
+        }
+        other => panic!("expected Done, got {other:?}"),
+    }
+
+    // Verify individual episode sizes in database
+    database
+        .with(|c| {
+            let ep1_size: i64 =
+                c.query_row("SELECT size FROM episodes WHERE id = ?1", [ep1_id], |r| {
+                    r.get(0)
+                })?;
+            let ep2_size: i64 =
+                c.query_row("SELECT size FROM episodes WHERE id = ?1", [ep2_id], |r| {
+                    r.get(0)
+                })?;
+            assert_eq!(
+                ep1_size, 1500,
+                "episode 1 size must be its actual file size (1500), not total batch size"
+            );
+            assert_eq!(
+                ep2_size, 2500,
+                "episode 2 size must be its actual file size (2500), not total batch size"
+            );
+            Ok(())
+        })
+        .unwrap();
+}

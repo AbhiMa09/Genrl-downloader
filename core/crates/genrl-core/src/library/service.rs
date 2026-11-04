@@ -334,6 +334,17 @@ impl LibraryFinalizer {
         }
 
         video_files.sort();
+        let job_ep_number: Option<f64> = self.db.with(|c| {
+            use rusqlite::OptionalExtension;
+            c.query_row(
+                "SELECT number FROM episodes WHERE id = ?1",
+                [context.episode_id],
+                |r| r.get(0),
+            )
+            .optional()
+            .map_err(crate::Error::from)
+        })?;
+        let mut target_dest_for_job = None;
         let mut primary_dest = String::new();
 
         for file_path in video_files {
@@ -384,6 +395,9 @@ impl LibraryFinalizer {
             }
 
             let final_dest = target_path.display().to_string();
+            if job_ep_number == Some(ep_num) {
+                target_dest_for_job = Some(final_dest.clone());
+            }
             if primary_dest.is_empty() {
                 primary_dest = final_dest.clone();
             }
@@ -407,8 +421,9 @@ impl LibraryFinalizer {
             primary_dest = show_dir.display().to_string();
         }
 
+        let dest = target_dest_for_job.unwrap_or(primary_dest);
         Ok(FinalizeOutcome::Done(FinalizeSuccess {
-            destination_path: primary_dest,
+            destination_path: dest,
         }))
     }
 }

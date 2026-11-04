@@ -263,7 +263,28 @@ impl Engine {
             Err(err) => return self.fail_or_reschedule(job, &format!("finalize failed: {err}")),
         };
 
-        planner::mark_done(&self.db, job.episode_id, &dest_path, size_bytes)?;
+        let episode_file_size = match std::fs::metadata(&dest_path) {
+            Ok(meta) if meta.is_file() => meta.len() as i64,
+            _ => {
+                let recorded: Option<i64> = self.db.with(|c| {
+                    use rusqlite::OptionalExtension;
+                    let s = c
+                        .query_row(
+                            "SELECT size FROM episodes WHERE id = ?1",
+                            [job.episode_id],
+                            |r| r.get(0),
+                        )
+                        .optional()?;
+                    Ok(s)
+                })?;
+                match recorded {
+                    Some(s) if s > 0 && s != size_bytes => s,
+                    _ => size_bytes,
+                }
+            }
+        };
+
+        planner::mark_done(&self.db, job.episode_id, &dest_path, episode_file_size)?;
 
         if settings.remove_when_finished {
             let client = qbit::Qbit::from_settings(&settings)?;
