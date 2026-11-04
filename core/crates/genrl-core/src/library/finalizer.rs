@@ -325,10 +325,13 @@ impl Finalizer for LibraryFinalizer {
                     }));
                 }
 
-                // Check questions table for an existing answer
+                // The latest question decides. Only Keep / Replace / KeepBoth act;
+                // an expired or unreadable answer asks again — never overwrite a
+                // library file nobody agreed to replace.
                 let question: Option<(i64, Option<String>)> = self.db.with(|c| {
                     Ok(c.query_row(
-                        "SELECT id, answer FROM questions WHERE job_id = ?1 AND kind = 'file_exists'",
+                        "SELECT id, answer FROM questions WHERE job_id = ?1 AND kind = 'file_exists'
+                         ORDER BY id DESC LIMIT 1",
                         [context.job.id],
                         |r| Ok((r.get::<_, i64>(0)?, r.get::<_, Option<String>>(1)?)),
                     )
@@ -336,12 +339,15 @@ impl Finalizer for LibraryFinalizer {
                 })?;
 
                 match question {
+                    Some((qid, None)) => {
+                        // Already asked, still awaiting answer
+                        return Ok(FinalizeOutcome::NeedsInput { question_id: qid });
+                    }
                     Some((_qid, Some(ans_json))) => {
-                        let answer: Answer = serde_json::from_str(&ans_json).unwrap_or(Answer {
-                            choice: Choice::Replace,
-                            always: false,
-                        });
-                        match answer.choice {
+                        let choice = serde_json::from_str::<Answer>(&ans_json)
+                            .map(|a| a.choice)
+                            .unwrap_or(Choice::Expired);
+                        match choice {
                             Choice::Keep => {
                                 // Keep existing file on disk as the episode file
                                 return Ok(FinalizeOutcome::Done(FinalizeSuccess {
@@ -388,34 +394,30 @@ impl Finalizer for LibraryFinalizer {
                             _ => {}
                         }
                     }
-                    Some((qid, None)) => {
-                        // Already asked, still awaiting answer
-                        return Ok(FinalizeOutcome::NeedsInput { question_id: qid });
-                    }
-                    None => {
-                        // Ask question in Inbox
-                        let payload = Payload::FileExists {
-                            episode: ep_number,
-                            existing: target_path.display().to_string(),
-                            candidate: context.content_path.to_string(),
-                        };
-                        let now = self.clock.now();
-                        let qid = QuestionStore::ask(
-                            &self.db,
-                            Some(context.job.id),
-                            Some(context.mal_id),
-                            &payload,
-                            now,
-                            Some(i64::from(settings.question_expiry_hours) * 3600),
-                        )?;
-                        EventLog::new(self.db.clone()).warn(
-                            Some(context.job.id),
-                            Some(context.mal_id),
-                            format!("destination file exists: asked question #{qid}"),
-                        )?;
-                        return Ok(FinalizeOutcome::NeedsInput { question_id: qid });
-                    }
+                    None => {}
                 }
+
+                // Ask question in Inbox
+                let payload = Payload::FileExists {
+                    episode: ep_number,
+                    existing: target_path.display().to_string(),
+                    candidate: context.content_path.to_string(),
+                };
+                let now = self.clock.now();
+                let qid = QuestionStore::ask(
+                    &self.db,
+                    Some(context.job.id),
+                    Some(context.mal_id),
+                    &payload,
+                    now,
+                    Some(i64::from(settings.question_expiry_hours) * 3600),
+                )?;
+                EventLog::new(self.db.clone()).warn(
+                    Some(context.job.id),
+                    Some(context.mal_id),
+                    format!("destination file exists: asked question #{qid}"),
+                )?;
+                return Ok(FinalizeOutcome::NeedsInput { question_id: qid });
             }
 
             // 5. Transfer file into show folder

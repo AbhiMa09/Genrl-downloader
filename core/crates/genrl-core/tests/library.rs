@@ -675,6 +675,70 @@ async fn collision_asks_file_exists_and_honors_answers() {
     );
 }
 
+#[tokio::test]
+async fn collision_with_expired_answer_asks_again_and_keeps_file() {
+    let mock = MockServer::start().await;
+    let temp = tempdir().unwrap();
+    let library_dir = temp.path().join("Anime");
+    let downloads_dir = temp.path().join("Downloads");
+    let data_dir = temp.path().join("data");
+    fs::create_dir_all(&library_dir).unwrap();
+    fs::create_dir_all(&downloads_dir).unwrap();
+    fs::create_dir_all(&data_dir).unwrap();
+
+    let database = db();
+    let clk = Arc::new(clock());
+
+    let mut settings = Settings::load(&database).unwrap();
+    settings.library_folder = library_dir.display().to_string();
+    settings.download_folder = downloads_dir.display().to_string();
+    settings.jikan_base_url = mock.uri();
+    Settings::save(&settings, &database).unwrap();
+
+    let gate = Arc::new(Gate::with_policies(database.clone(), &[]).unwrap());
+    let finalizer = LibraryFinalizer::new(database.clone(), gate, clk.clone(), data_dir);
+
+    insert_show(&database, 101, "Expired Show", None, "tv", Some(2024), 1);
+    let (ep_id, job) = insert_episode_and_job(&database, 101, 1.0);
+
+    let show_dir = library_dir.join("Expired Show (2024)");
+    fs::create_dir_all(&show_dir).unwrap();
+    let target_file = show_dir.join("Expired Show - S01E01.mkv");
+    fs::write(&target_file, b"version 1 on disk").unwrap();
+    let down = downloads_dir.join("new_candidate.mkv");
+    fs::write(&down, b"version 2 new candidate").unwrap();
+
+    let ctx = FinalizeContext {
+        job: &job,
+        episode_id: ep_id,
+        mal_id: 101,
+        content_path: down.to_str().unwrap(),
+        size_bytes: 23,
+    };
+
+    let first = match finalizer.finalize(&ctx).await.unwrap() {
+        FinalizeOutcome::NeedsInput { question_id } => question_id,
+        other => panic!("expected NeedsInput, got {:?}", other),
+    };
+    // The job stopped (failed / cancelled) and the question was closed.
+    QuestionStore::answer(
+        &database,
+        first,
+        &Answer {
+            choice: Choice::Expired,
+            always: false,
+        },
+    )
+    .unwrap();
+
+    // A retry must ask again, never fall through and overwrite the file.
+    match finalizer.finalize(&ctx).await.unwrap() {
+        FinalizeOutcome::NeedsInput { question_id } => assert_ne!(question_id, first),
+        other => panic!("expected a fresh question, got {:?}", other),
+    }
+    assert_eq!(fs::read(&target_file).unwrap(), b"version 1 on disk");
+}
+
 // ---------------------------------------------------------------------------
 // 6. Collision: KeepBoth Saves with (v2)
 // ---------------------------------------------------------------------------
