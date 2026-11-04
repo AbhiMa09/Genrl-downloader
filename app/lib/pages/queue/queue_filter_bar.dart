@@ -36,7 +36,10 @@ class QueueFilterBar extends StatelessWidget {
         .where((i) => i.state == QueueState.blocked)
         .length;
     final failedCount = items.where((i) => i.state == QueueState.failed).length;
-    final searchCount = items.where((i) => i.state == QueueState.queued).length;
+    final searchCount = items.where((i) => i.isSearching).length;
+    final needsInputCount = items
+        .where((i) => i.state == QueueState.needsInput)
+        .length;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
@@ -100,7 +103,7 @@ class QueueFilterBar extends StatelessWidget {
                 _buildTab(
                   'needs_input',
                   'Needs Input',
-                  '2',
+                  '$needsInputCount',
                   ObsidianColors.secondary,
                 ),
               ],

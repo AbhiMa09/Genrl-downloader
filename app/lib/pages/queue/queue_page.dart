@@ -81,12 +81,11 @@ class _QueuePageState extends State<QueuePage> {
         if (_selectedFilter == 'failed' && item.state != QueueState.failed) {
           return false;
         }
-        if (_selectedFilter == 'searching' && item.state != QueueState.queued) {
+        if (_selectedFilter == 'searching' && !item.isSearching) {
           return false;
         }
         if (_selectedFilter == 'needs_input' &&
-            item.seeders > 2 &&
-            item.state != QueueState.blocked) {
+            item.state != QueueState.needsInput) {
           return false;
         }
       }

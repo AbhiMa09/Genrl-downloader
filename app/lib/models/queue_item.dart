@@ -54,6 +54,8 @@ class QueueItem {
 
   String get title => showTitle;
   bool get isQueued => state == QueueState.queued;
+  bool get isSearching =>
+      state == QueueState.queued || state == QueueState.searching;
   String get downloadSpeed => formattedSpeed;
   String get uploadSpeed => uploadSpeedBytes > 0
       ? '${(uploadSpeedBytes / 1024).toStringAsFixed(1)} KB/s'

@@ -23,7 +23,15 @@ class QueuePhasePill extends StatelessWidget {
     } else if (item.state == QueueState.queued) {
       bg = ObsidianColors.surfaceContainerHighest;
       fg = ObsidianColors.outline;
+      label = 'Queued';
+    } else if (item.state == QueueState.searching) {
+      bg = ObsidianColors.surfaceContainerHighest;
+      fg = ObsidianColors.outline;
       label = 'Searching Indexers';
+    } else if (item.state == QueueState.needsInput) {
+      bg = ObsidianColors.secondaryContainer.withOpacity(0.4);
+      fg = ObsidianColors.secondary;
+      label = 'Needs your choice';
     } else if (item.state == QueueState.blocked) {
       bg = ObsidianColors.error.withOpacity(0.2);
       fg = ObsidianColors.error;
@@ -38,7 +46,7 @@ class QueuePhasePill extends StatelessWidget {
       bg = ObsidianColors.error.withOpacity(0.3);
       fg = ObsidianColors.error;
       label = item.error?.isNotEmpty == true ? item.error! : 'Failed';
-    } else if (item.seeders <= 1) {
+    } else if (item.state == QueueState.downloading && item.seeders <= 1) {
       bg = ObsidianColors.secondaryContainer.withOpacity(0.4);
       fg = ObsidianColors.secondary;
       label = 'Pick Alternative (1 seed)';
@@ -53,7 +61,7 @@ class QueuePhasePill extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (item.state == QueueState.queued) ...[
+          if (item.state == QueueState.searching) ...[
             const InlineSpinner(size: 9, color: ObsidianColors.outline),
             const SizedBox(width: 4),
           ],

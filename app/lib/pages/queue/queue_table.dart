@@ -7,6 +7,17 @@ import '../../theme/colors.dart';
 import '../../theme/typography.dart';
 import 'queue_phase_pill.dart';
 
+/// "3 episode jobs • 1 completed • 1 failed" — counts by real state.
+String _seasonSummary(List<QueueItem> entries) {
+  int count(QueueState s) => entries.where((e) => e.state == s).length;
+  final jobs = entries.length == 1
+      ? '1 episode job'
+      : '${entries.length} episode jobs';
+  final failed = count(QueueState.failed);
+  return '$jobs • ${count(QueueState.completed)} completed'
+      '${failed > 0 ? ' • $failed failed' : ''}';
+}
+
 class QueueTable extends StatelessWidget {
   final List<QueueItem> items;
   final bool groupSeasons;
@@ -45,9 +56,7 @@ class QueueTable extends StatelessWidget {
                 title: Text(
                   '${entries.first.showTitle} • Season ${entries.first.season}',
                 ),
-                subtitle: Text(
-                  '${entries.length} queued episode jobs • ${entries.where((e) => e.state == QueueState.completed).length} completed',
-                ),
+                subtitle: Text(_seasonSummary(entries)),
                 children: [
                   QueueTable(
                     items: entries,
