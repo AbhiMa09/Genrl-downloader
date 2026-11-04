@@ -154,6 +154,83 @@ async fn add_sends_magnets_and_save_path_as_a_form() {
 }
 
 #[tokio::test]
+async fn add_409_succeeds_when_torrent_is_already_present() {
+    let server = MockServer::start().await;
+    mount_login(&server, login_ok()).await;
+
+    Mock::given(method("POST"))
+        .and(path("/api/v2/torrents/add"))
+        .respond_with(ResponseTemplate::new(409).set_body_string("Torrent already exists."))
+        .mount(&server)
+        .await;
+
+    let hash = "ef3e7ad1b12bdd9fc341691d8866cd1fa8374a4b";
+    let torrent_json = serde_json::json!([{
+        "hash": hash,
+        "name": "Show",
+        "size": 1000,
+        "progress": 0.5,
+        "dlspeed": 0,
+        "upspeed": 0,
+        "eta": 8640000,
+        "num_seeds": 5,
+        "num_leechs": 2,
+        "state": "downloading",
+        "save_path": "/downloads/anime",
+        "content_path": "/downloads/anime/Show.mkv",
+        "amount_left": 500,
+        "added_on": 1234567,
+        "completion_on": 0,
+        "category": "genrl"
+    }]);
+
+    Mock::given(method("GET"))
+        .and(path("/api/v2/torrents/info"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(&torrent_json))
+        .mount(&server)
+        .await;
+
+    let magnet = format!("magnet:?xt=urn:btih:{hash}&dn=Show");
+    let qbit = Qbit::new(&server.uri(), "admin", Some("pw".into()));
+    let res = qbit
+        .add(&gate(), &[magnet], Some("/downloads/anime"), Some("genrl"))
+        .await;
+    assert!(
+        res.is_ok(),
+        "add on 409 should succeed when torrent is present in qBit: {res:?}"
+    );
+}
+
+#[tokio::test]
+async fn add_409_fails_when_torrent_is_not_present() {
+    let server = MockServer::start().await;
+    mount_login(&server, login_ok()).await;
+
+    Mock::given(method("POST"))
+        .and(path("/api/v2/torrents/add"))
+        .respond_with(ResponseTemplate::new(409).set_body_string("Torrent already exists."))
+        .mount(&server)
+        .await;
+
+    Mock::given(method("GET"))
+        .and(path("/api/v2/torrents/info"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(&serde_json::json!([])))
+        .mount(&server)
+        .await;
+
+    let hash = "ef3e7ad1b12bdd9fc341691d8866cd1fa8374a4b";
+    let magnet = format!("magnet:?xt=urn:btih:{hash}&dn=Show");
+    let qbit = Qbit::new(&server.uri(), "admin", Some("pw".into()));
+    let res = qbit
+        .add(&gate(), &[magnet], Some("/downloads/anime"), Some("genrl"))
+        .await;
+    assert!(
+        res.is_err(),
+        "add on 409 should fail when torrent is absent from qBit"
+    );
+}
+
+#[tokio::test]
 async fn control_paths_depend_on_the_api_generation() {
     // --- qBittorrent 5.x: stop/start -----------------------------------
     let server = MockServer::start().await;

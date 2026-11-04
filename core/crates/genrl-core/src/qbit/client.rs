@@ -5,7 +5,7 @@ use crate::http::{Gate, GetOptions, RetryPolicy, Service};
 use crate::secrets::{self, Secret};
 use crate::settings::Settings;
 
-use super::types::{ApiGen, Health, Torrent, TransferSpeeds};
+use super::types::{magnet_info_hash, ApiGen, Health, Torrent, TransferSpeeds};
 
 pub struct Qbit {
     base: String,
@@ -273,8 +273,33 @@ impl Qbit {
         if let Some(category) = category {
             form.push(("category".to_string(), category.to_string()));
         }
-        self.post(gate, "/api/v2/torrents/add", &form).await?;
-        Ok(())
+        match self.post(gate, "/api/v2/torrents/add", &form).await {
+            Ok(_) => Ok(()),
+            Err(err @ Error::Status { status: 409, .. }) => {
+                let mut all_present = false;
+                for url in urls {
+                    let hash = if url.len() == 40 && url.chars().all(|c| c.is_ascii_hexdigit()) {
+                        Some(url.to_ascii_lowercase())
+                    } else {
+                        magnet_info_hash(url)
+                    };
+                    if let Some(hash) = hash {
+                        if self.get_torrent(gate, &hash).await?.is_some() {
+                            all_present = true;
+                        } else {
+                            return Err(err);
+                        }
+                    }
+                }
+                if all_present {
+                    tracing::info!("torrent already present in qBittorrent on 409 conflict");
+                    Ok(())
+                } else {
+                    Err(err)
+                }
+            }
+            Err(err) => Err(err),
+        }
     }
 
     /// Start or stop a torrent (4.x pause/resume vs 5.x stop/start, hidden).
