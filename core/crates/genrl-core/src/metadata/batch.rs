@@ -16,21 +16,28 @@ use crate::mal::{KeyringStore, MalClient};
 pub fn queue_stale_metadata(db: &Db, now: i64) -> Result<usize> {
     let stale_threshold = now - (7 * 86400);
     let count: usize = db.with(|c| {
-        let changed = c.execute(
+        let unresolved = c.execute(
             "UPDATE shows SET
                 metadata_status = 'pending',
                 metadata_next_retry_at = ?1
-             WHERE (
-                 (metadata_status NOT IN ('ready', 'partial'))
-                 OR (metadata_updated_at IS NULL OR metadata_updated_at < ?2)
+             WHERE metadata_status NOT IN ('ready', 'partial', 'failed')
+             AND (metadata_next_retry_at IS NULL OR metadata_next_retry_at <= ?1)",
+            [now],
+        )?;
+        // A usable show keeps its status: the refresh is only marked as due,
+        // so downloads keep working while Jikan is slow or down.
+        let refresh = c.execute(
+            "UPDATE shows SET metadata_next_retry_at = ?1
+             WHERE metadata_status IN ('ready', 'partial')
+             AND (
+                 (metadata_updated_at IS NULL OR metadata_updated_at < ?2)
                  OR (synopsis IS NULL OR trim(synopsis) = '')
                  OR (metadata_status = 'ready' AND poster_path LIKE 'http%')
              )
-             AND metadata_status != 'failed'
-             AND (metadata_next_retry_at IS NULL OR metadata_next_retry_at <= ?1)",
+             AND metadata_next_retry_at IS NULL",
             rusqlite::params![now, stale_threshold],
         )?;
-        Ok(changed)
+        Ok(unresolved + refresh)
     })?;
     Ok(count)
 }
@@ -50,9 +57,12 @@ pub fn claim_next_metadata_job(db: &Db, now: i64) -> Result<Option<i64>> {
                 .query_row(
                     "SELECT s.mal_id FROM shows s
                      LEFT JOIN mal_entries m ON m.mal_id = s.mal_id
-                     WHERE (s.metadata_status = 'pending'
+                     WHERE ((s.metadata_status = 'pending'
                             OR (s.metadata_status = 'fetching' AND (s.metadata_updated_at IS NULL OR s.metadata_updated_at < ?2)))
-                       AND (s.metadata_next_retry_at IS NULL OR s.metadata_next_retry_at <= ?1)
+                            AND (s.metadata_next_retry_at IS NULL OR s.metadata_next_retry_at <= ?1))
+                        OR (s.metadata_status IN ('ready', 'partial')
+                            AND s.metadata_next_retry_at IS NOT NULL
+                            AND s.metadata_next_retry_at <= ?1)
                      ORDER BY
                        CASE WHEN lower(coalesce(m.list_status, '')) = 'watching' THEN 0 ELSE 1 END ASC,
                        s.metadata_retry_count ASC,
@@ -63,8 +73,17 @@ pub fn claim_next_metadata_job(db: &Db, now: i64) -> Result<Option<i64>> {
                 )
                 .optional()?;
             if let Some(mal_id) = id {
+                // Usable rows are leased by clearing the due mark, not by
+                // leaving 'ready'/'partial'.
                 c.execute(
-                    "UPDATE shows SET metadata_status = 'fetching', metadata_updated_at = ?2 WHERE mal_id = ?1",
+                    "UPDATE shows SET
+                        metadata_next_retry_at = CASE WHEN metadata_status IN ('ready', 'partial')
+                            THEN NULL ELSE metadata_next_retry_at END,
+                        metadata_updated_at = CASE WHEN metadata_status IN ('ready', 'partial')
+                            THEN metadata_updated_at ELSE ?2 END,
+                        metadata_status = CASE WHEN metadata_status IN ('ready', 'partial')
+                            THEN metadata_status ELSE 'fetching' END
+                     WHERE mal_id = ?1",
                     rusqlite::params![mal_id, now],
                 )?;
             }

@@ -92,6 +92,9 @@ pub async fn fetch_show_metadata_with_client(
 
     let meta_status_str = meta_status.unwrap_or_else(|| "pending".into());
     let retry_cnt = retry_count.unwrap_or(0) as u32;
+    // A refresh of a show that is already usable must never make it unusable:
+    // its title and episode count still hold while Jikan or MAL are out.
+    let was_usable = matches!(meta_status_str.as_str(), "ready" | "partial");
 
     // Check if existing poster is a valid local file on disk
     let poster_is_local_file = existing_poster
@@ -127,14 +130,16 @@ pub async fn fetch_show_metadata_with_client(
         }
     }
 
-    // Set status to fetching
-    let _ = db.with(|c| {
-        c.execute(
-            "UPDATE shows SET metadata_status = 'fetching' WHERE mal_id = ?1",
-            [mal_id],
-        )?;
-        Ok(())
-    });
+    // Set status to fetching (a usable show stays usable while it refreshes)
+    if !was_usable {
+        let _ = db.with(|c| {
+            c.execute(
+                "UPDATE shows SET metadata_status = 'fetching' WHERE mal_id = ?1",
+                [mal_id],
+            )?;
+            Ok(())
+        });
+    }
 
     // 4. Try Jikan /v4/anime/{mal_id}/full
     let raw_base = settings.jikan_base_url.trim_end_matches('/');
@@ -319,6 +324,42 @@ pub async fn fetch_show_metadata_with_client(
     }
 
     // 6. Failure handling:
+    // A failed refresh keeps a usable show's status, synopsis and synopsis.txt;
+    // it only records the error and schedules the next try.
+    if was_usable {
+        let new_retry_count = retry_cnt + 1;
+        let backoff_secs = calculate_backoff(new_retry_count).max(minimum_retry_secs);
+        let next_run_at = now.saturating_add(backoff_secs);
+        let err_str = if is_breaker_open {
+            "Jikan circuit breaker open".to_string()
+        } else {
+            last_error.unwrap_or_else(|| "Failed to fetch metadata from Jikan or MAL".to_string())
+        };
+        let _ = db.with(|c| {
+            c.execute(
+                "UPDATE shows SET metadata_next_retry_at = ?1, metadata_retry_count = ?2,
+                     metadata_error = ?3
+                 WHERE mal_id = ?4",
+                rusqlite::params![next_run_at, new_retry_count, err_str, mal_id],
+            )?;
+            Ok(())
+        });
+        if !is_breaker_open {
+            let _ = log.warn(
+                None,
+                Some(mal_id),
+                format!(
+                    "Metadata refresh failed for show #{mal_id}: {err_str}. Keeping current details; retrying in {backoff_secs}s."
+                ),
+            );
+        }
+        return Ok(MetadataOutcome::PendingRetry {
+            mal_id,
+            next_run_at,
+            error: err_str,
+        });
+    }
+
     // Distinguish permanent failure (404) from transient failure (429, 5xx, network):
     if is_404 {
         let err_str = "Anime not found (404)".to_string();

@@ -88,7 +88,8 @@ fn sync_queues_metadata_jobs() {
         "Expected 2 shows to be queued for metadata refresh"
     );
 
-    // Verify Show 1 and Show 3 are marked pending with next_run_at = NOW
+    // Show 1 (never resolved) is marked pending; Show 3 (stale but usable)
+    // keeps 'ready' and only gets its refresh marked due at NOW.
     let statuses: Vec<(i64, String, Option<i64>)> = db
         .with(|c| {
             let mut stmt = c.prepare(
@@ -101,7 +102,76 @@ fn sync_queues_metadata_jobs() {
 
     assert_eq!(statuses[0], (1, "pending".into(), Some(NOW)));
     assert_eq!(statuses[1], (2, "ready".into(), None));
-    assert_eq!(statuses[2], (3, "pending".into(), Some(NOW)));
+    assert_eq!(statuses[2], (3, "ready".into(), Some(NOW)));
+}
+
+#[tokio::test]
+async fn failed_refresh_keeps_a_usable_show_downloadable() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/v4/anime/18119/full"))
+        .respond_with(ResponseTemplate::new(503))
+        .mount(&server)
+        .await;
+    let db = Db::open_in_memory().unwrap();
+    let clk = clock();
+    let temp = tempdir().unwrap();
+    let show_dir = temp.path().join("Servant x Service (2013)");
+    std::fs::create_dir_all(&show_dir).unwrap();
+    std::fs::write(show_dir.join("synopsis.txt"), "Real synopsis\n").unwrap();
+
+    let mut settings = Settings::load(&db).unwrap();
+    settings.jikan_base_url = server.uri();
+    Settings::save(&settings, &db).unwrap();
+    let gate = Gate::with_policies(db.clone(), &[(Service::Jikan, fast_policy())]).unwrap();
+
+    // Resolved earlier (MAL fallback), metadata now 10 days old.
+    db.with(|c| {
+        c.execute(
+            "INSERT INTO shows (mal_id, title, total_episodes, status, synopsis, folder_path,
+                                metadata_status, metadata_updated_at)
+             VALUES (18119, 'Servant x Service', 13, 'finished', 'Real synopsis', ?1, 'partial', ?2)",
+            rusqlite::params![show_dir.display().to_string(), NOW - 10 * 86400],
+        )?;
+        Ok(())
+    })
+    .unwrap();
+
+    assert_eq!(queue_stale_metadata(&db, clk.now()).unwrap(), 1);
+    let report = process_metadata_queue(&db, &gate, &settings, &clk, temp.path(), Some(5))
+        .await
+        .unwrap();
+    assert_eq!(report.processed, 1);
+
+    let (status, synopsis, retry_at): (String, Option<String>, Option<i64>) = db
+        .with(|c| {
+            Ok(c.query_row(
+                "SELECT metadata_status, synopsis, metadata_next_retry_at FROM shows WHERE mal_id = 18119",
+                [],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+            )?)
+        })
+        .unwrap();
+    assert_eq!(
+        status, "partial",
+        "a failed refresh must not unresolve the show"
+    );
+    assert_eq!(synopsis.as_deref(), Some("Real synopsis"));
+    assert!(
+        retry_at.is_some_and(|t| t > NOW),
+        "the refresh is retried later"
+    );
+    assert_eq!(
+        std::fs::read_to_string(show_dir.join("synopsis.txt")).unwrap(),
+        "Real synopsis\n",
+        "synopsis.txt must not be overwritten with a placeholder"
+    );
+
+    // Downloading still works while Jikan is down.
+    assert_eq!(
+        genrl_core::planner::plan_single(&db, &clk, 18119, None).unwrap(),
+        1
+    );
 }
 
 // ---------------------------------------------------------------------------
