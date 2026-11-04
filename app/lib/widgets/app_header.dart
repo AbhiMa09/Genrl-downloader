@@ -161,18 +161,19 @@ class AppHeader extends StatelessWidget {
                   size: 20,
                   color: ObsidianColors.primary,
                 ),
-                Positioned(
-                  right: -2,
-                  top: -2,
-                  child: Container(
-                    width: 7,
-                    height: 7,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: ObsidianColors.error,
+                if (state.inboxCount > 0)
+                  Positioned(
+                    right: -2,
+                    top: -2,
+                    child: Container(
+                      width: 7,
+                      height: 7,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: ObsidianColors.error,
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
             tooltip: 'System Tray & Notifications',

@@ -111,8 +111,9 @@ class ShowDetailLeftRail extends StatelessWidget {
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
+                          // Airing status, not download progress.
                           isFinished
-                              ? (isMovie ? 'MOVIE COMPLETE' : 'SEASON COMPLETE')
+                              ? (isMovie ? 'RELEASED' : 'FINISHED AIRING')
                               : 'AIRING',
                           style: ObsidianTypography.labelBadge(
                             color: ObsidianColors.secondary,

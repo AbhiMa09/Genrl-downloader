@@ -90,28 +90,30 @@ class ShowDetailHero extends StatelessWidget {
                       color: ObsidianColors.outline,
                     ),
                   ),
-                  Text.rich(
-                    TextSpan(
-                      text: 'Studio: ',
-                      style: ObsidianTypography.bodySm(
-                        color: ObsidianColors.onSurfaceVariant,
-                      ),
-                      children: [
-                        TextSpan(
-                          text: show.studio ?? 'Unknown Studio',
-                          style: ObsidianTypography.bodySm(
-                            color: ObsidianColors.onSurface,
-                          ).copyWith(fontWeight: FontWeight.bold),
+                  if (show.studio != null) ...[
+                    Text.rich(
+                      TextSpan(
+                        text: 'Studio: ',
+                        style: ObsidianTypography.bodySm(
+                          color: ObsidianColors.onSurfaceVariant,
                         ),
-                      ],
+                        children: [
+                          TextSpan(
+                            text: show.studio,
+                            style: ObsidianTypography.bodySm(
+                              color: ObsidianColors.onSurface,
+                            ).copyWith(fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  Text(
-                    '•',
-                    style: ObsidianTypography.monoCode(
-                      color: ObsidianColors.outline,
+                    Text(
+                      '•',
+                      style: ObsidianTypography.monoCode(
+                        color: ObsidianColors.outline,
+                      ),
                     ),
-                  ),
+                  ],
                   Text(
                     isMovie ? 'Original Story / Film' : 'TV Broadcast Series',
                     style: ObsidianTypography.bodySm(

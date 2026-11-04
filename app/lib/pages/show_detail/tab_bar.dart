@@ -37,76 +37,75 @@ class ShowDetailTabBar extends StatelessWidget {
         color: ObsidianColors.surfaceContainerLow,
         borderRadius: BorderRadius.circular(12),
       ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                _buildTabButton(
-                  tab: ShowDetailTab.episodes,
-                  icon: Icons.movie_outlined,
-                  label: 'Seasons',
-                  badgeText: '${seasons.length}',
-                ),
-                const SizedBox(width: 4),
-                _buildTabButton(
-                  tab: ShowDetailTab.aliases,
-                  icon: Icons.translate_rounded,
-                  label: 'Aliases & Offsets',
-                  badgeText: '$aliasCount',
-                ),
-                const SizedBox(width: 4),
-                _buildTabButton(
-                  tab: ShowDetailTab.rules,
-                  icon: Icons.tune_rounded,
-                  label: 'Custom Rules & Ingestion',
-                  hasDotIndicator: true,
-                ),
-              ],
-            ),
-            const SizedBox(width: 16),
-
-            // Right Status Pill
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: ObsidianColors.surfaceContainer,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: allDone
-                            ? ObsidianColors.success
-                            : ObsidianColors.tertiary,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      allDone
-                          ? 'All $epCount Files Present'
-                          : '$downloaded / $epCount Downloaded',
-                      style: ObsidianTypography.monoCode(
-                        color: ObsidianColors.outline,
-                      ).copyWith(fontSize: 11),
-                    ),
-                  ],
-                ),
+      // Only the tabs scroll; the status pill stays visible on the right.
+      child: Row(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _buildTabButton(
+                    tab: ShowDetailTab.episodes,
+                    icon: Icons.movie_outlined,
+                    label: 'Seasons',
+                    badgeText: '${seasons.length}',
+                  ),
+                  const SizedBox(width: 4),
+                  _buildTabButton(
+                    tab: ShowDetailTab.aliases,
+                    icon: Icons.translate_rounded,
+                    label: 'Aliases & Offsets',
+                    badgeText: '$aliasCount',
+                  ),
+                  const SizedBox(width: 4),
+                  _buildTabButton(
+                    tab: ShowDetailTab.rules,
+                    icon: Icons.tune_rounded,
+                    label: 'Custom Rules & Ingestion',
+                    hasDotIndicator: true,
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+          const SizedBox(width: 16),
+
+          // Right Status Pill
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: ObsidianColors.surfaceContainer,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: allDone
+                          ? ObsidianColors.success
+                          : ObsidianColors.tertiary,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    allDone
+                        ? 'All $epCount on disk'
+                        : '$downloaded/$epCount on disk',
+                    style: ObsidianTypography.monoCode(
+                      color: ObsidianColors.outline,
+                    ).copyWith(fontSize: 11),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

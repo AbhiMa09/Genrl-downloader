@@ -42,7 +42,7 @@ class DashboardKpiMetrics extends StatelessWidget {
         ? status.activeTorrents
         : (state.activeQueueCount > 0
               ? state.activeQueueCount
-              : state.queue.length);
+              : state.pendingQueueCount);
     final dlSpeed = status.downloadSpeedFormatted;
 
     final pipelineProgress = state.queue.isEmpty

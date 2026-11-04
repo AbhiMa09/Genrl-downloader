@@ -16,6 +16,13 @@ mixin QueueStateMixin on StateContext {
   int get activeQueueCount =>
       _queue.where((i) => i.state == QueueState.downloading).length;
 
+  /// Jobs still in the pipeline: not completed and not failed.
+  int get pendingQueueCount => _queue
+      .where(
+        (i) => i.state != QueueState.completed && i.state != QueueState.failed,
+      )
+      .length;
+
   void setQueueFromTelemetry(List<QueueItem> items) {
     _queue = items;
     _queueError = null;

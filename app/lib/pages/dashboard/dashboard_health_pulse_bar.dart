@@ -13,9 +13,7 @@ class DashboardHealthPulseBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final activeTorrents = state.status.activeTorrents > 0
         ? state.status.activeTorrents
-        : (state.activeQueueCount > 0
-              ? state.activeQueueCount
-              : state.queue.length);
+        : state.activeQueueCount;
     final monitoredShows = state.status.totalShows > 0
         ? state.status.totalShows
         : state.shows.length;
@@ -135,7 +133,7 @@ class DashboardHealthPulseBar extends StatelessWidget {
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
-                  'CRON: ACTIVE',
+                  state.status.automationOn ? 'AUTO: ON' : 'AUTO: PAUSED',
                   style: ObsidianTypography.labelBadge(
                     color: ObsidianColors.outline,
                     fontSize: 10,
