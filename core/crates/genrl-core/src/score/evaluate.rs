@@ -82,12 +82,20 @@ pub fn evaluate(
     let size_mb = size_bytes.div_ceil(1024 * 1024);
 
     if is_batch {
-        let max_batch_bytes = settings.max_batch_gb.saturating_mul(1024 * 1024 * 1024);
-        if size_bytes > max_batch_bytes {
+        // Cap a pack by a per-episode budget scaled to how many episodes it covers, so a
+        // legitimate long-running range pack (e.g. 001-700) is not rejected just for being
+        // large. max_batch_gb stays as the floor for small batches (no change for them),
+        // and the per-episode check below still rejects per-episode bloat.
+        let scaled_cap_bytes = settings
+            .max_episode_mb
+            .saturating_mul(ep_count)
+            .saturating_mul(1024 * 1024)
+            .max(settings.max_batch_gb.saturating_mul(1024 * 1024 * 1024));
+        if size_bytes > scaled_cap_bytes {
             return Err(Rejection::SizeOutOfRange {
                 size_mb,
                 min_mb: settings.min_episode_mb,
-                max_mb: settings.max_batch_gb.saturating_mul(1024),
+                max_mb: scaled_cap_bytes / (1024 * 1024),
             });
         }
         let per_ep_bytes = size_bytes / ep_count;
@@ -319,13 +327,40 @@ pub fn evaluate(
     }
     ranking += recency;
 
-    // Episode-first mode: multi-episode batch must never win over a single episode
+    // Episode-first mode: a multi-episode batch must not win over a single episode,
+    // EXCEPT a large back-catalogue pack (many episodes) for a long-running series, which
+    // the user wants grabbed first even while the show is still airing. Smaller stale
+    // batches for a currently-airing cour are still deprioritized.
+    let covered_span = candidate
+        .release
+        .episode_range
+        .map(|(from, to)| to - from + 1.0)
+        .unwrap_or(0.0);
+    let is_large_backcatalog = covered_span >= 50.0;
     if candidate.release.is_batch
         && target.wanted_episode.is_some()
         && !(target.fully_aired && rules.prefer_batch_when_finished)
+        && !is_large_backcatalog
     {
         ranking -= 50.0;
         notes.push("multi-episode batch deprioritized in episode-first mode (-50)".into());
+    } else if is_batch {
+        // Among packs that are a legitimate choice (a finished show with batch-preference,
+        // or a whole-series feature), prefer the one covering the most episodes, log-scaled
+        // so a "001-700" mega-pack outranks a single-cour batch for a long-running series.
+        // Seeders are rewarded separately above, so coverage and health combine.
+        let covered = candidate
+            .release
+            .episode_range
+            .map(|(from, to)| (to - from + 1.0).max(1.0))
+            .unwrap_or_else(|| target.total_episodes.unwrap_or(1).max(1) as f64);
+        let coverage_bonus = 20.0 * (covered.min(1000.0).log10() / 1000.0f64.log10());
+        if coverage_bonus > 0.0 {
+            ranking += coverage_bonus;
+            notes.push(format!(
+                "pack covers {covered:.0} episodes (+{coverage_bonus:.1})"
+            ));
+        }
     }
 
     // Pure dub without explicit user preference should not outrank sub

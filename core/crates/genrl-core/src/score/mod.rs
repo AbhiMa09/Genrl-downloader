@@ -407,4 +407,79 @@ mod tests {
         let err = evaluate(&dead_batch, &t, &rules, &settings, now()).unwrap_err();
         assert_eq!(err, Rejection::NoSeeders);
     }
+
+    #[test]
+    fn a_bigger_coverage_pack_outranks_a_smaller_one_and_huge_packs_pass_size() {
+        let names = vec!["one piece".to_string()];
+        let others: Vec<String> = vec![];
+        let settings = Settings::default();
+        let rules = Rules::default(); // prefer_batch_when_finished = true
+
+        let t = Target {
+            wanted_episode: Some(1.0),
+            fully_aired: true,
+            show_type: ShowType::Tv,
+            season: 1,
+            start_year: Some(1999),
+            total_episodes: Some(1000),
+            ..frieren_target(&names, &others)
+        };
+
+        // A 700-episode mega-pack (~350 GB at ~500 MB/ep) must survive the size filter,
+        // which previously rejected anything over max_batch_gb (200 GB).
+        let (_r, mut big) = candidate("[Judas] One Piece (001-700) [1080p] [Batch]", 30);
+        big.size_bytes = 700u64 * 500 * 1024 * 1024;
+        big.show_type = Some(ShowType::Tv);
+        // A 100-episode pack with the same seeders and per-episode size.
+        let (_r, mut small) = candidate("[Judas] One Piece (001-100) [1080p] [Batch]", 30);
+        small.size_bytes = 100u64 * 500 * 1024 * 1024;
+        small.show_type = Some(ShowType::Tv);
+
+        let big = evaluate(&big, &t, &rules, &settings, now()).unwrap();
+        let small = evaluate(&small, &t, &rules, &settings, now()).unwrap();
+        assert!(
+            big.ranking > small.ranking,
+            "a pack covering more episodes should rank higher: {} vs {}",
+            big.ranking,
+            small.ranking
+        );
+    }
+
+    #[test]
+    fn a_large_backcatalog_pack_outranks_a_single_even_while_airing() {
+        let names = vec!["one piece".to_string()];
+        let others: Vec<String> = vec![];
+        let settings = Settings::default();
+        // No preferred groups, so ranking differs only by pack coverage, not group bias.
+        let rules = Rules {
+            groups: vec![],
+            ..Rules::default()
+        };
+
+        // Still airing (episode-first would normally deprioritize a batch -50), unknown count.
+        let t = Target {
+            wanted_episode: Some(1.0),
+            fully_aired: false,
+            show_type: ShowType::Tv,
+            season: 1,
+            start_year: Some(1999),
+            total_episodes: Some(0),
+            ..frieren_target(&names, &others)
+        };
+
+        let (_r, mut pack) = candidate("[Judas] One Piece (001-700) [1080p] [Batch]", 30);
+        pack.size_bytes = 700u64 * 500 * 1024 * 1024;
+        pack.show_type = Some(ShowType::Tv);
+        let (_r, mut single) = candidate("[Judas] One Piece - 01 (1080p) [ABCD1234].mkv", 30);
+        single.show_type = Some(ShowType::Tv);
+
+        let pack = evaluate(&pack, &t, &rules, &settings, now()).unwrap();
+        let single = evaluate(&single, &t, &rules, &settings, now()).unwrap();
+        assert!(
+            pack.ranking > single.ranking,
+            "a large back-catalogue pack should outrank a single ep for a long-runner: {} vs {}",
+            pack.ranking,
+            single.ranking
+        );
+    }
 }
