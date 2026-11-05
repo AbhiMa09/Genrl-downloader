@@ -118,8 +118,8 @@ pub fn plan_single(
     mal_id: i64,
     target_episode: Option<f64>,
 ) -> Result<usize> {
-    let (metadata, title, total, status_str): (String, String, Option<i64>, Option<String>) = db
-        .with(|c| {
+    let (metadata, title, _total, status_str): (String, String, Option<i64>, Option<String>) =
+        db.with(|c| {
             Ok(c.query_row(
             "SELECT metadata_status, title, total_episodes, status FROM shows WHERE mal_id = ?1",
             [mal_id],
@@ -129,10 +129,9 @@ pub fn plan_single(
     if !matches!(metadata.as_str(), "ready" | "partial")
         || title.trim().is_empty()
         || title.trim().eq_ignore_ascii_case("unknown")
-        || (target_episode.is_none() && total.unwrap_or(0) <= 0)
     {
         return Err(crate::Error::Other(
-            "Metadata unresolved: refresh metadata before downloading this show or season".into(),
+            "Metadata unresolved: refresh metadata before downloading this show".into(),
         ));
     }
     let entry = db.with(|c| {
@@ -172,6 +171,11 @@ pub fn plan_single(
 
     let eps_to_queue: Vec<f64> = if let Some(ep) = target_episode {
         vec![ep]
+    } else if entry.total_episodes.unwrap_or(0) <= 0 {
+        // Unknown episode count (long-running / still-airing series with no fixed total):
+        // grab the best available pack. Anchoring the search on episode 1 lets the scorer
+        // accept a range pack covering it; the largest-coverage pack wins (score::evaluate).
+        vec![1.0]
     } else {
         let total = entry.total_episodes.unwrap_or(1);
         let mut list = Vec::new();

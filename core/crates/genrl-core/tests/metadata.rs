@@ -1403,6 +1403,40 @@ fn targeted_download_refuses_unresolved_metadata_and_accepts_partial_metadata() 
 }
 
 #[test]
+fn unknown_episode_count_series_queues_a_pack_grab_instead_of_refusing() {
+    // A long-running / still-airing series with no fixed episode count (total 0, e.g.
+    // Detective Conan or One Piece) must still be downloadable: plan_single queues one
+    // best-pack search job rather than refusing with "Metadata unresolved".
+    let db = Db::open_in_memory().unwrap();
+    db.with(|c| {
+        c.execute(
+            "INSERT INTO shows (mal_id,title,total_episodes,status,metadata_status)
+             VALUES (235,'Meitantei Conan',0,'airing','partial')",
+            [],
+        )?;
+        Ok(())
+    })
+    .unwrap();
+
+    let queued = genrl_core::planner::plan_single(&db, &clock(), 235, None).unwrap();
+    assert_eq!(
+        queued, 1,
+        "one pack-grab search job for an unknown-count series"
+    );
+
+    let count: i64 = db
+        .with(|c| {
+            Ok(
+                c.query_row("SELECT count(*) FROM jobs WHERE kind='search'", [], |r| {
+                    r.get(0)
+                })?,
+            )
+        })
+        .unwrap();
+    assert_eq!(count, 1);
+}
+
+#[test]
 fn jikan_cooldown_is_configurable() {
     let db = Db::open_in_memory().unwrap();
     let mut settings = Settings::default();
