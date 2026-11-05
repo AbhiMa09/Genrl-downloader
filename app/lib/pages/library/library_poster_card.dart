@@ -44,6 +44,9 @@ class _LibraryPosterCardState extends State<LibraryPosterCard> {
     final total = group.fold<int>(0, (sum, s) => sum + s.episodesTotal);
     final percent = (downloaded / (total > 0 ? total : 1)).clamp(0.0, 1.0);
     final percentInt = (percent * 100).toInt();
+    // A show the user has finished on MAL is "watched", not an un-downloaded 0/N.
+    final isCompleted =
+        group.isNotEmpty && group.every((s) => s.status == 'Completed');
     final isAiring = group.any(
       (s) =>
           s.airingStatus.toLowerCase().contains('airing') &&
@@ -243,21 +246,45 @@ class _LibraryPosterCardState extends State<LibraryPosterCard> {
                     ),
                     const SizedBox(height: 8),
 
-                    // Progress Bar & Counter
+                    // Progress Bar & Counter.
+                    // Completed (watched) shows read as "Watched", not "0 / N".
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          '$downloaded / $total eps',
-                          style: ObsidianTypography.monoCode(
-                            color: ObsidianColors.onSurfaceVariant,
-                            fontSize: 10,
+                        if (isCompleted)
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.check_circle_rounded,
+                                size: 12,
+                                color: ObsidianColors.success,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Watched',
+                                style: ObsidianTypography.monoCode(
+                                  color: ObsidianColors.success,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ],
+                          )
+                        else
+                          Text(
+                            '$downloaded / $total eps',
+                            style: ObsidianTypography.monoCode(
+                              color: ObsidianColors.onSurfaceVariant,
+                              fontSize: 10,
+                            ),
                           ),
-                        ),
                         Text(
-                          '$percentInt%',
+                          isCompleted
+                              ? (downloaded > 0 ? '$downloaded on disk' : '')
+                              : '$percentInt%',
                           style: ObsidianTypography.monoMetric(
-                            color: ObsidianColors.tertiary,
+                            color: isCompleted
+                                ? ObsidianColors.outline
+                                : ObsidianColors.tertiary,
                             fontWeight: FontWeight.bold,
                             fontSize: 10,
                           ),
@@ -268,11 +295,13 @@ class _LibraryPosterCardState extends State<LibraryPosterCard> {
                     ClipRRect(
                       borderRadius: BorderRadius.circular(2),
                       child: LinearProgressIndicator(
-                        value: percent,
+                        value: isCompleted ? 1.0 : percent,
                         minHeight: 4,
                         backgroundColor: ObsidianColors.surfaceContainerHighest,
-                        valueColor: const AlwaysStoppedAnimation(
-                          ObsidianColors.primary,
+                        valueColor: AlwaysStoppedAnimation(
+                          isCompleted
+                              ? ObsidianColors.success
+                              : ObsidianColors.primary,
                         ),
                       ),
                     ),
