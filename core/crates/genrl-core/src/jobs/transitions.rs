@@ -413,9 +413,12 @@ pub fn retry_job(db: &Db, clock: &dyn Clock, job_id: i64) -> Result<RetryOutcome
 pub fn retry_all_jobs(db: &Db, clock: &dyn Clock) -> Result<RetrySummary> {
     let candidate_ids: Vec<i64> = db.with(|c| {
         let mut stmt = c.prepare(
-            "SELECT id FROM jobs WHERE state IN ('failed', 'blocked', 'needs_input') ORDER BY id ASC",
+            "SELECT id FROM jobs
+             WHERE state IN ('failed', 'blocked', 'needs_input')
+               AND COALESCE(last_error, '') != ?1
+             ORDER BY id ASC",
         )?;
-        let rows = stmt.query_map([], |r| r.get(0))?;
+        let rows = stmt.query_map([CANCELLED_BY_USER], |r| r.get(0))?;
         let mut list = Vec::new();
         for r in rows {
             list.push(r?);
@@ -433,6 +436,9 @@ pub fn retry_all_jobs(db: &Db, clock: &dyn Clock) -> Result<RetrySummary> {
     }
     Ok(summary)
 }
+
+/// What `cancel_job` writes: the marker the queue listing hides a job on.
+pub const CANCELLED_BY_USER: &str = "Cancelled by user";
 
 /// Safely cancel a job through the state machine.
 pub fn cancel_job(db: &Db, clock: &dyn Clock, job_id: i64) -> Result<Option<String>> {
@@ -452,7 +458,7 @@ pub fn cancel_job(db: &Db, clock: &dyn Clock, job_id: i64) -> Result<Option<Stri
         clock,
         job_id,
         JobState::Failed,
-        "Cancelled by user",
+        CANCELLED_BY_USER,
         &MoveOptions::default(),
     )?;
 

@@ -138,9 +138,10 @@ pub fn queue_cmd(data_dir: &Path, json: bool) -> Result<()> {
                  JOIN shows s ON s.mal_id = e.mal_id
                  LEFT JOIN torrents t ON t.id = j.torrent_id
                  WHERE j.state != 'done'
+                   AND COALESCE(j.last_error, '') != ?1
                  ORDER BY j.created_at",
             )?;
-            let rows = stmt.query_map([], |r| {
+            let rows = stmt.query_map([genrl_core::jobs::CANCELLED_BY_USER], |r| {
                 Ok(serde_json::json!({
                     "id": r.get::<_, i64>(0)?,
                     "mal_id": r.get::<_, i64>(1)?,

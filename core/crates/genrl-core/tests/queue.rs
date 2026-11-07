@@ -2211,6 +2211,138 @@ async fn large_download_above_2gb_asks_once_and_parks_legally_in_needs_input() {
     assert_eq!(outcome3.to, JobState::Monitor);
 }
 
+/// A season pack is one torrent every episode job picks. The >2 GB question
+/// belongs to the torrent, so the second episode must wait for the first
+/// card's answer instead of stacking an identical one — and once that answer
+/// lands, it goes straight through.
+#[tokio::test]
+async fn a_shared_pack_asks_once_and_its_sibling_waits_then_proceeds() {
+    let world = World::new().await;
+    let job_id = plan_one(&world);
+    let engine = world.engine();
+
+    drive_until(&engine, job_id, JobState::Add).await;
+
+    // The pack is over the 2 GB line.
+    world
+        .db
+        .with(|c| {
+            c.execute(
+                "UPDATE torrents SET size = 2500000000
+                 WHERE id = (SELECT torrent_id FROM jobs WHERE id = ?1)",
+                [job_id],
+            )?;
+            Ok(())
+        })
+        .unwrap();
+
+    // A sibling episode of the same show, parked in Add on the identical torrent.
+    let sibling = world
+        .db
+        .with(|c| {
+            c.execute(
+                "INSERT INTO episodes (mal_id, number, state) VALUES (200, 2, 'missing')",
+                [],
+            )?;
+            let ep2 = c.last_insert_rowid();
+            c.execute(
+                "INSERT INTO jobs (episode_id, kind, state, attempts, next_run_at, created_at, updated_at, torrent_id)
+                 SELECT ?1, kind, 'add', 0, 0, 0, 0, torrent_id FROM jobs WHERE id = ?2",
+                rusqlite::params![ep2, job_id],
+            )?;
+            Ok(c.last_insert_rowid())
+        })
+        .unwrap();
+
+    // The first episode raises the one card.
+    let outcome = engine.step(job_id).await.unwrap();
+    assert_eq!(outcome.to, JobState::NeedsInput);
+    let open_cards: i64 = world
+        .db
+        .with(|c| {
+            Ok(c.query_row(
+                "SELECT COUNT(*) FROM questions WHERE answer IS NULL AND kind = 'match_review'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap())
+        })
+        .unwrap();
+    assert_eq!(open_cards, 1, "exactly one card for the shared pack");
+
+    // The sibling waits rather than asking the same question again.
+    let sibling_outcome = engine.step(sibling).await.unwrap();
+    assert_eq!(
+        sibling_outcome.to,
+        JobState::Add,
+        "the sibling stays in add, waiting for the sibling's answer"
+    );
+    let open_cards: i64 = world
+        .db
+        .with(|c| {
+            Ok(c.query_row(
+                "SELECT COUNT(*) FROM questions WHERE answer IS NULL AND kind = 'match_review'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap())
+        })
+        .unwrap();
+    assert_eq!(open_cards, 1, "no second card for the same torrent");
+
+    // Answering the one card approves the torrent for every job on it.
+    let question_id: i64 = world
+        .db
+        .with(|c| {
+            Ok(c.query_row(
+                "SELECT id FROM questions WHERE job_id = ?1",
+                [job_id],
+                |r| r.get(0),
+            )
+            .unwrap())
+        })
+        .unwrap();
+    let question = QuestionStore::get(&world.db, question_id).unwrap().unwrap();
+    let torrent_hash: String = world
+        .db
+        .with(|c| {
+            Ok(c.query_row(
+                "SELECT info_hash FROM torrents WHERE id = (SELECT torrent_id FROM jobs WHERE id = ?1)",
+                [job_id],
+                |r| r.get(0),
+            )
+            .unwrap())
+        })
+        .unwrap();
+    let answer = Answer {
+        choice: Choice::UseThis {
+            info_hash: torrent_hash,
+        },
+        always: false,
+    };
+    QuestionStore::answer(&world.db, question_id, &answer).unwrap();
+    let next_state = apply_answer(&world.db, &world.clock, &question, &answer).unwrap();
+    assert_eq!(next_state, Some(JobState::Add));
+
+    // Both jobs now walk past the gate without another question.
+    let sibling_outcome = engine.step(sibling).await.unwrap();
+    assert_eq!(sibling_outcome.to, JobState::Monitor);
+    let outcome = engine.step(job_id).await.unwrap();
+    assert_eq!(outcome.to, JobState::Monitor);
+    let open_cards: i64 = world
+        .db
+        .with(|c| {
+            Ok(c.query_row(
+                "SELECT COUNT(*) FROM questions WHERE answer IS NULL",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap())
+        })
+        .unwrap();
+    assert_eq!(open_cards, 0, "the pack is confirmed once, for good");
+}
+
 #[tokio::test]
 async fn whole_season_release_without_batch_keyword_is_treated_as_batch_in_add() {
     let world = World::new().await;

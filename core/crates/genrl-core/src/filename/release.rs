@@ -14,6 +14,10 @@ pub struct Release {
     /// Normalized form of `title`, ready to compare against `show_names`.
     pub normalized_title: String,
     pub season: Option<u32>,
+    /// `Some((from, to))` when the release spans whole seasons (`S01-S06`).
+    /// The pack then covers any season inside the range, not just its first.
+    #[serde(default)]
+    pub season_range: Option<(u32, u32)>,
     /// `None` for movies and batches; `6.5` for OVA-style decimals.
     pub episode: Option<f64>,
     pub resolution: Option<String>,
@@ -77,6 +81,18 @@ pub fn extract_season_episode(name: &str, release: &mut Release) -> Option<usize
     if let Some(caps) = re(r"(?i)\bS(\d{1,2})\s*[- ]?\s*E(\d{1,3})\b").captures(name) {
         release.season = caps[1].parse().ok();
         release.episode = caps[2].parse().ok();
+        return Some(caps.get(0).unwrap().start());
+    }
+
+    // `S01-S06` / `S1-S6`: a pack of whole seasons. The lower bound is the
+    // season, and the range is kept so the scorer can accept a pack that
+    // *covers* the season being asked for.
+    if let Some(caps) = re(r"(?i)\bS(\d{1,2})\s*[-~～]\s*S(\d{1,2})\b").captures(name) {
+        let from: u32 = caps[1].parse().unwrap_or(1);
+        let to: u32 = caps[2].parse().unwrap_or(from);
+        release.season = Some(from);
+        release.season_range = Some((from, to.max(from)));
+        release.is_batch = true;
         return Some(caps.get(0).unwrap().start());
     }
 

@@ -9,27 +9,35 @@ use crate::settings::Settings;
 
 use super::engine::Engine;
 use super::inbox::tried;
-use super::types::ChosenTorrent;
+use super::types::{ChosenTorrent, SizeGate};
+
+/// The card raised when a release is over the 2 GB line.
+pub(crate) const LARGE_DOWNLOAD_REASON: &str =
+    "Download exceeds 2 GB. Confirm this release before downloading.";
 
 impl Engine {
-    /// Require a per-job, per-torrent approval above 2 GB, including batches.
+    /// The >2 GB gate: one confirmation per *torrent*, not per episode job.
+    ///
+    /// A season pack is a single torrent that every episode job of that season
+    /// picks, so confirming it once has to let the rest through — otherwise the
+    /// inbox gets one card per episode for the same file.
     pub(crate) fn confirm_large_download(
         &self,
         job: &Job,
         mal_id: i64,
         torrent: &ChosenTorrent,
-    ) -> Result<bool> {
-        const REASON: &str = "Download exceeds 2 GB. Confirm this release before downloading.";
+    ) -> Result<SizeGate> {
+        const REASON: &str = LARGE_DOWNLOAD_REASON;
         if torrent.size_bytes <= 2_000_000_000 {
-            return Ok(true);
+            return Ok(SizeGate::Approved);
         }
         let approved = self.db.with(|c| {
             let mut stmt = c.prepare(
-                "SELECT payload, answer FROM questions WHERE job_id = ?1 AND answer IS NOT NULL",
+                "SELECT payload, answer FROM questions
+                 WHERE answer IS NOT NULL AND kind = 'match_review'",
             )?;
-            let rows = stmt.query_map([job.id], |r| {
-                Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?))
-            })?;
+            let rows =
+                stmt.query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?)))?;
             for row in rows {
                 let (payload, answer) = row?;
                 if let (
@@ -57,7 +65,7 @@ impl Engine {
             Ok(false)
         })?;
         if approved {
-            return Ok(true);
+            return Ok(SizeGate::Approved);
         }
         let has_open = self.db.with(|c| {
             let count: i64 = c.query_row(
@@ -78,7 +86,12 @@ impl Engine {
                     &MoveOptions::default(),
                 )?;
             }
-            return Ok(false);
+            return Ok(SizeGate::Ask);
+        }
+        // One card per pack: if another episode is already asking about this
+        // exact torrent, wait for that answer instead of asking again.
+        if self.sibling_asking(job.id, &torrent.info_hash)? {
+            return Ok(SizeGate::WaitingOnSibling);
         }
         let inputs = crate::matching::TargetInputs::load(&self.db, mal_id)?;
         let options = self
@@ -117,7 +130,34 @@ impl Engine {
             REASON,
             &MoveOptions::default(),
         )?;
-        Ok(false)
+        Ok(SizeGate::Ask)
+    }
+
+    /// Is another job already parked on the identical >2 GB card?
+    fn sibling_asking(&self, job_id: i64, info_hash: &str) -> Result<bool> {
+        let asking = self.db.with(|c| {
+            let mut stmt = c.prepare(
+                "SELECT payload FROM questions
+                 WHERE answer IS NULL AND kind = 'match_review'
+                   AND job_id IS NOT NULL AND job_id != ?1",
+            )?;
+            let rows = stmt.query_map([job_id], |r| r.get::<_, String>(0))?;
+            for row in rows {
+                let payload = row?;
+                if let Ok(Payload::MatchReview {
+                    reason, options, ..
+                }) = serde_json::from_str::<Payload>(&payload)
+                {
+                    if reason == LARGE_DOWNLOAD_REASON
+                        && options.iter().any(|o| o.info_hash == info_hash)
+                    {
+                        return Ok(true);
+                    }
+                }
+            }
+            Ok(false)
+        })?;
+        Ok(asking)
     }
 
     // ------------------------------------------------------------------ helpers
@@ -153,8 +193,26 @@ impl Engine {
         Ok(())
     }
 
+    /// Did the user cancel this job? Read from the table, not the snapshot the
+    /// step started with — a cancel can land mid-step and would otherwise be
+    /// overwritten by the failure that step is about to record.
+    fn is_cancelled(&self, job_id: i64) -> Result<bool> {
+        let last_error: Option<String> = self.db.with(|c| {
+            Ok(
+                c.query_row("SELECT last_error FROM jobs WHERE id = ?1", [job_id], |r| {
+                    r.get(0)
+                })
+                .optional()?,
+            )
+        })?;
+        Ok(last_error.as_deref() == Some(jobs::CANCELLED_BY_USER))
+    }
+
     /// Back off, or give up and ask: whichever comes first.
     pub(crate) fn fail_or_reschedule(&self, job: &Job, reason: &str) -> Result<JobState> {
+        if self.is_cancelled(job.id)? {
+            return Ok(job.state);
+        }
         let settings = Settings::load(&self.db)?;
         if job.attempts + 1 >= i64::from(settings.max_failed_candidates) {
             let payload = Payload::AllFailed {
@@ -189,6 +247,9 @@ impl Engine {
 
     /// Stall or vanished torrent: move to the next candidate, or ask.
     pub(crate) fn next_candidate(&self, job: &Job, mal_id: i64, reason: &str) -> Result<JobState> {
+        if self.is_cancelled(job.id)? {
+            return Ok(job.state);
+        }
         let settings = Settings::load(&self.db)?;
         if job.attempts + 1 >= i64::from(settings.max_failed_candidates) {
             let payload = Payload::AllFailed {

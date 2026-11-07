@@ -136,3 +136,15 @@ pub(crate) struct ChosenTorrent {
     pub(crate) magnet: String,
     pub(crate) size_bytes: i64,
 }
+
+/// What the >2 GB gate decided for one job.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SizeGate {
+    /// Under the limit, or this exact torrent was already confirmed.
+    Approved,
+    /// Another episode of the same pack is already asking: wait for that
+    /// answer rather than stacking a second identical card in the inbox.
+    WaitingOnSibling,
+    /// This job must raise the card itself.
+    Ask,
+}

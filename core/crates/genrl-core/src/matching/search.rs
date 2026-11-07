@@ -106,10 +106,23 @@ pub(crate) fn load_show(db: &Db, mal_id: i64) -> Result<Option<Show>> {
 }
 
 /// Every name of every *other* show: the reject set.
+///
+/// "Other" means another show *and another franchise* — the seasons of the
+/// same series share one name list, so treating them as rivals makes a
+/// sequel's own releases look like they belong elsewhere.
 pub(crate) fn other_show_names(db: &Db, exclude_mal_id: i64) -> Result<Vec<String>> {
     db.with(|c| {
-        let mut stmt =
-            c.prepare("SELECT DISTINCT normalized FROM show_names WHERE mal_id != ?1")?;
+        let mut stmt = c.prepare(
+            "SELECT DISTINCT normalized FROM show_names
+             WHERE mal_id != ?1
+               AND mal_id NOT IN (
+                 SELECT s2.mal_id FROM shows s2
+                 WHERE s2.franchise_id IS NOT NULL
+                   AND s2.franchise_id = (
+                     SELECT s1.franchise_id FROM shows s1 WHERE s1.mal_id = ?1
+                   )
+               )",
+        )?;
         let rows = stmt.query_map([exclude_mal_id], |r| r.get::<_, String>(0))?;
         let mut out = Vec::new();
         for row in rows {

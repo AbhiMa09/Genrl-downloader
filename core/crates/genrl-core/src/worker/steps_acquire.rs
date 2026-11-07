@@ -9,7 +9,7 @@ use crate::rules::Rules;
 use crate::settings::Settings;
 
 use super::engine::Engine;
-use super::types::CATEGORY;
+use super::types::{SizeGate, CATEGORY};
 
 impl Engine {
     // ------------------------------------------------------------------ search
@@ -292,8 +292,20 @@ impl Engine {
             );
         };
 
-        if !self.confirm_large_download(job, context.mal_id, &torrent)? {
-            return Ok(JobState::NeedsInput);
+        match self.confirm_large_download(job, context.mal_id, &torrent)? {
+            SizeGate::Approved => {}
+            SizeGate::WaitingOnSibling => {
+                // One card per pack: come back once the sibling's is answered.
+                jobs::reschedule(
+                    &self.db,
+                    self.clock.as_ref(),
+                    job.id,
+                    self.now() + 60,
+                    "waiting on the size confirmation for the same torrent",
+                )?;
+                return Ok(job.state);
+            }
+            SizeGate::Ask => return Ok(JobState::NeedsInput),
         }
 
         let download_path = crate::locations::effective_download_dir(&settings);

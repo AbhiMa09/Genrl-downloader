@@ -128,6 +128,201 @@ fn kimi_no_na_wa_and_kimi_no_todoke_are_different_shows() {
     ));
 }
 
+/// The sequels trap's mirror image: a show whose *own* MAL name carries a word
+/// some other show is named after. "Kingdom 6th Season" releases say "kingdom",
+/// and "Re:Zero4th Season" has an official name containing "another" — reading
+/// those as the rival show rejects the show's own releases and the whole season
+/// fails with "nothing usable: title matches a different show".
+#[test]
+fn a_sequel_is_not_rejected_for_words_another_show_owns() {
+    let db = Db::open_in_memory().unwrap();
+    seed_show(
+        &db,
+        61517,
+        "Kingdom 6th Season",
+        "tv",
+        false,
+        &[("Kingdom 6th Season", NameSource::Mal, PRIORITY_MAIN)],
+    );
+    db.with(|c| {
+        c.execute(
+            "UPDATE shows SET season = 6, total_episodes = 13 WHERE mal_id = 61517",
+            [],
+        )?;
+        Ok(())
+    })
+    .unwrap();
+    seed_show(
+        &db,
+        12031,
+        "Kingdom",
+        "tv",
+        false,
+        &[("Kingdom", NameSource::Mal, PRIORITY_MAIN)],
+    );
+    seed_show(
+        &db,
+        11111,
+        "Another",
+        "tv",
+        false,
+        &[("Another", NameSource::Mal, PRIORITY_MAIN)],
+    );
+
+    let inputs = TargetInputs::load(&db, 61517).unwrap();
+    assert!(
+        inputs.other_names.contains(&"kingdom".to_string()),
+        "the rival's name is still in the reject set: {:?}",
+        inputs.other_names
+    );
+
+    let (ranked, rejected) = rank(
+        candidates(&[("[SubsPlease] Kingdom S6 - 12 (1080p) [ABCD1234].mkv", 50)]),
+        &inputs,
+        Some(12.0),
+        &rules(),
+        &settings(),
+        now(),
+    );
+    assert!(
+        rejected.is_empty(),
+        "our own release must not be rejected: {rejected:?}"
+    );
+    assert_eq!(ranked.len(), 1);
+    assert!(
+        ranked[0].scored.signal >= settings().score_threshold,
+        "confident enough to take without asking: {}",
+        ranked[0].scored.signal
+    );
+    match decide_verdict(ranked, rejected, &inputs, &rules(), &settings()) {
+        Verdict::Auto { .. } => {}
+        other => panic!("expected Auto, got {other:?}"),
+    }
+}
+
+/// Same trap through the raw-title check: an official English name that
+/// contains a whole other show's title ("Starting Life in Another World").
+#[test]
+fn a_title_that_mentions_a_word_another_show_owns_is_still_ours() {
+    let db = Db::open_in_memory().unwrap();
+    seed_show(
+        &db,
+        61316,
+        "Re:Zero kara Hajimeru Isekai Seikatsu 4th Season",
+        "tv",
+        false,
+        &[
+            (
+                "Re:Zero kara Hajimeru Isekai Seikatsu 4th Season",
+                NameSource::Mal,
+                PRIORITY_MAIN,
+            ),
+            (
+                "Re:ZERO -Starting Life in Another World- Season 4",
+                NameSource::Mal,
+                PRIORITY_MAIN + 1,
+            ),
+        ],
+    );
+    db.with(|c| {
+        c.execute(
+            "UPDATE shows SET season = 4, total_episodes = 19 WHERE mal_id = 61316",
+            [],
+        )?;
+        Ok(())
+    })
+    .unwrap();
+    seed_show(
+        &db,
+        11111,
+        "Another",
+        "tv",
+        false,
+        &[("Another", NameSource::Mal, PRIORITY_MAIN)],
+    );
+
+    let inputs = TargetInputs::load(&db, 61316).unwrap();
+    let (ranked, rejected) = rank(
+        candidates(&[(
+            "[FLE] Re ZERO Starting Life in Another World - S04E18 (WEB 1080p HEVC) [ABCD1234].mkv",
+            50,
+        )]),
+        &inputs,
+        Some(18.0),
+        &rules(),
+        &settings(),
+        now(),
+    );
+    assert!(
+        rejected.is_empty(),
+        "\"another\" inside our own official name must not reject: {rejected:?}"
+    );
+    assert_eq!(ranked.len(), 1);
+    match decide_verdict(ranked, rejected, &inputs, &rules(), &settings()) {
+        Verdict::Auto { .. } => {}
+        other => panic!("expected Auto, got {other:?}"),
+    }
+}
+
+/// A whole-series pack (`S01-S06`) is for the season being asked for, not a
+/// conflict with it — and its per-episode size is judged over every season it
+/// spans, so a 49 GB series pack is not read as a 13-episode one.
+#[test]
+fn a_whole_series_pack_is_taken_for_a_later_season() {
+    let db = Db::open_in_memory().unwrap();
+    seed_show(
+        &db,
+        61517,
+        "Kingdom 6th Season",
+        "tv",
+        false,
+        &[("Kingdom 6th Season", NameSource::Mal, PRIORITY_MAIN)],
+    );
+    db.with(|c| {
+        c.execute(
+            "UPDATE shows SET season = 6, total_episodes = 13 WHERE mal_id = 61517",
+            [],
+        )?;
+        Ok(())
+    })
+    .unwrap();
+    seed_show(
+        &db,
+        12031,
+        "Kingdom",
+        "tv",
+        false,
+        &[("Kingdom", NameSource::Mal, PRIORITY_MAIN)],
+    );
+
+    let raw = "[BlueRider] Kingdom (2012) S01-S06 (Part 1) (WEB 1080p HEVC) [JP/CN Naming]";
+    let release = filename::parse_release(raw);
+    assert_eq!(release.season_range, Some((1, 6)), "{release:?}");
+
+    let mut feed = item(raw, 21);
+    feed.size_bytes = 49_971 * 1024 * 1024;
+    let candidate = candidate_from(&release, &feed);
+
+    let inputs = TargetInputs::load(&db, 61517).unwrap();
+    let (ranked, rejected) = rank(
+        vec![candidate],
+        &inputs,
+        Some(12.0),
+        &rules(),
+        &settings(),
+        now(),
+    );
+    assert!(
+        rejected.is_empty(),
+        "the S1-S6 pack must be usable: {rejected:?}"
+    );
+    assert_eq!(ranked.len(), 1);
+    match decide_verdict(ranked, rejected, &inputs, &rules(), &settings()) {
+        Verdict::Auto { .. } => {}
+        other => panic!("expected Auto, got {other:?}"),
+    }
+}
+
 #[test]
 fn a_confident_match_proceeds_without_asking() {
     let db = Db::open_in_memory().unwrap();
