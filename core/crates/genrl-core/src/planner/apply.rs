@@ -172,9 +172,6 @@ pub fn plan_single(
     let eps_to_queue: Vec<f64> = if let Some(ep) = target_episode {
         vec![ep]
     } else if entry.total_episodes.unwrap_or(0) <= 0 {
-        // Unknown episode count (long-running / still-airing series with no fixed total):
-        // If community season_map entries exist, ensure episodes exist and plan the
-        // latest mapped season's missing episodes instead of stalling on episode 1.
         let mapped = db.with(|c| {
             crate::season_map::ensure_episodes_exist(c, mal_id)?;
             if let Some(latest) = crate::season_map::latest_season(c, mal_id)? {
@@ -219,6 +216,7 @@ pub fn plan_single(
         list
     };
 
+    let settings = Settings::load(db)?;
     let rules = crate::rules::Rules::for_show(db, mal_id)?;
     let is_finished = status_str
         .map(|s| crate::models::AiringStatus::parse(&s) == crate::models::AiringStatus::Finished)
@@ -228,24 +226,30 @@ pub fn plan_single(
         .ok()
         .flatten()
         .is_some();
+
+    let is_pack_first = eps_to_queue.len() >= settings.pack_first_min_missing as usize;
     let should_batch_season = target_episode.is_none()
         && eps_to_queue.len() > 1
-        && ((rules.prefer_batch_when_finished && is_finished)
+        && (is_pack_first
+            || (rules.prefer_batch_when_finished && is_finished)
             || (entry.total_episodes.unwrap_or(0) <= 0 && has_season_map));
 
     let mut queued = 0;
     if should_batch_season {
-        // Ensure all episode rows exist in database
         for ep in &eps_to_queue {
             ensure_episode(db, clock, mal_id, *ep)?;
         }
-        // Enqueue one search job for the season (associated with first missing episode)
         if let Some(&first_ep) = eps_to_queue.first() {
             let episode_id = ensure_episode(db, clock, mal_id, first_ep)?;
             let job = crate::jobs::enqueue_search(db, clock, episode_id)?;
             crate::jobs::mark_manual(db, job)?;
             queued += 1;
         }
+    } else if !is_finished && entry.total_episodes.unwrap_or(0) <= 0 && !eps_to_queue.is_empty() {
+        let episode_id = ensure_episode(db, clock, mal_id, *eps_to_queue.last().unwrap())?;
+        let job = crate::jobs::enqueue_search(db, clock, episode_id)?;
+        crate::jobs::mark_manual(db, job)?;
+        queued += 1;
     } else {
         for ep in eps_to_queue {
             let episode_id = ensure_episode(db, clock, mal_id, ep)?;

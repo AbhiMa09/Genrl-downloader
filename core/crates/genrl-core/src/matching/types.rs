@@ -28,6 +28,8 @@ pub struct TargetInputs {
     /// Every other show's normalized names, to reject on.
     pub other_names: Vec<String>,
     pub season_maps: Vec<crate::season_map::SeasonMapEntry>,
+    pub missing_episodes: Vec<f64>,
+    pub owned_episodes: Vec<f64>,
 }
 
 impl TargetInputs {
@@ -45,6 +47,25 @@ impl TargetInputs {
         let other_names = other_show_names(db, mal_id)?;
         let season = crate::filename::extract_season_from_title(&show.title).unwrap_or(show.season);
         let season_maps = db.with(|c| crate::season_map::all_for_show(c, mal_id))?;
+        let (missing_episodes, owned_episodes) = db.with(|c| {
+            let mut missing = Vec::new();
+            let mut stmt = c.prepare(
+                "SELECT number FROM episodes WHERE mal_id = ?1 AND state = 'missing' ORDER BY number ASC",
+            )?;
+            let rows = stmt.query_map([mal_id], |r| r.get::<_, f64>(0))?;
+            for r in rows {
+                missing.push(r?);
+            }
+            let mut owned = Vec::new();
+            let mut stmt = c.prepare(
+                "SELECT number FROM episodes WHERE mal_id = ?1 AND state = 'done' ORDER BY number ASC",
+            )?;
+            let rows = stmt.query_map([mal_id], |r| r.get::<_, f64>(0))?;
+            for r in rows {
+                owned.push(r?);
+            }
+            Ok((missing, owned))
+        })?;
         Ok(TargetInputs {
             mal_id: show.mal_id,
             title: show.title,
@@ -58,6 +79,8 @@ impl TargetInputs {
             names,
             other_names,
             season_maps,
+            missing_episodes,
+            owned_episodes,
         })
     }
 
@@ -79,6 +102,8 @@ impl TargetInputs {
             fully_aired: self.fully_aired,
             total_episodes: self.total_episodes,
             season_maps: &self.season_maps,
+            missing_episodes: &self.missing_episodes,
+            owned_episodes: &self.owned_episodes,
         }
     }
 

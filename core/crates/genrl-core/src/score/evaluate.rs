@@ -112,13 +112,32 @@ pub fn evaluate(
             && target.wanted_episode.is_some()
             && effective_episode.is_none()
             && candidate.show_type != Some(crate::models::ShowType::Movie));
+    let has_explicit_range = candidate.release.episode_range.is_some() || mapped_ep_count.is_some();
+    let mapped_season_range = mapped_season_entry.map(|m| (m.first_ep, m.last_ep));
+    let (covered_missing, covered_owned) = calculate_batch_coverage(
+        effective_episode_range,
+        mapped_season_range,
+        target.missing_episodes,
+        target.owned_episodes,
+    );
+
+    if is_batch && !target.missing_episodes.is_empty() {
+        if covered_missing == 0 {
+            return Err(Rejection::NoMissingEpisodes);
+        }
+        if covered_owned > covered_missing {
+            return Err(Rejection::WastefulOverlap {
+                covered_missing,
+                covered_owned,
+            });
+        }
+    }
+
     let ep_count = if let Some(mc) = mapped_ep_count {
         mc
     } else if let Some((from, to)) = effective_episode_range {
         ((to - from + 1.0) as u64).max(1)
     } else {
-        // A pack of whole seasons holds one show's worth of episodes per
-        // season it spans — `S01-S06` of a 13-episode season is 78, not 13.
         let seasons = candidate
             .release
             .season_range
@@ -131,15 +150,14 @@ pub fn evaluate(
     let size_mb = size_bytes.div_ceil(1024 * 1024);
 
     if is_batch {
-        // Cap a pack by a per-episode budget scaled to how many episodes it covers, so a
-        // legitimate long-running range pack (e.g. 001-700) is not rejected just for being
-        // large. max_batch_gb stays as the floor for small batches (no change for them),
-        // and the per-episode check below still rejects per-episode bloat.
-        let scaled_cap_bytes = settings
-            .max_episode_mb
-            .saturating_mul(ep_count)
-            .saturating_mul(1024 * 1024)
-            .max(settings.max_batch_gb.saturating_mul(1024 * 1024 * 1024));
+        let scaled_cap_bytes = compute_batch_size_cap(
+            settings,
+            ep_count,
+            has_explicit_range,
+            target.missing_episodes.len(),
+            covered_missing,
+            target.total_episodes,
+        );
         if size_bytes > scaled_cap_bytes {
             return Err(Rejection::SizeOutOfRange {
                 size_mb,
@@ -147,12 +165,8 @@ pub fn evaluate(
                 max_mb: scaled_cap_bytes / (1024 * 1024),
             });
         }
-        // How many episodes the pack holds is only knowable when the show has a
-        // fixed count or the release names its own range. A whole-season pack
-        // for a show with no fixed count is judged by the size cap above alone.
-        let per_ep_known = target.total_episodes.is_some()
-            || candidate.release.episode_range.is_some()
-            || candidate.release.season_range.is_none();
+        let per_ep_known = has_explicit_range
+            || (target.total_episodes.is_some_and(|t| t > 1) && candidate.release.season_range.is_some());
         if per_ep_known {
             let per_ep_bytes = size_bytes / ep_count;
             let per_ep_mb = per_ep_bytes.div_ceil(1024 * 1024);
@@ -331,9 +345,17 @@ pub fn evaluate(
             && target.wanted_episode.is_some()
             && candidate.release.episode.is_none()
             && candidate.show_type != Some(crate::models::ShowType::Movie));
+    let covered_span = effective_episode_range
+        .map(|(from, to)| to - from + 1.0)
+        .unwrap_or(0.0);
+    let is_large_backcatalog = covered_span >= 50.0
+        || covered_missing >= settings.pack_first_min_missing as u64
+        || target.missing_episodes.len() >= settings.pack_first_min_missing as usize;
 
-    if is_batch && target.fully_aired {
-        if target.wanted_episode.is_some() && rules.prefer_batch_when_finished {
+    if is_batch && (target.fully_aired || is_large_backcatalog) {
+        if target.wanted_episode.is_some()
+            && (rules.prefer_batch_when_finished || is_large_backcatalog)
+        {
             signal += 50.0;
             notes.push("season batch prioritized over single episodes (+50)".into());
         } else if target.wanted_episode.is_some() {
@@ -415,10 +437,6 @@ pub fn evaluate(
     // EXCEPT a large back-catalogue pack (many episodes) for a long-running series, which
     // the user wants grabbed first even while the show is still airing. Smaller stale
     // batches for a currently-airing cour are still deprioritized.
-    let covered_span = effective_episode_range
-        .map(|(from, to)| to - from + 1.0)
-        .unwrap_or(0.0);
-    let is_large_backcatalog = covered_span >= 50.0;
     if candidate.release.is_batch
         && target.wanted_episode.is_some()
         && !(target.fully_aired && rules.prefer_batch_when_finished)
@@ -427,18 +445,25 @@ pub fn evaluate(
         ranking -= 50.0;
         notes.push("multi-episode batch deprioritized in episode-first mode (-50)".into());
     } else if is_batch {
-        // Among packs that are a legitimate choice (a finished show with batch-preference,
-        // or a whole-series feature), prefer the one covering the most episodes, log-scaled
-        // so a "001-700" mega-pack outranks a single-cour batch for a long-running series.
-        // Seeders are rewarded separately above, so coverage and health combine.
-        let covered = effective_episode_range
-            .map(|(from, to)| (to - from + 1.0).max(1.0))
-            .unwrap_or_else(|| target.total_episodes.unwrap_or(1).max(1) as f64);
-        let coverage_bonus = 20.0 * (covered.min(1000.0).log10() / 1000.0f64.log10());
+        // Among packs that are a legitimate choice:
+        // Rank passing candidates by missing episodes covered (coverage ranking), tiebreak seeders.
+        let covered = if covered_missing > 0 {
+            covered_missing as f64
+        } else {
+            effective_episode_range
+                .map(|(from, to)| (to - from + 1.0).max(1.0))
+                .unwrap_or_else(|| target.total_episodes.unwrap_or(1).max(1) as f64)
+        };
+        let coverage_bonus = if !target.missing_episodes.is_empty() {
+            let total_missing = target.missing_episodes.len().max(1) as f64;
+            50.0 * (covered / total_missing)
+        } else {
+            20.0 * (covered.min(1000.0).log10() / 1000.0f64.log10())
+        };
         if coverage_bonus > 0.0 {
             ranking += coverage_bonus;
             notes.push(format!(
-                "pack covers {covered:.0} episodes (+{coverage_bonus:.1})"
+                "pack covers {covered:.0} missing episodes (+{coverage_bonus:.1})"
             ));
         }
     }

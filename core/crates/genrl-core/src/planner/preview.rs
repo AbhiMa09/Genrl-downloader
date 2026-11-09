@@ -141,10 +141,37 @@ pub(crate) fn build_preview(
 
         match chain.wanted(settings, overrides) {
             Want::Some(wanted) => {
+                let missing_count: i64 = db.with(|c| {
+                    let _ = crate::season_map::ensure_episodes_exist(c, wanted.mal_id);
+                    Ok(c.query_row(
+                        "SELECT COUNT(*) FROM episodes WHERE mal_id = ?1 AND state = 'missing'",
+                        [wanted.mal_id],
+                        |r| r.get(0),
+                    )
+                    .unwrap_or(0))
+                })?;
+                let target_ep = if missing_count >= settings.pack_first_min_missing as i64 {
+                    db.with(|c| {
+                        Ok(c.query_row(
+                            "SELECT number FROM episodes WHERE mal_id = ?1 AND state = 'missing' ORDER BY number ASC LIMIT 1",
+                            [wanted.mal_id],
+                            |r| r.get(0),
+                        )
+                        .ok())
+                    })?
+                    .unwrap_or(wanted.episode.unwrap_or(1.0))
+                } else {
+                    wanted.episode.unwrap_or(1.0)
+                };
+
                 let already: i64 = db.with(|c| {
                     Ok(c.query_row(
-                        "SELECT COUNT(*) FROM episodes WHERE mal_id = ?1 AND number = ?2",
-                        rusqlite::params![wanted.mal_id, wanted.episode.unwrap_or(1.0)],
+                        "SELECT COUNT(*) FROM episodes e
+                         WHERE e.mal_id = ?1 AND e.number = ?2
+                           AND (e.state = 'done' OR EXISTS (
+                               SELECT 1 FROM jobs j WHERE j.episode_id = e.id AND j.state != 'done'
+                           ))",
+                        rusqlite::params![wanted.mal_id, target_ep],
                         |r| r.get(0),
                     )
                     .unwrap_or(0))
@@ -154,7 +181,7 @@ pub(crate) fn build_preview(
                         mal_id: wanted.mal_id,
                         title: wanted.title,
                         season: wanted.season,
-                        episode: wanted.episode.unwrap_or(1.0),
+                        episode: target_ep,
                     });
                 }
             }

@@ -55,8 +55,17 @@ impl Engine {
         }
 
         let rules = Rules::for_show(&self.db, context.mal_id)?;
+        let is_pack_grab = self.is_pack_grab(context.mal_id, &settings)?;
         let mut search_names = inputs.names.clone();
-        if inputs.fully_aired && rules.prefer_batch_when_finished {
+        if is_pack_grab {
+            let mut pack_queries = Vec::new();
+            for n in &inputs.names {
+                pack_queries.push(n.clone());
+                pack_queries.push(format!("{n} batch"));
+                pack_queries.push(format!("{n} complete"));
+            }
+            search_names = pack_queries;
+        } else if inputs.fully_aired && rules.prefer_batch_when_finished {
             let mut batch_queries = Vec::new();
             for n in &inputs.names {
                 batch_queries.push(format!("{n} Batch"));
@@ -157,8 +166,49 @@ impl Engine {
             })?;
         }
 
+        let is_pack_grab = self.is_pack_grab(context.mal_id, &settings)?;
+
+        // Free-space guard: pack candidates must fit in usable free space.
+        let (ranked, none_fit) = if is_pack_grab {
+            self.select_fitting_candidates(ranked, &settings)
+        } else {
+            (ranked, false)
+        };
+
+        if none_fit {
+            let download_path = crate::locations::effective_download_dir(&settings);
+            let free_gb = self
+                .disk
+                .free_bytes(&download_path)
+                .unwrap_or(0)
+                / (1024 * 1024 * 1024);
+            let payload = Payload::DiskSpace {
+                free_gb,
+                floor_gb: settings.disk_floor_gb,
+            };
+            self.ask(job, context.mal_id, payload, "insufficient disk space for candidate packs")?;
+            return jobs::transition(
+                &self.db,
+                self.clock.as_ref(),
+                job.id,
+                JobState::NeedsInput,
+                "insufficient disk space for candidate packs",
+                &MoveOptions::default(),
+            );
+        }
+
+        if is_pack_grab && !ranked.is_empty() && !ranked.iter().any(|r| r.candidate.release.is_batch) {
+            crate::events::EventLog::new(self.db.clone()).info(
+                Some(job.id),
+                Some(context.mal_id),
+                "no suitable pack found; falling back to single episodes".to_string(),
+            )?;
+        }
+
         // Only batches available while the show is still airing: ask.
-        if !inputs.fully_aired
+        // Pack jobs intentionally look for packs, so they auto-select without asking BatchOnly.
+        if !is_pack_grab
+            && !inputs.fully_aired
             && !ranked.is_empty()
             && ranked.iter().all(|r| r.candidate.release.is_batch)
         {
@@ -246,41 +296,10 @@ impl Engine {
                 )
             }
             matching::Verdict::NotFound { rejections } => {
-                if let Some((raw_title, season_no)) = rejections.iter().find_map(|(raw, rej)| {
-                    if let crate::score::Rejection::SeasonConflict { found, wanted } = rej {
-                        if *found != *wanted && *found > 0 {
-                            return Some((raw, *found as u32));
-                        }
-                    }
-                    None
-                }) {
-                    let parsed = crate::filename::parse_release(raw_title);
-                    let ep_count = parsed
-                        .episode_range
-                        .map(|(f, t)| (t - f + 1.0) as u32)
-                        .unwrap_or(0);
-                    let (suggested_first, suggested_last) = self
-                        .db
-                        .with(|c| crate::season_map::suggest_range(c, context.mal_id, ep_count))?;
-                    let payload = Payload::SeasonMap {
-                        mal_id: context.mal_id,
-                        season_no,
-                        release_title: raw_title.clone(),
-                        suggested_first,
-                        suggested_last,
-                        reason: format!(
-                            "Release specifies Season {season_no}, which is not mapped to episode numbers for this show"
-                        ),
-                    };
-                    self.ask(job, context.mal_id, payload, &format!("unmapped season {season_no}"))?;
-                    return jobs::transition(
-                        &self.db,
-                        self.clock.as_ref(),
-                        job.id,
-                        JobState::NeedsInput,
-                        &format!("unmapped season {season_no}"),
-                        &MoveOptions::default(),
-                    );
+                if let Some(state) =
+                    self.try_ask_unmapped_season(job, context.mal_id, &rejections)?
+                {
+                    return Ok(state);
                 }
 
                 let reasons = rejections
@@ -396,39 +415,7 @@ impl Engine {
             Err(err) => return self.fail_or_reschedule(job, &format!("add failed: {err}")),
         }
 
-        let is_batch = torrent.name.to_ascii_lowercase().contains("batch")
-            || crate::filename::parse_release(&torrent.name).is_batch
-            || {
-                let release = crate::filename::parse_release(&torrent.name);
-                release.episode.is_none()
-                    && self
-                        .db
-                        .with(|c| {
-                            use rusqlite::OptionalExtension;
-                            let total: Option<i64> = c
-                                .query_row(
-                                    "SELECT total_episodes FROM shows WHERE mal_id = ?1",
-                                    [context.mal_id],
-                                    |r| r.get(0),
-                                )
-                                .optional()?
-                                .flatten();
-                            let count: i64 = c.query_row(
-                                "SELECT COUNT(*) FROM episodes WHERE mal_id = ?1",
-                                [context.mal_id],
-                                |r| r.get(0),
-                            )?;
-                            let show_type: String = c
-                                .query_row(
-                                    "SELECT type FROM shows WHERE mal_id = ?1",
-                                    [context.mal_id],
-                                    |r| r.get(0),
-                                )
-                                .unwrap_or_else(|_| "tv".to_string());
-                            Ok(show_type != "movie" && (total.unwrap_or(0) > 1 || count > 1))
-                        })
-                        .unwrap_or(false)
-            };
+        let is_batch = self.is_batch_release_or_torrent(&torrent.name, context.mal_id);
 
         if is_batch {
             self.db.with(|c| {

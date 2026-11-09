@@ -1,5 +1,6 @@
 ---
 source: crates/genrl-cli/tests/snapshots_test.rs
+assertion_line: 22
 expression: rendered
 ---
 {
@@ -44,6 +45,7 @@ expression: rendered
   "nyaa_cache_secs": 600,
   "nyaa_interval_secs": 2.0,
   "nyaa_mirrors": [],
+  "pack_first_min_missing": 25,
   "qbit_remote_acknowledged": false,
   "qbit_start_if_installed": true,
   "qbit_url": "http://127.0.0.1:8080",

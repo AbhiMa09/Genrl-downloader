@@ -98,6 +98,9 @@ pub struct Settings {
     /// Batch/season torrent total size limit in GB (default 200 GB).
     #[serde(default = "default_max_batch_gb")]
     pub max_batch_gb: u64,
+    /// Threshold of missing episodes to prefer back-catalog pack searches over single episodes.
+    #[serde(default = "default_pack_first_min_missing")]
+    pub pack_first_min_missing: u32,
 
     // --- Endpoints ----------------------------------------------------------
     pub nyaa_base_url: String,
@@ -134,6 +137,10 @@ fn default_max_episode_mb() -> u64 {
 
 fn default_max_batch_gb() -> u64 {
     200
+}
+
+fn default_pack_first_min_missing() -> u32 {
+    25
 }
 
 impl Default for Settings {
@@ -181,6 +188,7 @@ impl Default for Settings {
             min_episode_mb: 100,
             max_episode_mb: 2560,
             max_batch_gb: 200,
+            pack_first_min_missing: 25,
 
             nyaa_base_url: "https://nyaa.si".to_string(),
             nyaa_mirrors: Vec::new(),

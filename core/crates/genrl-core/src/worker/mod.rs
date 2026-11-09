@@ -17,6 +17,7 @@
 //!   the phase-6 implementation makes idempotent (a size-and-existence check
 //!   guards the no-op used here).
 
+mod acquire_helpers;
 mod engine;
 mod helpers;
 mod inbox;

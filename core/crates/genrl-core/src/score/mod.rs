@@ -47,6 +47,8 @@ mod tests {
             fully_aired: true,
             total_episodes: Some(28),
             season_maps: &[],
+            missing_episodes: &[],
+            owned_episodes: &[],
         }
     }
 

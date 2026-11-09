@@ -84,6 +84,8 @@ pub struct Target<'a> {
     pub fully_aired: bool,
     pub total_episodes: Option<i64>,
     pub season_maps: &'a [crate::season_map::SeasonMapEntry],
+    pub missing_episodes: &'a [f64],
+    pub owned_episodes: &'a [f64],
 }
 
 /// Why a candidate was rejected outright.
@@ -124,6 +126,11 @@ pub enum Rejection {
         wanted: i64,
         found: i64,
     },
+    NoMissingEpisodes,
+    WastefulOverlap {
+        covered_missing: u64,
+        covered_owned: u64,
+    },
 }
 
 impl fmt::Display for Rejection {
@@ -158,6 +165,16 @@ impl fmt::Display for Rejection {
             }
             Rejection::SeasonConflict { wanted, found } => {
                 write!(f, "season {found} conflicts with wanted season {wanted}")
+            }
+            Rejection::NoMissingEpisodes => write!(f, "covers no missing episodes"),
+            Rejection::WastefulOverlap {
+                covered_missing,
+                covered_owned,
+            } => {
+                write!(
+                    f,
+                    "wasteful overlap: covers {covered_owned} owned vs {covered_missing} missing"
+                )
             }
         }
     }
