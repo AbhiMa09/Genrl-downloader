@@ -49,6 +49,9 @@ pub enum Choice {
     /// All failed: skip this episode.
     SkipEpisode,
 
+    /// Season mapping: map community season to entry-local episode range.
+    SeasonRange { first_ep: u32, last_ep: u32 },
+
     /// Nothing done: the question expired unanswered.
     Expired,
 }

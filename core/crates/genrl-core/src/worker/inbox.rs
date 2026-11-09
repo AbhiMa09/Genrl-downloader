@@ -167,6 +167,31 @@ pub fn apply_answer(
         }
         Choice::ManualSearch => None,
         Choice::SkipEpisode => Some(JobState::Failed),
+        Choice::SeasonRange { first_ep, last_ep } => {
+            if let Some(mal_id) = mal_id {
+                let season_no = question
+                    .payload
+                    .get("season_no")
+                    .and_then(|v| v.as_u64())
+                    .map(|n| n as u32)
+                    .unwrap_or(1);
+                db.with(|c| {
+                    crate::season_map::upsert_user(
+                        c,
+                        mal_id,
+                        season_no,
+                        *first_ep,
+                        *last_ep,
+                        None,
+                        None,
+                        now,
+                    )?;
+                    crate::season_map::ensure_episodes_exist(c, mal_id)?;
+                    Ok(())
+                })?;
+            }
+            Some(JobState::Search)
+        }
         Choice::Expired => None,
     };
 
@@ -220,6 +245,9 @@ fn answer_label(choice: &Choice) -> String {
         Choice::ManualSearch => "manual search".to_string(),
         Choice::WrongRelease => "wrong release".to_string(),
         Choice::SkipEpisode => "skip this episode".to_string(),
+        Choice::SeasonRange { first_ep, last_ep } => {
+            format!("map season to episodes {first_ep}–{last_ep}")
+        }
         Choice::Expired => "expired".to_string(),
     }
 }

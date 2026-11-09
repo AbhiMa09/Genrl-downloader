@@ -173,9 +173,34 @@ pub fn plan_single(
         vec![ep]
     } else if entry.total_episodes.unwrap_or(0) <= 0 {
         // Unknown episode count (long-running / still-airing series with no fixed total):
-        // grab the best available pack. Anchoring the search on episode 1 lets the scorer
-        // accept a range pack covering it; the largest-coverage pack wins (score::evaluate).
-        vec![1.0]
+        // If community season_map entries exist, ensure episodes exist and plan the
+        // latest mapped season's missing episodes instead of stalling on episode 1.
+        let mapped = db.with(|c| {
+            crate::season_map::ensure_episodes_exist(c, mal_id)?;
+            if let Some(latest) = crate::season_map::latest_season(c, mal_id)? {
+                let mut list = Vec::new();
+                for i in latest.first_ep..=latest.last_ep {
+                    let already: i64 = c
+                        .query_row(
+                            "SELECT COUNT(*) FROM episodes WHERE mal_id = ?1 AND number = ?2 AND state = 'done'",
+                            rusqlite::params![mal_id, i as f64],
+                            |r| r.get(0),
+                        )
+                        .unwrap_or(0);
+                    if already == 0 {
+                        list.push(i as f64);
+                    }
+                }
+                Ok(list)
+            } else {
+                Ok(Vec::new())
+            }
+        })?;
+        if !mapped.is_empty() {
+            mapped
+        } else {
+            vec![1.0]
+        }
     } else {
         let total = entry.total_episodes.unwrap_or(1);
         let mut list = Vec::new();
@@ -198,10 +223,15 @@ pub fn plan_single(
     let is_finished = status_str
         .map(|s| crate::models::AiringStatus::parse(&s) == crate::models::AiringStatus::Finished)
         .unwrap_or_else(|| entry.airing_finished());
+    let has_season_map = db
+        .with(|c| crate::season_map::latest_season(c, mal_id))
+        .ok()
+        .flatten()
+        .is_some();
     let should_batch_season = target_episode.is_none()
         && eps_to_queue.len() > 1
-        && rules.prefer_batch_when_finished
-        && is_finished;
+        && ((rules.prefer_batch_when_finished && is_finished)
+            || (entry.total_episodes.unwrap_or(0) <= 0 && has_season_map));
 
     let mut queued = 0;
     if should_batch_season {

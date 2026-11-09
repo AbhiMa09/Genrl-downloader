@@ -69,6 +69,15 @@ pub enum Payload {
     },
     /// A service needs attention: one notice, not one per job.
     ServiceNotice { service: String, detail: String },
+    /// Season mapping: release carries an unmapped community season number.
+    SeasonMap {
+        mal_id: i64,
+        season_no: u32,
+        release_title: String,
+        suggested_first: u32,
+        suggested_last: u32,
+        reason: String,
+    },
 }
 
 impl Payload {
@@ -82,6 +91,7 @@ impl Payload {
             Payload::AllFailed { .. } => QuestionKind::AllFailed,
             Payload::EntryChanged { .. } => QuestionKind::EntryChanged,
             Payload::ServiceNotice { .. } => QuestionKind::ServiceNotice,
+            Payload::SeasonMap { .. } => QuestionKind::SeasonMap,
         }
     }
 }

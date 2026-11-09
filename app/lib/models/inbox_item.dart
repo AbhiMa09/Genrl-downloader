@@ -5,6 +5,7 @@ enum QuestionType {
   thinSeeds,
   batchOnly,
   allFailed,
+  seasonMap,
 }
 
 class InboxChoice {

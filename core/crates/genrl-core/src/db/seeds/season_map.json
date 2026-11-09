@@ -1,0 +1,1403 @@
+[
+    {
+        "mal_id":  235,
+        "retrieval_date":  "2026-11-09",
+        "seasons":  [
+                        {
+                            "first_ep":  1,
+                            "season_no":  1,
+                            "title":  "Season 1",
+                            "year":  1996,
+                            "last_ep":  28
+                        },
+                        {
+                            "first_ep":  29,
+                            "season_no":  2,
+                            "title":  "Season 2",
+                            "year":  1996,
+                            "last_ep":  54
+                        },
+                        {
+                            "first_ep":  55,
+                            "season_no":  3,
+                            "title":  "Season 3",
+                            "year":  1997,
+                            "last_ep":  82
+                        },
+                        {
+                            "first_ep":  83,
+                            "season_no":  4,
+                            "title":  "Season 4",
+                            "year":  1997,
+                            "last_ep":  106
+                        },
+                        {
+                            "first_ep":  107,
+                            "season_no":  5,
+                            "title":  "Season 5",
+                            "year":  1998,
+                            "last_ep":  134
+                        },
+                        {
+                            "first_ep":  135,
+                            "season_no":  6,
+                            "title":  "Season 6",
+                            "year":  1999,
+                            "last_ep":  162
+                        },
+                        {
+                            "first_ep":  163,
+                            "season_no":  7,
+                            "title":  "Season 7",
+                            "year":  1999,
+                            "last_ep":  193
+                        },
+                        {
+                            "first_ep":  194,
+                            "season_no":  8,
+                            "title":  "Season 8",
+                            "year":  2000,
+                            "last_ep":  219
+                        },
+                        {
+                            "first_ep":  220,
+                            "season_no":  9,
+                            "title":  "Season 9",
+                            "year":  2001,
+                            "last_ep":  254
+                        },
+                        {
+                            "first_ep":  255,
+                            "season_no":  10,
+                            "title":  "Season 10",
+                            "year":  2001,
+                            "last_ep":  285
+                        },
+                        {
+                            "first_ep":  286,
+                            "season_no":  11,
+                            "title":  "Season 11",
+                            "year":  2002,
+                            "last_ep":  315
+                        },
+                        {
+                            "first_ep":  316,
+                            "season_no":  12,
+                            "title":  "Season 12",
+                            "year":  2003,
+                            "last_ep":  353
+                        },
+                        {
+                            "first_ep":  354,
+                            "season_no":  13,
+                            "title":  "Season 13",
+                            "year":  2004,
+                            "last_ep":  389
+                        },
+                        {
+                            "first_ep":  390,
+                            "season_no":  14,
+                            "title":  "Season 14",
+                            "year":  2005,
+                            "last_ep":  426
+                        },
+                        {
+                            "first_ep":  427,
+                            "season_no":  15,
+                            "title":  "Season 15",
+                            "year":  2006,
+                            "last_ep":  465
+                        },
+                        {
+                            "first_ep":  466,
+                            "season_no":  16,
+                            "title":  "Season 16",
+                            "year":  2007,
+                            "last_ep":  490
+                        },
+                        {
+                            "first_ep":  491,
+                            "season_no":  17,
+                            "title":  "Season 17",
+                            "year":  2008,
+                            "last_ep":  523
+                        },
+                        {
+                            "first_ep":  524,
+                            "season_no":  18,
+                            "title":  "Season 18",
+                            "year":  2009,
+                            "last_ep":  565
+                        },
+                        {
+                            "first_ep":  566,
+                            "season_no":  19,
+                            "title":  "Season 19",
+                            "year":  2010,
+                            "last_ep":  605
+                        },
+                        {
+                            "first_ep":  606,
+                            "season_no":  20,
+                            "title":  "Season 20",
+                            "year":  2011,
+                            "last_ep":  645
+                        },
+                        {
+                            "first_ep":  646,
+                            "season_no":  21,
+                            "title":  "Season 21",
+                            "year":  2012,
+                            "last_ep":  680
+                        },
+                        {
+                            "first_ep":  681,
+                            "season_no":  22,
+                            "title":  "Season 22",
+                            "year":  2013,
+                            "last_ep":  718
+                        },
+                        {
+                            "first_ep":  719,
+                            "season_no":  23,
+                            "title":  "Season 23",
+                            "year":  2013,
+                            "last_ep":  739
+                        },
+                        {
+                            "first_ep":  740,
+                            "season_no":  24,
+                            "title":  "Season 24",
+                            "year":  2014,
+                            "last_ep":  778
+                        },
+                        {
+                            "first_ep":  779,
+                            "season_no":  25,
+                            "title":  "Season 25",
+                            "year":  2015,
+                            "last_ep":  817
+                        },
+                        {
+                            "first_ep":  818,
+                            "season_no":  26,
+                            "title":  "Season 26",
+                            "year":  2016,
+                            "last_ep":  856
+                        },
+                        {
+                            "first_ep":  857,
+                            "season_no":  27,
+                            "title":  "Season 27",
+                            "year":  2017,
+                            "last_ep":  897
+                        },
+                        {
+                            "first_ep":  898,
+                            "season_no":  28,
+                            "title":  "Season 28",
+                            "year":  2018,
+                            "last_ep":  926
+                        },
+                        {
+                            "first_ep":  927,
+                            "season_no":  29,
+                            "title":  "Season 29",
+                            "year":  2019,
+                            "last_ep":  959
+                        },
+                        {
+                            "first_ep":  960,
+                            "season_no":  30,
+                            "title":  "Season 30",
+                            "year":  2019,
+                            "last_ep":  999
+                        },
+                        {
+                            "first_ep":  1000,
+                            "season_no":  31,
+                            "title":  "Season 31",
+                            "year":  2021,
+                            "last_ep":  1039
+                        },
+                        {
+                            "first_ep":  1040,
+                            "season_no":  32,
+                            "title":  "Season 32",
+                            "year":  2022,
+                            "last_ep":  1049
+                        },
+                        {
+                            "first_ep":  1050,
+                            "season_no":  33,
+                            "title":  "Season 33",
+                            "year":  2023,
+                            "last_ep":  1093
+                        }
+                    ],
+        "title":  "Meitantei Conan",
+        "source_url":  "https://en.wikipedia.org/wiki/List_of_Case_Closed_episodes"
+    },
+    {
+        "mal_id":  21,
+        "retrieval_date":  "2026-11-09",
+        "seasons":  [
+                        {
+                            "first_ep":  1,
+                            "season_no":  1,
+                            "title":  "East Blue",
+                            "year":  1999,
+                            "last_ep":  61
+                        },
+                        {
+                            "first_ep":  62,
+                            "season_no":  2,
+                            "title":  "Entering into the Grand Line",
+                            "year":  2001,
+                            "last_ep":  77
+                        },
+                        {
+                            "first_ep":  78,
+                            "season_no":  3,
+                            "title":  "Drum Island",
+                            "year":  2001,
+                            "last_ep":  92
+                        },
+                        {
+                            "first_ep":  93,
+                            "season_no":  4,
+                            "title":  "Alabasta",
+                            "year":  2001,
+                            "last_ep":  130
+                        },
+                        {
+                            "first_ep":  131,
+                            "season_no":  5,
+                            "title":  "TV Original",
+                            "year":  2002,
+                            "last_ep":  143
+                        },
+                        {
+                            "first_ep":  144,
+                            "season_no":  6,
+                            "title":  "Skypiea",
+                            "year":  2003,
+                            "last_ep":  195
+                        },
+                        {
+                            "first_ep":  196,
+                            "season_no":  7,
+                            "title":  "Escape! The Naval Fortress \u0026 The Foxy Pirate Crew",
+                            "year":  2004,
+                            "last_ep":  228
+                        },
+                        {
+                            "first_ep":  229,
+                            "season_no":  8,
+                            "title":  "Water Seven",
+                            "year":  2005,
+                            "last_ep":  263
+                        },
+                        {
+                            "first_ep":  264,
+                            "season_no":  9,
+                            "title":  "Enies Lobby",
+                            "year":  2006,
+                            "last_ep":  336
+                        },
+                        {
+                            "first_ep":  337,
+                            "season_no":  10,
+                            "title":  "Thriller Bark",
+                            "year":  2008,
+                            "last_ep":  381
+                        },
+                        {
+                            "first_ep":  382,
+                            "season_no":  11,
+                            "title":  "Sabaody Archipelago",
+                            "year":  2008,
+                            "last_ep":  407
+                        },
+                        {
+                            "first_ep":  408,
+                            "season_no":  12,
+                            "title":  "Amazon Lily",
+                            "year":  2009,
+                            "last_ep":  421
+                        },
+                        {
+                            "first_ep":  422,
+                            "season_no":  13,
+                            "title":  "Impel Down",
+                            "year":  2009,
+                            "last_ep":  456
+                        },
+                        {
+                            "first_ep":  457,
+                            "season_no":  14,
+                            "title":  "Marineford",
+                            "year":  2010,
+                            "last_ep":  516
+                        },
+                        {
+                            "first_ep":  517,
+                            "season_no":  15,
+                            "title":  "Fish-Man Island",
+                            "year":  2011,
+                            "last_ep":  578
+                        },
+                        {
+                            "first_ep":  579,
+                            "season_no":  16,
+                            "title":  "Punk Hazard",
+                            "year":  2013,
+                            "last_ep":  628
+                        },
+                        {
+                            "first_ep":  629,
+                            "season_no":  17,
+                            "title":  "Dressrosa",
+                            "year":  2014,
+                            "last_ep":  746
+                        },
+                        {
+                            "first_ep":  747,
+                            "season_no":  18,
+                            "title":  "Zou",
+                            "year":  2016,
+                            "last_ep":  782
+                        },
+                        {
+                            "first_ep":  783,
+                            "season_no":  19,
+                            "title":  "Whole Cake Island",
+                            "year":  2017,
+                            "last_ep":  891
+                        },
+                        {
+                            "first_ep":  892,
+                            "season_no":  20,
+                            "title":  "Wano Country",
+                            "year":  2019,
+                            "last_ep":  1088
+                        },
+                        {
+                            "first_ep":  1089,
+                            "season_no":  21,
+                            "title":  "Egghead",
+                            "year":  2024,
+                            "last_ep":  1155
+                        }
+                    ],
+        "title":  "One Piece",
+        "source_url":  "https://en.wikipedia.org/wiki/Lists_of_One_Piece_episodes"
+    },
+    {
+        "mal_id":  813,
+        "retrieval_date":  "2026-11-09",
+        "seasons":  [
+                        {
+                            "first_ep":  1,
+                            "season_no":  1,
+                            "title":  "Saiyan Saga",
+                            "year":  1989,
+                            "last_ep":  39
+                        },
+                        {
+                            "first_ep":  40,
+                            "season_no":  2,
+                            "title":  "Namek and Captain Ginyu Sagas",
+                            "year":  1990,
+                            "last_ep":  74
+                        },
+                        {
+                            "first_ep":  75,
+                            "season_no":  3,
+                            "title":  "Frieza Saga",
+                            "year":  1991,
+                            "last_ep":  107
+                        },
+                        {
+                            "first_ep":  108,
+                            "season_no":  4,
+                            "title":  "Garlic Jr., Trunks and Androids Sagas",
+                            "year":  1991,
+                            "last_ep":  139
+                        },
+                        {
+                            "first_ep":  140,
+                            "season_no":  5,
+                            "title":  "Imperfect and Perfect Cell Sagas",
+                            "year":  1992,
+                            "last_ep":  165
+                        },
+                        {
+                            "first_ep":  166,
+                            "season_no":  6,
+                            "title":  "Cell Games Saga",
+                            "year":  1992,
+                            "last_ep":  194
+                        },
+                        {
+                            "first_ep":  195,
+                            "season_no":  7,
+                            "title":  "World Tournament Saga",
+                            "year":  1993,
+                            "last_ep":  219
+                        },
+                        {
+                            "first_ep":  220,
+                            "season_no":  8,
+                            "title":  "Babidi and Majin Buu Sagas",
+                            "year":  1994,
+                            "last_ep":  253
+                        },
+                        {
+                            "first_ep":  254,
+                            "season_no":  9,
+                            "title":  "Fusion and Kid Buu Sagas",
+                            "year":  1995,
+                            "last_ep":  291
+                        }
+                    ],
+        "title":  "Dragon Ball Z",
+        "source_url":  "https://en.wikipedia.org/wiki/List_of_Dragon_Ball_Z_episodes"
+    },
+    {
+        "mal_id":  20,
+        "retrieval_date":  "2026-11-09",
+        "seasons":  [
+                        {
+                            "first_ep":  1,
+                            "season_no":  1,
+                            "title":  "Season 1",
+                            "year":  2002,
+                            "last_ep":  35
+                        },
+                        {
+                            "first_ep":  36,
+                            "season_no":  2,
+                            "title":  "Season 2",
+                            "year":  2003,
+                            "last_ep":  83
+                        },
+                        {
+                            "first_ep":  84,
+                            "season_no":  3,
+                            "title":  "Season 3",
+                            "year":  2004,
+                            "last_ep":  131
+                        },
+                        {
+                            "first_ep":  132,
+                            "season_no":  4,
+                            "title":  "Season 4",
+                            "year":  2005,
+                            "last_ep":  179
+                        },
+                        {
+                            "first_ep":  180,
+                            "season_no":  5,
+                            "title":  "Season 5",
+                            "year":  2006,
+                            "last_ep":  220
+                        }
+                    ],
+        "title":  "Naruto",
+        "source_url":  "https://en.wikipedia.org/wiki/List_of_Naruto_episodes"
+    },
+    {
+        "mal_id":  1735,
+        "retrieval_date":  "2026-11-09",
+        "seasons":  [
+                        {
+                            "first_ep":  1,
+                            "season_no":  1,
+                            "title":  "Season 1",
+                            "year":  2007,
+                            "last_ep":  32
+                        },
+                        {
+                            "first_ep":  33,
+                            "season_no":  2,
+                            "title":  "Season 2",
+                            "year":  2007,
+                            "last_ep":  53
+                        },
+                        {
+                            "first_ep":  54,
+                            "season_no":  3,
+                            "title":  "Season 3",
+                            "year":  2008,
+                            "last_ep":  71
+                        },
+                        {
+                            "first_ep":  72,
+                            "season_no":  4,
+                            "title":  "Season 4",
+                            "year":  2008,
+                            "last_ep":  88
+                        },
+                        {
+                            "first_ep":  89,
+                            "season_no":  5,
+                            "title":  "Season 5",
+                            "year":  2008,
+                            "last_ep":  112
+                        },
+                        {
+                            "first_ep":  113,
+                            "season_no":  6,
+                            "title":  "Season 6",
+                            "year":  2009,
+                            "last_ep":  143
+                        },
+                        {
+                            "first_ep":  144,
+                            "season_no":  7,
+                            "title":  "Season 7",
+                            "year":  2010,
+                            "last_ep":  151
+                        },
+                        {
+                            "first_ep":  152,
+                            "season_no":  8,
+                            "title":  "Season 8",
+                            "year":  2010,
+                            "last_ep":  175
+                        },
+                        {
+                            "first_ep":  176,
+                            "season_no":  9,
+                            "title":  "Season 9",
+                            "year":  2010,
+                            "last_ep":  196
+                        },
+                        {
+                            "first_ep":  197,
+                            "season_no":  10,
+                            "title":  "Season 10",
+                            "year":  2011,
+                            "last_ep":  221
+                        },
+                        {
+                            "first_ep":  222,
+                            "season_no":  11,
+                            "title":  "Season 11",
+                            "year":  2011,
+                            "last_ep":  242
+                        },
+                        {
+                            "first_ep":  243,
+                            "season_no":  12,
+                            "title":  "Season 12",
+                            "year":  2012,
+                            "last_ep":  275
+                        },
+                        {
+                            "first_ep":  276,
+                            "season_no":  13,
+                            "title":  "Season 13",
+                            "year":  2012,
+                            "last_ep":  295
+                        },
+                        {
+                            "first_ep":  296,
+                            "season_no":  14,
+                            "title":  "Season 14",
+                            "year":  2013,
+                            "last_ep":  320
+                        },
+                        {
+                            "first_ep":  321,
+                            "season_no":  15,
+                            "title":  "Season 15",
+                            "year":  2013,
+                            "last_ep":  348
+                        },
+                        {
+                            "first_ep":  349,
+                            "season_no":  16,
+                            "title":  "Season 16",
+                            "year":  2014,
+                            "last_ep":  361
+                        },
+                        {
+                            "first_ep":  362,
+                            "season_no":  17,
+                            "title":  "Season 17",
+                            "year":  2014,
+                            "last_ep":  372
+                        },
+                        {
+                            "first_ep":  373,
+                            "season_no":  18,
+                            "title":  "Season 18",
+                            "year":  2014,
+                            "last_ep":  393
+                        },
+                        {
+                            "first_ep":  394,
+                            "season_no":  19,
+                            "title":  "Season 19",
+                            "year":  2015,
+                            "last_ep":  413
+                        },
+                        {
+                            "first_ep":  414,
+                            "season_no":  20,
+                            "title":  "Season 20",
+                            "year":  2015,
+                            "last_ep":  458
+                        },
+                        {
+                            "first_ep":  459,
+                            "season_no":  21,
+                            "title":  "Season 21",
+                            "year":  2016,
+                            "last_ep":  479
+                        },
+                        {
+                            "first_ep":  480,
+                            "season_no":  22,
+                            "title":  "Season 22",
+                            "year":  2016,
+                            "last_ep":  500
+                        }
+                    ],
+        "title":  "Naruto: Shippuuden",
+        "source_url":  "https://en.wikipedia.org/wiki/List_of_Naruto:_Shippuden_episodes"
+    },
+    {
+        "mal_id":  269,
+        "retrieval_date":  "2026-11-09",
+        "seasons":  [
+                        {
+                            "first_ep":  1,
+                            "season_no":  1,
+                            "title":  "The Substitute",
+                            "year":  2004,
+                            "last_ep":  20
+                        },
+                        {
+                            "first_ep":  21,
+                            "season_no":  2,
+                            "title":  "The Entry",
+                            "year":  2005,
+                            "last_ep":  41
+                        },
+                        {
+                            "first_ep":  42,
+                            "season_no":  3,
+                            "title":  "The Rescue",
+                            "year":  2005,
+                            "last_ep":  63
+                        },
+                        {
+                            "first_ep":  64,
+                            "season_no":  4,
+                            "title":  "The Bount",
+                            "year":  2006,
+                            "last_ep":  91
+                        },
+                        {
+                            "first_ep":  92,
+                            "season_no":  5,
+                            "title":  "The Assault",
+                            "year":  2006,
+                            "last_ep":  109
+                        },
+                        {
+                            "first_ep":  110,
+                            "season_no":  6,
+                            "title":  "Arrancar: The Appearance",
+                            "year":  2007,
+                            "last_ep":  131
+                        },
+                        {
+                            "first_ep":  132,
+                            "season_no":  7,
+                            "title":  "The Hueco Mundo Sneak Entry",
+                            "year":  2007,
+                            "last_ep":  151
+                        },
+                        {
+                            "first_ep":  152,
+                            "season_no":  8,
+                            "title":  "The Fierce Fight",
+                            "year":  2007,
+                            "last_ep":  167
+                        },
+                        {
+                            "first_ep":  168,
+                            "season_no":  9,
+                            "title":  "The New Captain Shusuke Amagai",
+                            "year":  2008,
+                            "last_ep":  189
+                        },
+                        {
+                            "first_ep":  190,
+                            "season_no":  10,
+                            "title":  "Arrancar vs. Soul Reaper",
+                            "year":  2008,
+                            "last_ep":  205
+                        },
+                        {
+                            "first_ep":  206,
+                            "season_no":  11,
+                            "title":  "Turn Back the Pendulum",
+                            "year":  2009,
+                            "last_ep":  212
+                        },
+                        {
+                            "first_ep":  213,
+                            "season_no":  12,
+                            "title":  "Battle in Karakura",
+                            "year":  2009,
+                            "last_ep":  229
+                        },
+                        {
+                            "first_ep":  230,
+                            "season_no":  13,
+                            "title":  "Zanpakuto: The Alternate Tale",
+                            "year":  2009,
+                            "last_ep":  265
+                        },
+                        {
+                            "first_ep":  266,
+                            "season_no":  14,
+                            "title":  "Fall of the Espada",
+                            "year":  2010,
+                            "last_ep":  316
+                        },
+                        {
+                            "first_ep":  317,
+                            "season_no":  15,
+                            "title":  "Gotei 13 Invading Army",
+                            "year":  2011,
+                            "last_ep":  342
+                        },
+                        {
+                            "first_ep":  343,
+                            "season_no":  16,
+                            "title":  "The Lost Agent",
+                            "year":  2011,
+                            "last_ep":  366
+                        }
+                    ],
+        "title":  "Bleach",
+        "source_url":  "https://en.wikipedia.org/wiki/List_of_Bleach_episodes"
+    },
+    {
+        "mal_id":  34572,
+        "retrieval_date":  "2026-11-09",
+        "seasons":  [
+                        {
+                            "first_ep":  1,
+                            "season_no":  1,
+                            "title":  "Season 1",
+                            "year":  2017,
+                            "last_ep":  51
+                        },
+                        {
+                            "first_ep":  52,
+                            "season_no":  2,
+                            "title":  "Season 2",
+                            "year":  2018,
+                            "last_ep":  102
+                        },
+                        {
+                            "first_ep":  103,
+                            "season_no":  3,
+                            "title":  "Season 3",
+                            "year":  2019,
+                            "last_ep":  154
+                        },
+                        {
+                            "first_ep":  155,
+                            "season_no":  4,
+                            "title":  "Season 4",
+                            "year":  2020,
+                            "last_ep":  170
+                        }
+                    ],
+        "title":  "Black Clover",
+        "source_url":  "https://en.wikipedia.org/wiki/List_of_Black_Clover_episodes"
+    },
+    {
+        "mal_id":  6702,
+        "retrieval_date":  "2026-11-09",
+        "seasons":  [
+                        {
+                            "first_ep":  1,
+                            "season_no":  1,
+                            "title":  "Season 1",
+                            "year":  2009,
+                            "last_ep":  48
+                        },
+                        {
+                            "first_ep":  49,
+                            "season_no":  2,
+                            "title":  "Season 2",
+                            "year":  2010,
+                            "last_ep":  72
+                        },
+                        {
+                            "first_ep":  73,
+                            "season_no":  3,
+                            "title":  "Season 3",
+                            "year":  2011,
+                            "last_ep":  100
+                        },
+                        {
+                            "first_ep":  101,
+                            "season_no":  4,
+                            "title":  "Season 4",
+                            "year":  2011,
+                            "last_ep":  125
+                        },
+                        {
+                            "first_ep":  126,
+                            "season_no":  5,
+                            "title":  "Season 5",
+                            "year":  2012,
+                            "last_ep":  150
+                        },
+                        {
+                            "first_ep":  151,
+                            "season_no":  6,
+                            "title":  "Season 6",
+                            "year":  2012,
+                            "last_ep":  175
+                        }
+                    ],
+        "title":  "Fairy Tail",
+        "source_url":  "https://en.wikipedia.org/wiki/List_of_Fairy_Tail_episodes"
+    },
+    {
+        "mal_id":  11061,
+        "retrieval_date":  "2026-11-09",
+        "seasons":  [
+                        {
+                            "first_ep":  1,
+                            "season_no":  1,
+                            "title":  "Hunter Exam arc",
+                            "year":  2011,
+                            "last_ep":  26
+                        },
+                        {
+                            "first_ep":  27,
+                            "season_no":  2,
+                            "title":  "Zoldyck Family \u0026 Heavens Arena arcs",
+                            "year":  2012,
+                            "last_ep":  38
+                        },
+                        {
+                            "first_ep":  39,
+                            "season_no":  3,
+                            "title":  "Phantom Troupe arc",
+                            "year":  2012,
+                            "last_ep":  58
+                        },
+                        {
+                            "first_ep":  59,
+                            "season_no":  4,
+                            "title":  "Greed Island arc",
+                            "year":  2012,
+                            "last_ep":  75
+                        },
+                        {
+                            "first_ep":  76,
+                            "season_no":  5,
+                            "title":  "Chimera Ant arc",
+                            "year":  2013,
+                            "last_ep":  136
+                        },
+                        {
+                            "first_ep":  137,
+                            "season_no":  6,
+                            "title":  "Election arc",
+                            "year":  2014,
+                            "last_ep":  148
+                        }
+                    ],
+        "title":  "Hunter x Hunter (2011)",
+        "source_url":  "https://en.wikipedia.org/wiki/List_of_Hunter_%C3%97_Hunter_(2011_TV_series)_episodes"
+    },
+    {
+        "mal_id":  918,
+        "retrieval_date":  "2026-11-09",
+        "seasons":  [
+                        {
+                            "first_ep":  1,
+                            "season_no":  1,
+                            "title":  "Season 1",
+                            "year":  2006,
+                            "last_ep":  49
+                        },
+                        {
+                            "first_ep":  50,
+                            "season_no":  2,
+                            "title":  "Season 2",
+                            "year":  2007,
+                            "last_ep":  99
+                        },
+                        {
+                            "first_ep":  100,
+                            "season_no":  3,
+                            "title":  "Season 3",
+                            "year":  2008,
+                            "last_ep":  150
+                        },
+                        {
+                            "first_ep":  151,
+                            "season_no":  4,
+                            "title":  "Season 4",
+                            "year":  2009,
+                            "last_ep":  201
+                        }
+                    ],
+        "title":  "Gintama",
+        "source_url":  "https://en.wikipedia.org/wiki/List_of_Gintama_episodes"
+    },
+    {
+        "mal_id":  249,
+        "retrieval_date":  "2026-11-09",
+        "seasons":  [
+                        {
+                            "first_ep":  1,
+                            "season_no":  1,
+                            "title":  "Season 1",
+                            "year":  2000,
+                            "last_ep":  27
+                        },
+                        {
+                            "first_ep":  28,
+                            "season_no":  2,
+                            "title":  "Season 2",
+                            "year":  2001,
+                            "last_ep":  54
+                        },
+                        {
+                            "first_ep":  55,
+                            "season_no":  3,
+                            "title":  "Season 3",
+                            "year":  2002,
+                            "last_ep":  82
+                        },
+                        {
+                            "first_ep":  83,
+                            "season_no":  4,
+                            "title":  "Season 4",
+                            "year":  2002,
+                            "last_ep":  110
+                        },
+                        {
+                            "first_ep":  111,
+                            "season_no":  5,
+                            "title":  "Season 5",
+                            "year":  2003,
+                            "last_ep":  138
+                        },
+                        {
+                            "first_ep":  139,
+                            "season_no":  6,
+                            "title":  "Season 6",
+                            "year":  2003,
+                            "last_ep":  162
+                        },
+                        {
+                            "first_ep":  163,
+                            "season_no":  7,
+                            "title":  "Season 7",
+                            "year":  2004,
+                            "last_ep":  167
+                        }
+                    ],
+        "title":  "InuYasha",
+        "source_url":  "https://en.wikipedia.org/wiki/List_of_Inuyasha_episodes"
+    },
+    {
+        "mal_id":  223,
+        "retrieval_date":  "2026-11-09",
+        "seasons":  [
+                        {
+                            "first_ep":  1,
+                            "season_no":  1,
+                            "title":  "Season 1",
+                            "year":  1986,
+                            "last_ep":  31
+                        },
+                        {
+                            "first_ep":  32,
+                            "season_no":  2,
+                            "title":  "Season 2",
+                            "year":  1986,
+                            "last_ep":  57
+                        },
+                        {
+                            "first_ep":  58,
+                            "season_no":  3,
+                            "title":  "Season 3",
+                            "year":  1987,
+                            "last_ep":  83
+                        },
+                        {
+                            "first_ep":  84,
+                            "season_no":  4,
+                            "title":  "Season 4",
+                            "year":  1987,
+                            "last_ep":  101
+                        },
+                        {
+                            "first_ep":  102,
+                            "season_no":  5,
+                            "title":  "Season 5",
+                            "year":  1988,
+                            "last_ep":  122
+                        },
+                        {
+                            "first_ep":  123,
+                            "season_no":  6,
+                            "title":  "Season 6",
+                            "year":  1988,
+                            "last_ep":  132
+                        },
+                        {
+                            "first_ep":  133,
+                            "season_no":  7,
+                            "title":  "Season 7",
+                            "year":  1988,
+                            "last_ep":  140
+                        },
+                        {
+                            "first_ep":  141,
+                            "season_no":  8,
+                            "title":  "Season 8",
+                            "year":  1989,
+                            "last_ep":  148
+                        },
+                        {
+                            "first_ep":  149,
+                            "season_no":  9,
+                            "title":  "Season 9",
+                            "year":  1989,
+                            "last_ep":  153
+                        }
+                    ],
+        "title":  "Dragon Ball",
+        "source_url":  "https://en.wikipedia.org/wiki/List_of_Dragon_Ball_episodes"
+    },
+    {
+        "mal_id":  392,
+        "retrieval_date":  "2026-11-09",
+        "seasons":  [
+                        {
+                            "first_ep":  1,
+                            "season_no":  1,
+                            "title":  "Spirit Detective Saga",
+                            "year":  1992,
+                            "last_ep":  25
+                        },
+                        {
+                            "first_ep":  26,
+                            "season_no":  2,
+                            "title":  "Dark Tournament Saga",
+                            "year":  1993,
+                            "last_ep":  66
+                        },
+                        {
+                            "first_ep":  67,
+                            "season_no":  3,
+                            "title":  "Chapter Black Saga",
+                            "year":  1994,
+                            "last_ep":  94
+                        },
+                        {
+                            "first_ep":  95,
+                            "season_no":  4,
+                            "title":  "Three Kings Saga",
+                            "year":  1994,
+                            "last_ep":  112
+                        }
+                    ],
+        "title":  "Yuuâ˜†Yuuâ˜†Hakusho",
+        "source_url":  "https://en.wikipedia.org/wiki/List_of_YuYu_Hakusho_episodes"
+    },
+    {
+        "mal_id":  5114,
+        "retrieval_date":  "2026-11-09",
+        "seasons":  [
+                        {
+                            "first_ep":  1,
+                            "season_no":  1,
+                            "title":  "Season 1",
+                            "year":  2009,
+                            "last_ep":  14
+                        },
+                        {
+                            "first_ep":  15,
+                            "season_no":  2,
+                            "title":  "Season 2",
+                            "year":  2009,
+                            "last_ep":  26
+                        },
+                        {
+                            "first_ep":  27,
+                            "season_no":  3,
+                            "title":  "Season 3",
+                            "year":  2009,
+                            "last_ep":  39
+                        },
+                        {
+                            "first_ep":  40,
+                            "season_no":  4,
+                            "title":  "Season 4",
+                            "year":  2010,
+                            "last_ep":  51
+                        },
+                        {
+                            "first_ep":  52,
+                            "season_no":  5,
+                            "title":  "Season 5",
+                            "year":  2010,
+                            "last_ep":  64
+                        }
+                    ],
+        "title":  "Fullmetal Alchemist: Brotherhood",
+        "source_url":  "https://en.wikipedia.org/wiki/List_of_Fullmetal_Alchemist:_Brotherhood_episodes"
+    },
+    {
+        "mal_id":  1604,
+        "retrieval_date":  "2026-11-09",
+        "seasons":  [
+                        {
+                            "first_ep":  1,
+                            "season_no":  1,
+                            "title":  "Season 1",
+                            "year":  2006,
+                            "last_ep":  33
+                        },
+                        {
+                            "first_ep":  34,
+                            "season_no":  2,
+                            "title":  "Vs. Varia",
+                            "year":  2007,
+                            "last_ep":  65
+                        },
+                        {
+                            "first_ep":  66,
+                            "season_no":  3,
+                            "title":  "Daily Life",
+                            "year":  2008,
+                            "last_ep":  73
+                        },
+                        {
+                            "first_ep":  74,
+                            "season_no":  4,
+                            "title":  "The Future",
+                            "year":  2008,
+                            "last_ep":  101
+                        },
+                        {
+                            "first_ep":  102,
+                            "season_no":  5,
+                            "title":  "The Future X",
+                            "year":  2008,
+                            "last_ep":  141
+                        },
+                        {
+                            "first_ep":  142,
+                            "season_no":  6,
+                            "title":  "The Arcobaleno",
+                            "year":  2009,
+                            "last_ep":  153
+                        },
+                        {
+                            "first_ep":  154,
+                            "season_no":  7,
+                            "title":  "The Choice",
+                            "year":  2009,
+                            "last_ep":  177
+                        },
+                        {
+                            "first_ep":  178,
+                            "season_no":  8,
+                            "title":  "The Primo Family",
+                            "year":  2010,
+                            "last_ep":  189
+                        },
+                        {
+                            "first_ep":  190,
+                            "season_no":  9,
+                            "title":  "The Final Future",
+                            "year":  2010,
+                            "last_ep":  203
+                        }
+                    ],
+        "title":  "Katekyou Hitman Reborn!",
+        "source_url":  "https://en.wikipedia.org/wiki/List_of_Reborn!_episodes"
+    },
+    {
+        "mal_id":  225,
+        "retrieval_date":  "2026-11-09",
+        "seasons":  [
+                        {
+                            "first_ep":  1,
+                            "season_no":  1,
+                            "title":  "Season 1",
+                            "year":  1996,
+                            "last_ep":  31
+                        },
+                        {
+                            "first_ep":  32,
+                            "season_no":  2,
+                            "title":  "Season 2",
+                            "year":  1996,
+                            "last_ep":  64
+                        }
+                    ],
+        "title":  "Dragon Ball GT",
+        "source_url":  "https://en.wikipedia.org/wiki/List_of_Dragon_Ball_GT_episodes"
+    },
+    {
+        "mal_id":  232,
+        "retrieval_date":  "2026-11-09",
+        "seasons":  [
+                        {
+                            "first_ep":  1,
+                            "season_no":  1,
+                            "title":  "Season 1",
+                            "year":  1998,
+                            "last_ep":  35
+                        },
+                        {
+                            "first_ep":  36,
+                            "season_no":  2,
+                            "title":  "Season 2",
+                            "year":  1999,
+                            "last_ep":  46
+                        },
+                        {
+                            "first_ep":  47,
+                            "season_no":  3,
+                            "title":  "Season 3",
+                            "year":  1999,
+                            "last_ep":  70
+                        }
+                    ],
+        "title":  "Cardcaptor Sakura",
+        "source_url":  "https://en.wikipedia.org/wiki/List_of_Cardcaptor_Sakura_episodes"
+    },
+    {
+        "mal_id":  45,
+        "retrieval_date":  "2026-11-09",
+        "seasons":  [
+                        {
+                            "first_ep":  1,
+                            "season_no":  1,
+                            "title":  "Season 1",
+                            "year":  1996,
+                            "last_ep":  27
+                        },
+                        {
+                            "first_ep":  28,
+                            "season_no":  2,
+                            "title":  "Kyoto Arc",
+                            "year":  1996,
+                            "last_ep":  62
+                        },
+                        {
+                            "first_ep":  63,
+                            "season_no":  3,
+                            "title":  "Season 3",
+                            "year":  1997,
+                            "last_ep":  95
+                        }
+                    ],
+        "title":  "Rurouni Kenshin: Meiji Kenkaku Romantan",
+        "source_url":  "https://en.wikipedia.org/wiki/List_of_Rurouni_Kenshin_episodes"
+    },
+    {
+        "mal_id":  1482,
+        "retrieval_date":  "2026-11-09",
+        "seasons":  [
+                        {
+                            "first_ep":  1,
+                            "season_no":  1,
+                            "title":  "Season 1",
+                            "year":  2006,
+                            "last_ep":  51
+                        },
+                        {
+                            "first_ep":  52,
+                            "season_no":  2,
+                            "title":  "Season 2",
+                            "year":  2007,
+                            "last_ep":  103
+                        }
+                    ],
+        "title":  "D.Gray-man",
+        "source_url":  "https://en.wikipedia.org/wiki/List_of_D.Gray-man_episodes"
+    },
+    {
+        "mal_id":  19,
+        "retrieval_date":  "2026-11-09",
+        "seasons":  [
+                        {
+                            "first_ep":  1,
+                            "season_no":  1,
+                            "title":  "Season 1",
+                            "year":  2004,
+                            "last_ep":  37
+                        },
+                        {
+                            "first_ep":  38,
+                            "season_no":  2,
+                            "title":  "Season 2",
+                            "year":  2004,
+                            "last_ep":  74
+                        }
+                    ],
+        "title":  "Monster",
+        "source_url":  "https://en.wikipedia.org/wiki/List_of_Monster_episodes"
+    },
+    {
+        "mal_id":  1535,
+        "retrieval_date":  "2026-11-09",
+        "seasons":  [
+                        {
+                            "first_ep":  1,
+                            "season_no":  1,
+                            "title":  "Season 1",
+                            "year":  2006,
+                            "last_ep":  19
+                        },
+                        {
+                            "first_ep":  20,
+                            "season_no":  2,
+                            "title":  "Season 2",
+                            "year":  2007,
+                            "last_ep":  37
+                        }
+                    ],
+        "title":  "Death Note",
+        "source_url":  "https://en.wikipedia.org/wiki/List_of_Death_Note_episodes"
+    },
+    {
+        "mal_id":  52991,
+        "retrieval_date":  "2026-11-09",
+        "seasons":  [
+                        {
+                            "first_ep":  1,
+                            "season_no":  1,
+                            "title":  "Season 1",
+                            "year":  2023,
+                            "last_ep":  28
+                        }
+                    ],
+        "title":  "Sousou no Frieren",
+        "source_url":  "https://en.wikipedia.org/wiki/Frieren"
+    }
+]

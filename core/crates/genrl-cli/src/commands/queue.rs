@@ -287,14 +287,17 @@ pub fn answer_cmd(data_dir: &Path, id: i64, choice_str: &str, always: bool) -> R
         "none_of_these" => genrl_core::questions::Choice::NoneOfThese,
         "wrong_release" | "wrong" => genrl_core::questions::Choice::WrongRelease,
         other => {
-            if other.len() == 40 && other.chars().all(|c| c.is_ascii_hexdigit()) {
-                genrl_core::questions::Choice::UseThis {
-                    info_hash: other.to_string(),
+            let clean = other.strip_prefix("range:").unwrap_or(other);
+            if let Some((f_str, l_str)) = clean.split_once('-').or_else(|| clean.split_once("..")) {
+                if let (Ok(first_ep), Ok(last_ep)) = (f_str.trim().parse::<u32>(), l_str.trim().parse::<u32>()) {
+                    genrl_core::questions::Choice::SeasonRange { first_ep, last_ep }
+                } else {
+                    genrl_core::questions::Choice::Alias { name: choice_str.to_string() }
                 }
+            } else if other.len() == 40 && other.chars().all(|c| c.is_ascii_hexdigit()) {
+                genrl_core::questions::Choice::UseThis { info_hash: other.to_string() }
             } else {
-                genrl_core::questions::Choice::Alias {
-                    name: choice_str.to_string(),
-                }
+                genrl_core::questions::Choice::Alias { name: choice_str.to_string() }
             }
         }
     };

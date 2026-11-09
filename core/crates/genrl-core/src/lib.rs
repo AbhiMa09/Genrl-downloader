@@ -55,6 +55,7 @@ pub mod queue;
 pub mod rules;
 pub mod score;
 pub mod season;
+pub mod season_map;
 pub mod secrets;
 pub mod settings;
 pub mod worker;

@@ -189,6 +189,7 @@ fn test_rezero_4th_season_query_and_matcher_decisions() {
         other_names: vec![genrl_core::filename::normalize(
             "Re:Zero kara Hajimeru Isekai Seikatsu",
         )],
+        season_maps: vec![],
     };
 
     // Assert exact query used for Re:Zero 4th Season contains season marker and never Season 1
@@ -283,6 +284,7 @@ fn test_rezero_matcher_offline_fixture() {
         other_names: vec![genrl_core::filename::normalize(
             "Re:Zero kara Hajimeru Isekai Seikatsu",
         )],
+        season_maps: vec![],
     };
 
     let mut rules = genrl_core::rules::Rules::default();
@@ -381,6 +383,7 @@ async fn test_rezero_matcher_live_network() {
         other_names: vec![genrl_core::filename::normalize(
             "Re:Zero kara Hajimeru Isekai Seikatsu",
         )],
+        season_maps: vec![],
     };
 
     let mut rules = genrl_core::rules::Rules::default();
@@ -436,6 +439,7 @@ fn test_oni_no_hanayome_batch_only_candidate_offered() {
         auto: false,
         total_episodes: Some(12),
         other_names: vec![],
+        season_maps: vec![],
     };
 
     let rules = genrl_core::rules::Rules::default();
@@ -509,6 +513,7 @@ fn test_tsukihime_batch_candidate_scoring() {
         auto: false,
         total_episodes: Some(12),
         other_names: vec![],
+        season_maps: vec![],
     };
 
     let rules = genrl_core::rules::Rules::default();
@@ -563,6 +568,7 @@ fn test_negative_oni_no_hanayome_rejections_from_raw_feed() {
         auto: false,
         total_episodes: Some(12),
         other_names: vec![genrl_core::filename::normalize("Seto no Hanayome")],
+        season_maps: vec![],
     };
 
     let candidates: Vec<genrl_core::score::Candidate> = items
@@ -753,6 +759,7 @@ fn test_size_policy_raw_feed_and_synthetic_limits() {
         auto: false,
         total_episodes: Some(12),
         other_names: vec![],
+        season_maps: vec![],
     };
 
     let target = target_inputs.score_target(Some(1.0));
@@ -859,6 +866,7 @@ fn test_oni_no_hanayome_ties_auto_pick_by_preferred_group_order() {
         auto: false,
         total_episodes: Some(12),
         other_names: vec![],
+        season_maps: vec![],
     };
 
     let now = 1_760_000_000;

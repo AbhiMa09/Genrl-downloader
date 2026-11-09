@@ -40,6 +40,11 @@ class InboxDynamicCard extends StatelessWidget {
       categoryTag = 'BATCH PACK DISCOVERED';
       tagIcon = Icons.folder_zip_rounded;
       tagColor = ObsidianColors.primary;
+    } else if (item.type == QuestionType.seasonMap) {
+      accentColor = ObsidianColors.primary;
+      categoryTag = 'COMMUNITY SEASON MAPPING';
+      tagIcon = Icons.auto_awesome_rounded;
+      tagColor = ObsidianColors.primary;
     }
 
     return DecisionCardFrame(

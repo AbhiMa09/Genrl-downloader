@@ -14,6 +14,7 @@
 //!    recency. Ranking never rescues a candidate the signal score doubts.
 
 pub mod evaluate;
+pub mod helpers;
 pub mod types;
 
 pub use evaluate::*;
@@ -45,6 +46,7 @@ mod tests {
             start_year: Some(2023),
             fully_aired: true,
             total_episodes: Some(28),
+            season_maps: &[],
         }
     }
 

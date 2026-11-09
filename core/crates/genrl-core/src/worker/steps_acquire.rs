@@ -246,6 +246,43 @@ impl Engine {
                 )
             }
             matching::Verdict::NotFound { rejections } => {
+                if let Some((raw_title, season_no)) = rejections.iter().find_map(|(raw, rej)| {
+                    if let crate::score::Rejection::SeasonConflict { found, wanted } = rej {
+                        if *found != *wanted && *found > 0 {
+                            return Some((raw, *found as u32));
+                        }
+                    }
+                    None
+                }) {
+                    let parsed = crate::filename::parse_release(raw_title);
+                    let ep_count = parsed
+                        .episode_range
+                        .map(|(f, t)| (t - f + 1.0) as u32)
+                        .unwrap_or(0);
+                    let (suggested_first, suggested_last) = self
+                        .db
+                        .with(|c| crate::season_map::suggest_range(c, context.mal_id, ep_count))?;
+                    let payload = Payload::SeasonMap {
+                        mal_id: context.mal_id,
+                        season_no,
+                        release_title: raw_title.clone(),
+                        suggested_first,
+                        suggested_last,
+                        reason: format!(
+                            "Release specifies Season {season_no}, which is not mapped to episode numbers for this show"
+                        ),
+                    };
+                    self.ask(job, context.mal_id, payload, &format!("unmapped season {season_no}"))?;
+                    return jobs::transition(
+                        &self.db,
+                        self.clock.as_ref(),
+                        job.id,
+                        JobState::NeedsInput,
+                        &format!("unmapped season {season_no}"),
+                        &MoveOptions::default(),
+                    );
+                }
+
                 let reasons = rejections
                     .iter()
                     .map(|(_, rejection)| rejection.to_string())

@@ -67,6 +67,7 @@ impl Db {
             path,
         };
         db.migrate()?;
+        db.with(|c| crate::season_map::seed_bundled(c, now_unix()))?;
         Ok(db)
     }
 

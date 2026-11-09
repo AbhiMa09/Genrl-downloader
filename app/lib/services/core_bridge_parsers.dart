@@ -135,6 +135,21 @@ List<InboxItem> parseInboxItems(List<dynamic> list) {
         InboxChoice(key: 'batch', label: 'Download Batch'),
         InboxChoice(key: 'wait_for_singles', label: 'Wait For Singles'),
       ];
+    } else if (kind == 'season_map') {
+      qt = QuestionType.seasonMap;
+      final rawPayload = m['payload'];
+      final payload = rawPayload is Map ? rawPayload : <String, dynamic>{};
+      final seasonNo = payload['season_no'] ?? 1;
+      final firstEp = payload['suggested_first'] ?? 1;
+      final lastEp = payload['suggested_last'] ?? 24;
+      choices = [
+        InboxChoice(
+          key: '$firstEp-$lastEp',
+          label: 'Map Season $seasonNo to episodes $firstEp–$lastEp',
+        ),
+        const InboxChoice(key: 'none_of_these', label: 'None of these'),
+        const InboxChoice(key: 'search_again', label: 'Search again'),
+      ];
     } else {
       qt = QuestionType.matchReview;
       choices = const [
@@ -166,7 +181,9 @@ List<InboxItem> parseInboxItems(List<dynamic> list) {
       jobId: (m['job_id'] as num?)?.toInt(),
       malId: (m['mal_id'] as num?)?.toInt() ?? 0,
       showTitle: m['show_title']?.toString() ?? 'Question',
-      title: 'Attention Required: $kind',
+      title: qt == QuestionType.seasonMap
+          ? 'Map Community Season ${payload['season_no'] ?? ''}'
+          : 'Attention Required: $kind',
       details: payload['reason']?.toString() ?? m['payload']?.toString() ?? '',
       type: qt,
       choices: choices,

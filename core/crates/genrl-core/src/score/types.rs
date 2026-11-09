@@ -83,6 +83,7 @@ pub struct Target<'a> {
     pub start_year: Option<i64>,
     pub fully_aired: bool,
     pub total_episodes: Option<i64>,
+    pub season_maps: &'a [crate::season_map::SeasonMapEntry],
 }
 
 /// Why a candidate was rejected outright.

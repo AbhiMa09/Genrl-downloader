@@ -27,6 +27,7 @@ pub struct TargetInputs {
     pub names: Vec<String>,
     /// Every other show's normalized names, to reject on.
     pub other_names: Vec<String>,
+    pub season_maps: Vec<crate::season_map::SeasonMapEntry>,
 }
 
 impl TargetInputs {
@@ -43,6 +44,7 @@ impl TargetInputs {
         }
         let other_names = other_show_names(db, mal_id)?;
         let season = crate::filename::extract_season_from_title(&show.title).unwrap_or(show.season);
+        let season_maps = db.with(|c| crate::season_map::all_for_show(c, mal_id))?;
         Ok(TargetInputs {
             mal_id: show.mal_id,
             title: show.title,
@@ -55,6 +57,7 @@ impl TargetInputs {
             auto: show.auto,
             names,
             other_names,
+            season_maps,
         })
     }
 
@@ -75,6 +78,7 @@ impl TargetInputs {
             start_year: self.start_year,
             fully_aired: self.fully_aired,
             total_episodes: self.total_episodes,
+            season_maps: &self.season_maps,
         }
     }
 

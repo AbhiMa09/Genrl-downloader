@@ -65,7 +65,7 @@ pub const VIDEO_EXTENSIONS: &[&str] = &["mkv", "mp4", "avi", "m2ts", "ts", "wmv"
 pub fn extract_season_episode(name: &str, release: &mut Release) -> Option<usize> {
     // `S01E01-E11` / `S01E01-11` range batch
     if let Some(caps) =
-        re(r"(?i)\bS(\d{1,2})\s*[- ]?\s*E?(\d{1,3})\s*[-~～]\s*E?(\d{1,3})\b").captures(name)
+        re(r"(?i)\bS(\d{1,2})\s*[- ]?\s*E?(\d{1,4})\s*[-~～]\s*E?(\d{1,4})\b").captures(name)
     {
         release.season = caps[1].parse().ok();
         release.is_batch = true;
@@ -78,7 +78,7 @@ pub fn extract_season_episode(name: &str, release: &mut Release) -> Option<usize
     }
 
     // `S01E05` / `S1E5`
-    if let Some(caps) = re(r"(?i)\bS(\d{1,2})\s*[- ]?\s*E(\d{1,3})\b").captures(name) {
+    if let Some(caps) = re(r"(?i)\bS(\d{1,2})\s*[- ]?\s*E(\d{1,4})\b").captures(name) {
         release.season = caps[1].parse().ok();
         release.episode = caps[2].parse().ok();
         return Some(caps.get(0).unwrap().start());
@@ -113,7 +113,7 @@ pub fn extract_season_episode(name: &str, release: &mut Release) -> Option<usize
 
     // `01-12` range: a batch, and deliberately not an episode.
     if let Some(caps) =
-        re(r"(?:^|[\s\[(])(\d{1,3})\s*[-~～]\s*(\d{1,3})(?:\s|[\])]|$)").captures(name)
+        re(r"(?:^|[\s\[(])(\d{1,4})\s*[-~～]\s*(\d{1,4})(?:\s|[\])]|$)").captures(name)
     {
         let from: f64 = caps[1].parse().unwrap_or(0.0);
         let to: f64 = caps[2].parse().unwrap_or(0.0);
@@ -125,20 +125,20 @@ pub fn extract_season_episode(name: &str, release: &mut Release) -> Option<usize
     }
 
     // ` - 28` / ` - 6.5` / ` - 05v2` — the common single-episode form.
-    if let Some(caps) = re(r"(?:^|[\s])-\s*(\d{1,3}(?:\.\d)?)\s*(?:v(\d+))?").captures(name) {
+    if let Some(caps) = re(r"(?:^|[\s])-\s*(\d{1,4}(?:\.\d)?)\s*(?:v(\d+))?").captures(name) {
         release.episode = caps[1].parse().ok();
         release.version = caps.get(2).and_then(|m| m.as_str().parse().ok());
         return Some(caps.get(0).unwrap().start() + caps[0].find('-').unwrap_or(0));
     }
 
     // `EP28` / `Episode 28` / `E28`
-    if let Some(caps) = re(r"(?i)\b(?:EPISODE|EP|E)\s*(\d{1,3}(?:\.\d)?)\b").captures(name) {
+    if let Some(caps) = re(r"(?i)\b(?:EPISODE|EP|E)\s*(\d{1,4}(?:\.\d)?)\b").captures(name) {
         release.episode = caps[1].parse().ok();
         return Some(caps.get(0).unwrap().start());
     }
 
     // `[28]` when the brackets carry only a number.
-    if let Some(caps) = re(r"\s\[(\d{1,3}(?:\.\d)?)\]").captures(name) {
+    if let Some(caps) = re(r"\s\[(\d{1,4}(?:\.\d)?)\]").captures(name) {
         release.episode = caps[1].parse().ok();
         return Some(caps.get(0).unwrap().start());
     }
@@ -265,7 +265,7 @@ pub fn is_metadata_bracket(inner: &str) -> bool {
 }
 
 pub fn batch_range() -> &'static Regex {
-    re(r"(?:^|[\s])\d{1,3}\s*-\s*\d{1,3}(?:\s|$)")
+    re(r"(?:^|[\s])\d{1,4}\s*-\s*\d{1,4}(?:\s|$)")
 }
 
 /// Extract explicit season number from a title if present (e.g. "4th Season", "Season 2", "S04", "Mob Psycho 100 III").

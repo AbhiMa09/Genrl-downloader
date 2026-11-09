@@ -365,6 +365,8 @@ pub enum QuestionKind {
     /// A service needs attention (qBittorrent auth failed, say). One notice
     /// per service, never one per job.
     ServiceNotice,
+    /// Community season number mapped to entry-local episode range.
+    SeasonMap,
 }
 
 impl QuestionKind {
@@ -379,6 +381,7 @@ impl QuestionKind {
             QuestionKind::AllFailed => "all_failed",
             QuestionKind::EntryChanged => "entry_changed",
             QuestionKind::ServiceNotice => "service_notice",
+            QuestionKind::SeasonMap => "season_map",
         }
     }
 
@@ -391,6 +394,7 @@ impl QuestionKind {
             "all_failed" => QuestionKind::AllFailed,
             "entry_changed" => QuestionKind::EntryChanged,
             "service_notice" => QuestionKind::ServiceNotice,
+            "season_map" => QuestionKind::SeasonMap,
             _ => QuestionKind::MatchReview,
         }
     }
