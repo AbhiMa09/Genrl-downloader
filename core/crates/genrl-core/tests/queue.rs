@@ -2928,3 +2928,261 @@ async fn batch_add_and_finalize_excluding_job_episode_leaves_it_missing_and_mark
         })
         .unwrap();
 }
+
+#[tokio::test]
+async fn plan_single_revives_a_failed_job() {
+    let world = World::new().await;
+    let job_id = plan_one(&world);
+
+    let ep_num: f64 = world
+        .db
+        .with(|c| {
+            c.execute(
+                "UPDATE jobs SET state = 'failed', last_error = 'Cancelled by user' WHERE id = ?1",
+                [job_id],
+            )?;
+            c.execute(
+                "INSERT INTO questions (job_id, mal_id, kind, payload, created_at) VALUES (?1, 200, 'match_review', '{}', 100)",
+                [job_id],
+            )?;
+            Ok(c.query_row(
+                "SELECT e.number FROM episodes e JOIN jobs j ON j.episode_id = e.id WHERE j.id = ?1",
+                [job_id],
+                |r| r.get(0),
+            )?)
+        })
+        .unwrap();
+
+    let queued = planner::plan_single(&world.db, &world.clock, 200, Some(ep_num)).unwrap();
+    assert_eq!(queued, 1, "plan_single must report 1 queued for the revived job");
+
+    world
+        .db
+        .with(|c| {
+            let (state, last_error): (String, Option<String>) = c.query_row(
+                "SELECT state, last_error FROM jobs WHERE id = ?1",
+                [job_id],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )?;
+            assert_eq!(state, "search", "job must transition back to search");
+            assert!(last_error.is_none(), "last_error must be NULL");
+
+            let job_count: i64 = c.query_row(
+                "SELECT COUNT(*) FROM jobs WHERE id = ?1",
+                [job_id],
+                |r| r.get(0),
+            )?;
+            assert_eq!(job_count, 1, "same job id, no duplicate job row");
+
+            let total_jobs: i64 = c.query_row("SELECT COUNT(*) FROM jobs", [], |r| r.get(0))?;
+            assert_eq!(total_jobs, 1, "exactly one job in table");
+
+            // Open questions for the revived job must be closed
+            let open_q_count: i64 = c.query_row(
+                "SELECT COUNT(*) FROM questions WHERE job_id = ?1 AND answer IS NULL",
+                [job_id],
+                |r| r.get(0),
+            )?;
+            assert_eq!(open_q_count, 0, "open question must be closed when job is revived");
+
+            let event_count: i64 = c.query_row(
+                "SELECT COUNT(*) FROM events WHERE job_id = ?1 AND message LIKE '%retried by user%'",
+                [job_id],
+                |r| r.get(0),
+            )?;
+            assert!(event_count >= 1, "retry event must be logged");
+            Ok(())
+        })
+        .unwrap();
+}
+
+#[tokio::test]
+async fn plan_single_leaves_active_jobs_alone() {
+    let world = World::new().await;
+    let job_id = plan_one(&world);
+
+    let ep_num: f64 = world
+        .db
+        .with(|c| {
+            Ok(c.query_row(
+                "SELECT e.number FROM episodes e JOIN jobs j ON j.episode_id = e.id WHERE j.id = ?1",
+                [job_id],
+                |r| r.get(0),
+            )?)
+        })
+        .unwrap();
+
+    // Job starts in 'search' state
+    let queued = planner::plan_single(&world.db, &world.clock, 200, Some(ep_num)).unwrap();
+    assert_eq!(queued, 1);
+
+    world
+        .db
+        .with(|c| {
+            let (id, state): (i64, String) = c.query_row(
+                "SELECT id, state FROM jobs WHERE id = ?1",
+                [job_id],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )?;
+            assert_eq!(id, job_id);
+            assert_eq!(state, "search");
+
+            let count: i64 = c.query_row("SELECT COUNT(*) FROM jobs", [], |r| r.get(0))?;
+            assert_eq!(count, 1, "idempotency regression guard: exactly one job row");
+            Ok(())
+        })
+        .unwrap();
+}
+
+#[tokio::test]
+async fn enqueue_search_does_not_revive() {
+    let world = World::new().await;
+    let job_id = plan_one(&world);
+
+    let ep_id: i64 = world
+        .db
+        .with(|c| {
+            c.execute(
+                "UPDATE jobs SET state = 'failed', last_error = 'Cancelled by user' WHERE id = ?1",
+                [job_id],
+            )?;
+            Ok(c.query_row("SELECT episode_id FROM jobs WHERE id = ?1", [job_id], |r| r.get(0))?)
+        })
+        .unwrap();
+
+    let returned_id = jobs::enqueue_search(&world.db, &world.clock, ep_id).unwrap();
+    assert_eq!(returned_id, job_id, "enqueue_search must return the existing job id");
+
+    world
+        .db
+        .with(|c| {
+            let (state, last_error): (String, Option<String>) = c.query_row(
+                "SELECT state, last_error FROM jobs WHERE id = ?1",
+                [job_id],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )?;
+            assert_eq!(state, "failed", "automation enqueue_search must NOT revive a failed job");
+            assert_eq!(last_error.as_deref(), Some("Cancelled by user"));
+            Ok(())
+        })
+        .unwrap();
+}
+
+#[tokio::test]
+async fn retry_all_jobs_revives_cancelled_jobs() {
+    let world = World::new().await;
+    let job1 = plan_one(&world);
+
+    // Create a second episode and job for show 200
+    let job2: i64 = world
+        .db
+        .with(|c| {
+            c.execute(
+                "INSERT INTO episodes (mal_id, number, state) VALUES (200, 3, 'missing')",
+                [],
+            )?;
+            let ep2_id = c.last_insert_rowid();
+            c.execute(
+                "INSERT INTO jobs (episode_id, kind, state, created_at, updated_at) VALUES (?1, 'search', 'search', 100, 100)",
+                [ep2_id],
+            )?;
+            Ok(c.last_insert_rowid())
+        })
+        .unwrap();
+
+    // Mark job1 normally failed, job2 cancelled by user
+    world
+        .db
+        .with(|c| {
+            c.execute(
+                "UPDATE jobs SET state = 'failed', last_error = 'Connection reset' WHERE id = ?1",
+                [job1],
+            )?;
+            c.execute(
+                "UPDATE jobs SET state = 'failed', last_error = 'Cancelled by user' WHERE id = ?1",
+                [job2],
+            )?;
+            Ok(())
+        })
+        .unwrap();
+
+    let summary = jobs::retry_all_jobs(&world.db, &world.clock).unwrap();
+    assert_eq!(summary.retried, 2, "retry_all_jobs must revive both normal and cancelled jobs");
+
+    world
+        .db
+        .with(|c| {
+            let (s1, err1): (String, Option<String>) = c.query_row(
+                "SELECT state, last_error FROM jobs WHERE id = ?1",
+                [job1],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )?;
+            let (s2, err2): (String, Option<String>) = c.query_row(
+                "SELECT state, last_error FROM jobs WHERE id = ?1",
+                [job2],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )?;
+            assert_eq!(s1, "search");
+            assert!(err1.is_none());
+            assert_eq!(s2, "search");
+            assert!(err2.is_none());
+            Ok(())
+        })
+        .unwrap();
+}
+
+#[tokio::test]
+async fn skipped_episode_done_plan_single_does_not_count() {
+    let world = World::new().await;
+    let job_id = plan_one(&world);
+
+    let (ep_id, ep_num): (i64, f64) = world
+        .db
+        .with(|c| {
+            c.execute(
+                "UPDATE jobs SET state = 'failed', last_error = 'Cancelled by user' WHERE id = ?1",
+                [job_id],
+            )?;
+            c.execute(
+                "UPDATE episodes SET state = 'done' WHERE id = (SELECT episode_id FROM jobs WHERE id = ?1)",
+                [job_id],
+            )?;
+            Ok(c.query_row(
+                "SELECT e.id, e.number FROM episodes e JOIN jobs j ON j.episode_id = e.id WHERE j.id = ?1",
+                [job_id],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )?)
+        })
+        .unwrap();
+
+    // Directly test enqueue_or_revive helper: reports queued == false
+    let (revived_id, queued_flag) = jobs::enqueue_or_revive(&world.db, &world.clock, ep_id).unwrap();
+    assert_eq!(revived_id, job_id);
+    assert!(!queued_flag, "helper must report queued == false when episode is already done");
+
+    // Job ends in 'done'
+    world
+        .db
+        .with(|c| {
+            let state: String = c.query_row("SELECT state FROM jobs WHERE id = ?1", [job_id], |r| r.get(0))?;
+            assert_eq!(state, "done", "job must end in done");
+            Ok(())
+        })
+        .unwrap();
+
+    // Now test plan_single for an already-done episode with a failed job:
+    // Reset job back to failed to test through plan_single
+    world
+        .db
+        .with(|c| {
+            c.execute(
+                "UPDATE jobs SET state = 'failed', last_error = 'Cancelled by user' WHERE id = ?1",
+                [job_id],
+            )?;
+            Ok(())
+        })
+        .unwrap();
+
+    let queued = planner::plan_single(&world.db, &world.clock, 200, Some(ep_num)).unwrap();
+    assert_eq!(queued, 0, "plan_single must not count job when episode is already done");
+}

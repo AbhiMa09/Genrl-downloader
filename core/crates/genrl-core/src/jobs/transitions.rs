@@ -415,10 +415,9 @@ pub fn retry_all_jobs(db: &Db, clock: &dyn Clock) -> Result<RetrySummary> {
         let mut stmt = c.prepare(
             "SELECT id FROM jobs
              WHERE state IN ('failed', 'blocked', 'needs_input')
-               AND COALESCE(last_error, '') != ?1
              ORDER BY id ASC",
         )?;
-        let rows = stmt.query_map([CANCELLED_BY_USER], |r| r.get(0))?;
+        let rows = stmt.query_map([], |r| r.get(0))?;
         let mut list = Vec::new();
         for r in rows {
             list.push(r?);

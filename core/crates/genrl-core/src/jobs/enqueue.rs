@@ -130,3 +130,31 @@ pub fn reject_candidate(db: &Db, info_hash: &str) -> Result<bool> {
         Ok(changed > 0)
     })
 }
+
+/// Enqueue search for an episode, reviving the job if it is currently failed.
+///
+/// Returns `(job_id, queued)` where `queued = false` only when `retry_job` reports
+/// `RetryOutcome::SkippedEpisodeDone` (episode already done -> nothing was queued);
+/// `true` otherwise (new job, or an existing job that is already active/paused).
+pub fn enqueue_or_revive(db: &Db, clock: &dyn Clock, episode_id: i64) -> Result<(i64, bool)> {
+    let job_id = enqueue_search(db, clock, episode_id)?;
+    let state_str: String = db.with(|c| {
+        Ok(c.query_row(
+            "SELECT state FROM jobs WHERE id = ?1",
+            [job_id],
+            |r| r.get(0),
+        )?)
+    })?;
+    if state_str == "failed" {
+        let at = clock.now();
+        db.with(|c| crate::questions::QuestionStore::close_for_job(c, job_id, at, true))?;
+        let outcome = super::transitions::retry_job(db, clock, job_id)?;
+        let queued = match outcome {
+            super::transitions::RetryOutcome::SkippedEpisodeDone => false,
+            super::transitions::RetryOutcome::Retried => true,
+        };
+        Ok((job_id, queued))
+    } else {
+        Ok((job_id, true))
+    }
+}
