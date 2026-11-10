@@ -150,6 +150,26 @@ List<InboxItem> parseInboxItems(List<dynamic> list) {
         const InboxChoice(key: 'none_of_these', label: 'None of these'),
         const InboxChoice(key: 'search_again', label: 'Search again'),
       ];
+    } else if (kind == 'rated_show') {
+      qt = QuestionType.ratedShow;
+      choices = const [
+        InboxChoice(
+          key: 'download_again',
+          label: 'Download again',
+          description: 'Queue full show from episode 1',
+        ),
+        InboxChoice(
+          key: 'resume',
+          label: 'Resume',
+          description: 'Download only unwatched episodes',
+        ),
+        InboxChoice(
+          key: 'skip_show',
+          label: 'Skip',
+          description: 'Disable automatic planning for this show',
+          isDestructive: true,
+        ),
+      ];
     } else {
       qt = QuestionType.matchReview;
       choices = const [
@@ -183,7 +203,9 @@ List<InboxItem> parseInboxItems(List<dynamic> list) {
       showTitle: m['show_title']?.toString() ?? 'Question',
       title: qt == QuestionType.seasonMap
           ? 'Map Community Season ${payload['season_no'] ?? ''}'
-          : 'Attention Required: $kind',
+          : qt == QuestionType.ratedShow
+              ? 'Rated Show Decision: ${payload['title'] ?? m['show_title'] ?? ''}'
+              : 'Attention Required: $kind',
       details: payload['reason']?.toString() ?? m['payload']?.toString() ?? '',
       type: qt,
       choices: choices,

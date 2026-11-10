@@ -107,19 +107,32 @@ pub fn evaluate(
     }
 
     // ------------------------------------------------------- size policy
+    let covered_span = effective_episode_range
+        .map(|(from, to)| to - from + 1.0)
+        .unwrap_or(0.0);
+    let mut is_large_backcatalog = covered_span >= 50.0
+        || target.missing_episodes.len() >= settings.pack_first_min_missing as usize;
+
     let is_batch = candidate.release.is_batch
         || (target.show_type == crate::models::ShowType::Tv
             && target.wanted_episode.is_some()
             && effective_episode.is_none()
+            && !is_large_backcatalog
             && candidate.show_type != Some(crate::models::ShowType::Movie));
     let has_explicit_range = candidate.release.episode_range.is_some() || mapped_ep_count.is_some();
     let mapped_season_range = mapped_season_entry.map(|m| (m.first_ep, m.last_ep));
     let (covered_missing, covered_owned) = calculate_batch_coverage(
         effective_episode_range,
         mapped_season_range,
+        is_batch,
         target.missing_episodes,
         target.owned_episodes,
+        is_large_backcatalog,
     );
+    if covered_missing >= settings.pack_first_min_missing as u64 {
+        is_large_backcatalog = true;
+    }
+
 
     if is_batch && !target.missing_episodes.is_empty() {
         if covered_missing == 0 {
@@ -146,56 +159,16 @@ pub fn evaluate(
         target.total_episodes.unwrap_or(1).max(1) as u64 * seasons
     };
 
-    let size_bytes = candidate.size_bytes;
-    let size_mb = size_bytes.div_ceil(1024 * 1024);
+    check_candidate_size(
+        candidate,
+        target,
+        settings,
+        is_batch,
+        has_explicit_range,
+        ep_count,
+        covered_missing,
+    )?;
 
-    if is_batch {
-        let scaled_cap_bytes = compute_batch_size_cap(
-            settings,
-            ep_count,
-            has_explicit_range,
-            target.missing_episodes.len(),
-            covered_missing,
-            target.total_episodes,
-        );
-        if size_bytes > scaled_cap_bytes {
-            return Err(Rejection::SizeOutOfRange {
-                size_mb,
-                min_mb: settings.min_episode_mb,
-                max_mb: scaled_cap_bytes / (1024 * 1024),
-            });
-        }
-        let per_ep_known = has_explicit_range
-            || (target.total_episodes.is_some_and(|t| t > 1) && candidate.release.season_range.is_some());
-        if per_ep_known {
-            let per_ep_bytes = size_bytes / ep_count;
-            let per_ep_mb = per_ep_bytes.div_ceil(1024 * 1024);
-            if per_ep_mb > settings.max_episode_mb || per_ep_mb < settings.min_episode_mb {
-                return Err(Rejection::SizeOutOfRange {
-                    size_mb: per_ep_mb,
-                    min_mb: settings.min_episode_mb,
-                    max_mb: settings.max_episode_mb,
-                });
-            }
-        }
-    } else if target.show_type == crate::models::ShowType::Movie {
-        let max_movie_bytes = settings.max_batch_gb.saturating_mul(1024 * 1024 * 1024);
-        if size_bytes > max_movie_bytes || size_mb < settings.min_episode_mb {
-            return Err(Rejection::SizeOutOfRange {
-                size_mb,
-                min_mb: settings.min_episode_mb,
-                max_mb: settings.max_batch_gb.saturating_mul(1024),
-            });
-        }
-    } else {
-        if size_mb > settings.max_episode_mb || size_mb < settings.min_episode_mb {
-            return Err(Rejection::SizeOutOfRange {
-                size_mb,
-                min_mb: settings.min_episode_mb,
-                max_mb: settings.max_episode_mb,
-            });
-        }
-    }
 
     // ------------------------------------------------------- title & identity
     let title = &candidate.release.normalized_title;
@@ -305,21 +278,26 @@ pub fn evaluate(
     if let (Some(wanted), Some((from, to))) =
         (target.wanted_episode, effective_episode_range)
     {
-        if wanted < from || wanted > to {
+        let covers_target = wanted >= from && wanted <= to;
+        let is_pack_first = is_large_backcatalog && covered_missing > 0;
+        if !covers_target && !is_pack_first {
             return Err(Rejection::WrongEpisode { wanted, found: to });
         }
     }
 
     // Type: unknown never rejects; a known mismatch does.
     if let Some(found) = candidate.show_type {
-        if found != target.show_type {
+        let is_tv_pack_with_movies = found == crate::models::ShowType::Movie
+            && target.show_type == crate::models::ShowType::Tv
+            && candidate.release.episode_range.is_some();
+        if found != target.show_type && !is_tv_pack_with_movies {
             return Err(Rejection::TypeMismatch {
                 wanted: target.show_type,
                 found,
             });
         }
         signal += 10.0;
-        notes.push(format!("type {found:?} matches"));
+        notes.push(format!("type {:?} matches", target.show_type));
     }
 
     // Year: a remake or an unrelated same-title work differs by more than one.
@@ -340,18 +318,6 @@ pub fn evaluate(
     // healthy season batches are prioritized (+50) over single episodes (+30).
     // If the batch has 0 seeders, it is rejected by the zero-seeder check and healthy
     // single episodes are selected instead.
-    let is_batch = candidate.release.is_batch
-        || (target.show_type == crate::models::ShowType::Tv
-            && target.wanted_episode.is_some()
-            && candidate.release.episode.is_none()
-            && candidate.show_type != Some(crate::models::ShowType::Movie));
-    let covered_span = effective_episode_range
-        .map(|(from, to)| to - from + 1.0)
-        .unwrap_or(0.0);
-    let is_large_backcatalog = covered_span >= 50.0
-        || covered_missing >= settings.pack_first_min_missing as u64
-        || target.missing_episodes.len() >= settings.pack_first_min_missing as usize;
-
     if is_batch && (target.fully_aired || is_large_backcatalog) {
         if target.wanted_episode.is_some()
             && (rules.prefer_batch_when_finished || is_large_backcatalog)
@@ -368,6 +334,7 @@ pub fn evaluate(
     } else if is_batch {
         notes.push("batch, but the show is still airing".into());
     }
+
 
     // --------------------------------------------------------- stage 3: ranking
     let mut ranking = 0.0;
@@ -449,11 +416,14 @@ pub fn evaluate(
         // Rank passing candidates by missing episodes covered (coverage ranking), tiebreak seeders.
         let covered = if covered_missing > 0 {
             covered_missing as f64
+        } else if let Some((from, to)) = effective_episode_range {
+            (to - from + 1.0).max(1.0)
+        } else if !is_large_backcatalog {
+            target.total_episodes.unwrap_or(1).max(1) as f64
         } else {
-            effective_episode_range
-                .map(|(from, to)| (to - from + 1.0).max(1.0))
-                .unwrap_or_else(|| target.total_episodes.unwrap_or(1).max(1) as f64)
+            0.0
         };
+
         let coverage_bonus = if !target.missing_episodes.is_empty() {
             let total_missing = target.missing_episodes.len().max(1) as f64;
             50.0 * (covered / total_missing)
@@ -467,6 +437,7 @@ pub fn evaluate(
             ));
         }
     }
+
 
     // Pure dub without explicit user preference should not outrank sub
     let is_dub = !candidate.release.dual_audio

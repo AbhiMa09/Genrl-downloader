@@ -286,6 +286,9 @@ pub fn answer_cmd(data_dir: &Path, id: i64, choice_str: &str, always: bool) -> R
         "search_again" => genrl_core::questions::Choice::SearchAgain,
         "none_of_these" => genrl_core::questions::Choice::NoneOfThese,
         "wrong_release" | "wrong" => genrl_core::questions::Choice::WrongRelease,
+        "download_again" => genrl_core::questions::Choice::DownloadAgain,
+        "resume" => genrl_core::questions::Choice::Resume,
+        "skip_show" | "skip" => genrl_core::questions::Choice::SkipShow,
         other => {
             let clean = other.strip_prefix("range:").unwrap_or(other);
             if let Some((f_str, l_str)) = clean.split_once('-').or_else(|| clean.split_once("..")) {

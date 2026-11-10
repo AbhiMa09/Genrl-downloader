@@ -249,7 +249,7 @@ mod tests {
                     watched_count: 0,
                     total_episodes: Some(12),
                     start_year: Some(2025),
-                    auto: false,
+                    auto: true,
                     episode_offset: 0,
                     names: vec![format!("Show {i}")],
                     franchise: i * 10,

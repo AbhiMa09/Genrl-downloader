@@ -79,7 +79,7 @@ impl MalList {
                 let english_title = r.get::<_, Option<String>>(2)?;
                 let status_str = r.get::<_, String>(3)?;
                 let watched_count = r.get::<_, i64>(4)?;
-                let total_episodes = r.get::<_, Option<i64>>(5)?;
+                let total_episodes = r.get::<_, Option<i64>>(5)?.filter(|&t| t > 0);
                 let start_year = r.get::<_, Option<i64>>(6)?;
                 let auto = r.get::<_, i64>(7)? != 0;
                 let db_season = r.get::<_, Option<i64>>(8)?.unwrap_or(1);
@@ -164,5 +164,7 @@ pub(crate) fn to_season_entry(entry: &ListEntry) -> SeasonEntry {
         episode_offset: entry.episode_offset,
         show_type: ShowType::Tv,
         fully_aired: entry.airing_finished(),
+        auto: entry.auto,
     }
+
 }

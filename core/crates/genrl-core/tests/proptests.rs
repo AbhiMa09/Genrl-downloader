@@ -59,6 +59,7 @@ proptest! {
             episode_offset: 0,
             show_type: ShowType::Tv,
             fully_aired: true,
+            auto: true,
         };
 
         let chain = SeasonChain::new(vec![entry]);
@@ -91,6 +92,7 @@ proptest! {
             episode_offset: 0,
             show_type: ShowType::Tv,
             fully_aired: true,
+            auto: true,
         };
         let chain = SeasonChain::new(vec![entry]);
         let wanted = Wanted {

@@ -367,6 +367,8 @@ pub enum QuestionKind {
     ServiceNotice,
     /// Community season number mapped to entry-local episode range.
     SeasonMap,
+    /// Rated show prompt in automatic planning.
+    RatedShow,
 }
 
 impl QuestionKind {
@@ -382,6 +384,7 @@ impl QuestionKind {
             QuestionKind::EntryChanged => "entry_changed",
             QuestionKind::ServiceNotice => "service_notice",
             QuestionKind::SeasonMap => "season_map",
+            QuestionKind::RatedShow => "rated_show",
         }
     }
 
@@ -395,9 +398,11 @@ impl QuestionKind {
             "entry_changed" => QuestionKind::EntryChanged,
             "service_notice" => QuestionKind::ServiceNotice,
             "season_map" => QuestionKind::SeasonMap,
+            "rated_show" => QuestionKind::RatedShow,
             _ => QuestionKind::MatchReview,
         }
     }
+
 }
 
 /// One line of the Activity log.

@@ -969,3 +969,144 @@ fn test_oni_no_hanayome_ties_auto_pick_by_preferred_group_order() {
         }
     }
 }
+
+#[tokio::test]
+async fn conan_pack_job_diagnostic() {
+    use genrl_core::db::Db;
+    use genrl_core::filename::parse_release;
+    use genrl_core::models::ShowType;
+    use genrl_core::nyaa::FeedItem;
+    use genrl_core::rules::Rules;
+    use genrl_core::score::{evaluate, Candidate, Target};
+    use genrl_core::season_map;
+    use genrl_core::settings::Settings;
+
+    let db = Db::open_in_memory().unwrap();
+    db.with(|c| season_map::seed_bundled(c, 100)).unwrap();
+    let season_maps = db.with(|c| season_map::all_for_show(c, 235)).unwrap();
+
+    let missing: Vec<f64> = (1..=1093).map(|i| i as f64).collect();
+    let owned: Vec<f64> = vec![];
+    let names = vec![
+        "meitantei conan".to_string(),
+        "detective conan".to_string(),
+        "case closed".to_string(),
+    ];
+    let other_names: Vec<String> = vec![];
+
+    let target = Target {
+        names: &names,
+        other_names: &other_names,
+        wanted_episode: Some(1050.0),
+        show_type: ShowType::Tv,
+        season: 1,
+        start_year: Some(1996),
+        fully_aired: false,
+        total_episodes: None,
+        season_maps: &season_maps,
+        missing_episodes: &missing,
+        owned_episodes: &owned,
+    };
+
+    let rules = Rules::default();
+    let settings = Settings::default();
+    let now = 1_789_227_900;
+
+    let titles = [
+        (
+            "[PsyPlex] Detective Conan 1-1006 + Movies 1-23 Batch",
+            214 * 1024 * 1024 * 1024,
+            42,
+        ),
+        (
+            "[Anime Time] Detective Conan Remastered (001 - 123) [1080p][HEVC 10bit] [Batch]",
+            (62.4 * 1024.0 * 1024.0 * 1024.0) as u64,
+            47,
+        ),
+        (
+            "Detective Conan (1996-2018) (1-926 Batch)",
+            (235.1 * 1024.0 * 1024.0 * 1024.0) as u64,
+            12,
+        ),
+        (
+            "[Erai-raws] Detective Conan - 0754 ~ 1132 [1080p][BATCH] [ENG]",
+            (483.2 * 1024.0 * 1024.0 * 1024.0) as u64,
+            20,
+        ),
+        (
+            "[Anime Land] Detective Conan 1187 (Episode ZERO) (BDRip 1080p AV1 EAC3) [765BDC89].mkv",
+            (1.9 * 1024.0 * 1024.0 * 1024.0) as u64,
+            66,
+        ),
+        (
+            "[SubsPlease] Detective Conan - The Counterfeit Case of Ultra 30 (1080p) [6BD3ED0A].mkv",
+            (5.3 * 1024.0 * 1024.0 * 1024.0) as u64,
+            32,
+        ),
+        (
+            "[SubsPlease] Detective Conan - The Counterfeit Case of Ultra 30 (720p) [3B6CFA75].mkv",
+            (2.7 * 1024.0 * 1024.0 * 1024.0) as u64,
+            14,
+        ),
+    ];
+
+    let mut evaluated = Vec::new();
+    let mut idx = 0;
+    for (name, size, seeds) in &titles {
+        idx += 1;
+        let release = parse_release(name);
+        let item = FeedItem {
+            title: name.to_string(),
+            link: "https://nyaa.si/download/1.torrent".into(),
+            guid: "https://nyaa.si/view/1".into(),
+            published_at: now,
+            seeders: *seeds,
+            leechers: 1,
+            downloads: 10,
+            info_hash: format!("{:040x}", idx),
+            category_id: "1_2".into(),
+            category: "Anime - English-translated".into(),
+            size_bytes: *size,
+            size_text: "size".into(),
+            trusted: true,
+            remake: false,
+        };
+        let candidate = Candidate::from_item(&release, &item);
+        let res = evaluate(&candidate, &target, &rules, &settings, now);
+        evaluated.push((name.to_string(), res));
+    }
+
+    // PsyPlex covers 1-1006
+    let psy = &evaluated[0].1;
+    assert!(psy.is_ok(), "PsyPlex batch must pass evaluation");
+    assert_eq!(psy.as_ref().unwrap().signal, 100.0);
+
+    // Anime Time covers 001-123
+    let at = &evaluated[1].1;
+    assert!(at.is_ok(), "Anime Time batch must pass evaluation");
+    assert_eq!(at.as_ref().unwrap().signal, 100.0);
+
+    // 1-926 batch covers 1-926
+    let dc926 = &evaluated[2].1;
+    assert!(dc926.is_ok(), "1-926 batch must pass evaluation");
+    assert_eq!(dc926.as_ref().unwrap().signal, 100.0);
+
+    // Erai-raws covers 754-1132
+    let erai = &evaluated[3].1;
+    assert!(erai.is_ok(), "Erai-raws batch must pass evaluation");
+    assert_eq!(erai.as_ref().unwrap().signal, 100.0);
+
+    // PsyPlex coverage bonus outranks Erai and Anime Time
+    assert!(psy.as_ref().unwrap().ranking > erai.as_ref().unwrap().ranking);
+    assert!(psy.as_ref().unwrap().ranking > at.as_ref().unwrap().ranking);
+
+    // Episode ZERO has only signal 50.0 (below threshold 80)
+    let ep_zero = &evaluated[4].1;
+    assert!(ep_zero.is_ok());
+    assert_eq!(ep_zero.as_ref().unwrap().signal, 50.0);
+
+    // Both single Counterfeit Case episodes rejected for exceeding single-episode size
+    assert!(matches!(evaluated[5].1, Err(genrl_core::score::Rejection::SizeOutOfRange { .. })));
+    assert!(matches!(evaluated[6].1, Err(genrl_core::score::Rejection::SizeOutOfRange { .. })));
+
+}

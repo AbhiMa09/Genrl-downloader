@@ -170,10 +170,17 @@ impl Engine {
 
         // Free-space guard: pack candidates must fit in usable free space.
         let (ranked, none_fit) = if is_pack_grab {
-            self.select_fitting_candidates(ranked, &settings)
+            let (fitting, none_fit) = self.select_fitting_candidates(ranked, &settings);
+            let filtered = if fitting.iter().any(|r| r.candidate.release.is_batch) {
+                fitting.into_iter().filter(|r| r.candidate.release.is_batch).collect()
+            } else {
+                fitting
+            };
+            (filtered, none_fit)
         } else {
             (ranked, false)
         };
+
 
         if none_fit {
             let download_path = crate::locations::effective_download_dir(&settings);

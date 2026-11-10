@@ -78,6 +78,15 @@ pub enum Payload {
         suggested_last: u32,
         reason: String,
     },
+    /// A rated, partially-watched show encountered during automatic planning.
+    RatedShow {
+        mal_id: i64,
+        title: String,
+        score: i64,
+        watched_count: i64,
+        total_episodes: Option<i64>,
+        reason: String,
+    },
 }
 
 impl Payload {
@@ -92,6 +101,8 @@ impl Payload {
             Payload::EntryChanged { .. } => QuestionKind::EntryChanged,
             Payload::ServiceNotice { .. } => QuestionKind::ServiceNotice,
             Payload::SeasonMap { .. } => QuestionKind::SeasonMap,
+            Payload::RatedShow { .. } => QuestionKind::RatedShow,
         }
     }
 }
+

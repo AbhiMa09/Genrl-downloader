@@ -20,8 +20,45 @@ pub fn apply_answer(
     answer: &Answer,
 ) -> Result<Option<JobState>> {
     let Some(job_id) = question.job_id else {
+        if let Some(mal_id) = question.mal_id {
+            match &answer.choice {
+                Choice::DownloadAgain => {
+                    planner::plan_single(db, clock, mal_id, None)?;
+                    return Ok(None);
+                }
+                Choice::Resume => {
+                    let watched: i64 = db.with(|c| {
+                        Ok(c.query_row(
+                            "SELECT watched_count FROM mal_entries WHERE mal_id = ?1",
+                            [mal_id],
+                            |r| r.get(0),
+                        )
+                        .unwrap_or(0))
+                    })?;
+                    db.with(|c| {
+                        c.execute(
+                            "UPDATE episodes SET state = 'done'
+                             WHERE mal_id = ?1 AND number <= ?2 AND state IN ('missing', 'queued')",
+                            rusqlite::params![mal_id, watched as f64],
+                        )?;
+                        Ok(())
+                    })?;
+                    planner::plan_single(db, clock, mal_id, None)?;
+                    return Ok(None);
+                }
+                Choice::SkipShow => {
+                    db.with(|c| {
+                        c.execute("UPDATE shows SET auto = 0 WHERE mal_id = ?1", [mal_id])?;
+                        Ok(())
+                    })?;
+                    return Ok(None);
+                }
+                _ => return Ok(None),
+            }
+        }
         return Ok(None);
     };
+
     let Some(job) = jobs::get(db, job_id)? else {
         return Ok(None);
     };
@@ -193,7 +230,9 @@ pub fn apply_answer(
             Some(JobState::Search)
         }
         Choice::SupersededByBatch => None,
+        Choice::DownloadAgain | Choice::Resume | Choice::SkipShow => None,
         Choice::Expired => None,
+
     };
 
     let Some(next) = next else {
@@ -250,7 +289,11 @@ fn answer_label(choice: &Choice) -> String {
             format!("map season to episodes {first_ep}–{last_ep}")
         }
         Choice::SupersededByBatch => "superseded by batch".to_string(),
+        Choice::DownloadAgain => "download again".to_string(),
+        Choice::Resume => "resume".to_string(),
+        Choice::SkipShow => "skip show".to_string(),
         Choice::Expired => "expired".to_string(),
+
     }
 }
 

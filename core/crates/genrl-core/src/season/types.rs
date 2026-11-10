@@ -16,7 +16,10 @@ pub struct SeasonEntry {
     pub show_type: ShowType,
     /// Finished airing: a batch counts for a finished show, not an airing one.
     pub fully_aired: bool,
+    /// Automation enabled for this show (shows.auto != 0).
+    pub auto: bool,
 }
+
 
 /// The franchise ordered first season → last, built from MAL's sequel and
 /// prequel relations.

@@ -112,17 +112,24 @@ pub fn extract_season_episode(name: &str, release: &mut Release) -> Option<usize
     }
 
     // `01-12` range: a batch, and deliberately not an episode.
-    if let Some(caps) =
-        re(r"(?:^|[\s\[(])(\d{1,4})\s*[-~～]\s*(\d{1,4})(?:\s|[\])]|$)").captures(name)
+    for caps in re(r"(?:^|[\s\[(])(\d{1,4})\s*[-~～]\s*(\d{1,4})(?:\s|[\])]|$)").captures_iter(name)
     {
         let from: f64 = caps[1].parse().unwrap_or(0.0);
         let to: f64 = caps[2].parse().unwrap_or(0.0);
         if to > from {
+            // Year range like (1996-2018) should not be captured as an episode range.
+            if from >= 1900.0 && to <= 2099.0 && (to - from) <= 50.0 {
+                if release.year.is_none() {
+                    release.year = Some(from as i64);
+                }
+                continue;
+            }
             release.is_batch = true;
             release.episode_range = Some((from, to));
             return Some(caps.get(0).unwrap().start());
         }
     }
+
 
     // `EP1144-EP1155` / `EP 1144 - 1155` / `E1144-1155` range: a batch, not a single episode.
     if let Some(caps) = re(

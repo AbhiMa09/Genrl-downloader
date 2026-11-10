@@ -6,7 +6,9 @@ enum QuestionType {
   batchOnly,
   allFailed,
   seasonMap,
+  ratedShow,
 }
+
 
 class InboxChoice {
   final String key;

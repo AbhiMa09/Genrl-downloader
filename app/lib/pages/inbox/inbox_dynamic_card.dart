@@ -45,7 +45,13 @@ class InboxDynamicCard extends StatelessWidget {
       categoryTag = 'COMMUNITY SEASON MAPPING';
       tagIcon = Icons.auto_awesome_rounded;
       tagColor = ObsidianColors.primary;
+    } else if (item.type == QuestionType.ratedShow) {
+      accentColor = ObsidianColors.primary;
+      categoryTag = 'RATED SHOW DECISION';
+      tagIcon = Icons.star_rounded;
+      tagColor = ObsidianColors.primary;
     }
+
 
     return DecisionCardFrame(
       accentColor: accentColor,

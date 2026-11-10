@@ -34,6 +34,12 @@ impl SeasonChain {
                     }
                 }
                 ListStatus::PlanToWatch => {
+                    if !entry.auto {
+                        return Want::Skip {
+                            reason: format!("{} has auto downloads disabled", entry.title),
+                            fully_watched: false,
+                        };
+                    }
                     if !plan_allowed {
                         return Want::Skip {
                             reason: format!(
@@ -44,15 +50,21 @@ impl SeasonChain {
                         };
                     }
                     if let Some(total) = entry.total_episodes {
-                        if entry.watched_count >= total {
+                        if total > 0 && entry.watched_count >= total {
                             continue;
                         }
                     }
                     return Want::Some(self.wanted_from(entry, entry.watched_count + 1));
                 }
                 ListStatus::Watching => {
+                    if !entry.auto {
+                        return Want::Skip {
+                            reason: format!("{} has auto downloads disabled", entry.title),
+                            fully_watched: false,
+                        };
+                    }
                     if let Some(total) = entry.total_episodes {
-                        if entry.watched_count >= total {
+                        if total > 0 && entry.watched_count >= total {
                             // Nothing left on this entry: walk on to the next
                             // season, and say why in the log.
                             return Want::Skip {

@@ -55,9 +55,17 @@ pub enum Choice {
     /// Sibling job was superseded by a batch add.
     SupersededByBatch,
 
+    /// Rated show: download the entire show again.
+    DownloadAgain,
+    /// Rated show: resume from the next unwatched episode.
+    Resume,
+    /// Rated show: skip show in automatic planning (sets shows.auto = 0).
+    SkipShow,
+
     /// Nothing done: the question expired unanswered.
     Expired,
 }
+
 
 /// A stored answer: the choice, plus the "always do this" checkbox.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

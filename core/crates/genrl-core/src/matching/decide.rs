@@ -21,11 +21,13 @@ pub fn rank(
         if !candidate.release.is_batch
             && target.show_type == crate::models::ShowType::Tv
             && target.total_episodes.unwrap_or(0) > 1
+            && target.missing_episodes.len() < settings.pack_first_min_missing as usize
             && candidate.release.episode.is_none()
             && candidate.show_type != Some(crate::models::ShowType::Movie)
         {
             candidate.release.is_batch = true;
         }
+
         match score::evaluate(&candidate, &target, rules, settings, now) {
             Ok(scored) => ranked.push(Ranked { candidate, scored }),
             Err(rejection) => rejected.push((candidate.release.raw.clone(), rejection)),
