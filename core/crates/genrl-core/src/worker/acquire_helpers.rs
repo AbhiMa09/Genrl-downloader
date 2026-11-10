@@ -115,26 +115,15 @@ impl Engine {
         let range = release.episode_range;
 
         self.db.with(|c| {
-            match range {
-                Some((from, to)) => {
-                    c.execute(
-                        "UPDATE episodes SET state = 'downloading', torrent_id = (
-                             SELECT id FROM torrents WHERE info_hash = ?1
-                         )
-                         WHERE mal_id = ?2 AND number >= ?3 AND number <= ?4
-                           AND state IN ('missing', 'queued')",
-                        rusqlite::params![torrent.info_hash, mal_id, from, to],
-                    )?;
-                }
-                None => {
-                    c.execute(
-                        "UPDATE episodes SET state = 'downloading', torrent_id = (
-                             SELECT id FROM torrents WHERE info_hash = ?1
-                         )
-                         WHERE mal_id = ?2 AND state IN ('missing', 'queued')",
-                        rusqlite::params![torrent.info_hash, mal_id],
-                    )?;
-                }
+            if let Some((from, to)) = range {
+                c.execute(
+                    "UPDATE episodes SET state = 'downloading', torrent_id = (
+                         SELECT id FROM torrents WHERE info_hash = ?1
+                     )
+                     WHERE mal_id = ?2 AND number >= ?3 AND number <= ?4
+                       AND state IN ('missing', 'queued')",
+                    rusqlite::params![torrent.info_hash, mal_id, from, to],
+                )?;
             }
 
             c.execute(
@@ -160,16 +149,7 @@ impl Engine {
                     )?;
                     rows.filter_map(|r| r.ok()).collect()
                 }
-                None => {
-                    let mut stmt = c.prepare(
-                        "SELECT j.id FROM jobs j
-                         JOIN episodes e ON e.id = j.episode_id
-                         WHERE j.id != ?1 AND e.mal_id = ?2
-                           AND j.kind = 'search'",
-                    )?;
-                    let rows = stmt.query_map(rusqlite::params![job.id, mal_id], |r| r.get(0))?;
-                    rows.filter_map(|r| r.ok()).collect()
-                }
+                None => Vec::new(),
             };
 
             for sibling_id in sibling_jobs {

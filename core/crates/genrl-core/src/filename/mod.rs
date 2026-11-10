@@ -133,6 +133,21 @@ mod tests {
         let r = parse("[SubsPlease] Show S01 [1080p]");
         assert!(r.is_batch, "whole season without episode is a batch: {r:?}");
 
+        let r = parse("[ToonsHub] One Piece EP1144-EP1155 [1080p] [BATCH]");
+        assert!(r.is_batch, "EP1144-EP1155 is a batch: {r:?}");
+        assert_eq!(r.episode_range, Some((1144.0, 1155.0)));
+        assert_eq!(r.episode, None, "a range is not a single episode");
+
+        let r = parse("[Group] Show EP 1144 - 1155 [1080p]");
+        assert!(r.is_batch, "EP 1144 - 1155 is a batch: {r:?}");
+        assert_eq!(r.episode_range, Some((1144.0, 1155.0)));
+        assert_eq!(r.episode, None);
+
+        let r = parse("[Group] Show E1144-1155 [1080p]");
+        assert!(r.is_batch, "E1144-1155 is a batch: {r:?}");
+        assert_eq!(r.episode_range, Some((1144.0, 1155.0)));
+        assert_eq!(r.episode, None);
+
         let r = parse("[Judas] Oni no Hanayome wa Taberaretai - 01 [1080p]");
         assert!(!r.is_batch, "single episode is not a batch");
     }

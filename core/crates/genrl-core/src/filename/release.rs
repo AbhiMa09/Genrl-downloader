@@ -124,6 +124,21 @@ pub fn extract_season_episode(name: &str, release: &mut Release) -> Option<usize
         }
     }
 
+    // `EP1144-EP1155` / `EP 1144 - 1155` / `E1144-1155` range: a batch, not a single episode.
+    if let Some(caps) = re(
+        r"(?i)\b(?:EPISODE|EP|E)\s*(\d{1,4}(?:\.\d)?)\s*[-~～]\s*(?:(?:EPISODE|EP|E)\s*)?(\d{1,4}(?:\.\d)?)\b",
+    )
+    .captures(name)
+    {
+        let from: f64 = caps[1].parse().unwrap_or(0.0);
+        let to: f64 = caps[2].parse().unwrap_or(0.0);
+        if to > from {
+            release.is_batch = true;
+            release.episode_range = Some((from, to));
+            return Some(caps.get(0).unwrap().start());
+        }
+    }
+
     // ` - 28` / ` - 6.5` / ` - 05v2` — the common single-episode form.
     if let Some(caps) = re(r"(?:^|[\s])-\s*(\d{1,4}(?:\.\d)?)\s*(?:v(\d+))?").captures(name) {
         release.episode = caps[1].parse().ok();

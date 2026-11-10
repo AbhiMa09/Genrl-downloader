@@ -2375,7 +2375,7 @@ async fn whole_season_release_without_batch_keyword_is_treated_as_batch_in_add()
         .db
         .with(|c| {
             c.execute(
-                "UPDATE torrents SET name = '[neoHEVC] Show S02 [BD 1080p x265 HEVC AAC]' WHERE id = (SELECT torrent_id FROM jobs WHERE id = ?1)",
+                "UPDATE torrents SET name = '[neoHEVC] Show S02 01-12 [BD 1080p x265 HEVC AAC]' WHERE id = (SELECT torrent_id FROM jobs WHERE id = ?1)",
                 [job_id],
             )?;
             Ok(())
@@ -2486,6 +2486,78 @@ async fn no_episode_number_single_file_release_marks_exactly_one_episode() {
 }
 
 #[tokio::test]
+async fn proven_batch_add_with_unparseable_range_marks_exactly_one_episode() {
+    let world = World::new().await;
+    let job_id = plan_one(&world);
+    let engine = world.engine();
+
+    // Show 2 has episode 5 from plan_one. Add episode 3 into episodes table and a search job for it:
+    world
+        .db
+        .with(|c| {
+            c.execute(
+                "INSERT INTO episodes (mal_id, number, state) VALUES (200, 3, 'missing')",
+                [],
+            )?;
+            let ep3_id = c.last_insert_rowid();
+            c.execute(
+                "INSERT INTO jobs (episode_id, kind, state, attempts, next_run_at, created_at, updated_at)
+                 VALUES (?1, 'search', 'queued', 0, 0, 0, 0)",
+                [ep3_id],
+            )?;
+            Ok(())
+        })
+        .unwrap();
+
+    // Drive job 1 to Add
+    drive_until(&engine, job_id, JobState::Add).await;
+
+    // Update the chosen torrent name to a proven batch with NO episode range
+    world
+        .db
+        .with(|c| {
+            c.execute(
+                "UPDATE torrents SET name = '[Judas] Show 2 [1080p] [Batch]' WHERE id = (SELECT torrent_id FROM jobs WHERE id = ?1)",
+                [job_id],
+            )?;
+            Ok(())
+        })
+        .unwrap();
+
+    // Step job 1 in Add
+    let outcome = engine.step(job_id).await.unwrap();
+    assert_eq!(outcome.to, JobState::Monitor);
+
+    // Verify only job's episode (5.0) is downloading; sibling episode 3 is still missing
+    world
+        .db
+        .with(|c| {
+            let mut stmt =
+                c.prepare("SELECT number, state FROM episodes WHERE mal_id = 200 ORDER BY number")?;
+            let rows: Vec<(f64, String)> = stmt
+                .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?
+                .collect::<Result<Vec<_>, _>>()?;
+            assert_eq!(rows.len(), 2);
+            assert_eq!(rows[0].0, 3.0);
+            assert_eq!(rows[0].1, "missing", "sibling episode must remain missing");
+            assert_eq!(rows[1].0, 5.0);
+            assert_eq!(rows[1].1, "downloading", "job episode must be downloading");
+
+            // Verify sibling job for episode 3 was NOT deleted
+            let remaining_jobs: i64 =
+                c.query_row("SELECT COUNT(*) FROM jobs WHERE id != ?1", [job_id], |r| {
+                    r.get(0)
+                })?;
+            assert_eq!(
+                remaining_jobs, 1,
+                "sibling search job must be kept when batch range is unparseable"
+            );
+            Ok(())
+        })
+        .unwrap();
+}
+
+#[tokio::test]
 async fn sibling_cleanup_with_open_question_closes_question_and_logs_event() {
     let world = World::new().await;
     let job_id = plan_one(&world);
@@ -2533,12 +2605,12 @@ async fn sibling_cleanup_with_open_question_closes_question_and_logs_event() {
         1
     );
 
-    // Update job 1 chosen torrent to a proven batch
+    // Update job 1 chosen torrent to a proven batch with coverage range
     world
         .db
         .with(|c| {
             c.execute(
-                "UPDATE torrents SET name = '[Judas] Show S02 [1080p] [Batch]' WHERE id = (SELECT torrent_id FROM jobs WHERE id = ?1)",
+                "UPDATE torrents SET name = '[Judas] Show S02 01-12 [1080p] [Batch]' WHERE id = (SELECT torrent_id FROM jobs WHERE id = ?1)",
                 [job_id],
             )?;
             Ok(())

@@ -38,19 +38,38 @@ pub fn upsert_show(db: &Db, entry: &ListEntry) -> Result<()> {
 }
 
 /// A show's names: the entry's own names, main title first.
+/// Non-destructive: if entry.names is empty, existing aliases are left untouched.
 pub fn upsert_names(db: &Db, entry: &ListEntry) -> Result<()> {
-    let mut names: Vec<(String, NameSource, u8)> = Vec::new();
     if entry.names.is_empty() {
-        names.push((entry.title.clone(), NameSource::Mal, PRIORITY_MAIN));
-    } else {
-        for (index, name) in entry.names.iter().enumerate() {
-            let priority = if index == 0 {
-                PRIORITY_MAIN
-            } else {
-                index.min(u8::MAX as usize) as u8
-            };
-            names.push((name.clone(), NameSource::Mal, priority));
-        }
+        return db.with(|c| {
+            let count: i64 = c.query_row(
+                "SELECT COUNT(*) FROM show_names WHERE mal_id = ?1",
+                [entry.mal_id],
+                |r| r.get(0),
+            )?;
+            if count == 0 && !entry.title.is_empty() {
+                let normalized = crate::names::normalize_alias(&entry.title);
+                if !normalized.is_empty() {
+                    c.execute(
+                        "INSERT INTO show_names (mal_id, name, normalized, source, priority)
+                         VALUES (?1, ?2, ?3, 'mal', ?4)
+                         ON CONFLICT (mal_id, normalized) DO NOTHING",
+                        rusqlite::params![entry.mal_id, entry.title, normalized, PRIORITY_MAIN],
+                    )?;
+                }
+            }
+            Ok(())
+        });
+    }
+
+    let mut names: Vec<(String, NameSource, u8)> = Vec::new();
+    for (index, name) in entry.names.iter().enumerate() {
+        let priority = if index == 0 {
+            PRIORITY_MAIN
+        } else {
+            index.min(u8::MAX as usize) as u8
+        };
+        names.push((name.clone(), NameSource::Mal, priority));
     }
     NameSet::replace_from_sync(db, entry.mal_id, &names)
 }
@@ -118,4 +137,85 @@ pub fn airing_status_of(db: &Db, mal_id: i64) -> Result<AiringStatus> {
         .map(|s| AiringStatus::parse(&s))
         .unwrap_or_default())
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::db::Db;
+    use crate::models::ListStatus;
+    use crate::planner::ListEntry;
+
+    fn test_db() -> Db {
+        let db = Db::open_in_memory().unwrap();
+        db.with(|c| {
+            c.execute(
+                "INSERT INTO shows (mal_id, title, type, status) VALUES (100, 'Test Show', 'tv', 'airing')",
+                [],
+            )?;
+            Ok(())
+        })
+        .unwrap();
+        db
+    }
+
+    #[test]
+    fn upsert_names_with_empty_list_does_not_shrink_existing_aliases() {
+        let db = test_db();
+        let mut entry = ListEntry {
+            mal_id: 100,
+            title: "Test Show".to_string(),
+            english_title: Some("Test Show English".to_string()),
+            list_status: ListStatus::Watching,
+            watched_count: 0,
+            total_episodes: Some(12),
+            start_year: Some(2025),
+            auto: true,
+            episode_offset: 0,
+            names: vec![
+                "Test Show".to_string(),
+                "Test Show English".to_string(),
+                "Test Show Synonym".to_string(),
+            ],
+            franchise: 100,
+            season: 1,
+        };
+        upsert_names(&db, &entry).unwrap();
+        let set = crate::names::NameSet::load(&db, 100).unwrap();
+        assert_eq!(set.entries.len(), 3);
+
+        // Sync with empty names must not shrink existing aliases
+        entry.names.clear();
+        upsert_names(&db, &entry).unwrap();
+        let set = crate::names::NameSet::load(&db, 100).unwrap();
+        assert_eq!(set.entries.len(), 3);
+
+        // Brand-new show with empty names seeds title
+        db.with(|c| {
+            c.execute(
+                "INSERT INTO shows (mal_id, title, type, status) VALUES (101, 'Brand New', 'tv', 'airing')",
+                [],
+            )?;
+            Ok(())
+        })
+        .unwrap();
+        let new_entry = ListEntry {
+            mal_id: 101,
+            title: "Brand New".to_string(),
+            english_title: None,
+            list_status: ListStatus::Watching,
+            watched_count: 0,
+            total_episodes: Some(12),
+            start_year: Some(2025),
+            auto: true,
+            episode_offset: 0,
+            names: vec![],
+            franchise: 101,
+            season: 1,
+        };
+        upsert_names(&db, &new_entry).unwrap();
+        let set2 = crate::names::NameSet::load(&db, 101).unwrap();
+        assert_eq!(set2.entries.len(), 1);
+        assert!(set2.contains("brand new"));
+    }
 }

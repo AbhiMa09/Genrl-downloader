@@ -133,22 +133,22 @@ impl NameSet {
         })
     }
 
-    /// Replace every name of a show with this ordered list.
+    /// Upsert every name of a show with this ordered list non-destructively.
     ///
     /// Used by the MAL sync: names come back from the API in a known order
-    /// (main, English, Japanese, synonyms), so the whole set is rewritten with
-    /// the right priorities. User aliases are preserved — MAL does not own them.
+    /// (main, English, Japanese, synonyms), so incoming names are updated with
+    /// the right priorities. User aliases and existing MAL/Jikan aliases that
+    /// the new payload does not carry are preserved.
     pub fn replace_from_sync(
         db: &Db,
         mal_id: i64,
         names: &[(String, NameSource, u8)],
     ) -> Result<()> {
+        if names.is_empty() {
+            return Ok(());
+        }
         db.with(|c| {
             let tx = c.unchecked_transaction()?;
-            tx.execute(
-                "DELETE FROM show_names WHERE mal_id = ?1 AND source != 'user'",
-                [mal_id],
-            )?;
             for (name, source, priority) in names {
                 let normalized = normalize_alias(name);
                 if normalized.is_empty() {
@@ -157,7 +157,11 @@ impl NameSet {
                 tx.execute(
                     "INSERT INTO show_names (mal_id, name, normalized, source, priority)
                      VALUES (?1, ?2, ?3, ?4, ?5)
-                     ON CONFLICT (mal_id, normalized) DO NOTHING",
+                     ON CONFLICT (mal_id, normalized) DO UPDATE SET
+                         name = excluded.name,
+                         priority = excluded.priority,
+                         source = excluded.source
+                     WHERE show_names.source != 'user'",
                     rusqlite::params![mal_id, name, normalized, source.as_str(), priority],
                 )?;
             }
@@ -355,5 +359,33 @@ mod tests {
         assert!(!NameSet::remove(&db, 30, "never there").unwrap());
         let set = NameSet::load(&db, 30).unwrap();
         assert_eq!(set.search_order(), vec!["re creators"]);
+    }
+
+    #[test]
+    fn sync_with_empty_names_does_not_shrink_show_with_aliases() {
+        let db = db_with_show(42);
+        let names = vec![
+            ("Meitantei Conan".to_string(), NameSource::Mal, PRIORITY_MAIN),
+            ("Case Closed".to_string(), NameSource::Mal, 1),
+            ("Detective Conan".to_string(), NameSource::Mal, 2),
+        ];
+        NameSet::replace_from_sync(&db, 42, &names).unwrap();
+        assert_eq!(NameSet::load(&db, 42).unwrap().entries.len(), 3);
+
+        // Empty sync does not shrink
+        NameSet::replace_from_sync(&db, 42, &[]).unwrap();
+        assert_eq!(NameSet::load(&db, 42).unwrap().entries.len(), 3);
+
+        // Partial sync updates priorities of provided names without deleting missing aliases
+        let partial = vec![
+            ("Meitantei Conan".to_string(), NameSource::Mal, 0),
+            ("Detective Conan".to_string(), NameSource::Mal, 1),
+        ];
+        NameSet::replace_from_sync(&db, 42, &partial).unwrap();
+        let loaded = NameSet::load(&db, 42).unwrap();
+        assert_eq!(loaded.entries.len(), 3);
+        assert!(loaded.contains("case closed"));
+        assert!(loaded.contains("detective conan"));
+        assert!(loaded.contains("meitantei conan"));
     }
 }
