@@ -282,6 +282,35 @@ impl Finalizer for LibraryFinalizer {
                 )?)
             })?;
 
+            let source_fname = source_path
+                .file_name()
+                .and_then(|f| f.to_str())
+                .unwrap_or("");
+            let parsed = crate::filename::parse_release(source_fname);
+            let maps_to_target = match (parsed.episode, parsed.episode_range) {
+                (Some(ep), _) => ep == ep_number,
+                (None, Some((from, to))) => from <= ep_number && ep_number <= to,
+                (None, None) => true,
+            };
+            if !maps_to_target {
+                let _ = self.db.with(|c| {
+                    c.execute(
+                        "UPDATE episodes SET state = 'missing', file_path = NULL, size = NULL, torrent_id = NULL WHERE id = ?1",
+                        [context.episode_id],
+                    )?;
+                    Ok(())
+                });
+                let _ = EventLog::new(self.db.clone()).info(
+                    Some(context.job.id),
+                    Some(context.mal_id),
+                    "target episode not covered by the release; staying missing".to_string(),
+                );
+                return Ok(FinalizeOutcome::Done(FinalizeSuccess {
+                    destination_path: source_path.display().to_string(),
+                    target_episode_covered: false,
+                }));
+            }
+
             let filename = if show_type == ShowType::Movie {
                 format_episode_filename(
                     &settings.movie_naming_pattern,
@@ -322,6 +351,7 @@ impl Finalizer for LibraryFinalizer {
                 if crate::platform::are_same_file(source_path, &target_path) {
                     return Ok(FinalizeOutcome::Done(FinalizeSuccess {
                         destination_path: target_path.display().to_string(),
+                        target_episode_covered: true,
                     }));
                 }
 
@@ -352,6 +382,7 @@ impl Finalizer for LibraryFinalizer {
                                 // Keep existing file on disk as the episode file
                                 return Ok(FinalizeOutcome::Done(FinalizeSuccess {
                                     destination_path: target_path.display().to_string(),
+                                    target_episode_covered: true,
                                 }));
                             }
                             Choice::Replace => {
@@ -368,6 +399,7 @@ impl Finalizer for LibraryFinalizer {
                                 );
                                 return Ok(FinalizeOutcome::Done(FinalizeSuccess {
                                     destination_path: target_path.display().to_string(),
+                                    target_episode_covered: true,
                                 }));
                             }
                             Choice::KeepBoth => {
@@ -389,6 +421,7 @@ impl Finalizer for LibraryFinalizer {
                                 );
                                 return Ok(FinalizeOutcome::Done(FinalizeSuccess {
                                     destination_path: alt_path.display().to_string(),
+                                    target_episode_covered: true,
                                 }));
                             }
                             _ => {}
@@ -433,6 +466,7 @@ impl Finalizer for LibraryFinalizer {
 
             Ok(FinalizeOutcome::Done(FinalizeSuccess {
                 destination_path: target_path.display().to_string(),
+                target_episode_covered: true,
             }))
         })
     }

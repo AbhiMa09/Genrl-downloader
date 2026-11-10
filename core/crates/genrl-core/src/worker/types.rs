@@ -69,6 +69,7 @@ impl DiskProbe for FakeDiskProbe {
 #[derive(Debug, Clone, PartialEq)]
 pub struct FinalizeSuccess {
     pub destination_path: String,
+    pub target_episode_covered: bool,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -107,6 +108,7 @@ impl Finalizer for NoopFinalizer {
         Box::pin(async move {
             Ok(FinalizeOutcome::Done(FinalizeSuccess {
                 destination_path: dest,
+                target_episode_covered: true,
             }))
         })
     }

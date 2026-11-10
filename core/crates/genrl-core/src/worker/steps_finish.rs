@@ -245,8 +245,10 @@ impl Engine {
                 size_bytes,
             })
             .await;
-        let dest_path = match outcome {
-            Ok(FinalizeOutcome::Done(success)) => success.destination_path,
+        let (dest_path, target_covered) = match outcome {
+            Ok(FinalizeOutcome::Done(success)) => {
+                (success.destination_path, success.target_episode_covered)
+            }
             Ok(FinalizeOutcome::NeedsInput { .. }) => {
                 return jobs::transition(
                     &self.db,
@@ -263,28 +265,38 @@ impl Engine {
             Err(err) => return self.fail_or_reschedule(job, &format!("finalize failed: {err}")),
         };
 
-        let episode_file_size = match std::fs::metadata(&dest_path) {
-            Ok(meta) if meta.is_file() => meta.len() as i64,
-            _ => {
-                let recorded: Option<Option<i64>> = self.db.with(|c| {
-                    use rusqlite::OptionalExtension;
-                    let s = c
-                        .query_row(
-                            "SELECT size FROM episodes WHERE id = ?1",
-                            [job.episode_id],
-                            |r| r.get::<_, Option<i64>>(0),
-                        )
-                        .optional()?;
-                    Ok(s)
-                })?;
-                match recorded.flatten() {
-                    Some(s) if s > 0 && s != size_bytes => s,
-                    _ => size_bytes,
+        if target_covered {
+            let episode_file_size = match std::fs::metadata(&dest_path) {
+                Ok(meta) if meta.is_file() => meta.len() as i64,
+                _ => {
+                    let recorded: Option<Option<i64>> = self.db.with(|c| {
+                        use rusqlite::OptionalExtension;
+                        let s = c
+                            .query_row(
+                                "SELECT size FROM episodes WHERE id = ?1",
+                                [job.episode_id],
+                                |r| r.get::<_, Option<i64>>(0),
+                            )
+                            .optional()?;
+                        Ok(s)
+                    })?;
+                    match recorded.flatten() {
+                        Some(s) if s > 0 && s != size_bytes => s,
+                        _ => size_bytes,
+                    }
                 }
-            }
-        };
+            };
 
-        planner::mark_done(&self.db, job.episode_id, &dest_path, episode_file_size)?;
+            planner::mark_done(&self.db, job.episode_id, &dest_path, episode_file_size)?;
+        } else {
+            self.db.with(|c| {
+                c.execute(
+                    "UPDATE episodes SET state = 'missing', file_path = NULL, size = NULL, torrent_id = NULL WHERE id = ?1",
+                    [job.episode_id],
+                )?;
+                Ok(())
+            })?;
+        }
 
         if settings.remove_when_finished {
             let client = qbit::Qbit::from_settings(&settings)?;
@@ -297,12 +309,18 @@ impl Engine {
             format!("verified {} and filed it to {}", content_path, dest_path),
         )?;
 
+        let transition_msg = if target_covered {
+            "episode owned"
+        } else {
+            "batch finalized; target episode not covered"
+        };
+
         jobs::transition(
             &self.db,
             self.clock.as_ref(),
             job.id,
             JobState::Done,
-            "episode owned",
+            transition_msg,
             &MoveOptions::default(),
         )
     }

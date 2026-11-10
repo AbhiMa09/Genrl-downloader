@@ -347,7 +347,7 @@ impl LibraryFinalizer {
         let mut target_dest_for_job = None;
         let mut primary_dest = String::new();
 
-        for file_path in video_files {
+        for file_path in &video_files {
             let fname = file_path.file_name().and_then(|f| f.to_str()).unwrap_or("");
             let parsed = crate::filename::parse_release(fname);
             let ext = file_path
@@ -356,13 +356,46 @@ impl LibraryFinalizer {
                 .unwrap_or("mkv")
                 .to_ascii_lowercase();
 
-            let ep_num = parsed.episode.unwrap_or(1.0);
+            let covered_eps: Vec<f64> = match (parsed.episode, parsed.episode_range) {
+                (Some(ep), None) => vec![ep],
+                (None, Some((from, to))) => {
+                    let start = from.floor() as i64;
+                    let end = to.floor() as i64;
+                    if start <= end && end - start < 1000 {
+                        (start..=end).map(|n| n as f64).collect()
+                    } else {
+                        vec![from]
+                    }
+                }
+                (Some(ep), Some((from, to))) => {
+                    let start = from.floor() as i64;
+                    let end = to.floor() as i64;
+                    if start <= end && end - start < 1000 {
+                        (start..=end).map(|n| n as f64).collect()
+                    } else {
+                        vec![ep]
+                    }
+                }
+                (None, None) => {
+                    if show_type == ShowType::Movie && video_files.len() == 1 {
+                        vec![1.0]
+                    } else {
+                        Vec::new()
+                    }
+                }
+            };
+
+            if covered_eps.is_empty() {
+                continue;
+            }
+
+            let primary_ep = covered_eps[0];
             let target_filename = if show_type == ShowType::Movie {
                 format_episode_filename(
                     &settings.movie_naming_pattern,
                     &title,
                     season,
-                    ep_num,
+                    primary_ep,
                     start_year,
                     &ext,
                 )
@@ -371,7 +404,7 @@ impl LibraryFinalizer {
                     &settings.naming_pattern,
                     &title,
                     season,
-                    ep_num,
+                    primary_ep,
                     start_year,
                     &ext,
                 )
@@ -395,26 +428,45 @@ impl LibraryFinalizer {
             }
 
             let final_dest = target_path.display().to_string();
-            if job_ep_number == Some(ep_num) {
-                target_dest_for_job = Some(final_dest.clone());
-            }
             if primary_dest.is_empty() {
                 primary_dest = final_dest.clone();
             }
 
-            // Update database episode row
+            for ep_num in covered_eps {
+                if job_ep_number == Some(ep_num) {
+                    target_dest_for_job = Some(final_dest.clone());
+                }
+
+                // Update database episode row
+                let _ = self.db.with(|c| {
+                    c.execute(
+                        "INSERT INTO episodes (mal_id, number, state, file_path, size)
+                         VALUES (?1, ?2, 'done', ?3, ?4)
+                         ON CONFLICT (mal_id, number) DO UPDATE SET
+                             state = 'done',
+                             file_path = excluded.file_path,
+                             size = excluded.size",
+                        rusqlite::params![context.mal_id, ep_num, final_dest, file_size],
+                    )?;
+                    Ok(())
+                });
+            }
+        }
+
+        let target_covered = target_dest_for_job.is_some();
+        if !target_covered {
             let _ = self.db.with(|c| {
                 c.execute(
-                    "INSERT INTO episodes (mal_id, number, state, file_path, size)
-                     VALUES (?1, ?2, 'done', ?3, ?4)
-                     ON CONFLICT (mal_id, number) DO UPDATE SET
-                         state = 'done',
-                         file_path = excluded.file_path,
-                         size = excluded.size",
-                    rusqlite::params![context.mal_id, ep_num, final_dest, file_size],
+                    "UPDATE episodes SET state = 'missing', file_path = NULL, size = NULL, torrent_id = NULL WHERE id = ?1",
+                    [context.episode_id],
                 )?;
                 Ok(())
             });
+            let _ = crate::events::EventLog::new(self.db.clone()).info(
+                Some(context.job.id),
+                Some(context.mal_id),
+                "target episode not covered by the release; staying missing".to_string(),
+            );
         }
 
         if primary_dest.is_empty() {
@@ -424,6 +476,7 @@ impl LibraryFinalizer {
         let dest = target_dest_for_job.unwrap_or(primary_dest);
         Ok(FinalizeOutcome::Done(FinalizeSuccess {
             destination_path: dest,
+            target_episode_covered: target_covered,
         }))
     }
 }

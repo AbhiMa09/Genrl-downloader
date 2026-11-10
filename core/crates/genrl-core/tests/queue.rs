@@ -2795,3 +2795,136 @@ async fn terminal_job_transitions_and_sweep_close_stale_open_questions() {
         "reconcile must expire stale questions for terminal jobs"
     );
 }
+
+#[tokio::test]
+async fn batch_add_and_finalize_excluding_job_episode_leaves_it_missing_and_marks_covered_done() {
+    let world = World::new().await;
+    let job_id = plan_one(&world);
+
+    // Show 2 (mal_id 200) has episode 5 from plan_one.
+    // Insert episodes 10 and 11 into episodes table:
+    world
+        .db
+        .with(|c| {
+            c.execute(
+                "INSERT INTO episodes (mal_id, number, state) VALUES (200, 10, 'missing')",
+                [],
+            )?;
+            c.execute(
+                "INSERT INTO episodes (mal_id, number, state) VALUES (200, 11, 'missing')",
+                [],
+            )?;
+            Ok(())
+        })
+        .unwrap();
+
+    let gate = std::sync::Arc::new(
+        Gate::with_policies(
+            world.db.clone(),
+            &[fast(Service::Nyaa), fast(Service::Qbit)],
+        )
+        .unwrap(),
+    );
+    let finalizer = std::sync::Arc::new(genrl_core::library::LibraryFinalizer::new(
+        world.db.clone(),
+        gate.clone(),
+        std::sync::Arc::new(world.clock.clone()),
+        world.dir.path().join("data"),
+    ));
+    let engine = Engine::new(
+        world.db.clone(),
+        gate,
+        std::sync::Arc::new(world.clock.clone()),
+        finalizer,
+        world.disk.clone(),
+        world.dir.path().to_path_buf(),
+    );
+
+    // Drive job to Add
+    drive_until(&engine, job_id, JobState::Add).await;
+
+    let torrent_name = "[ToonsHub] Show 2 EP10-EP11 [1080p] [BATCH]";
+
+    // Update the chosen torrent name to a batch covering 10-11, excluding ep 5
+    world
+        .db
+        .with(|c| {
+            c.execute(
+                "UPDATE torrents SET name = ?1 WHERE id = (SELECT torrent_id FROM jobs WHERE id = ?2)",
+                rusqlite::params![torrent_name, job_id],
+            )?;
+            Ok(())
+        })
+        .unwrap();
+
+    // Step Add -> Monitor
+    let outcome = engine.step(job_id).await.unwrap();
+    assert_eq!(outcome.to, JobState::Monitor);
+
+    let settings = Settings::load(&world.db).unwrap();
+    let batch_dir = std::path::PathBuf::from(&settings.download_folder).join(torrent_name);
+    std::fs::create_dir_all(&batch_dir).unwrap();
+    let ep10_file = batch_dir.join("[ToonsHub] Show S02E10 [1080p].mkv");
+    let ep11_file = batch_dir.join("[ToonsHub] Show S02E11 [1080p].mkv");
+    std::fs::write(&ep10_file, b"video 10 content").unwrap();
+    std::fs::write(&ep11_file, b"video 11 content").unwrap();
+
+    // Point fake qBittorrent to the batch directory
+    {
+        let mut q = world.qbit();
+        q.content_path = batch_dir.display().to_string();
+        q.size = 32;
+    }
+
+    // Drive job to Finalize
+    drive_until(&engine, job_id, JobState::Finalize).await;
+
+    // Step Finalize -> Done
+    let outcome = engine.step(job_id).await.unwrap();
+    assert_eq!(outcome.to, JobState::Done);
+
+    // Verify:
+    // 1. Job's target episode (ep 5) was left missing with no file_path
+    world
+        .db
+        .with(|c| {
+            let (state, file_path, size): (String, Option<String>, Option<i64>) = c.query_row(
+                "SELECT state, file_path, size FROM episodes WHERE mal_id = 200 AND number = 5.0",
+                [],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+            )?;
+            assert_eq!(state, "missing", "target episode must be left missing");
+            assert!(file_path.is_none(), "target episode must have no file_path");
+            assert!(size.is_none(), "target episode must have no size");
+
+            // 2. Covered episodes (10 and 11) are marked done with their own files
+            let (s10, f10, sz10): (String, Option<String>, Option<i64>) = c.query_row(
+                "SELECT state, file_path, size FROM episodes WHERE mal_id = 200 AND number = 10.0",
+                [],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+            )?;
+            assert_eq!(s10, "done", "covered episode 10 must be done");
+            assert!(f10.as_deref().unwrap_or("").contains("E10"), "must have its own file");
+            assert_eq!(sz10, Some(16));
+
+            let (s11, f11, sz11): (String, Option<String>, Option<i64>) = c.query_row(
+                "SELECT state, file_path, size FROM episodes WHERE mal_id = 200 AND number = 11.0",
+                [],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+            )?;
+            assert_eq!(s11, "done", "covered episode 11 must be done");
+            assert!(f11.as_deref().unwrap_or("").contains("E11"), "must have its own file");
+            assert_eq!(sz11, Some(16));
+
+            // 3. Event was logged that target episode was not covered and stays missing
+            let event_count: i64 = c.query_row(
+                "SELECT COUNT(*) FROM events WHERE message LIKE '%target episode not covered by the release; staying missing%'",
+                [],
+                |r| r.get(0),
+            )?;
+            assert!(event_count >= 1, "staying missing event must be logged");
+
+            Ok(())
+        })
+        .unwrap();
+}
