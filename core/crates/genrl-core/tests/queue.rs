@@ -2375,7 +2375,7 @@ async fn whole_season_release_without_batch_keyword_is_treated_as_batch_in_add()
         .db
         .with(|c| {
             c.execute(
-                "UPDATE torrents SET name = '[neoHEVC] Show 2 [BD 1080p x265 HEVC AAC]' WHERE id = (SELECT torrent_id FROM jobs WHERE id = ?1)",
+                "UPDATE torrents SET name = '[neoHEVC] Show S02 [BD 1080p x265 HEVC AAC]' WHERE id = (SELECT torrent_id FROM jobs WHERE id = ?1)",
                 [job_id],
             )?;
             Ok(())
@@ -2411,6 +2411,181 @@ async fn whole_season_release_without_batch_keyword_is_treated_as_batch_in_add()
             Ok(())
         })
         .unwrap();
+}
+
+#[tokio::test]
+async fn no_episode_number_single_file_release_marks_exactly_one_episode() {
+    let world = World::new().await;
+    let job_id = plan_one(&world);
+    let engine = world.engine();
+
+    // Show 2 has episode 2 from plan_one. Add episode 3 into episodes table and a search job for it:
+    world
+        .db
+        .with(|c| {
+            c.execute(
+                "INSERT INTO episodes (mal_id, number, state) VALUES (200, 3, 'missing')",
+                [],
+            )?;
+            let ep3_id = c.last_insert_rowid();
+            c.execute(
+                "INSERT INTO jobs (episode_id, kind, state, attempts, next_run_at, created_at, updated_at)
+                 VALUES (?1, 'search', 'queued', 0, 0, 0, 0)",
+                [ep3_id],
+            )?;
+            Ok(())
+        })
+        .unwrap();
+
+    // Drive job 1 to Add
+    drive_until(&engine, job_id, JobState::Add).await;
+
+    // Update the chosen torrent name to a single-file release with no episode number and no batch/range
+    world
+        .db
+        .with(|c| {
+            c.execute(
+                "UPDATE torrents SET name = '[Serenae] Show 2 - Special Extra (720p).mkv' WHERE id = (SELECT torrent_id FROM jobs WHERE id = ?1)",
+                [job_id],
+            )?;
+            Ok(())
+        })
+        .unwrap();
+
+    // Step job 1 in Add
+    let outcome = engine.step(job_id).await.unwrap();
+    assert_eq!(outcome.to, JobState::Monitor);
+
+    // Verify only job's episode (5.0) is downloading; episode 3 is still missing
+    world
+        .db
+        .with(|c| {
+            let mut stmt =
+                c.prepare("SELECT number, state FROM episodes WHERE mal_id = 200 ORDER BY number")?;
+            let rows: Vec<(f64, String)> = stmt
+                .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?
+                .collect::<Result<Vec<_>, _>>()?;
+            assert_eq!(rows.len(), 2);
+            assert_eq!(rows[0].0, 3.0);
+            assert_eq!(rows[0].1, "missing", "sibling episode must remain missing");
+            assert_eq!(rows[1].0, 5.0);
+            assert_eq!(rows[1].1, "downloading", "job episode must be downloading");
+
+            // Verify sibling job for episode 3 was NOT deleted
+            let remaining_jobs: i64 =
+                c.query_row("SELECT COUNT(*) FROM jobs WHERE id != ?1", [job_id], |r| {
+                    r.get(0)
+                })?;
+            assert_eq!(
+                remaining_jobs, 1,
+                "sibling search job must be kept when single-file release is added"
+            );
+            Ok(())
+        })
+        .unwrap();
+}
+
+#[tokio::test]
+async fn sibling_cleanup_with_open_question_closes_question_and_logs_event() {
+    let world = World::new().await;
+    let job_id = plan_one(&world);
+    let engine = world.engine();
+
+    // Show 2 has 2 episodes. Add episode 2 into episodes table and a job for it:
+    let job2_id: i64 = world
+        .db
+        .with(|c| {
+            c.execute(
+                "INSERT INTO episodes (mal_id, number, state) VALUES (200, 2, 'missing')",
+                [],
+            )?;
+            let ep2_id = c.last_insert_rowid();
+            c.execute(
+                "INSERT INTO jobs (episode_id, kind, state, attempts, next_run_at, created_at, updated_at)
+                 VALUES (?1, 'search', 'needs_input', 0, 0, 0, 0)",
+                [ep2_id],
+            )?;
+            Ok(c.last_insert_rowid())
+        })
+        .unwrap();
+
+    // Drive job 1 to Add
+    drive_until(&engine, job_id, JobState::Add).await;
+
+    // Ask an open question on job 2
+    let payload = Payload::FileExists {
+        episode: 2.0,
+        existing: "show_s02e02.mkv".into(),
+        candidate: "show_s02e02_new.mkv".into(),
+    };
+    let qid = QuestionStore::ask(
+        &world.db,
+        Some(job2_id),
+        Some(200),
+        &payload,
+        world.clock.now(),
+        None,
+    )
+    .unwrap();
+
+    assert_eq!(
+        QuestionStore::open_count(&world.db, world.clock.now()).unwrap(),
+        1
+    );
+
+    // Update job 1 chosen torrent to a proven batch
+    world
+        .db
+        .with(|c| {
+            c.execute(
+                "UPDATE torrents SET name = '[Judas] Show S02 [1080p] [Batch]' WHERE id = (SELECT torrent_id FROM jobs WHERE id = ?1)",
+                [job_id],
+            )?;
+            Ok(())
+        })
+        .unwrap();
+
+    // Step job 1 in Add
+    let outcome = engine.step(job_id).await.unwrap();
+    assert_eq!(outcome.to, JobState::Monitor);
+
+    // Verify:
+    // 1. Sibling job 2 is deleted
+    world
+        .db
+        .with(|c| {
+            let job2_count: i64 =
+                c.query_row("SELECT COUNT(*) FROM jobs WHERE id = ?1", [job2_id], |r| r.get(0))?;
+            assert_eq!(job2_count, 0, "sibling job 2 must be deleted");
+
+            // 2. Question still exists in DB, answer is recorded as superseded_by_batch
+            let (answer, job_id_col): (Option<String>, Option<i64>) = c.query_row(
+                "SELECT answer, job_id FROM questions WHERE id = ?1",
+                [qid],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )?;
+            assert!(job_id_col.is_none(), "job_id must be unlinked to prevent cascade delete");
+            let ans_str = answer.expect("question must have recorded answer");
+            assert!(
+                ans_str.contains("superseded_by_batch"),
+                "answer must contain superseded_by_batch: {ans_str}"
+            );
+
+            // 3. Event was logged
+            let event_count: i64 = c.query_row(
+                "SELECT COUNT(*) FROM events WHERE message LIKE ?1",
+                [format!("%question #{qid} closed: sibling job superseded by batch add%")],
+                |r| r.get(0),
+            )?;
+            assert_eq!(event_count, 1, "closed question event must be logged");
+
+            Ok(())
+        })
+        .unwrap();
+
+    // 4. Question is closed (not open anymore)
+    let open_q_count = QuestionStore::open_count(&world.db, world.clock.now()).unwrap();
+    assert_eq!(open_q_count, 0, "open question count must now be 0");
 }
 
 #[tokio::test]

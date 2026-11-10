@@ -52,6 +52,9 @@ pub enum Choice {
     /// Season mapping: map community season to entry-local episode range.
     SeasonRange { first_ep: u32, last_ep: u32 },
 
+    /// Sibling job was superseded by a batch add.
+    SupersededByBatch,
+
     /// Nothing done: the question expired unanswered.
     Expired,
 }

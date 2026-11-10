@@ -65,42 +65,145 @@ impl Engine {
         (ranked, false)
     }
 
-    pub(crate) fn is_batch_release_or_torrent(&self, name: &str, mal_id: i64) -> bool {
-        if name.to_ascii_lowercase().contains("batch")
-            || crate::filename::parse_release(name).is_batch
+    pub(crate) fn is_proven_batch_release(&self, name: &str) -> bool {
+        let raw_lower = name.to_ascii_lowercase();
+        if raw_lower.contains("batch")
+            || raw_lower.contains("complete")
+            || raw_lower.contains("compilation")
+            || raw_lower.contains("all episodes")
+            || raw_lower.contains("entire season")
         {
             return true;
         }
         let release = crate::filename::parse_release(name);
-        if release.episode.is_some() {
-            return false;
+        if release.is_batch {
+            return true;
         }
-        self.db
-            .with(|c| {
-                use rusqlite::OptionalExtension;
-                let total: Option<i64> = c
-                    .query_row(
-                        "SELECT total_episodes FROM shows WHERE mal_id = ?1",
-                        [mal_id],
+        if release.episode_range.is_some() || release.season_range.is_some() {
+            return true;
+        }
+        if release.season.is_some() && release.episode.is_none() {
+            return true;
+        }
+        false
+    }
+
+    pub(crate) fn handle_single_add(
+        &self,
+        job: &Job,
+        torrent: &super::types::ChosenTorrent,
+    ) -> Result<()> {
+        self.db.with(|c| {
+            c.execute(
+                "UPDATE episodes SET state = 'downloading', torrent_id = (
+                     SELECT id FROM torrents WHERE info_hash = ?1
+                 )
+                 WHERE id = ?2",
+                rusqlite::params![torrent.info_hash, job.episode_id],
+            )?;
+            Ok(())
+        })
+    }
+
+    pub(crate) fn handle_batch_add(
+        &self,
+        job: &Job,
+        mal_id: i64,
+        torrent: &super::types::ChosenTorrent,
+    ) -> Result<()> {
+        let release = crate::filename::parse_release(&torrent.name);
+        let range = release.episode_range;
+
+        self.db.with(|c| {
+            match range {
+                Some((from, to)) => {
+                    c.execute(
+                        "UPDATE episodes SET state = 'downloading', torrent_id = (
+                             SELECT id FROM torrents WHERE info_hash = ?1
+                         )
+                         WHERE mal_id = ?2 AND number >= ?3 AND number <= ?4
+                           AND state IN ('missing', 'queued')",
+                        rusqlite::params![torrent.info_hash, mal_id, from, to],
+                    )?;
+                }
+                None => {
+                    c.execute(
+                        "UPDATE episodes SET state = 'downloading', torrent_id = (
+                             SELECT id FROM torrents WHERE info_hash = ?1
+                         )
+                         WHERE mal_id = ?2 AND state IN ('missing', 'queued')",
+                        rusqlite::params![torrent.info_hash, mal_id],
+                    )?;
+                }
+            }
+
+            c.execute(
+                "UPDATE episodes SET state = 'downloading', torrent_id = (
+                     SELECT id FROM torrents WHERE info_hash = ?1
+                 )
+                 WHERE id = ?2",
+                rusqlite::params![torrent.info_hash, job.episode_id],
+            )?;
+
+            let sibling_jobs: Vec<i64> = match range {
+                Some((from, to)) => {
+                    let mut stmt = c.prepare(
+                        "SELECT j.id FROM jobs j
+                         JOIN episodes e ON e.id = j.episode_id
+                         WHERE j.id != ?1 AND e.mal_id = ?2
+                           AND e.number >= ?3 AND e.number <= ?4
+                           AND j.kind = 'search'",
+                    )?;
+                    let rows = stmt.query_map(
+                        rusqlite::params![job.id, mal_id, from, to],
                         |r| r.get(0),
-                    )
-                    .optional()?
-                    .flatten();
-                let count: i64 = c.query_row(
-                    "SELECT COUNT(*) FROM episodes WHERE mal_id = ?1",
-                    [mal_id],
-                    |r| r.get(0),
-                )?;
-                let show_type: String = c
-                    .query_row(
-                        "SELECT type FROM shows WHERE mal_id = ?1",
-                        [mal_id],
-                        |r| r.get(0),
-                    )
-                    .unwrap_or_else(|_| "tv".to_string());
-                Ok(show_type != "movie" && (total.unwrap_or(0) > 1 || count > 1))
-            })
-            .unwrap_or(false)
+                    )?;
+                    rows.filter_map(|r| r.ok()).collect()
+                }
+                None => {
+                    let mut stmt = c.prepare(
+                        "SELECT j.id FROM jobs j
+                         JOIN episodes e ON e.id = j.episode_id
+                         WHERE j.id != ?1 AND e.mal_id = ?2
+                           AND j.kind = 'search'",
+                    )?;
+                    let rows = stmt.query_map(rusqlite::params![job.id, mal_id], |r| r.get(0))?;
+                    rows.filter_map(|r| r.ok()).collect()
+                }
+            };
+
+            for sibling_id in sibling_jobs {
+                let questions: Vec<i64> = {
+                    let mut stmt = c.prepare(
+                        "SELECT id FROM questions WHERE job_id = ?1 AND answer IS NULL",
+                    )?;
+                    let rows = stmt.query_map([sibling_id], |r| r.get(0))?;
+                    rows.filter_map(|r| r.ok()).collect()
+                };
+                for q_id in questions {
+                    let ans = serde_json::to_string(&crate::questions::Answer {
+                        choice: crate::questions::Choice::SupersededByBatch,
+                        always: false,
+                    })
+                    .unwrap_or_else(|_| "{\"choice\":{\"choice\":\"superseded_by_batch\"},\"always\":false}".to_string());
+                    c.execute(
+                        "UPDATE questions SET answer = ?1, expires_at = ?2, job_id = NULL WHERE id = ?3",
+                        rusqlite::params![ans, self.now(), q_id],
+                    )?;
+                    crate::events::record_in(
+                        c,
+                        crate::events::Level::Info,
+                        Some(sibling_id),
+                        Some(mal_id),
+                        &format!("question #{q_id} closed: sibling job superseded by batch add"),
+                        self.now(),
+                    )?;
+                }
+                c.execute("DELETE FROM jobs WHERE id = ?1", [sibling_id])?;
+            }
+
+            Ok(())
+        })
     }
 
     pub(crate) fn try_ask_unmapped_season(

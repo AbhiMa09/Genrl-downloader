@@ -192,6 +192,7 @@ pub fn apply_answer(
             }
             Some(JobState::Search)
         }
+        Choice::SupersededByBatch => None,
         Choice::Expired => None,
     };
 
@@ -248,6 +249,7 @@ fn answer_label(choice: &Choice) -> String {
         Choice::SeasonRange { first_ep, last_ep } => {
             format!("map season to episodes {first_ep}–{last_ep}")
         }
+        Choice::SupersededByBatch => "superseded by batch".to_string(),
         Choice::Expired => "expired".to_string(),
     }
 }

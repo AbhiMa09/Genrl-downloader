@@ -28,6 +28,7 @@ pub struct ReconcileReport {
 /// resume it.
 pub async fn reconcile(engine: &Engine) -> Result<ReconcileReport> {
     crate::questions::QuestionStore::close_for_stopped_jobs(engine.db(), engine.clock().now())?;
+    reconcile_orphaned_downloading_episodes(engine.db())?;
 
     let settings = Settings::load(engine.db())?;
     let client = qbit::Qbit::from_settings(&settings)?;
@@ -156,6 +157,26 @@ fn hash_of(engine: &Engine, job: &crate::models::Job) -> Result<String> {
             "SELECT info_hash FROM torrents WHERE id = ?1",
             [torrent_id],
             |r| r.get(0),
+        )?)
+    })
+}
+
+/// Reset any downloading episodes whose torrent has no active non-terminal jobs.
+pub fn reconcile_orphaned_downloading_episodes(db: &crate::db::Db) -> Result<usize> {
+    db.with(|c| {
+        Ok(c.execute(
+            "UPDATE episodes
+             SET state = 'missing', torrent_id = NULL
+             WHERE state = 'downloading'
+               AND (
+                 torrent_id IS NULL
+                 OR NOT EXISTS (
+                     SELECT 1 FROM jobs j
+                     WHERE j.torrent_id = episodes.torrent_id
+                       AND j.state NOT IN ('done', 'failed', 'cancelled')
+                 )
+               )",
+            [],
         )?)
     })
 }

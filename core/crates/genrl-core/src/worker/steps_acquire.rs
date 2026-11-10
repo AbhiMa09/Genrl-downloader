@@ -415,26 +415,12 @@ impl Engine {
             Err(err) => return self.fail_or_reschedule(job, &format!("add failed: {err}")),
         }
 
-        let is_batch = self.is_batch_release_or_torrent(&torrent.name, context.mal_id);
+        let is_batch = self.is_proven_batch_release(&torrent.name);
 
         if is_batch {
-            self.db.with(|c| {
-                c.execute(
-                    "UPDATE episodes SET state = 'downloading', torrent_id = (
-                         SELECT id FROM torrents WHERE info_hash = ?1
-                     )
-                     WHERE mal_id = ?2 AND state IN ('missing', 'queued')",
-                    rusqlite::params![torrent.info_hash, context.mal_id],
-                )?;
-                c.execute(
-                    "DELETE FROM jobs WHERE id != ?1 AND episode_id IN (
-                         SELECT id FROM episodes WHERE mal_id = ?2
-                     ) AND kind = 'search'",
-                    rusqlite::params![job.id, context.mal_id],
-                )?;
-                Ok(())
-            })?;
+            self.handle_batch_add(job, context.mal_id, &torrent)?;
         } else {
+            self.handle_single_add(job, &torrent)?;
             self.enqueue_sibling_episodes_if_needed(job, context.mal_id)?;
         }
 
