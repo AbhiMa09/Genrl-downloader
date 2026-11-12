@@ -115,4 +115,3 @@ pub fn resolution_rank(resolution: &str) -> Option<u32> {
 }
 
 pub use super::size::*;
-

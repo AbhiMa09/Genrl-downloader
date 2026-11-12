@@ -1106,7 +1106,12 @@ async fn conan_pack_job_diagnostic() {
     assert_eq!(ep_zero.as_ref().unwrap().signal, 50.0);
 
     // Both single Counterfeit Case episodes rejected for exceeding single-episode size
-    assert!(matches!(evaluated[5].1, Err(genrl_core::score::Rejection::SizeOutOfRange { .. })));
-    assert!(matches!(evaluated[6].1, Err(genrl_core::score::Rejection::SizeOutOfRange { .. })));
-
+    assert!(matches!(
+        evaluated[5].1,
+        Err(genrl_core::score::Rejection::SizeOutOfRange { .. })
+    ));
+    assert!(matches!(
+        evaluated[6].1,
+        Err(genrl_core::score::Rejection::SizeOutOfRange { .. })
+    ));
 }

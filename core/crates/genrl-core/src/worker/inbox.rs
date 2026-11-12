@@ -23,6 +23,20 @@ pub fn apply_answer(
         if let Some(mal_id) = question.mal_id {
             match &answer.choice {
                 Choice::DownloadAgain => {
+                    db.with(|c| {
+                        let _ = crate::season_map::ensure_episodes_exist(c, mal_id);
+                        c.execute(
+                            "UPDATE episodes SET state = 'missing'
+                             WHERE mal_id = ?1 AND state IN ('done', 'queued')",
+                            [mal_id],
+                        )?;
+                        c.execute(
+                            "UPDATE shows SET metadata_status = 'partial'
+                             WHERE mal_id = ?1 AND metadata_status NOT IN ('ready', 'partial')",
+                            [mal_id],
+                        )?;
+                        Ok(())
+                    })?;
                     planner::plan_single(db, clock, mal_id, None)?;
                     return Ok(None);
                 }
@@ -36,10 +50,21 @@ pub fn apply_answer(
                         .unwrap_or(0))
                     })?;
                     db.with(|c| {
+                        let _ = crate::season_map::ensure_episodes_exist(c, mal_id);
+                        for ep_num in 1..=watched {
+                            c.execute(
+                                "INSERT INTO episodes (mal_id, number, state)
+                                 VALUES (?1, ?2, 'done')
+                                 ON CONFLICT (mal_id, number) DO UPDATE SET
+                                     state = 'done'
+                                 WHERE episodes.state IN ('missing', 'queued')",
+                                rusqlite::params![mal_id, ep_num as f64],
+                            )?;
+                        }
                         c.execute(
-                            "UPDATE episodes SET state = 'done'
-                             WHERE mal_id = ?1 AND number <= ?2 AND state IN ('missing', 'queued')",
-                            rusqlite::params![mal_id, watched as f64],
+                            "UPDATE shows SET metadata_status = 'partial'
+                             WHERE mal_id = ?1 AND metadata_status NOT IN ('ready', 'partial')",
+                            [mal_id],
                         )?;
                         Ok(())
                     })?;
@@ -214,14 +239,7 @@ pub fn apply_answer(
                     .unwrap_or(1);
                 db.with(|c| {
                     crate::season_map::upsert_user(
-                        c,
-                        mal_id,
-                        season_no,
-                        *first_ep,
-                        *last_ep,
-                        None,
-                        None,
-                        now,
+                        c, mal_id, season_no, *first_ep, *last_ep, None, None, now,
                     )?;
                     crate::season_map::ensure_episodes_exist(c, mal_id)?;
                     Ok(())
@@ -232,7 +250,6 @@ pub fn apply_answer(
         Choice::SupersededByBatch => None,
         Choice::DownloadAgain | Choice::Resume | Choice::SkipShow => None,
         Choice::Expired => None,
-
     };
 
     let Some(next) = next else {
@@ -293,7 +310,6 @@ fn answer_label(choice: &Choice) -> String {
         Choice::Resume => "resume".to_string(),
         Choice::SkipShow => "skip show".to_string(),
         Choice::Expired => "expired".to_string(),
-
     }
 }
 

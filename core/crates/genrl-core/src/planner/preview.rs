@@ -150,24 +150,30 @@ pub(crate) fn build_preview(
                          JOIN shows s ON s.mal_id = m.mal_id
                          WHERE m.mal_id = ?1",
                         [wanted.mal_id],
-                        |r| Ok((r.get::<_, Option<i64>>(0)?, r.get::<_, i64>(1)?, r.get::<_, Option<i64>>(2)?)),
-                    ).ok())
+                        |r| {
+                            Ok((
+                                r.get::<_, Option<i64>>(0)?,
+                                r.get::<_, i64>(1)?,
+                                r.get::<_, Option<i64>>(2)?,
+                            ))
+                        },
+                    )
+                    .ok())
                 })?;
 
                 if let Some((Some(score), watched_count, total_episodes)) = rating_info {
                     if score > 0 {
-                        let effective_total = total_episodes
-                            .filter(|&t| t > 0)
-                            .or_else(|| {
-                                db.with(|c| {
-                                    crate::season_map::latest_season(c, wanted.mal_id)
-                                        .map(|opt| opt.map(|m| m.last_ep as i64))
-                                })
-                                .ok()
-                                .flatten()
-                            });
+                        let effective_total = total_episodes.filter(|&t| t > 0).or_else(|| {
+                            db.with(|c| {
+                                crate::season_map::latest_season(c, wanted.mal_id)
+                                    .map(|opt| opt.map(|m| m.last_ep as i64))
+                            })
+                            .ok()
+                            .flatten()
+                        });
 
-                        let is_fully_watched = effective_total.is_some_and(|total| watched_count >= total);
+                        let is_fully_watched =
+                            effective_total.is_some_and(|total| watched_count >= total);
                         if is_fully_watched {
                             skipped.push(SkipNote {
                                 mal_id: wanted.mal_id,
@@ -179,8 +185,12 @@ pub(crate) fn build_preview(
 
                         // Rated and partially watched: do not queue. Open inbox question if needed.
                         let now = crate::clock::SystemClock.now();
-                        let existing = crate::questions::QuestionStore::for_show(db, wanted.mal_id, now)?;
-                        if !existing.iter().any(|q| q.kind() == crate::models::QuestionKind::RatedShow) {
+                        let existing =
+                            crate::questions::QuestionStore::for_show(db, wanted.mal_id, now)?;
+                        if !existing
+                            .iter()
+                            .any(|q| q.kind() == crate::models::QuestionKind::RatedShow)
+                        {
                             let payload = crate::questions::Payload::RatedShow {
                                 mal_id: wanted.mal_id,
                                 title: wanted.title.clone(),
@@ -191,7 +201,9 @@ pub(crate) fn build_preview(
                                     "Rated {}/10 on MAL, watched {}/{} episodes",
                                     score,
                                     watched_count,
-                                    effective_total.map(|t| t.to_string()).unwrap_or_else(|| "?".to_string()),
+                                    effective_total
+                                        .map(|t| t.to_string())
+                                        .unwrap_or_else(|| "?".to_string()),
                                 ),
                             };
                             crate::questions::QuestionStore::ask(
@@ -214,7 +226,6 @@ pub(crate) fn build_preview(
                 }
 
                 let missing_count: i64 = db.with(|c| {
-
                     let _ = crate::season_map::ensure_episodes_exist(c, wanted.mal_id);
                     Ok(c.query_row(
                         "SELECT COUNT(*) FROM episodes WHERE mal_id = ?1 AND state = 'missing'",

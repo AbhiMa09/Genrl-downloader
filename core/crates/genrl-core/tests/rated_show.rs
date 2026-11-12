@@ -36,14 +36,16 @@ fn auto_plan_rated_partially_watched_show_opens_question_and_is_idempotent() {
     })
     .unwrap();
 
-
     let list = MalList::load_from_db(&db).unwrap();
     let outcome = plan(&db, &clock, &list, true).unwrap();
 
     // Must not queue any episodes directly
     match outcome {
         genrl_core::planner::PlanOutcome::Applied { queued, preview } => {
-            assert_eq!(queued, 0, "must not queue any episodes for rated partially-watched show");
+            assert_eq!(
+                queued, 0,
+                "must not queue any episodes for rated partially-watched show"
+            );
             assert!(preview.episodes.is_empty());
         }
         genrl_core::planner::PlanOutcome::Preview(p) => {
@@ -74,7 +76,11 @@ fn auto_plan_rated_partially_watched_show_opens_question_and_is_idempotent() {
     // Idempotent: running plan again does not duplicate question
     let _ = plan(&db, &clock, &list, true).unwrap();
     let open2 = QuestionStore::open(&db, NOW).unwrap();
-    assert_eq!(open2.len(), 1, "plan rerun must be idempotent and not duplicate open question");
+    assert_eq!(
+        open2.len(),
+        1,
+        "plan rerun must be idempotent and not duplicate open question"
+    );
 }
 
 #[test]
@@ -112,7 +118,10 @@ fn auto_plan_rated_fully_watched_show_skips_silently() {
 
     // Must skip silently without opening any questions
     let open = QuestionStore::open(&db, NOW).unwrap();
-    assert!(open.is_empty(), "fully watched rated show must not open questions");
+    assert!(
+        open.is_empty(),
+        "fully watched rated show must not open questions"
+    );
 }
 
 #[test]
@@ -136,7 +145,6 @@ fn auto_plan_unrated_show_plans_normally() {
             [],
         )?;
         Ok(())
-
     })
     .unwrap();
 
@@ -153,7 +161,10 @@ fn auto_plan_unrated_show_plans_normally() {
     }
 
     let open = QuestionStore::open(&db, NOW).unwrap();
-    assert!(open.is_empty(), "unrated show must not open RatedShow question");
+    assert!(
+        open.is_empty(),
+        "unrated show must not open RatedShow question"
+    );
 }
 
 #[test]
@@ -209,13 +220,15 @@ fn answering_rated_show_question_with_resume_skips_watched_episodes() {
     assert_eq!(done_count, 1020, "episodes 1..=1020 must be marked done");
 
     // Missing remaining episodes are 1021..=1093 (73 episodes)
-    let missing_count: i64 = db.with(|c| {
-        Ok(c.query_row(
-            "SELECT COUNT(*) FROM episodes WHERE mal_id = 235 AND state = 'missing'",
-            [],
-            |r| r.get(0),
-        )?)
-    }).unwrap();
+    let missing_count: i64 = db
+        .with(|c| {
+            Ok(c.query_row(
+                "SELECT COUNT(*) FROM episodes WHERE mal_id = 235 AND state = 'missing'",
+                [],
+                |r| r.get(0),
+            )?)
+        })
+        .unwrap();
     assert_eq!(missing_count, 73, "remaining missing count should be 73");
 }
 
@@ -261,11 +274,16 @@ fn answering_rated_show_question_with_skip_sets_auto_zero() {
     apply_answer(&db, &clock, &question, &ans).unwrap();
     QuestionStore::answer(&db, q.id, &ans).unwrap();
 
-
     // Check shows.auto is now 0
-    let auto_val: i64 = db.with(|c| {
-        Ok(c.query_row("SELECT auto FROM shows WHERE mal_id = 235", [], |r| r.get(0))?)
-    }).unwrap();
+    let auto_val: i64 = db
+        .with(|c| {
+            Ok(
+                c.query_row("SELECT auto FROM shows WHERE mal_id = 235", [], |r| {
+                    r.get(0)
+                })?,
+            )
+        })
+        .unwrap();
     assert_eq!(auto_val, 0, "shows.auto must be set to 0");
 
     // Subsequent plan run with updated MalList skips completely
@@ -280,4 +298,67 @@ fn answering_rated_show_question_with_skip_sets_auto_zero() {
             assert!(p.episodes.is_empty());
         }
     }
+}
+
+#[test]
+fn answering_rated_show_with_pending_metadata_resumes_without_error() {
+    let clock = FakeClock::new(NOW);
+    let db = Db::open_in_memory().unwrap();
+
+    db.with(|c| {
+        c.execute(
+            "INSERT INTO shows (mal_id, title, total_episodes, status, auto, metadata_status)
+             VALUES (235, 'Meitantei Conan', 0, 'airing', 1, 'pending')",
+            [],
+        )?;
+        c.execute(
+            "INSERT INTO mal_entries (mal_id, list_status, watched_count, score, updated_at)
+             VALUES (235, 'watching', 1020, 8, ?1)",
+            [NOW],
+        )?;
+        c.execute(
+            "INSERT OR REPLACE INTO season_map (mal_id, season_no, first_ep, last_ep, source, created_at)
+             VALUES (235, 1, 1, 1093, 'bundled', ?1)",
+            [NOW],
+        )?;
+        Ok(())
+    })
+    .unwrap();
+
+    let list = MalList::load_from_db(&db).unwrap();
+    let _ = plan(&db, &clock, &list, true).unwrap();
+    let open = QuestionStore::open(&db, NOW).unwrap();
+    let q = &open[0];
+    let question = QuestionStore::get(&db, q.id).unwrap().unwrap();
+
+    // User chooses: Resume
+    let ans = Answer {
+        choice: Choice::Resume,
+        always: false,
+    };
+    // Must succeed even though metadata_status was 'pending'
+    apply_answer(&db, &clock, &question, &ans).unwrap();
+    QuestionStore::answer(&db, q.id, &ans).unwrap();
+
+    // Verify metadata_status is now partial
+    let status: String = db
+        .with(|c| {
+            Ok(c.query_row(
+                "SELECT metadata_status FROM shows WHERE mal_id = 235",
+                [],
+                |r| r.get(0),
+            )?)
+        })
+        .unwrap();
+    assert_eq!(status, "partial");
+
+    // Episodes 1..=1020 marked done
+    let done_count: i64 = db.with(|c| {
+        Ok(c.query_row(
+            "SELECT COUNT(*) FROM episodes WHERE mal_id = 235 AND state = 'done' AND number <= 1020",
+            [],
+            |r| r.get(0),
+        )?)
+    }).unwrap();
+    assert_eq!(done_count, 1020);
 }

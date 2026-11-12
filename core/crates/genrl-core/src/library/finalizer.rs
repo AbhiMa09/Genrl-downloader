@@ -303,7 +303,7 @@ impl Finalizer for LibraryFinalizer {
                 let _ = EventLog::new(self.db.clone()).info(
                     Some(context.job.id),
                     Some(context.mal_id),
-                    "target episode not covered by the release; staying missing".to_string(),
+                    "target episode not covered by the release; staying missing",
                 );
                 return Ok(FinalizeOutcome::Done(FinalizeSuccess {
                     destination_path: source_path.display().to_string(),

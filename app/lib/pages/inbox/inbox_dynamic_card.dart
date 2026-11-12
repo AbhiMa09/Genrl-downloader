@@ -52,7 +52,6 @@ class InboxDynamicCard extends StatelessWidget {
       tagColor = ObsidianColors.primary;
     }
 
-
     return DecisionCardFrame(
       accentColor: accentColor,
       categoryTag: categoryTag,

@@ -2627,7 +2627,9 @@ async fn sibling_cleanup_with_open_question_closes_question_and_logs_event() {
         .db
         .with(|c| {
             let job2_count: i64 =
-                c.query_row("SELECT COUNT(*) FROM jobs WHERE id = ?1", [job2_id], |r| r.get(0))?;
+                c.query_row("SELECT COUNT(*) FROM jobs WHERE id = ?1", [job2_id], |r| {
+                    r.get(0)
+                })?;
             assert_eq!(job2_count, 0, "sibling job 2 must be deleted");
 
             // 2. Question still exists in DB, answer is recorded as superseded_by_batch
@@ -2636,7 +2638,10 @@ async fn sibling_cleanup_with_open_question_closes_question_and_logs_event() {
                 [qid],
                 |r| Ok((r.get(0)?, r.get(1)?)),
             )?;
-            assert!(job_id_col.is_none(), "job_id must be unlinked to prevent cascade delete");
+            assert!(
+                job_id_col.is_none(),
+                "job_id must be unlinked to prevent cascade delete"
+            );
             let ans_str = answer.expect("question must have recorded answer");
             assert!(
                 ans_str.contains("superseded_by_batch"),
@@ -2646,7 +2651,9 @@ async fn sibling_cleanup_with_open_question_closes_question_and_logs_event() {
             // 3. Event was logged
             let event_count: i64 = c.query_row(
                 "SELECT COUNT(*) FROM events WHERE message LIKE ?1",
-                [format!("%question #{qid} closed: sibling job superseded by batch add%")],
+                [format!(
+                    "%question #{qid} closed: sibling job superseded by batch add%"
+                )],
                 |r| r.get(0),
             )?;
             assert_eq!(event_count, 1, "closed question event must be logged");
@@ -2954,7 +2961,10 @@ async fn plan_single_revives_a_failed_job() {
         .unwrap();
 
     let queued = planner::plan_single(&world.db, &world.clock, 200, Some(ep_num)).unwrap();
-    assert_eq!(queued, 1, "plan_single must report 1 queued for the revived job");
+    assert_eq!(
+        queued, 1,
+        "plan_single must report 1 queued for the revived job"
+    );
 
     world
         .db
@@ -3019,16 +3029,18 @@ async fn plan_single_leaves_active_jobs_alone() {
     world
         .db
         .with(|c| {
-            let (id, state): (i64, String) = c.query_row(
-                "SELECT id, state FROM jobs WHERE id = ?1",
-                [job_id],
-                |r| Ok((r.get(0)?, r.get(1)?)),
-            )?;
+            let (id, state): (i64, String) =
+                c.query_row("SELECT id, state FROM jobs WHERE id = ?1", [job_id], |r| {
+                    Ok((r.get(0)?, r.get(1)?))
+                })?;
             assert_eq!(id, job_id);
             assert_eq!(state, "search");
 
             let count: i64 = c.query_row("SELECT COUNT(*) FROM jobs", [], |r| r.get(0))?;
-            assert_eq!(count, 1, "idempotency regression guard: exactly one job row");
+            assert_eq!(
+                count, 1,
+                "idempotency regression guard: exactly one job row"
+            );
             Ok(())
         })
         .unwrap();
@@ -3046,12 +3058,19 @@ async fn enqueue_search_does_not_revive() {
                 "UPDATE jobs SET state = 'failed', last_error = 'Cancelled by user' WHERE id = ?1",
                 [job_id],
             )?;
-            Ok(c.query_row("SELECT episode_id FROM jobs WHERE id = ?1", [job_id], |r| r.get(0))?)
+            Ok(
+                c.query_row("SELECT episode_id FROM jobs WHERE id = ?1", [job_id], |r| {
+                    r.get(0)
+                })?,
+            )
         })
         .unwrap();
 
     let returned_id = jobs::enqueue_search(&world.db, &world.clock, ep_id).unwrap();
-    assert_eq!(returned_id, job_id, "enqueue_search must return the existing job id");
+    assert_eq!(
+        returned_id, job_id,
+        "enqueue_search must return the existing job id"
+    );
 
     world
         .db
@@ -3061,7 +3080,10 @@ async fn enqueue_search_does_not_revive() {
                 [job_id],
                 |r| Ok((r.get(0)?, r.get(1)?)),
             )?;
-            assert_eq!(state, "failed", "automation enqueue_search must NOT revive a failed job");
+            assert_eq!(
+                state, "failed",
+                "automation enqueue_search must NOT revive a failed job"
+            );
             assert_eq!(last_error.as_deref(), Some("Cancelled by user"));
             Ok(())
         })
@@ -3107,7 +3129,10 @@ async fn retry_all_jobs_revives_cancelled_jobs() {
         .unwrap();
 
     let summary = jobs::retry_all_jobs(&world.db, &world.clock).unwrap();
-    assert_eq!(summary.retried, 2, "retry_all_jobs must revive both normal and cancelled jobs");
+    assert_eq!(
+        summary.retried, 2,
+        "retry_all_jobs must revive both normal and cancelled jobs"
+    );
 
     world
         .db
@@ -3156,15 +3181,22 @@ async fn skipped_episode_done_plan_single_does_not_count() {
         .unwrap();
 
     // Directly test enqueue_or_revive helper: reports queued == false
-    let (revived_id, queued_flag) = jobs::enqueue_or_revive(&world.db, &world.clock, ep_id).unwrap();
+    let (revived_id, queued_flag) =
+        jobs::enqueue_or_revive(&world.db, &world.clock, ep_id).unwrap();
     assert_eq!(revived_id, job_id);
-    assert!(!queued_flag, "helper must report queued == false when episode is already done");
+    assert!(
+        !queued_flag,
+        "helper must report queued == false when episode is already done"
+    );
 
     // Job ends in 'done'
     world
         .db
         .with(|c| {
-            let state: String = c.query_row("SELECT state FROM jobs WHERE id = ?1", [job_id], |r| r.get(0))?;
+            let state: String =
+                c.query_row("SELECT state FROM jobs WHERE id = ?1", [job_id], |r| {
+                    r.get(0)
+                })?;
             assert_eq!(state, "done", "job must end in done");
             Ok(())
         })
@@ -3184,5 +3216,8 @@ async fn skipped_episode_done_plan_single_does_not_count() {
         .unwrap();
 
     let queued = planner::plan_single(&world.db, &world.clock, 200, Some(ep_num)).unwrap();
-    assert_eq!(queued, 0, "plan_single must not count job when episode is already done");
+    assert_eq!(
+        queued, 0,
+        "plan_single must not count job when episode is already done"
+    );
 }

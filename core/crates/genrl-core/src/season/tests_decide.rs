@@ -3,7 +3,13 @@ use crate::filename::parse_release;
 use crate::models::{ListStatus, ShowType};
 use crate::settings::Settings;
 
-fn tv(mal_id: i64, title: &str, status: ListStatus, watched: i64, total: Option<i64>) -> SeasonEntry {
+fn tv(
+    mal_id: i64,
+    title: &str,
+    status: ListStatus,
+    watched: i64,
+    total: Option<i64>,
+) -> SeasonEntry {
     SeasonEntry {
         mal_id,
         title: title.to_string(),

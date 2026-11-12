@@ -30,4 +30,3 @@ pub use types::*;
 mod tests;
 #[cfg(test)]
 mod tests_decide;
-

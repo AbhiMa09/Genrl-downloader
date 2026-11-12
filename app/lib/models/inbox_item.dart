@@ -9,7 +9,6 @@ enum QuestionType {
   ratedShow,
 }
 
-
 class InboxChoice {
   final String key;
   final String label;

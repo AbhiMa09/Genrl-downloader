@@ -27,7 +27,7 @@ void main() {
           'reason': 'Release specifies Season 33, which is not mapped',
         },
         'created_at': 1700000000,
-      }
+      },
     ];
 
     final items = parseInboxItems(raw);
@@ -39,16 +39,10 @@ void main() {
     expect(item.showTitle, 'Detective Conan');
     expect(item.type, QuestionType.seasonMap);
     expect(item.title, 'Map Community Season 33');
-    expect(
-      item.details,
-      'Release specifies Season 33, which is not mapped',
-    );
+    expect(item.details, 'Release specifies Season 33, which is not mapped');
     expect(item.choices.length, 3);
     expect(item.choices.first.key, '1050-1093');
-    expect(
-      item.choices.first.label,
-      'Map Season 33 to episodes 1050–1093',
-    );
+    expect(item.choices.first.label, 'Map Season 33 to episodes 1050–1093');
   });
 
   testWidgets('InboxDynamicCard renders seasonMap question and choice button', (
@@ -70,12 +64,12 @@ void main() {
       details: 'Release specifies Season 33, which is not mapped',
       type: QuestionType.seasonMap,
       choices: [
-        InboxChoice(
+        const InboxChoice(
           key: '1050-1093',
           label: 'Map Season 33 to episodes 1050–1093',
         ),
-        InboxChoice(key: 'none_of_these', label: 'None of these'),
-        InboxChoice(key: 'search_again', label: 'Search again'),
+        const InboxChoice(key: 'none_of_these', label: 'None of these'),
+        const InboxChoice(key: 'search_again', label: 'Search again'),
       ],
       createdAt: DateTime(2026, 11, 9),
     );
@@ -102,10 +96,7 @@ void main() {
 
     expect(find.text('COMMUNITY SEASON MAPPING'), findsOneWidget);
     expect(find.text('Map Community Season 33'), findsOneWidget);
-    expect(
-      find.text('Map Season 33 to episodes 1050–1093'),
-      findsOneWidget,
-    );
+    expect(find.text('Map Season 33 to episodes 1050–1093'), findsOneWidget);
 
     await tester.tap(find.text('Map Season 33 to episodes 1050–1093'));
     await tester.pump();

@@ -365,7 +365,11 @@ mod tests {
     fn sync_with_empty_names_does_not_shrink_show_with_aliases() {
         let db = db_with_show(42);
         let names = vec![
-            ("Meitantei Conan".to_string(), NameSource::Mal, PRIORITY_MAIN),
+            (
+                "Meitantei Conan".to_string(),
+                NameSource::Mal,
+                PRIORITY_MAIN,
+            ),
             ("Case Closed".to_string(), NameSource::Mal, 1),
             ("Detective Conan".to_string(), NameSource::Mal, 2),
         ];

@@ -47,7 +47,10 @@ fn test_boundary_24_vs_25_missing_episodes() {
     })
     .unwrap();
     let queued24 = plan_single(&db24, &clock, 101, None).unwrap();
-    assert_eq!(queued24, 24, "24 missing episodes keeps single-episode behavior (24 jobs)");
+    assert_eq!(
+        queued24, 24,
+        "24 missing episodes keeps single-episode behavior (24 jobs)"
+    );
 
     // 2. Airing show with 25 missing episodes -> queues 1 pack-grab search job
     let db25 = Db::open_in_memory().unwrap();
@@ -61,7 +64,10 @@ fn test_boundary_24_vs_25_missing_episodes() {
     })
     .unwrap();
     let queued25 = plan_single(&db25, &clock, 102, None).unwrap();
-    assert_eq!(queued25, 1, "25 missing episodes queues 1 pack-grab search job");
+    assert_eq!(
+        queued25, 1,
+        "25 missing episodes queues 1 pack-grab search job"
+    );
 }
 
 #[test]
@@ -186,7 +192,14 @@ fn test_size_budget_known_range_and_unknown_count() {
         "3333333333333333333333333333333333333333",
     );
     assert!(
-        evaluate(&unk_pack_300gb, &target_unknown_1093, &rules, &settings, NOW).is_ok(),
+        evaluate(
+            &unk_pack_300gb,
+            &target_unknown_1093,
+            &rules,
+            &settings,
+            NOW
+        )
+        .is_ok(),
         "unknown-count 300 GB pack with 1,093 missing rows must pass"
     );
 

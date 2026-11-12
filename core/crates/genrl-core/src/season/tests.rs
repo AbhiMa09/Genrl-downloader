@@ -21,7 +21,6 @@ fn tv(
         fully_aired: true,
         auto: true,
     }
-
 }
 
 /// The chain the design's fixtures use: season 1 finished (12 episodes),
@@ -225,7 +224,9 @@ fn disabled_auto_skips_the_walk() {
     let chain = SeasonChain::new(vec![show]);
     assert!(matches!(
         chain.wanted(&settings(), Overrides::default()),
-        Want::Skip { fully_watched: false, .. }
+        Want::Skip {
+            fully_watched: false,
+            ..
+        }
     ));
 }
-

@@ -39,7 +39,6 @@ pub fn calculate_batch_coverage(
     }
 }
 
-
 /// Compute scaled size cap in bytes for a batch candidate.
 pub fn compute_batch_size_cap(
     settings: &Settings,
@@ -118,7 +117,8 @@ pub fn check_candidate_size(
             });
         }
         let per_ep_known = has_explicit_range
-            || (target.total_episodes.is_some_and(|t| t > 1) && candidate.release.season_range.is_some());
+            || (target.total_episodes.is_some_and(|t| t > 1)
+                && candidate.release.season_range.is_some());
         if per_ep_known {
             let per_ep_bytes = size_bytes / ep_count;
             let per_ep_mb = per_ep_bytes.div_ceil(1024 * 1024);

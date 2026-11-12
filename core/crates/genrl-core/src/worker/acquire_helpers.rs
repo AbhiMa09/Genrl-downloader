@@ -27,7 +27,9 @@ impl Engine {
             .unwrap_or((None, None)))
         })?;
         let is_finished = status_str
-            .map(|s| crate::models::AiringStatus::parse(&s) == crate::models::AiringStatus::Finished)
+            .map(|s| {
+                crate::models::AiringStatus::parse(&s) == crate::models::AiringStatus::Finished
+            })
             .unwrap_or(false);
         let has_season_map = self
             .db
@@ -218,7 +220,12 @@ impl Engine {
                     "Release specifies Season {season_no}, which is not mapped to episode numbers for this show"
                 ),
             };
-            self.ask(job, mal_id, payload, &format!("unmapped season {season_no}"))?;
+            self.ask(
+                job,
+                mal_id,
+                payload,
+                &format!("unmapped season {season_no}"),
+            )?;
             let next = crate::jobs::transition(
                 &self.db,
                 self.clock.as_ref(),

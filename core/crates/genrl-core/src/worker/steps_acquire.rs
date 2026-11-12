@@ -73,6 +73,16 @@ impl Engine {
             }
             batch_queries.extend(search_names);
             search_names = batch_queries;
+        } else {
+            let ep_int = context.number as i64;
+            let mut ep_queries = Vec::new();
+            for n in &inputs.names {
+                ep_queries.push(format!("{n} - {ep_int}"));
+                ep_queries.push(format!("{n} {ep_int}"));
+                ep_queries.push(format!("{n} - {:02}", ep_int));
+                ep_queries.push(format!("{n} {:02}", ep_int));
+            }
+            search_names = ep_queries;
         }
 
         let candidates =
@@ -172,7 +182,10 @@ impl Engine {
         let (ranked, none_fit) = if is_pack_grab {
             let (fitting, none_fit) = self.select_fitting_candidates(ranked, &settings);
             let filtered = if fitting.iter().any(|r| r.candidate.release.is_batch) {
-                fitting.into_iter().filter(|r| r.candidate.release.is_batch).collect()
+                fitting
+                    .into_iter()
+                    .filter(|r| r.candidate.release.is_batch)
+                    .collect()
             } else {
                 fitting
             };
@@ -181,19 +194,19 @@ impl Engine {
             (ranked, false)
         };
 
-
         if none_fit {
             let download_path = crate::locations::effective_download_dir(&settings);
-            let free_gb = self
-                .disk
-                .free_bytes(&download_path)
-                .unwrap_or(0)
-                / (1024 * 1024 * 1024);
+            let free_gb = self.disk.free_bytes(&download_path).unwrap_or(0) / (1024 * 1024 * 1024);
             let payload = Payload::DiskSpace {
                 free_gb,
                 floor_gb: settings.disk_floor_gb,
             };
-            self.ask(job, context.mal_id, payload, "insufficient disk space for candidate packs")?;
+            self.ask(
+                job,
+                context.mal_id,
+                payload,
+                "insufficient disk space for candidate packs",
+            )?;
             return jobs::transition(
                 &self.db,
                 self.clock.as_ref(),
@@ -204,11 +217,14 @@ impl Engine {
             );
         }
 
-        if is_pack_grab && !ranked.is_empty() && !ranked.iter().any(|r| r.candidate.release.is_batch) {
+        if is_pack_grab
+            && !ranked.is_empty()
+            && !ranked.iter().any(|r| r.candidate.release.is_batch)
+        {
             crate::events::EventLog::new(self.db.clone()).info(
                 Some(job.id),
                 Some(context.mal_id),
-                "no suitable pack found; falling back to single episodes".to_string(),
+                "no suitable pack found; falling back to single episodes",
             )?;
         }
 

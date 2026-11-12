@@ -204,8 +204,8 @@ List<InboxItem> parseInboxItems(List<dynamic> list) {
       title: qt == QuestionType.seasonMap
           ? 'Map Community Season ${payload['season_no'] ?? ''}'
           : qt == QuestionType.ratedShow
-              ? 'Rated Show Decision: ${payload['title'] ?? m['show_title'] ?? ''}'
-              : 'Attention Required: $kind',
+          ? 'Rated Show Decision: ${payload['title'] ?? m['show_title'] ?? ''}'
+          : 'Attention Required: $kind',
       details: payload['reason']?.toString() ?? m['payload']?.toString() ?? '',
       type: qt,
       choices: choices,

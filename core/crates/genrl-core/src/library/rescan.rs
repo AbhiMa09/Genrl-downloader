@@ -70,33 +70,67 @@ pub fn rescan_library(db: &Db, library_folder: &Path) -> Result<RescanReport> {
             shows_adopted += 1;
 
             // Scan video files for episodes
-            if let Ok(files) = fs::read_dir(&path) {
-                for file_entry in files.flatten() {
-                    let file_path = file_entry.path();
-                    if !file_path.is_file() || !is_video_file(&file_path) {
-                        continue;
-                    }
-                    if let Some(filename) = file_path.file_name().and_then(|n| n.to_str()) {
-                        let parsed = crate::filename::parse_release(filename);
-                        if let Some(ep_num) = parsed.episode {
-                            let size = fs::metadata(&file_path)
-                                .map(|m| m.len() as i64)
-                                .unwrap_or(0);
-                            let updated = db.with(|c| {
-                                Ok(c.execute(
-                                    "UPDATE episodes SET file_path = ?1, size = ?2, state = 'done'
-                                     WHERE mal_id = ?3 AND number = ?4",
-                                    rusqlite::params![
-                                        file_path.display().to_string(),
-                                        size,
-                                        id,
-                                        ep_num
-                                    ],
-                                )?)
-                            })?;
-                            if updated > 0 {
-                                episodes_found += 1;
-                            }
+            let video_files: Vec<_> = fs::read_dir(&path)
+                .map(|files| {
+                    files
+                        .flatten()
+                        .map(|e| e.path())
+                        .filter(|p| p.is_file() && is_video_file(p))
+                        .collect()
+                })
+                .unwrap_or_default();
+
+            for file_path in &video_files {
+                if let Some(filename) = file_path.file_name().and_then(|n| n.to_str()) {
+                    let parsed = crate::filename::parse_release(filename);
+                    let ep_num = parsed.episode.or_else(|| {
+                        let show_type: Option<String> = db
+                            .with(|c| {
+                                Ok(c.query_row(
+                                    "SELECT type FROM shows WHERE mal_id = ?1",
+                                    [id],
+                                    |r| r.get(0),
+                                )
+                                .ok())
+                            })
+                            .ok()
+                            .flatten();
+                        if show_type.as_deref() == Some("movie") || video_files.len() == 1 {
+                            Some(1.0)
+                        } else {
+                            None
+                        }
+                    });
+                    if let Some(ep_num) = ep_num {
+                        let size = fs::metadata(file_path).map(|m| m.len() as i64).unwrap_or(0);
+                        let updated = db.with(|c| {
+                            Ok(c.execute(
+                                "INSERT INTO episodes (mal_id, number, state, file_path, size)
+                                 VALUES (?1, ?2, 'done', ?3, ?4)
+                                 ON CONFLICT (mal_id, number) DO UPDATE SET
+                                     state = 'done',
+                                     file_path = excluded.file_path,
+                                     size = excluded.size",
+                                rusqlite::params![
+                                    id,
+                                    ep_num,
+                                    file_path.display().to_string(),
+                                    size
+                                ],
+                            )?)
+                        })?;
+                        if updated > 0 {
+                            episodes_found += 1;
+                            let _ = db.with(|c| {
+                                c.execute(
+                                    "UPDATE jobs SET state = 'done'
+                                     WHERE episode_id IN (
+                                         SELECT id FROM episodes WHERE mal_id = ?1 AND number = ?2
+                                     ) AND state != 'done'",
+                                    rusqlite::params![id, ep_num],
+                                )?;
+                                Ok(())
+                            });
                         }
                     }
                 }

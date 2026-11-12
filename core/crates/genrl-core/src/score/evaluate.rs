@@ -56,7 +56,11 @@ pub fn evaluate(
             };
             (ep, ep_range, Some(season_len as u64))
         } else {
-            (candidate.release.episode, candidate.release.episode_range, None)
+            (
+                candidate.release.episode,
+                candidate.release.episode_range,
+                None,
+            )
         };
 
     if let Some(cat) = &candidate.category_id {
@@ -117,6 +121,7 @@ pub fn evaluate(
         || (target.show_type == crate::models::ShowType::Tv
             && target.wanted_episode.is_some()
             && effective_episode.is_none()
+            && effective_episode_range.is_some()
             && !is_large_backcatalog
             && candidate.show_type != Some(crate::models::ShowType::Movie));
     let has_explicit_range = candidate.release.episode_range.is_some() || mapped_ep_count.is_some();
@@ -132,7 +137,6 @@ pub fn evaluate(
     if covered_missing >= settings.pack_first_min_missing as u64 {
         is_large_backcatalog = true;
     }
-
 
     if is_batch && !target.missing_episodes.is_empty() {
         if covered_missing == 0 {
@@ -168,7 +172,6 @@ pub fn evaluate(
         ep_count,
         covered_missing,
     )?;
-
 
     // ------------------------------------------------------- title & identity
     let title = &candidate.release.normalized_title;
@@ -272,12 +275,15 @@ pub fn evaluate(
                 notes.push("batch release covering season episodes".into());
             }
         }
-        (Some(_), None) => notes.push("no episode number (batch or feature)".into()),
+        (Some(wanted), None) => {
+            if !is_batch && effective_episode_range.is_none() {
+                return Err(Rejection::WrongEpisode { wanted, found: 0.0 });
+            }
+            notes.push("no episode number (batch or feature)".into());
+        }
     }
 
-    if let (Some(wanted), Some((from, to))) =
-        (target.wanted_episode, effective_episode_range)
-    {
+    if let (Some(wanted), Some((from, to))) = (target.wanted_episode, effective_episode_range) {
         let covers_target = wanted >= from && wanted <= to;
         let is_pack_first = is_large_backcatalog && covered_missing > 0;
         if !covers_target && !is_pack_first {
@@ -334,7 +340,6 @@ pub fn evaluate(
     } else if is_batch {
         notes.push("batch, but the show is still airing".into());
     }
-
 
     // --------------------------------------------------------- stage 3: ranking
     let mut ranking = 0.0;
@@ -437,7 +442,6 @@ pub fn evaluate(
             ));
         }
     }
-
 
     // Pure dub without explicit user preference should not outrank sub
     let is_dub = !candidate.release.dual_audio

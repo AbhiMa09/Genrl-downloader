@@ -70,7 +70,19 @@ pub async fn run(
 ) -> Result<Verdict> {
     let settings = Settings::load(db)?;
     let rules = Rules::for_show(db, inputs.mal_id)?;
-    let candidates = search_candidates(gate, &settings, &inputs.names, 1000, 1000).await?;
+    let mut names = inputs.names.clone();
+    if let Some(ep) = wanted_episode {
+        let ep_int = ep as i64;
+        let mut ep_queries = Vec::new();
+        for n in &inputs.names {
+            ep_queries.push(format!("{n} - {ep_int}"));
+            ep_queries.push(format!("{n} {ep_int}"));
+            ep_queries.push(format!("{n} - {:02}", ep_int));
+            ep_queries.push(format!("{n} {:02}", ep_int));
+        }
+        names = ep_queries;
+    }
+    let candidates = search_candidates(gate, &settings, &names, 1000, 1000).await?;
     let (ranked, rejected) = rank(candidates, inputs, wanted_episode, &rules, &settings, now);
     Ok(decide_verdict(ranked, rejected, inputs, &rules, &settings))
 }

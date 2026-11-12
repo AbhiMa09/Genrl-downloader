@@ -411,15 +411,13 @@ impl LibraryFinalizer {
             };
 
             let target_path = show_dir.join(&target_filename);
-            let file_size = fs::metadata(&file_path)
-                .map(|m| m.len() as i64)
-                .unwrap_or(0);
+            let file_size = fs::metadata(file_path).map(|m| m.len() as i64).unwrap_or(0);
             if !target_path.exists() {
-                if let Ok(outcome) = transfer_file(&file_path, &target_path, settings.move_mode) {
+                if let Ok(outcome) = transfer_file(file_path, &target_path, settings.move_mode) {
                     self.record_copy_fallback_warning_if_needed(
                         context.job.id,
                         context.mal_id,
-                        &file_path,
+                        file_path,
                         &target_path,
                         settings.move_mode,
                         outcome,
@@ -465,7 +463,7 @@ impl LibraryFinalizer {
             let _ = crate::events::EventLog::new(self.db.clone()).info(
                 Some(context.job.id),
                 Some(context.mal_id),
-                "target episode not covered by the release; staying missing".to_string(),
+                "target episode not covered by the release; staying missing",
             );
         }
 

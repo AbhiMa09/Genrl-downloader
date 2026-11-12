@@ -139,11 +139,11 @@ pub fn reject_candidate(db: &Db, info_hash: &str) -> Result<bool> {
 pub fn enqueue_or_revive(db: &Db, clock: &dyn Clock, episode_id: i64) -> Result<(i64, bool)> {
     let job_id = enqueue_search(db, clock, episode_id)?;
     let state_str: String = db.with(|c| {
-        Ok(c.query_row(
-            "SELECT state FROM jobs WHERE id = ?1",
-            [job_id],
-            |r| r.get(0),
-        )?)
+        Ok(
+            c.query_row("SELECT state FROM jobs WHERE id = ?1", [job_id], |r| {
+                r.get(0)
+            })?,
+        )
     })?;
     if state_str == "failed" {
         let at = clock.now();

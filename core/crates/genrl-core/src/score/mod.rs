@@ -24,4 +24,3 @@ mod tests;
 pub use evaluate::*;
 pub use size::*;
 pub use types::*;
-

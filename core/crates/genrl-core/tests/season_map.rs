@@ -49,7 +49,16 @@ fn test_season_map_bundled_seeds_and_user_override() {
 
     // User override wins
     db.with(|c| {
-        upsert_user(c, 235, 33, 1050, 1100, Some("Extended S33"), Some(2021), 1_700_000_000)
+        upsert_user(
+            c,
+            235,
+            33,
+            1050,
+            1100,
+            Some("Extended S33"),
+            Some(2021),
+            1_700_000_000,
+        )
     })
     .expect("upsert user");
 
@@ -102,9 +111,19 @@ fn test_evaluate_priority_contract_mapped_relative_episode() {
 
     // Candidate specifies Season 33 episode 5 -> 1050 + 5 - 1 = 1054
     let cand = mock_candidate("[SubsPlease] Detective Conan Season 33 - 05 (1080p)", 25);
-    let scored = evaluate(&cand, &target, &Rules::default(), &Settings::default(), 1_700_000_000)
-        .expect("evaluate should pass");
-    assert!(scored.signal >= 80.0, "signal should match: {}", scored.signal);
+    let scored = evaluate(
+        &cand,
+        &target,
+        &Rules::default(),
+        &Settings::default(),
+        1_700_000_000,
+    )
+    .expect("evaluate should pass");
+    assert!(
+        scored.signal >= 80.0,
+        "signal should match: {}",
+        scored.signal
+    );
 
     // Wrong season-local episode (e.g. S33 ep 10 -> absolute 1059 vs wanted 1054)
     let cand_wrong = mock_candidate("[SubsPlease] Detective Conan Season 33 - 10 (1080p)", 25);
@@ -187,8 +206,14 @@ fn test_evaluate_priority_contract_no_season_marker_absolute() {
 
     // No season marker in release -> absolute episode 1054
     let cand = mock_candidate("[SubsPlease] Detective Conan - 1054 (1080p)", 40);
-    let scored = evaluate(&cand, &target, &Rules::default(), &Settings::default(), 1_700_000_000)
-        .expect("absolute candidate without season marker must evaluate");
+    let scored = evaluate(
+        &cand,
+        &target,
+        &Rules::default(),
+        &Settings::default(),
+        1_700_000_000,
+    )
+    .expect("absolute candidate without season marker must evaluate");
     assert_eq!(scored.signal, 90.0); // 50 title + 30 episode + 10 type
 }
 
@@ -216,8 +241,14 @@ fn test_evaluate_priority_contract_unmapped_season_rejects() {
 
     // Release specifies Season 40, which is unmapped
     let cand = mock_candidate("[SubsPlease] Detective Conan Season 40 - 01 (1080p)", 20);
-    let err = evaluate(&cand, &target, &Rules::default(), &Settings::default(), 1_700_000_000)
-        .unwrap_err();
+    let err = evaluate(
+        &cand,
+        &target,
+        &Rules::default(),
+        &Settings::default(),
+        1_700_000_000,
+    )
+    .unwrap_err();
     assert_eq!(
         err,
         Rejection::SeasonConflict {
@@ -270,7 +301,9 @@ fn test_inbox_apply_season_range_answer() {
     )
     .expect("ask question");
 
-    let q = QuestionStore::get(&db, question_id).expect("get q").expect("exists");
+    let q = QuestionStore::get(&db, question_id)
+        .expect("get q")
+        .expect("exists");
     let ans = Answer {
         choice: Choice::SeasonRange {
             first_ep: 101,
@@ -324,8 +357,8 @@ fn test_planner_apply_total_episodes_zero_with_season_map() {
     .expect("insert conan");
 
     // Plan single for show without target_episode
-    let queued = genrl_core::planner::plan_single(&db, &clock, 235, None)
-        .expect("plan_single must succeed");
+    let queued =
+        genrl_core::planner::plan_single(&db, &clock, 235, None).expect("plan_single must succeed");
     // Queues 1 pack search job covering the season
     assert_eq!(queued, 1, "one pack search job for season 33");
 
@@ -341,7 +374,10 @@ fn test_planner_apply_total_episodes_zero_with_season_map() {
             Ok(n)
         })
         .expect("query episode count");
-    assert_eq!(ep_count, 44, "All 44 episodes of latest season 33 must exist in episodes");
+    assert_eq!(
+        ep_count, 44,
+        "All 44 episodes of latest season 33 must exist in episodes"
+    );
 
     // Verify the queued search job is for episode 1050 (start of season 33, not stalled on ep 1)
     let job_ep_number: f64 = db

@@ -95,6 +95,7 @@ pub fn seed_bundled(conn: &rusqlite::Connection, now: i64) -> Result<usize> {
 }
 
 /// User answers UPSERT with `source = 'user'` and always win.
+#[allow(clippy::too_many_arguments)]
 pub fn upsert_user(
     conn: &rusqlite::Connection,
     mal_id: i64,
@@ -151,10 +152,7 @@ pub fn lookup(
 }
 
 /// Get the latest mapped season (highest season_no) for a show.
-pub fn latest_season(
-    conn: &rusqlite::Connection,
-    mal_id: i64,
-) -> Result<Option<SeasonMapEntry>> {
+pub fn latest_season(conn: &rusqlite::Connection, mal_id: i64) -> Result<Option<SeasonMapEntry>> {
     let mut stmt = conn.prepare(
         "SELECT mal_id, season_no, first_ep, last_ep, title, year, source, created_at
          FROM season_map
@@ -181,10 +179,7 @@ pub fn latest_season(
 }
 
 /// Load all season mappings for a show, sorted by `season_no ASC`.
-pub fn all_for_show(
-    conn: &rusqlite::Connection,
-    mal_id: i64,
-) -> Result<Vec<SeasonMapEntry>> {
+pub fn all_for_show(conn: &rusqlite::Connection, mal_id: i64) -> Result<Vec<SeasonMapEntry>> {
     let mut stmt = conn.prepare(
         "SELECT mal_id, season_no, first_ep, last_ep, title, year, source, created_at
          FROM season_map
@@ -212,10 +207,7 @@ pub fn all_for_show(
 }
 
 /// Ensure missing episode rows exist in `episodes` table for all mapped ranges.
-pub fn ensure_episodes_exist(
-    conn: &rusqlite::Connection,
-    mal_id: i64,
-) -> Result<usize> {
+pub fn ensure_episodes_exist(conn: &rusqlite::Connection, mal_id: i64) -> Result<usize> {
     let entries = all_for_show(conn, mal_id)?;
     let mut created = 0;
     let mut stmt = conn.prepare(

@@ -20,10 +20,14 @@
 
 > [!IMPORTANT]
 > **🚀 Testing Phase Announcement (v2.4 Beta)**
-> Genrl Downloader is now fully assembled and operational! The Rust Core (`genrl`), CLI suite, and the Obsidian Flutter Desktop application are feature-complete and entering the active community testing and verification phase.
-> * **207 Rust Core Tests**: 100% Passing.
+> Genrl Downloader is now fully assembled and operational! The Rust Core (`genrl`), CLI suite, and the Obsidian Flutter Desktop application are feature-complete and actively verified through complete real-world download cycles.
+> * **213 Rust Core Tests**: 100% Passing.
 > * **19 Flutter UI & Integration Tests**: 100% Passing, 0 Analyzer Warnings.
-> * **Verified In Real Use**: Full MAL public profile sync (tested with 1,040+ shows), qBittorrent v5.2.4 integration, dynamic season/episode queueing, and hardlink filesystem filing.
+> * **Verified In Real Use**:
+>   * Full MAL profile sync (1,040+ shows).
+>   * **Big Torrent Gate (>2 GB)**: Tested and verified on *Hunter x Hunter (2011)* (30.9 GB batch, 281 seeders) with interactive confirmation and clean removal.
+>   * **Re-Download Pipeline (`download_again`)**: Tested and verified on *Bakemonogatari* (MAL 5081, 15/15 watched, 10/10 score), resetting states and acquiring the full 15-episode BD 1080p HEVC pack.
+>   * **Zero-Copy Storage**: Live multi-gigabyte ingestion into `/mnt/data2/GenrlDownloads` and automated hardlink filing into `/mnt/data2/GenrlLibrary`.
 
 ---
 

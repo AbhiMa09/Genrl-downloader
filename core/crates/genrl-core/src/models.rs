@@ -402,7 +402,6 @@ impl QuestionKind {
             _ => QuestionKind::MatchReview,
         }
     }
-
 }
 
 /// One line of the Activity log.

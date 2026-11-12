@@ -166,5 +166,4 @@ pub(crate) fn to_season_entry(entry: &ListEntry) -> SeasonEntry {
         fully_aired: entry.airing_finished(),
         auto: entry.auto,
     }
-
 }

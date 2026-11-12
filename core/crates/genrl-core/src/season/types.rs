@@ -20,7 +20,6 @@ pub struct SeasonEntry {
     pub auto: bool,
 }
 
-
 /// The franchise ordered first season → last, built from MAL's sequel and
 /// prequel relations.
 #[derive(Debug, Clone, Default, PartialEq)]

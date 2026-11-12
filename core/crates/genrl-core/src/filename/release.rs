@@ -130,7 +130,6 @@ pub fn extract_season_episode(name: &str, release: &mut Release) -> Option<usize
         }
     }
 
-
     // `EP1144-EP1155` / `EP 1144 - 1155` / `E1144-1155` range: a batch, not a single episode.
     if let Some(caps) = re(
         r"(?i)\b(?:EPISODE|EP|E)\s*(\d{1,4}(?:\.\d)?)\s*[-~～]\s*(?:(?:EPISODE|EP|E)\s*)?(\d{1,4}(?:\.\d)?)\b",

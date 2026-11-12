@@ -66,7 +66,6 @@ pub enum Choice {
     Expired,
 }
 
-
 /// A stored answer: the choice, plus the "always do this" checkbox.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Answer {
