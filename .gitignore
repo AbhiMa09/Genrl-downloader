@@ -57,3 +57,10 @@ __pycache__/
 audit/
 photo/
 app/test/failures/
+*.backup*
+*.main_window.py
+debug_*
+test_*.txt
+callback_method*.txt
+fixed_methods.txt
+__pycache__/
