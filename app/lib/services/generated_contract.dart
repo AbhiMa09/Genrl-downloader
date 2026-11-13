@@ -224,6 +224,22 @@ class GenrlContract {
       cli: 'genrl step',
       uiMethod: null,
     ),
+    CoreCommandMeta(
+      name: 'indexers',
+      description:
+          'Manage Torznab indexers (list, add, remove, test, set-enabled)',
+      internal: true,
+      cli: 'genrl indexers',
+      uiMethod: null,
+    ),
+    CoreCommandMeta(
+      name: 'media',
+      description:
+          'Manage non-anime movie and series media (search, add, list, remove)',
+      internal: true,
+      cli: 'genrl media',
+      uiMethod: null,
+    ),
   ];
 
   static const List<String> eventNames = [

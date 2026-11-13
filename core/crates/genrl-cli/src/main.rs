@@ -275,24 +275,23 @@ enum Command {
         #[arg(long)]
         json: bool,
     },
-}
 
-#[derive(Subcommand, Debug)]
-pub enum JobCommand {
-    /// Retry a failed or blocked job from the beginning (sets state to search).
-    Retry { job_id: i64 },
-    /// Cancel a job and remove any active torrent from qBittorrent.
-    Cancel {
-        job_id: i64,
-        #[arg(long)]
-        delete_files: bool,
+    /// Manage Torznab indexers.
+    Indexers {
+        #[command(subcommand)]
+        command: IndexersCommand,
     },
-    /// Retry all failed and blocked jobs.
-    RetryAll,
+
+    /// Manage non-anime movie and series media.
+    Media {
+        #[command(subcommand)]
+        command: MediaCommand,
+    },
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    check_forbidden_key_args()?;
     let cli = Cli::parse();
     let data_dir = match cli.data_dir {
         Some(dir) => dir,
@@ -310,7 +309,7 @@ async fn main() -> Result<()> {
 
     match cli.command {
         Command::Init => init(&data_dir),
-        Command::Settings { command } => settings_cmd(&data_dir, command),
+        Command::Settings { command } => settings_cmd(&data_dir, command).await,
         Command::Events {
             limit,
             errors_only,
@@ -481,5 +480,7 @@ async fn main() -> Result<()> {
             JobCommand::RetryAll => job_retry_all_cmd(&data_dir).await,
         },
         Command::Candidates { mal_id, json } => candidates_cmd(&data_dir, mal_id, json),
+        Command::Indexers { command } => indexers_cmd(&data_dir, command).await,
+        Command::Media { command } => media_cmd(&data_dir, command).await,
     }
 }

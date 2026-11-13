@@ -8,8 +8,8 @@ use crate::indexer::redact_secrets;
 use crate::indexer::types::MediaKind;
 use crate::metadata::provider_trait::MetadataProvider;
 use crate::metadata::tmdb_models::{
-    TmdbExternalIdsResponse, TmdbMovieSearchResponse, TmdbSeasonResponse, TmdbTvDetailsResponse,
-    TmdbTvSearchResponse,
+    TmdbExternalIdsResponse, TmdbMovieItem, TmdbMovieSearchResponse, TmdbSeasonResponse,
+    TmdbTvDetailsResponse, TmdbTvSearchResponse,
 };
 use crate::metadata::types::{EpisodeMetadata, ExternalIds, MediaMetadata};
 
@@ -60,6 +60,24 @@ impl TmdbClient {
 
         serde_json::from_str(&body)
             .map_err(|e| Error::Other(format!("failed to parse TMDB tv details: {e}")))
+    }
+
+    /// Retrieve full movie details.
+    pub async fn get_movie_details(&self, tmdb_id: u32) -> Result<TmdbMovieItem> {
+        let url = format!("{}/movie/{}", self.base_url, tmdb_id);
+        let params = [
+            ("api_key", self.api_key.as_str()),
+            ("include_adult", "false"),
+            ("language", "en-US"),
+        ];
+        let body = self
+            .fetch
+            .get_text(BREAKER_KEY, &url, &params)
+            .await
+            .map_err(|e| Error::Other(redact_secrets(&e.to_string())))?;
+
+        serde_json::from_str(&body)
+            .map_err(|e| Error::Other(format!("failed to parse TMDB movie details: {e}")))
     }
 }
 
@@ -121,6 +139,7 @@ impl MetadataProvider for TmdbClient {
                             status: None,
                             total_seasons: None,
                             total_episodes: None,
+                            overview: item.overview,
                             raw_json: None,
                         }
                     })
@@ -172,6 +191,7 @@ impl MetadataProvider for TmdbClient {
                             status: None,
                             total_seasons: None,
                             total_episodes: None,
+                            overview: item.overview,
                             raw_json: None,
                         }
                     })

@@ -32,6 +32,7 @@ pub struct MediaMetadata {
     pub status: Option<String>,
     pub total_seasons: Option<u32>,
     pub total_episodes: Option<u32>,
+    pub overview: Option<String>,
     pub raw_json: Option<String>,
 }
 

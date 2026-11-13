@@ -1,10 +1,18 @@
 use anyhow::{bail, Context, Result};
 use clap::Subcommand;
 use genrl_core::http::{Gate, Service};
+use genrl_core::indexer::config::{load_tmdb_key, save_tmdb_key};
+use genrl_core::indexer::fetch::GateFetch;
+use genrl_core::indexer::redact::redact_secrets;
+use genrl_core::indexer::types::MediaKind;
+use genrl_core::metadata::tmdb::TmdbClient;
+use genrl_core::metadata::MetadataProvider;
 use genrl_core::{settings, Db, EventLog, Settings};
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use super::common::{chrono_lite, open_db};
+use super::indexers::{check_forbidden_key_args, read_api_key_from_stdin_or_env};
 
 #[derive(Subcommand, Debug)]
 pub enum SettingsCommand {
@@ -16,6 +24,21 @@ pub enum SettingsCommand {
     Export { path: PathBuf },
     /// Import settings from a JSON file (validates first).
     Import { path: PathBuf },
+    /// Set TMDB API key from stdin or environment variable.
+    SetTmdbKey {
+        #[arg(long)]
+        key_env: Option<String>,
+    },
+    /// Test TMDB connectivity and key validity.
+    TestTmdb {
+        #[arg(long)]
+        json: bool,
+    },
+    /// Check whether TMDB API key is configured.
+    TmdbStatus {
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 pub fn init(data_dir: &Path) -> Result<()> {
@@ -40,7 +63,8 @@ pub fn count_settings(db: &Db) -> Result<i64> {
     })?)
 }
 
-pub fn settings_cmd(data_dir: &Path, command: SettingsCommand) -> Result<()> {
+pub async fn settings_cmd(data_dir: &Path, command: SettingsCommand) -> Result<()> {
+    check_forbidden_key_args()?;
     let db = open_db(data_dir)?;
     match command {
         SettingsCommand::Show => {
@@ -69,6 +93,84 @@ pub fn settings_cmd(data_dir: &Path, command: SettingsCommand) -> Result<()> {
             let settings = Settings::import_into(&path, &db)?;
             settings.validate()?;
             println!("imported from {}", path.display());
+        }
+        SettingsCommand::SetTmdbKey { key_env } => {
+            let key = read_api_key_from_stdin_or_env(key_env.as_deref())?;
+            save_tmdb_key(&key);
+            println!("TMDB API key stored successfully.");
+        }
+        SettingsCommand::TestTmdb { json } => {
+            let key = match load_tmdb_key() {
+                Some(k) => k,
+                None => {
+                    if json {
+                        println!(
+                            "{}",
+                            serde_json::to_string_pretty(&serde_json::json!({
+                                "ok": false,
+                                "error": "tmdb_not_configured",
+                                "message": "TMDB API key is not configured"
+                            }))?
+                        );
+                        return Ok(());
+                    } else {
+                        bail!("tmdb_not_configured: TMDB API key is not configured");
+                    }
+                }
+            };
+
+            let gate = Arc::new(Gate::new(db.clone())?);
+            let fetch = Arc::new(GateFetch::new(gate));
+            let base_url = std::env::var("GENRL_TMDB_BASE_URL")
+                .unwrap_or_else(|_| "https://api.themoviedb.org/3".to_string());
+            let client = TmdbClient::with_base_url(key, base_url, fetch);
+
+            match client.search("test", MediaKind::Movie, None).await {
+                Ok(_) => {
+                    if json {
+                        println!(
+                            "{}",
+                            serde_json::to_string_pretty(&serde_json::json!({ "ok": true }))?
+                        );
+                    } else {
+                        println!("TMDB connection test OK");
+                    }
+                }
+                Err(e) => {
+                    let err_msg = redact_secrets(&e.to_string());
+                    if json {
+                        println!(
+                            "{}",
+                            serde_json::to_string_pretty(&serde_json::json!({
+                                "ok": false,
+                                "error": err_msg
+                            }))?
+                        );
+                    } else {
+                        println!("TMDB connection test FAILED: {err_msg}");
+                    }
+                }
+            }
+        }
+        SettingsCommand::TmdbStatus { json } => {
+            let configured = load_tmdb_key().is_some();
+            if json {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&serde_json::json!({
+                        "configured": configured
+                    }))?
+                );
+            } else {
+                println!(
+                    "TMDB: {}",
+                    if configured {
+                        "configured"
+                    } else {
+                        "not configured"
+                    }
+                );
+            }
         }
     }
     Ok(())
@@ -224,6 +326,31 @@ pub fn doctor(data_dir: &Path) -> Result<()> {
             .map(chrono_lite)
             .unwrap_or_else(|| "never".to_string())
     );
+
+    // --- Torznab ---
+    let indexers = genrl_core::indexer::config::IndexerConfig::load_all(&db).unwrap_or_default();
+    if !indexers.is_empty() {
+        let count = indexers.len();
+        let any_failed = indexers.iter().any(|idx| {
+            idx.last_test_status
+                .as_deref()
+                .map(|s| s.starts_with("failed"))
+                .unwrap_or(false)
+                || !gate.would_allow_key(&format!("torznab:{}", idx.id))
+        });
+        println!(
+            "  Torznab    : {} ({} indexer{})",
+            if any_failed { "failed" } else { "ok" },
+            count,
+            if count == 1 { "" } else { "s" }
+        );
+    }
+
+    // --- TMDB ---
+    if genrl_core::indexer::config::load_tmdb_key().is_some() {
+        let tmdb_ok = gate.would_allow_key("tmdb");
+        println!("  TMDB       : {}", if tmdb_ok { "ok" } else { "failed" });
+    }
 
     let log = EventLog::new(db.clone());
     println!("  events     : {} stored", log.count()?);

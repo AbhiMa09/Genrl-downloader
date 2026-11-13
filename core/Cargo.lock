@@ -1006,9 +1006,11 @@ dependencies = [
  "insta",
  "rpassword",
  "rusqlite",
+ "serde",
  "serde_json",
  "tempfile",
  "tokio",
+ "wiremock",
 ]
 
 [[package]]

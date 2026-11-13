@@ -190,6 +190,18 @@
       "description": "Step a single queue job for debugging",
       "internal": true,
       "cli": "genrl step"
+    },
+    {
+      "name": "indexers",
+      "description": "Manage Torznab indexers (list, add, remove, test, set-enabled)",
+      "internal": true,
+      "cli": "genrl indexers"
+    },
+    {
+      "name": "media",
+      "description": "Manage non-anime movie and series media (search, add, list, remove)",
+      "internal": true,
+      "cli": "genrl media"
     }
   ],
   "queries": [

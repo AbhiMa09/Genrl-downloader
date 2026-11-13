@@ -21,6 +21,10 @@ pub struct IndexerConfig {
     pub api_key: Option<String>,
     pub enabled: bool,
     pub media_kinds: Vec<MediaKind>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_test_status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_test_at: Option<i64>,
 }
 
 impl fmt::Debug for IndexerConfig {
@@ -32,8 +36,51 @@ impl fmt::Debug for IndexerConfig {
             .field("api_key", &self.api_key.as_ref().map(|_| "[REDACTED]"))
             .field("enabled", &self.enabled)
             .field("media_kinds", &self.media_kinds)
+            .field("last_test_status", &self.last_test_status)
+            .field("last_test_at", &self.last_test_at)
             .finish()
     }
+}
+
+/// Validate indexer URLs: http or https only, no userinfo (user:pass@),
+/// no fragment, no query string containing key-like params (strip query string and refuse key-like params), max length 2048.
+pub fn validate_indexer_url(url_str: &str) -> Result<String> {
+    let trimmed = url_str.trim();
+    if trimmed.len() > 2048 {
+        return Err(crate::error::Error::Other(
+            "indexer URL exceeds maximum length of 2048 characters".into(),
+        ));
+    }
+    let parsed = url::Url::parse(trimmed)
+        .map_err(|e| crate::error::Error::Other(format!("invalid URL: {e}")))?;
+    if parsed.scheme() != "http" && parsed.scheme() != "https" {
+        return Err(crate::error::Error::Other(
+            "indexer URL must use http or https scheme".into(),
+        ));
+    }
+    if !parsed.username().is_empty() || parsed.password().is_some() {
+        return Err(crate::error::Error::Other(
+            "indexer URL must not contain userinfo (username or password)".into(),
+        ));
+    }
+    if parsed.fragment().is_some() {
+        return Err(crate::error::Error::Other(
+            "indexer URL must not contain URL fragments (#)".into(),
+        ));
+    }
+    if parsed.query().is_some() {
+        for (k, _) in parsed.query_pairs() {
+            let lower = k.to_ascii_lowercase();
+            if lower == "apikey" || lower == "api_key" || lower == "passkey" || lower == "key" {
+                return Err(crate::error::Error::Other(
+                    "indexer URL must not contain API key parameters in query string".into(),
+                ));
+            }
+        }
+    }
+    let mut clean = parsed;
+    clean.set_query(None);
+    Ok(clean.to_string().trim_end_matches('/').to_string())
 }
 
 impl IndexerConfig {
@@ -51,6 +98,8 @@ impl IndexerConfig {
             api_key,
             enabled: true,
             media_kinds,
+            last_test_status: None,
+            last_test_at: None,
         }
     }
 
@@ -219,6 +268,28 @@ pub fn delete_api_key(id: &str) {
     }
 }
 
+pub fn load_tmdb_key() -> Option<String> {
+    if let Ok(val) = std::env::var("GENRL_TMDB_KEY") {
+        if !val.trim().is_empty() {
+            return Some(val.trim().to_string());
+        }
+    }
+    if let Ok(val) = std::env::var("TMDB_API_KEY") {
+        if !val.trim().is_empty() {
+            return Some(val.trim().to_string());
+        }
+    }
+    load_api_key("tmdb")
+}
+
+pub fn save_tmdb_key(key: &str) {
+    save_api_key("tmdb", key);
+}
+
+pub fn delete_tmdb_key() {
+    delete_api_key("tmdb");
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -279,5 +350,45 @@ mod tests {
 
         std::env::remove_var("GENRL_INDEXER_PROWLARR_KEY");
         std::env::remove_var("GENRL_FORCE_NO_KEYRING");
+    }
+
+    #[test]
+    fn test_validate_indexer_url_rules() {
+        // Valid http/https
+        assert_eq!(
+            validate_indexer_url("http://127.0.0.1:9696/1/api").unwrap(),
+            "http://127.0.0.1:9696/1/api"
+        );
+        assert_eq!(
+            validate_indexer_url("https://prowlarr.myhome.org/").unwrap(),
+            "https://prowlarr.myhome.org"
+        );
+
+        // Strips safe query params
+        assert_eq!(
+            validate_indexer_url("http://localhost:9696/api?mode=search").unwrap(),
+            "http://localhost:9696/api"
+        );
+
+        // Reject non-http/https
+        assert!(validate_indexer_url("ftp://example.com/api").is_err());
+        assert!(validate_indexer_url("file:///etc/passwd").is_err());
+
+        // Reject userinfo
+        assert!(validate_indexer_url("http://admin:pass@localhost:9696").is_err());
+
+        // Reject fragments
+        assert!(validate_indexer_url("http://localhost:9696/api#fragment").is_err());
+
+        // Reject query string with apikey / api_key / passkey / key
+        assert!(validate_indexer_url("http://localhost:9696/api?apikey=12345").is_err());
+        assert!(validate_indexer_url("http://localhost:9696/api?api_key=12345").is_err());
+        assert!(validate_indexer_url("http://localhost:9696/api?passkey=12345").is_err());
+        assert!(validate_indexer_url("http://localhost:9696/api?KEY=12345").is_err());
+
+        // Reject exceeds 2048 chars
+        let long_path = "a".repeat(2050);
+        let long_url = format!("http://localhost:9696/{long_path}");
+        assert!(validate_indexer_url(&long_url).is_err());
     }
 }

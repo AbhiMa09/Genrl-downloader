@@ -309,6 +309,7 @@ fn test_season_0_specials_ignored_by_default_with_explicit_opt_in() {
                 air_date: Some("2025-01-01".to_string()),
             },
         ],
+        ..Default::default()
     };
 
     // By default (include_specials = false): season 0 is ignored

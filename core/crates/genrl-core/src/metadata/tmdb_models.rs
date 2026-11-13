@@ -75,10 +75,14 @@ pub struct TmdbSeasonSummary {
     pub air_date: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Default)]
 pub struct TmdbTvDetailsResponse {
     pub id: u32,
     pub name: String,
+    pub original_name: Option<String>,
+    pub first_air_date: Option<String>,
+    pub poster_path: Option<String>,
+    pub overview: Option<String>,
     pub status: Option<String>,
     pub number_of_seasons: Option<u32>,
     pub number_of_episodes: Option<u32>,

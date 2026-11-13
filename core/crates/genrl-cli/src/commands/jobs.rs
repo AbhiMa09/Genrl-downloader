@@ -1,9 +1,24 @@
 use anyhow::Result;
+use clap::Subcommand;
 use genrl_core::http::Gate;
 use genrl_core::{qbit, EventLog, Settings};
 use std::path::Path;
 
 use super::common::open_db;
+
+#[derive(Subcommand, Debug)]
+pub enum JobCommand {
+    /// Retry a failed or blocked job from the beginning (sets state to search).
+    Retry { job_id: i64 },
+    /// Cancel a job and remove any active torrent from qBittorrent.
+    Cancel {
+        job_id: i64,
+        #[arg(long)]
+        delete_files: bool,
+    },
+    /// Retry all failed and blocked jobs.
+    RetryAll,
+}
 
 pub async fn job_retry_cmd(data_dir: &Path, job_id: i64) -> Result<()> {
     let db = open_db(data_dir)?;

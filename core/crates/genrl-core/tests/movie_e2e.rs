@@ -762,7 +762,7 @@ async fn test_anime_e2e_flow_still_passes_unchanged() {
 }
 
 #[tokio::test]
-async fn test_anime_add_applies_genrl_anime_tag() {
+async fn test_anime_add_sends_no_tags() {
     std::env::set_var("GENRL_QBIT_PASSWORD", "test");
     let server = MockServer::start().await;
     let temp = tempfile::tempdir().expect("tempdir");

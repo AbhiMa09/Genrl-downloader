@@ -1,7 +1,9 @@
 pub mod common;
+pub mod indexers;
 pub mod jobs;
 pub mod locations;
 pub mod mal;
+pub mod media;
 pub mod metadata;
 pub mod planner;
 pub mod queue;
@@ -11,9 +13,11 @@ pub mod shows;
 pub mod system;
 pub mod torrents;
 
+pub use indexers::*;
 pub use jobs::*;
 pub use locations::*;
 pub use mal::*;
+pub use media::*;
 pub use metadata::*;
 pub use planner::*;
 pub use queue::*;
