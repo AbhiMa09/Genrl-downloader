@@ -85,3 +85,22 @@ pub struct TmdbTvDetailsResponse {
     #[serde(default)]
     pub seasons: Vec<TmdbSeasonSummary>,
 }
+
+impl TmdbTvDetailsResponse {
+    /// Count regular seasons (ignoring season 0 specials by default, unless include_specials is true).
+    pub fn regular_seasons_count(&self, include_specials: bool) -> u32 {
+        self.seasons
+            .iter()
+            .filter(|s| include_specials || s.season_number > 0)
+            .count() as u32
+    }
+
+    /// Total episodes across regular seasons (ignoring season 0 specials by default, unless include_specials is true).
+    pub fn total_episodes_count(&self, include_specials: bool) -> u32 {
+        self.seasons
+            .iter()
+            .filter(|s| include_specials || s.season_number > 0)
+            .map(|s| s.episode_count.unwrap_or(0))
+            .sum()
+    }
+}

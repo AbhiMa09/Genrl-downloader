@@ -176,3 +176,181 @@ fn test_media_repo_upsert_and_find() {
     assert_eq!(updated.status.as_deref(), Some("Returning Series"));
     assert_eq!(updated.updated_at, Some(now + 500));
 }
+
+#[tokio::test]
+async fn test_every_tmdb_request_sends_include_adult_false_and_language_en_us() {
+    let fetch = Arc::new(FakeFetch::new());
+    fetch.set_response(
+        "/search/movie",
+        include_str!("fixtures/tmdb/search_movie.json"),
+    );
+    fetch.set_response("/search/tv", include_str!("fixtures/tmdb/search_tv.json"));
+    fetch.set_response(
+        "/movie/693134/external_ids",
+        include_str!("fixtures/tmdb/external_ids_movie.json"),
+    );
+    fetch.set_response(
+        "/tv/126308/external_ids",
+        include_str!("fixtures/tmdb/external_ids_tv.json"),
+    );
+    fetch.set_response(
+        "/tv/126308/season/1",
+        include_str!("fixtures/tmdb/tv_season.json"),
+    );
+
+    let client = TmdbClient::new("TESTKEY", fetch.clone());
+    let _ = client.search("Dune", MediaKind::Movie, None).await.unwrap();
+    let _ = client
+        .search("Shogun", MediaKind::Series, None)
+        .await
+        .unwrap();
+    let _ = client
+        .get_external_ids(693134, MediaKind::Movie)
+        .await
+        .unwrap();
+    let _ = client
+        .get_external_ids(126308, MediaKind::Series)
+        .await
+        .unwrap();
+    let _ = client.get_season_episodes(126308, 1).await.unwrap();
+
+    let reqs = fetch.recorded_requests();
+    assert_eq!(reqs.len(), 5);
+    for req in reqs {
+        assert!(
+            req.contains("include_adult=false"),
+            "request missing include_adult=false: {req}"
+        );
+        assert!(
+            req.contains("language=en-US"),
+            "request missing language=en-US: {req}"
+        );
+    }
+}
+
+#[tokio::test]
+async fn test_tmdb_search_accepts_optional_year_and_sends_correct_param() {
+    let fetch = Arc::new(FakeFetch::new());
+    fetch.set_response(
+        "/search/movie",
+        include_str!("fixtures/tmdb/search_movie.json"),
+    );
+    fetch.set_response("/search/tv", include_str!("fixtures/tmdb/search_tv.json"));
+
+    let client = TmdbClient::new("TESTKEY", fetch.clone());
+
+    // 1. Movie with year -> sends year=2024
+    let _ = client
+        .search("Dune", MediaKind::Movie, Some(2024))
+        .await
+        .unwrap();
+    // 2. Movie without year -> does not send year=
+    let _ = client.search("Dune", MediaKind::Movie, None).await.unwrap();
+    // 3. TV with year -> sends first_air_date_year=2024
+    let _ = client
+        .search("Shogun", MediaKind::Series, Some(2024))
+        .await
+        .unwrap();
+    // 4. TV without year -> does not send first_air_date_year=
+    let _ = client
+        .search("Shogun", MediaKind::Series, None)
+        .await
+        .unwrap();
+
+    let reqs = fetch.recorded_requests();
+    assert!(
+        reqs[0].contains("year=2024"),
+        "movie with year must have year=2024"
+    );
+    assert!(
+        !reqs[1].contains("year="),
+        "movie without year must not have year="
+    );
+    assert!(
+        reqs[2].contains("first_air_date_year=2024"),
+        "tv with year must have first_air_date_year=2024"
+    );
+    assert!(
+        !reqs[3].contains("first_air_date_year="),
+        "tv without year must not have first_air_date_year="
+    );
+}
+
+#[test]
+fn test_season_0_specials_ignored_by_default_with_explicit_opt_in() {
+    use genrl_core::metadata::tmdb_models::{TmdbSeasonSummary, TmdbTvDetailsResponse};
+
+    let details = TmdbTvDetailsResponse {
+        id: 126308,
+        name: "Shōgun".to_string(),
+        status: Some("Ended".to_string()),
+        number_of_seasons: Some(2),
+        number_of_episodes: Some(18),
+        seasons: vec![
+            TmdbSeasonSummary {
+                id: 100,
+                season_number: 0, // Specials
+                name: Some("Specials".to_string()),
+                episode_count: Some(4),
+                air_date: Some("2024-01-01".to_string()),
+            },
+            TmdbSeasonSummary {
+                id: 101,
+                season_number: 1,
+                name: Some("Season 1".to_string()),
+                episode_count: Some(10),
+                air_date: Some("2024-02-27".to_string()),
+            },
+            TmdbSeasonSummary {
+                id: 102,
+                season_number: 2,
+                name: Some("Season 2".to_string()),
+                episode_count: Some(8),
+                air_date: Some("2025-01-01".to_string()),
+            },
+        ],
+    };
+
+    // By default (include_specials = false): season 0 is ignored
+    assert_eq!(details.regular_seasons_count(false), 2);
+    assert_eq!(details.total_episodes_count(false), 18);
+
+    // With explicit opt-in (include_specials = true): season 0 is included
+    assert_eq!(details.regular_seasons_count(true), 3);
+    assert_eq!(details.total_episodes_count(true), 22);
+}
+
+#[test]
+fn test_media_repo_upsert_same_kind_tmdb_id_updates_title_and_leaves_single_row() {
+    let db = Db::open_in_memory().unwrap();
+    let now = 1710000000;
+
+    let mut item = UpsertMedia::new(MediaKind::Movie, "Dune Part 2");
+    item.tmdb_id = Some(693134);
+
+    let id1 = upsert(&db, &item, now).expect("first upsert");
+
+    // Second upsert with updated title
+    item.title = "Dune: Part Two (Official)".to_string();
+    let id2 = upsert(&db, &item, now + 100).expect("second upsert");
+
+    assert_eq!(
+        id1, id2,
+        "upsert with same kind and tmdb_id must update existing row"
+    );
+
+    // Ensure only 1 row exists in media table
+    let count: i64 = db
+        .with(|c| {
+            Ok(
+                c.query_row("SELECT COUNT(*) FROM media WHERE kind = 'movie'", [], |r| {
+                    r.get(0)
+                })?,
+            )
+        })
+        .unwrap();
+    assert_eq!(count, 1, "exactly one row must remain in media table");
+
+    let record = find_by_id(&db, id1).expect("find").expect("exists");
+    assert_eq!(record.title, "Dune: Part Two (Official)");
+}

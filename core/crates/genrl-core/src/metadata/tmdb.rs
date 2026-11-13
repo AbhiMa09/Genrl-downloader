@@ -47,7 +47,11 @@ impl TmdbClient {
     /// Retrieve full TV show details including status and season summaries.
     pub async fn get_tv_details(&self, tmdb_id: u32) -> Result<TmdbTvDetailsResponse> {
         let url = format!("{}/tv/{}", self.base_url, tmdb_id);
-        let params = [("api_key", self.api_key.as_str()), ("language", "en-US")];
+        let params = [
+            ("api_key", self.api_key.as_str()),
+            ("include_adult", "false"),
+            ("language", "en-US"),
+        ];
         let body = self
             .fetch
             .get_text(BREAKER_KEY, &url, &params)
@@ -184,7 +188,11 @@ impl MetadataProvider for TmdbClient {
             MediaKind::Series | MediaKind::Anime => "tv",
         };
         let url = format!("{}/{}/{}/external_ids", self.base_url, endpoint, tmdb_id);
-        let params = [("api_key", self.api_key.as_str())];
+        let params = [
+            ("api_key", self.api_key.as_str()),
+            ("include_adult", "false"),
+            ("language", "en-US"),
+        ];
 
         let body = self
             .fetch
@@ -204,7 +212,11 @@ impl MetadataProvider for TmdbClient {
 
     async fn get_season_episodes(&self, tmdb_id: u32, season: u32) -> Result<Vec<EpisodeMetadata>> {
         let url = format!("{}/tv/{}/season/{}", self.base_url, tmdb_id, season);
-        let params = [("api_key", self.api_key.as_str()), ("language", "en-US")];
+        let params = [
+            ("api_key", self.api_key.as_str()),
+            ("include_adult", "false"),
+            ("language", "en-US"),
+        ];
 
         let body = self
             .fetch
