@@ -218,23 +218,64 @@ mod tests {
     }
 
     #[test]
+    fn test_missing_info_dict_rejected() {
+        let err = parse_torrent_info_hash(b"d4:name4:teste").unwrap_err();
+        assert!(err.to_string().contains("missing info dictionary"));
+    }
+
+    #[test]
+    fn test_exceeds_10mb_rejected() {
+        let huge = vec![b'd'; MAX_TORRENT_SIZE + 1];
+        let err = parse_torrent_info_hash(&huge).unwrap_err();
+        assert!(err.to_string().contains("10 MB limit"));
+    }
+
+    #[test]
+    fn test_nesting_depth_exceeded_rejected() {
+        let mut deeply_nested = b"d4:info".to_vec();
+        for _ in 0..35 {
+            deeply_nested.push(b'd');
+            deeply_nested.extend_from_slice(b"1:a");
+        }
+        deeply_nested.extend_from_slice(b"i1e");
+        for _ in 0..35 {
+            deeply_nested.push(b'e');
+        }
+        deeply_nested.push(b'e');
+        let err = parse_torrent_info_hash(&deeply_nested).unwrap_err();
+        assert!(err.to_string().contains("nesting depth"));
+    }
+
+    #[test]
     fn test_fuzz_garbage_never_panics() {
-        let mut data = vec![
+        let mut cases: Vec<Vec<u8>> = vec![
+            b"".to_vec(),
             b"d4:infoi123ee".to_vec(),
             b"d4:info4:teste".to_vec(),
             b"d4:info".to_vec(),
             b"i-001e".to_vec(),
-            b"9999999999:abc".to_vec(),
+            b"i99999999999999999999999999999999e".to_vec(),
+            b"9999999999999999999999999:abc".to_vec(),
+            b"-5:hello".to_vec(),
+            b"d-1:x".to_vec(),
             b"d".to_vec(),
             b"de".to_vec(),
             b"l".to_vec(),
             b"le".to_vec(),
             b"i0e".to_vec(),
+            b"ie".to_vec(),
+            b"d1:a".to_vec(),
+            b"l1:a".to_vec(),
+            b"d1:ai1e".to_vec(),
+            b"d4:infod6:pieces20:shortee".to_vec(),
+            b"d4:infod6:piecese".to_vec(),
+            b"\x00\xff\xfe\xfd".to_vec(),
         ];
-        for i in 0..15 {
-            data.push((0..i * 7).map(|b| (b * 31 % 255) as u8).collect());
+        for i in 1..=10 {
+            cases.push((0..i * 13).map(|b| (b * 47 % 255) as u8).collect());
         }
-        for bytes in &data {
+        assert!(cases.len() >= 30);
+        for bytes in &cases {
             let _ = parse_torrent_info_hash(bytes);
         }
     }

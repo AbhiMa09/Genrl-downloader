@@ -29,6 +29,7 @@ const PROWLARR_SECRET: &str = "PROWLARR_SECRET_1234567890abcdef";
 struct MockQbitState {
     adds: Vec<String>,
     multipart_received: bool,
+    received_bodies: Vec<String>,
     present: HashSet<String>,
     progress: HashMap<String, f64>,
     content_path: String,
@@ -89,7 +90,8 @@ struct TorrentsAdd {
 impl Respond for TorrentsAdd {
     fn respond(&self, request: &Request) -> ResponseTemplate {
         let mut guard = self.state.lock().unwrap();
-        let body_str = String::from_utf8_lossy(&request.body);
+        let body_str = String::from_utf8_lossy(&request.body).to_string();
+        guard.received_bodies.push(body_str.clone());
         if body_str.contains("torrents") || body_str.contains("name=\"torrents\"") {
             guard.multipart_received = true;
             guard.adds.push(self.expected_hash.clone());
@@ -397,6 +399,13 @@ async fn test_movie_e2e_full_flow() {
         );
         assert_eq!(guard.adds.len(), 1);
         assert_eq!(guard.adds[0], expected_hash);
+        assert!(
+            guard
+                .received_bodies
+                .iter()
+                .any(|b| b.contains("genrl:movie")),
+            "movie torrent add must include genrl:movie tag"
+        );
     }
 
     // Step 4: Monitor at 100% -> Finalize
@@ -742,4 +751,199 @@ async fn test_anime_e2e_flow_still_passes_unchanged() {
     assert_eq!(jobs.len(), 1);
     assert_eq!(jobs[0].media_kind.as_deref(), Some("anime"));
     assert!(jobs[0].episode_id.is_some());
+}
+
+#[tokio::test]
+async fn test_anime_add_applies_genrl_anime_tag() {
+    std::env::set_var("GENRL_QBIT_PASSWORD", "test");
+    let server = MockServer::start().await;
+    let temp = tempfile::tempdir().expect("tempdir");
+    let download_dir = temp.path().join("downloads");
+    std::fs::create_dir_all(&download_dir).expect("create downloads");
+
+    let db = Db::open_in_memory().expect("open db");
+    let mut settings = Settings::default();
+    settings.qbit_url = server.uri();
+    settings.download_folder = download_dir.display().to_string();
+    settings.save(&db).expect("save settings");
+
+    let qbit_state = Arc::new(Mutex::new(MockQbitState::default()));
+
+    Mock::given(method("GET"))
+        .and(path("/api/v2/app/version"))
+        .respond_with(ResponseTemplate::new(200).set_body_string("v5.2.4"))
+        .mount(&server)
+        .await;
+
+    Mock::given(method("POST"))
+        .and(path("/api/v2/auth/login"))
+        .respond_with(
+            ResponseTemplate::new(204).insert_header("Set-Cookie", "QBT_SID=mock_sid; path=/"),
+        )
+        .mount(&server)
+        .await;
+
+    Mock::given(method("POST"))
+        .and(path("/api/v2/torrents/add"))
+        .respond_with(TorrentsAdd {
+            state: Arc::clone(&qbit_state),
+            expected_hash: "1111111111111111111111111111111111111111".to_string(),
+        })
+        .mount(&server)
+        .await;
+
+    let clock = Arc::new(FakeClock::new(START_TIME));
+    let disk = Arc::new(FakeDiskProbe::new(500 * 1024 * 1024 * 1024));
+    let gate = Arc::new(
+        Gate::with_policies(db.clone(), &[fast(Service::Nyaa), fast(Service::Qbit)]).expect("gate"),
+    );
+
+    let finalizer = Arc::new(LibraryFinalizer::new(
+        db.clone(),
+        Arc::clone(&gate),
+        Arc::clone(&clock) as Arc<dyn Clock>,
+        temp.path().to_path_buf(),
+    ));
+
+    let engine = Engine::new(
+        db.clone(),
+        gate,
+        clock,
+        finalizer,
+        disk,
+        temp.path().to_path_buf(),
+    );
+
+    db.with(|c| {
+        c.execute(
+            "INSERT INTO shows (mal_id, title, start_year) VALUES (1, 'Frieren', 2023)",
+            [],
+        )?;
+        c.execute(
+            "INSERT INTO episodes (id, mal_id, number, state) VALUES (101, 1, 2.0, 'wanted')",
+            [],
+        )?;
+        c.execute(
+            "INSERT INTO torrents (id, info_hash, name, magnet) VALUES (1, '1111111111111111111111111111111111111111', 'Frieren - 02', 'magnet:?xt=urn:btih:1111111111111111111111111111111111111111')",
+            [],
+        )?;
+        c.execute(
+            "INSERT INTO jobs (id, episode_id, kind, media_kind, state, torrent_id, created_at, updated_at) VALUES (1, 101, 'add', 'anime', 'add', 1, ?1, ?1)",
+            [START_TIME],
+        )?;
+        Ok(())
+    }).unwrap();
+
+    let s = engine.step(1).await.expect("add step");
+    assert_eq!(s.to, JobState::Monitor);
+
+    let guard = qbit_state.lock().unwrap();
+    assert!(
+        guard
+            .received_bodies
+            .iter()
+            .any(|b| b.contains("genrl:anime") || b.contains("genrl%3Aanime")),
+        "anime add must include genrl:anime tag: {:?}",
+        guard.received_bodies
+    );
+}
+
+#[tokio::test]
+async fn test_torrent_url_download_failure_redacts_secrets() {
+    let server = MockServer::start().await;
+    let temp = tempfile::tempdir().expect("tempdir");
+    let download_dir = temp.path().join("downloads");
+    std::fs::create_dir_all(&download_dir).expect("create downloads");
+
+    let db = Db::open_in_memory().expect("open db");
+    let mut settings = Settings::default();
+    settings.qbit_url = server.uri();
+    settings.download_folder = download_dir.display().to_string();
+    settings.save(&db).expect("save settings");
+
+    let secret_token = "SUPER_SECRET_TOKEN_ABC123XYZ";
+    Mock::given(method("GET"))
+        .and(path("/download/failing.torrent"))
+        .respond_with(
+            ResponseTemplate::new(500).set_body_string("Internal server error with apikey"),
+        )
+        .mount(&server)
+        .await;
+
+    Mock::given(method("GET"))
+        .and(path("/api/v2/app/version"))
+        .respond_with(ResponseTemplate::new(200).set_body_string("v5.2.4"))
+        .mount(&server)
+        .await;
+
+    let clock = Arc::new(FakeClock::new(START_TIME));
+    let disk = Arc::new(FakeDiskProbe::new(500 * 1024 * 1024 * 1024));
+    let gate = Arc::new(
+        Gate::with_policies(db.clone(), &[fast(Service::Nyaa), fast(Service::Qbit)]).expect("gate"),
+    );
+
+    let finalizer = Arc::new(LibraryFinalizer::new(
+        db.clone(),
+        Arc::clone(&gate),
+        Arc::clone(&clock) as Arc<dyn Clock>,
+        temp.path().to_path_buf(),
+    ));
+
+    let engine = Engine::new(
+        db.clone(),
+        gate,
+        clock,
+        finalizer,
+        disk,
+        temp.path().to_path_buf(),
+    );
+
+    let failing_url = format!(
+        "{}/download/failing.torrent?apikey={secret_token}&cat=2000",
+        server.uri()
+    );
+
+    db.with(|c| {
+        c.execute(
+            "INSERT INTO media (id, kind, title, year, tmdb_id, status, created_at) VALUES (1, 'movie', 'Test Movie', 2024, 9999, 'wanted', ?1)",
+            [START_TIME],
+        )?;
+        c.execute(
+            "INSERT INTO torrents (id, info_hash, name, magnet) VALUES (1, 'placeholder_hash', 'Test.Movie.2024', ?1)",
+            [&failing_url],
+        )?;
+        c.execute(
+            "INSERT INTO jobs (id, media_kind, media_id, kind, state, torrent_id, created_at, updated_at) VALUES (1, 'movie', 1, 'add', 'add', 1, ?1, ?1)",
+            [START_TIME],
+        )?;
+        Ok(())
+    }).unwrap();
+
+    let _ = engine.step(1).await;
+
+    let (last_err, magnet): (Option<String>, String) = db
+        .with(|c| {
+            let err = c.query_row("SELECT last_error FROM jobs WHERE id = 1", [], |r| r.get(0))?;
+            let mag = c.query_row("SELECT magnet FROM torrents WHERE id = 1", [], |r| r.get(0))?;
+            Ok((err, mag))
+        })
+        .unwrap();
+
+    let err_msg = last_err.unwrap_or_default();
+    assert!(
+        !err_msg.contains(secret_token),
+        "job last_error must NOT contain secret token: {err_msg}"
+    );
+    assert!(
+        err_msg.contains("[REDACTED]"),
+        "job last_error must contain [REDACTED]: {err_msg}"
+    );
+    assert!(
+        !magnet.contains(secret_token),
+        "torrents table magnet must NOT contain secret token: {magnet}"
+    );
+    assert!(
+        magnet.contains("[REDACTED]"),
+        "torrents table magnet must contain [REDACTED]: {magnet}"
+    );
 }

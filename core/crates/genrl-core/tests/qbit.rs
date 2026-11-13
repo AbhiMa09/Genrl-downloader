@@ -491,6 +491,16 @@ async fn add_torrent_file_sends_multipart_with_torrents_and_fields() {
         .iter()
         .find(|r| r.url.path() == "/api/v2/torrents/add")
         .expect("add was called");
+    let ct = add
+        .headers
+        .iter()
+        .find(|(k, _)| k.as_str().eq_ignore_ascii_case("content-type"))
+        .map(|(_, v)| v.to_str().unwrap())
+        .expect("content-type header present");
+    assert!(
+        ct.starts_with("multipart/form-data; boundary="),
+        "content-type must specify boundary: {ct}"
+    );
     let body = String::from_utf8_lossy(&add.body);
     assert!(
         body.contains("name=\"torrents\"; filename=\"test_movie.torrent\""),

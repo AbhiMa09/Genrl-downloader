@@ -133,13 +133,34 @@ impl Db {
             if migration.version <= current {
                 continue;
             }
-            let tx = conn.transaction()?;
-            tx.execute_batch(migration.sql)?;
-            tx.execute(
-                "INSERT INTO schema_migrations (version, applied_at) VALUES (?1, ?2)",
-                rusqlite::params![migration.version, now_unix()],
-            )?;
-            tx.commit()?;
+            conn.execute_batch("PRAGMA foreign_keys = OFF;")?;
+            let run_migration = |c: &mut Connection| -> Result<()> {
+                let tx = c.transaction()?;
+                tx.execute_batch(migration.sql)?;
+                let mut stmt = tx.prepare("PRAGMA foreign_key_check")?;
+                let mut rows = stmt.query([])?;
+                if let Some(row) = rows.next()? {
+                    let table: String = row.get(0)?;
+                    let rowid: i64 = row.get(1)?;
+                    let parent: String = row.get(2)?;
+                    let fkid: i64 = row.get(3)?;
+                    return Err(Error::Other(format!(
+                        "migration {} broke foreign keys: {table} row {rowid} references {parent} (fk {fkid})",
+                        migration.version
+                    )));
+                }
+                drop(rows);
+                drop(stmt);
+                tx.execute(
+                    "INSERT INTO schema_migrations (version, applied_at) VALUES (?1, ?2)",
+                    rusqlite::params![migration.version, now_unix()],
+                )?;
+                tx.commit()?;
+                Ok(())
+            };
+            let res = run_migration(&mut conn);
+            let _ = conn.execute_batch("PRAGMA foreign_keys = ON;");
+            res?;
             tracing::info!(version = migration.version, "applied schema migration");
         }
         Ok(())

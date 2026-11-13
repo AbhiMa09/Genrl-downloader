@@ -1,4 +1,5 @@
 use rusqlite::Connection;
+use sha2::{Digest, Sha256};
 
 const MIGRATIONS_1_TO_10: &[&str] = &[
     include_str!("../src/db/migrations/001_init.sql"),
@@ -15,6 +16,31 @@ const MIGRATIONS_1_TO_10: &[&str] = &[
 
 const MIGRATION_11: &str = include_str!("../src/db/migrations/011_jobs_nullable_episode.sql");
 
+fn table_checksum(conn: &Connection, table: &str) -> (i64, String) {
+    let mut stmt = conn
+        .prepare(&format!("SELECT * FROM {table} ORDER BY rowid"))
+        .unwrap();
+    let col_count = stmt.column_count();
+    let mut hasher = Sha256::new();
+    let mut row_count = 0i64;
+    let mut rows = stmt.query([]).unwrap();
+    while let Some(row) = rows.next().unwrap() {
+        row_count += 1;
+        for i in 0..col_count {
+            let val: rusqlite::types::Value = row.get(i).unwrap();
+            hasher.update(format!("{val:?}").as_bytes());
+            hasher.update(b"|");
+        }
+        hasher.update(b"\n");
+    }
+    let hash: String = hasher
+        .finalize()
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect();
+    (row_count, hash)
+}
+
 #[test]
 fn test_migration_011_preserves_anime_jobs_and_passes_integrity_checks() {
     let mut conn = Connection::open_in_memory().unwrap();
@@ -27,12 +53,13 @@ fn test_migration_011_preserves_anime_jobs_and_passes_integrity_checks() {
         tx.commit().unwrap();
     }
 
-    // 2. Set up anime show, episodes, and torrents
+    // 2. Set up realistic anime data: shows, episodes, torrents, season_map, events
     conn.execute(
-        "INSERT INTO shows (mal_id, title) VALUES (1, 'Frieren')",
+        "INSERT INTO shows (mal_id, title, english_title, type, status, total_episodes, start_year, synopsis, poster_path, folder_path, auto, episode_offset, season)
+         VALUES (1, 'Frieren', 'Frieren: Beyond Journey''s End', 'tv', 'finished', 28, 2023, 'synopsis', 'poster.jpg', '/lib/Frieren', 1, 0, 1)",
         [],
-    )
-    .unwrap();
+    ).unwrap();
+
     conn.execute(
         "INSERT INTO episodes (id, mal_id, number, state) VALUES (101, 1, 1.0, 'missing')",
         [],
@@ -48,10 +75,24 @@ fn test_migration_011_preserves_anime_jobs_and_passes_integrity_checks() {
         [],
     )
     .unwrap();
+
     conn.execute(
         "INSERT INTO torrents (id, info_hash, name, magnet) VALUES (50, 'hash50', 'Frieren 02', 'magnet:?xt=urn:btih:hash50')",
         [],
     ).unwrap();
+
+    conn.execute(
+        "INSERT INTO season_map (mal_id, season_no, first_ep, last_ep, title, year, source, created_at)
+         VALUES (1, 1, 1, 28, 'Frieren', 2023, 'bundled', 1000)",
+        [],
+    ).unwrap();
+
+    conn.execute(
+        "INSERT INTO events (id, at, level, job_id, mal_id, message)
+         VALUES (1, 100, 'info', 1, 1, 'started search')",
+        [],
+    )
+    .unwrap();
 
     // 3. Insert several anime jobs with varying states, attempts, errors, etc.
     conn.execute(
@@ -69,6 +110,14 @@ fn test_migration_011_preserves_anime_jobs_and_passes_integrity_checks() {
          VALUES (3, 103, 'finalize', 'failed', 3, NULL, 'disk full', 50, 300, 350, 1.0, 340, NULL, 0, 'anime', NULL)",
         [],
     ).unwrap();
+    conn.execute(
+        "INSERT INTO jobs (id, episode_id, kind, state, attempts, next_run_at, last_error, torrent_id, created_at, updated_at, progress, last_progress_at, blocked_from, manual, media_kind, media_id)
+         VALUES (4, 101, 'search', 'search', 0, 4000, NULL, NULL, 400, 400, 0.0, NULL, NULL, 0, 'anime', NULL)",
+        [],
+    ).unwrap();
+
+    // Delete highest job id (4) to test AUTOINCREMENT sequence preservation
+    conn.execute("DELETE FROM jobs WHERE id = 4", []).unwrap();
 
     // Insert a child question referencing job 2
     conn.execute(
@@ -78,14 +127,72 @@ fn test_migration_011_preserves_anime_jobs_and_passes_integrity_checks() {
     )
     .unwrap();
 
-    // 4. Run migration 11
+    // Checksums of non-jobs tables before migration
+    let shows_before = table_checksum(&conn, "shows");
+    let episodes_before = table_checksum(&conn, "episodes");
+    let torrents_before = table_checksum(&conn, "torrents");
+    let season_map_before = table_checksum(&conn, "season_map");
+    let events_before = table_checksum(&conn, "events");
+    let questions_before = table_checksum(&conn, "questions");
+    let jobs_count_before: i64 = conn
+        .query_row("SELECT count(*) FROM jobs", [], |r| r.get(0))
+        .unwrap();
+
+    // 4. Run migration 11 using runner protocol (foreign_keys OFF outside tx, foreign_key_check inside tx, foreign_keys ON)
+    conn.execute_batch("PRAGMA foreign_keys = OFF;").unwrap();
     {
         let tx = conn.transaction().unwrap();
         tx.execute_batch(MIGRATION_11).unwrap();
+        let mut stmt = tx.prepare("PRAGMA foreign_key_check;").unwrap();
+        let mut rows = stmt.query([]).unwrap();
+        assert!(
+            rows.next().unwrap().is_none(),
+            "foreign key violations detected during migration 011"
+        );
+        drop(rows);
+        drop(stmt);
         tx.commit().unwrap();
     }
+    conn.execute_batch("PRAGMA foreign_keys = ON;").unwrap();
 
-    // 5. Verify all rows and column values in jobs survived unchanged
+    // 5. Verify row counts and checksums of EVERY table match before and after
+    assert_eq!(
+        shows_before,
+        table_checksum(&conn, "shows"),
+        "shows table altered by migration 011"
+    );
+    assert_eq!(
+        episodes_before,
+        table_checksum(&conn, "episodes"),
+        "episodes table altered by migration 011"
+    );
+    assert_eq!(
+        torrents_before,
+        table_checksum(&conn, "torrents"),
+        "torrents table altered by migration 011"
+    );
+    assert_eq!(
+        season_map_before,
+        table_checksum(&conn, "season_map"),
+        "season_map table altered by migration 011"
+    );
+    assert_eq!(
+        events_before,
+        table_checksum(&conn, "events"),
+        "events table altered by migration 011"
+    );
+    assert_eq!(
+        questions_before,
+        table_checksum(&conn, "questions"),
+        "questions table altered by migration 011"
+    );
+
+    let jobs_count_after: i64 = conn
+        .query_row("SELECT count(*) FROM jobs", [], |r| r.get(0))
+        .unwrap();
+    assert_eq!(jobs_count_before, jobs_count_after, "jobs count changed");
+
+    // 6. Verify jobs table row values
     conn.query_row(
         "SELECT id, episode_id, kind, state, attempts, next_run_at, last_error, torrent_id, created_at, updated_at, progress, last_progress_at, blocked_from, manual, media_kind, media_id FROM jobs WHERE id = 1",
         [],
@@ -134,39 +241,7 @@ fn test_migration_011_preserves_anime_jobs_and_passes_integrity_checks() {
         },
     ).unwrap();
 
-    conn.query_row(
-        "SELECT id, episode_id, kind, state, attempts, next_run_at, last_error, torrent_id, created_at, updated_at, progress, last_progress_at, blocked_from, manual, media_kind, media_id FROM jobs WHERE id = 3",
-        [],
-        |r| {
-            assert_eq!(r.get::<_, i64>(0)?, 3);
-            assert_eq!(r.get::<_, Option<i64>>(1)?, Some(103));
-            assert_eq!(r.get::<_, String>(2)?, "finalize");
-            assert_eq!(r.get::<_, String>(3)?, "failed");
-            assert_eq!(r.get::<_, i64>(4)?, 3);
-            assert_eq!(r.get::<_, Option<i64>>(5)?, None);
-            assert_eq!(r.get::<_, Option<String>>(6)?, Some("disk full".into()));
-            assert_eq!(r.get::<_, Option<i64>>(7)?, Some(50));
-            assert_eq!(r.get::<_, i64>(8)?, 300);
-            assert_eq!(r.get::<_, i64>(9)?, 350);
-            assert_eq!(r.get::<_, f64>(10)?, 1.0);
-            assert_eq!(r.get::<_, Option<i64>>(11)?, Some(340));
-            assert_eq!(r.get::<_, Option<String>>(12)?, None);
-            assert_eq!(r.get::<_, i64>(13)?, 0);
-            assert_eq!(r.get::<_, Option<String>>(14)?, Some("anime".into()));
-            assert_eq!(r.get::<_, Option<i64>>(15)?, None);
-            Ok(())
-        },
-    ).unwrap();
-
-    // Verify child question still exists and references job 2
-    let q_job_id: i64 = conn
-        .query_row("SELECT job_id FROM questions WHERE id = 1", [], |r| {
-            r.get(0)
-        })
-        .unwrap();
-    assert_eq!(q_job_id, 2);
-
-    // 6. PRAGMA foreign_key_check: must return 0 rows (clean)
+    // 7. PRAGMA integrity_check and foreign_key_check
     let fk_violations: Vec<String> = {
         let mut stmt = conn.prepare("PRAGMA foreign_key_check;").unwrap();
         let rows = stmt
@@ -184,35 +259,46 @@ fn test_migration_011_preserves_anime_jobs_and_passes_integrity_checks() {
     };
     assert!(
         fk_violations.is_empty(),
-        "foreign_key_check reported violations: {:?}",
+        "foreign_key_check failed: {:?}",
         fk_violations
     );
 
-    // 7. PRAGMA integrity_check: must return "ok"
     let integrity: String = conn
         .query_row("PRAGMA integrity_check;", [], |r| r.get(0))
         .unwrap();
     assert_eq!(integrity, "ok", "integrity_check failed: {integrity}");
 
-    // 8. Verify indexes on jobs exist
-    let mut indexes = Vec::new();
-    let mut stmt = conn.prepare("PRAGMA index_list('jobs');").unwrap();
-    let rows = stmt.query_map([], |r| r.get::<_, String>(1)).unwrap();
-    for r in rows {
-        indexes.push(r.unwrap());
-    }
+    // 8. AUTOINCREMENT sequence preservation test
+    conn.execute(
+        "INSERT INTO jobs (episode_id, kind, state, created_at, updated_at)
+         VALUES (101, 'search', 'search', 500, 500)",
+        [],
+    )
+    .unwrap();
+    let new_job_id: i64 = conn
+        .query_row("SELECT id FROM jobs ORDER BY id DESC LIMIT 1", [], |r| {
+            r.get(0)
+        })
+        .unwrap();
     assert!(
-        indexes.contains(&"idx_jobs_runnable".to_string()),
-        "missing idx_jobs_runnable: {:?}",
-        indexes
-    );
-    assert!(
-        indexes.contains(&"idx_jobs_episode".to_string()),
-        "missing idx_jobs_episode: {:?}",
-        indexes
+        new_job_id > 4,
+        "new job id {new_job_id} must be strictly greater than deleted id 4"
     );
 
-    // 9. Verify movie job with episode_id = NULL and media_id = Some(...) can be inserted
+    // 9. media_kind DEFAULT 'anime' verification
+    let new_job_media_kind: String = conn
+        .query_row(
+            "SELECT media_kind FROM jobs WHERE id = ?1",
+            [new_job_id],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        new_job_media_kind, "anime",
+        "inserting job without media_kind must default to 'anime'"
+    );
+
+    // 10. Nullable episode_id on non-anime movie job
     conn.execute(
         "INSERT INTO media (id, kind, title, year, created_at) VALUES (10, 'movie', 'Dune', 2021, 500)",
         [],
@@ -223,41 +309,78 @@ fn test_migration_011_preserves_anime_jobs_and_passes_integrity_checks() {
         [],
     )
     .unwrap();
-    let inserted_media_id: Option<i64> = conn
+    let movie_job: (Option<i64>, Option<i64>, String) = conn
         .query_row(
-            "SELECT media_id FROM jobs WHERE episode_id IS NULL",
+            "SELECT episode_id, media_id, media_kind FROM jobs WHERE media_id = 10",
             [],
-            |r| r.get(0),
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
         )
         .unwrap();
-    assert_eq!(inserted_media_id, Some(10));
+    assert_eq!(movie_job, (None, Some(10), "movie".into()));
 }
 
 #[test]
 fn test_migration_failure_leaves_db_untouched() {
     let mut conn = Connection::open_in_memory().unwrap();
-    // Run migration 1
-    let tx = conn.transaction().unwrap();
-    tx.execute_batch(MIGRATIONS_1_TO_10[0]).unwrap();
-    tx.commit().unwrap();
+    conn.execute_batch("PRAGMA foreign_keys = ON;").unwrap();
 
-    let initial_count: i64 = conn
-        .query_row("SELECT count(*) FROM shows", [], |r| r.get(0))
+    // Run migrations 1 through 10
+    for sql in MIGRATIONS_1_TO_10 {
+        let tx = conn.transaction().unwrap();
+        tx.execute_batch(sql).unwrap();
+        tx.commit().unwrap();
+    }
+
+    // Populate data
+    conn.execute(
+        "INSERT INTO shows (mal_id, title) VALUES (1, 'Frieren')",
+        [],
+    )
+    .unwrap();
+    conn.execute(
+        "INSERT INTO episodes (id, mal_id, number, state) VALUES (101, 1, 1.0, 'missing')",
+        [],
+    )
+    .unwrap();
+    conn.execute(
+        "INSERT INTO jobs (id, episode_id, kind, state, created_at, updated_at) VALUES (1, 101, 'search', 'search', 100, 100)",
+        [],
+    ).unwrap();
+
+    // Snapshot state before failed migration
+    let shows_before = table_checksum(&conn, "shows");
+    let episodes_before = table_checksum(&conn, "episodes");
+    let jobs_before = table_checksum(&conn, "jobs");
+    let user_version_before: i64 = conn
+        .query_row("PRAGMA user_version", [], |r| r.get(0))
         .unwrap();
 
-    // A failing migration inside a transaction
-    let result = (|| -> rusqlite::Result<()> {
+    // Simulate migration runner with an injected failing statement halfway through migration 011
+    conn.execute_batch("PRAGMA foreign_keys = OFF;").unwrap();
+    let res = (|| -> rusqlite::Result<()> {
         let tx = conn.transaction()?;
-        tx.execute("INSERT INTO shows (mal_id, title) VALUES (999, 'Test')", [])?;
-        tx.execute_batch("INVALID SQL THAT FAILS;")?;
+        tx.execute_batch("CREATE TABLE jobs_new (id INTEGER PRIMARY KEY);")?;
+        tx.execute_batch("INJECTED SYNTAX ERROR THAT ABORTS;")?;
         tx.commit()?;
         Ok(())
     })();
-    assert!(result.is_err());
+    conn.execute_batch("PRAGMA foreign_keys = ON;").unwrap();
+    assert!(res.is_err(), "migration must fail");
 
-    // Verify rollback left database untouched
-    let after_count: i64 = conn
-        .query_row("SELECT count(*) FROM shows", [], |r| r.get(0))
+    // Assert database is byte-for-byte / table-for-table untouched
+    assert_eq!(shows_before, table_checksum(&conn, "shows"));
+    assert_eq!(episodes_before, table_checksum(&conn, "episodes"));
+    assert_eq!(jobs_before, table_checksum(&conn, "jobs"));
+    let user_version_after: i64 = conn
+        .query_row("PRAGMA user_version", [], |r| r.get(0))
         .unwrap();
-    assert_eq!(initial_count, after_count);
+    assert_eq!(user_version_before, user_version_after);
+
+    // Foreign keys remain ON and clean
+    let fk_violations: Vec<String> = {
+        let mut stmt = conn.prepare("PRAGMA foreign_key_check;").unwrap();
+        let rows = stmt.query_map([], |r| r.get::<_, String>(0)).unwrap();
+        rows.map(|r| r.unwrap()).collect()
+    };
+    assert!(fk_violations.is_empty());
 }

@@ -256,7 +256,8 @@ impl Engine {
     ) -> Result<()> {
         let client = crate::qbit::Qbit::from_settings(settings)?;
         let tag_kind = job.media_kind.as_deref().unwrap_or("anime");
-        let tags = ["genrl", tag_kind];
+        let scoped_tag = format!("genrl:{tag_kind}");
+        let tags = ["genrl", scoped_tag.as_str()];
 
         let is_torrent_url =
             torrent.magnet.starts_with("http://") || torrent.magnet.starts_with("https://");
@@ -267,11 +268,21 @@ impl Engine {
                 .unwrap_or_else(|| "indexer:default".to_string());
             let fetched = match self.gate.get_keyed(&breaker_key, &torrent.magnet).await {
                 Ok(f) => f,
-                Err(err) if err.is_transient() || err.is_connection_failure() => {
-                    return Err(Error::Other(format!("indexer download unreachable: {err}")));
-                }
                 Err(err) => {
-                    return Err(Error::Other(format!("failed downloading .torrent: {err}")))
+                    let redacted_url = crate::indexer::redact_secrets(&torrent.magnet);
+                    let _ = self.db.with(|c| {
+                        c.execute(
+                            "UPDATE torrents SET magnet = ?1 WHERE magnet = ?2 OR info_hash = ?3",
+                            rusqlite::params![redacted_url, torrent.magnet, torrent.info_hash],
+                        )?;
+                        Ok(())
+                    });
+                    let msg = crate::indexer::redact_secrets(&err.to_string());
+                    if err.is_transient() || err.is_connection_failure() {
+                        return Err(Error::Other(format!("indexer download unreachable: {msg}")));
+                    } else {
+                        return Err(Error::Other(format!("failed downloading .torrent: {msg}")));
+                    }
                 }
             };
 

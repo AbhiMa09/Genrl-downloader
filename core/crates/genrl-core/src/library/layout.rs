@@ -182,4 +182,26 @@ mod tests {
             PathBuf::from("/library/Series/One Piece/Season 01/One Piece - S01E1054.mkv")
         );
     }
+
+    #[test]
+    fn test_anime_resolution_never_routes_into_movies_or_series() {
+        let temp = tempfile::tempdir().unwrap();
+        let db = crate::db::Db::open_in_memory().unwrap();
+        db.with(|c| {
+            c.execute(
+                "INSERT INTO shows (mal_id, title, start_year) VALUES (1, 'Frieren', 2023)",
+                [],
+            )?;
+            Ok(())
+        })
+        .unwrap();
+
+        let anime_folder =
+            crate::library::resolve_show_folder(&db, temp.path(), 1, "Frieren", Some(2023))
+                .unwrap();
+
+        assert_eq!(anime_folder, temp.path().join("Frieren (2023)"));
+        assert!(!anime_folder.starts_with(temp.path().join(MOVIES_SUBFOLDER)));
+        assert!(!anime_folder.starts_with(temp.path().join(SERIES_SUBFOLDER)));
+    }
 }
