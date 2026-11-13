@@ -38,7 +38,9 @@ pub fn sweep(db: &Db, clock: &dyn Clock) -> Result<usize> {
         } else if job.state != JobState::Failed {
             continue;
         }
-        crate::planner::mark_missing(db, job.episode_id)?;
+        if let Some(ep_id) = job.episode_id {
+            crate::planner::mark_missing(db, ep_id)?;
+        }
         released += 1;
     }
     Ok(released)

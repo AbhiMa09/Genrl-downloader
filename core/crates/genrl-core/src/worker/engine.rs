@@ -154,12 +154,26 @@ impl Engine {
     }
 
     pub(crate) fn context(&self, job: &Job) -> Result<JobContext> {
+        if let Some(media_id) = job.media_id {
+            let title = self.db.with(|c| {
+                Ok(
+                    c.query_row("SELECT title FROM media WHERE id = ?1", [media_id], |r| {
+                        r.get::<_, String>(0)
+                    })?,
+                )
+            })?;
+            return Ok(JobContext {
+                mal_id: 0,
+                number: 1.0,
+                title,
+            });
+        }
         let (mal_id, number, title) = self.db.with(|c| {
             Ok(c.query_row(
                 "SELECT e.mal_id, e.number, s.title
                  FROM episodes e JOIN shows s ON s.mal_id = e.mal_id
                  WHERE e.id = ?1",
-                [job.episode_id],
+                [job.episode_id.unwrap_or(0)],
                 |r| {
                     Ok((
                         r.get::<_, i64>(0)?,

@@ -27,6 +27,12 @@ impl Finalizer for LibraryFinalizer {
     ) -> Pin<Box<dyn Future<Output = Result<FinalizeOutcome>> + Send + 'a>> {
         Box::pin(async move {
             let settings = Settings::load(&self.db)?;
+            if let Some(kind) = context.job.media_kind.as_deref() {
+                if kind != "anime" {
+                    return super::media_finalizer::finalize_media(&self.db, context, &settings)
+                        .await;
+                }
+            }
             let source_path = Path::new(context.content_path);
             if !source_path.exists() {
                 return Err(Error::Other(format!(
@@ -67,20 +73,13 @@ impl Finalizer for LibraryFinalizer {
                 Ok(c.query_row(
                     "SELECT title, english_title, type, start_year, season, synopsis, poster_path, score, total_episodes, status FROM shows WHERE mal_id = ?1",
                     [context.mal_id],
-                    |r| {
-                        Ok((
-                            r.get::<_, String>(0)?,
-                            r.get::<_, Option<String>>(1)?,
-                            r.get::<_, String>(2)?,
-                            r.get::<_, Option<i64>>(3)?,
-                            r.get::<_, i64>(4)?,
-                            r.get::<_, Option<String>>(5)?,
-                            r.get::<_, Option<String>>(6)?,
-                            r.get::<_, Option<f64>>(7)?,
-                            r.get::<_, Option<i64>>(8)?,
-                            r.get::<_, Option<String>>(9)?,
-                        ))
-                    },
+                    |r| Ok((
+                        r.get::<_, String>(0)?, r.get::<_, Option<String>>(1)?,
+                        r.get::<_, String>(2)?, r.get::<_, Option<i64>>(3)?,
+                        r.get::<_, i64>(4)?, r.get::<_, Option<String>>(5)?,
+                        r.get::<_, Option<String>>(6)?, r.get::<_, Option<f64>>(7)?,
+                        r.get::<_, Option<i64>>(8)?, r.get::<_, Option<String>>(9)?,
+                    )),
                 )?)
             })?;
             let show_type = ShowType::parse(&show_type_str);

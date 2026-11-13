@@ -1,11 +1,10 @@
 use crate::error::{Error, Result};
 use crate::http::Service;
 use crate::jobs::{self, MoveOptions};
-use crate::matching::{self, TargetInputs};
+use crate::matching;
 use crate::models::{Job, JobState};
 use crate::qbit;
 use crate::questions::{MatchOption, Payload};
-use crate::rules::Rules;
 use crate::settings::Settings;
 
 use super::engine::Engine;
@@ -16,7 +15,8 @@ impl Engine {
 
     pub(crate) async fn search_step(&self, job: &Job) -> Result<JobState> {
         let context = self.context(job)?;
-        if !crate::metadata::is_resolved(&self.db, context.mal_id)? {
+        let is_movie = job.media_kind.as_deref() == Some("movie");
+        if !is_movie && !crate::metadata::is_resolved(&self.db, context.mal_id)? {
             let settings = Settings::load(&self.db)?;
             let store = crate::mal::KeyringStore;
             let mal = crate::mal::MalClient::new(
@@ -45,47 +45,30 @@ impl Engine {
             }
         }
         let settings = Settings::load(&self.db)?;
-        let inputs = TargetInputs::load(&self.db, context.mal_id)?;
+        let (_inputs, search_names) = self.job_search_queries(job, &context, &settings)?;
 
-        // A service that is out is not a failure: wait for the breaker. The
-        // pre-check is non-consuming, so when the cooldown elapses the next
-        // request claims the half-open probe and closes it on success.
-        if !self.gate.would_allow(Service::Nyaa) {
+        if !is_movie && !self.gate.would_allow(Service::Nyaa) {
             return self.block(job, "Nyaa's circuit breaker is open");
         }
 
-        let rules = Rules::for_show(&self.db, context.mal_id)?;
-        let is_pack_grab = self.is_pack_grab(context.mal_id, &settings)?;
-        let mut search_names = inputs.names.clone();
-        if is_pack_grab {
-            let mut pack_queries = Vec::new();
-            for n in &inputs.names {
-                pack_queries.push(n.clone());
-                pack_queries.push(format!("{n} batch"));
-                pack_queries.push(format!("{n} complete"));
+        let candidates = if is_movie {
+            match matching::search_candidates_for_kind(
+                &self.gate,
+                &settings,
+                &search_names,
+                1000,
+                1000,
+                crate::indexer::MediaKind::Movie,
+            )
+            .await
+            {
+                Ok(candidates) => candidates,
+                Err(err) if err.is_transient() || err.is_connection_failure() => {
+                    return self.block(job, &format!("indexer unreachable: {err}"));
+                }
+                Err(err) => return self.fail_or_reschedule(job, &format!("search failed: {err}")),
             }
-            search_names = pack_queries;
-        } else if inputs.fully_aired && rules.prefer_batch_when_finished {
-            let mut batch_queries = Vec::new();
-            for n in &inputs.names {
-                batch_queries.push(format!("{n} Batch"));
-                batch_queries.push(format!("{n} Season {}", inputs.season));
-            }
-            batch_queries.extend(search_names);
-            search_names = batch_queries;
         } else {
-            let ep_int = context.number as i64;
-            let mut ep_queries = Vec::new();
-            for n in &inputs.names {
-                ep_queries.push(format!("{n} - {ep_int}"));
-                ep_queries.push(format!("{n} {ep_int}"));
-                ep_queries.push(format!("{n} - {:02}", ep_int));
-                ep_queries.push(format!("{n} {:02}", ep_int));
-            }
-            search_names = ep_queries;
-        }
-
-        let candidates =
             match matching::search_candidates(&self.gate, &settings, &search_names, 1000, 1000)
                 .await
             {
@@ -94,7 +77,8 @@ impl Engine {
                     return self.block(job, &format!("Nyaa unreachable: {err}"));
                 }
                 Err(err) => return self.fail_or_reschedule(job, &format!("search failed: {err}")),
-            };
+            }
+        };
 
         if candidates.is_empty() {
             return self.fail_or_reschedule(job, "no candidates on any of the show's names");
@@ -116,7 +100,11 @@ impl Engine {
                     resolution: candidate.release.resolution.clone(),
                     source_url: None,
                     score: 0.0,
-                    mal_id: Some(context.mal_id),
+                    mal_id: if context.mal_id == 0 {
+                        None
+                    } else {
+                        Some(context.mal_id)
+                    },
                 },
             )?;
         }
@@ -148,10 +136,7 @@ impl Engine {
     pub(crate) async fn choose_step(&self, job: &Job) -> Result<JobState> {
         let context = self.context(job)?;
         let settings = Settings::load(&self.db)?;
-        let rules = Rules::for_show(&self.db, context.mal_id)?;
-        let inputs = TargetInputs::load(&self.db, context.mal_id)?;
-
-        let rows = self.candidate_rows(context.mal_id)?;
+        let (inputs, rows, rules) = self.choose_inputs(job, &context)?;
         if rows.is_empty() {
             return self.fail_or_reschedule(job, "no candidates left to choose from");
         }
@@ -176,7 +161,11 @@ impl Engine {
             })?;
         }
 
-        let is_pack_grab = self.is_pack_grab(context.mal_id, &settings)?;
+        let is_pack_grab = if job.media_kind.as_deref() == Some("movie") {
+            false
+        } else {
+            self.is_pack_grab(context.mal_id, &settings)?
+        };
 
         // Free-space guard: pack candidates must fit in usable free space.
         let (ranked, none_fit) = if is_pack_grab {
@@ -421,21 +410,14 @@ impl Engine {
         }
 
         let dl_save_path = download_path.display().to_string();
-        let client = qbit::Qbit::from_settings(&settings)?;
-        match client
-            .add(
-                &self.gate,
-                std::slice::from_ref(&torrent.magnet),
-                Some(&dl_save_path),
-                Some(CATEGORY),
-            )
+        if let Err(err) = self
+            .add_torrent_to_qbit(job, &torrent, &dl_save_path, CATEGORY, &settings)
             .await
         {
-            Ok(()) => {}
-            Err(err) if err.is_transient() || err.is_connection_failure() => {
+            if err.is_transient() || err.is_connection_failure() {
                 return self.block(job, &format!("qBittorrent refused the add: {err}"));
             }
-            Err(err) => return self.fail_or_reschedule(job, &format!("add failed: {err}")),
+            return self.fail_or_reschedule(job, &format!("add failed: {err}"));
         }
 
         let is_batch = self.is_proven_batch_release(&torrent.name);

@@ -461,3 +461,125 @@ fn from_settings_succeeds_when_keyring_unavailable() {
         "password must be None when keyring is unavailable"
     );
 }
+
+#[tokio::test]
+async fn add_torrent_file_sends_multipart_with_torrents_and_fields() {
+    let server = MockServer::start().await;
+    mount_login(&server, login_ok()).await;
+
+    Mock::given(method("POST"))
+        .and(path("/api/v2/torrents/add"))
+        .respond_with(ResponseTemplate::new(200))
+        .mount(&server)
+        .await;
+
+    let qbit = Qbit::new(&server.uri(), "admin", Some("pw".into()));
+    let torrent_bytes = b"d4:infod4:name4:test6:pieces0:ee";
+    qbit.add_torrent_file(
+        &gate(),
+        torrent_bytes,
+        "test_movie.torrent",
+        Some("/downloads/movies"),
+        Some("movies"),
+        &["genrl", "movies"],
+    )
+    .await
+    .unwrap();
+
+    let requests = server.received_requests().await.unwrap();
+    let add = requests
+        .iter()
+        .find(|r| r.url.path() == "/api/v2/torrents/add")
+        .expect("add was called");
+    let body = String::from_utf8_lossy(&add.body);
+    assert!(
+        body.contains("name=\"torrents\"; filename=\"test_movie.torrent\""),
+        "body should contain torrents part: {body}"
+    );
+    assert!(
+        body.contains("d4:infod4:name4:test6:pieces0:ee"),
+        "body should contain torrent bytes: {body}"
+    );
+    assert!(
+        body.contains("name=\"savepath\"") && body.contains("/downloads/movies"),
+        "body should contain savepath: {body}"
+    );
+    assert!(
+        body.contains("name=\"category\"") && body.contains("movies"),
+        "body should contain category: {body}"
+    );
+    assert!(
+        body.contains("name=\"tags\"") && body.contains("genrl,movies"),
+        "body should contain tags: {body}"
+    );
+}
+
+#[tokio::test]
+async fn add_torrent_file_relogs_in_on_403() {
+    let server = MockServer::start().await;
+    mount_login(&server, login_ok()).await;
+
+    let (hits, sequence) = Sequence::new(1, ResponseTemplate::new(403), ResponseTemplate::new(200));
+    Mock::given(method("POST"))
+        .and(path("/api/v2/torrents/add"))
+        .respond_with(sequence)
+        .mount(&server)
+        .await;
+
+    let qbit = Qbit::new(&server.uri(), "admin", Some("pw".into()));
+    qbit.add_torrent_file(
+        &gate(),
+        b"d4:infod4:name4:test6:pieces0:ee",
+        "retry.torrent",
+        Some("/downloads/movies"),
+        None,
+        &[],
+    )
+    .await
+    .unwrap();
+
+    assert_eq!(
+        hits.load(std::sync::atomic::Ordering::SeqCst),
+        2,
+        "403 then retried"
+    );
+
+    let requests = server.received_requests().await.unwrap();
+    let logins = requests
+        .iter()
+        .filter(|r| r.url.path() == "/api/v2/auth/login")
+        .count();
+    assert_eq!(logins, 1, "exactly one re-login triggered");
+}
+
+#[tokio::test]
+async fn post_multipart_500_trips_breaker() {
+    let server = MockServer::start().await;
+    Mock::given(method("POST"))
+        .and(path("/api/v2/torrents/add"))
+        .respond_with(ResponseTemplate::new(500).set_body_string("Internal Server Error"))
+        .mount(&server)
+        .await;
+
+    let gate_instance = gate();
+    let url = format!(
+        "{}/api/v2/torrents/add?apikey=SECRET1234567890",
+        server.uri()
+    );
+    let res = gate_instance
+        .post_multipart(
+            genrl_core::http::Service::Qbit,
+            &url,
+            &[],
+            ("torrents".into(), "fail.torrent".into(), b"data".to_vec()),
+            &genrl_core::http::GetOptions::default(),
+        )
+        .await;
+
+    assert!(res.is_err());
+    let err_str = res.unwrap_err().to_string();
+    assert!(
+        !err_str.contains("SECRET1234567890"),
+        "api_key must be redacted: {err_str}"
+    );
+}

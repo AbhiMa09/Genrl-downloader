@@ -59,6 +59,7 @@ pub mod season;
 pub mod season_map;
 pub mod secrets;
 pub mod settings;
+pub mod torrent;
 pub mod worker;
 
 pub use db::Db;

@@ -17,6 +17,7 @@ pub mod cache;
 pub mod dynamic;
 pub mod gate;
 pub mod limiter;
+pub mod multipart;
 pub mod policy;
 pub mod types;
 pub mod validate;

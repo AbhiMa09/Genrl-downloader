@@ -90,8 +90,42 @@ impl TargetInputs {
         self
     }
 
+    /// Create target inputs for a non-anime movie.
+    pub fn for_movie(title: &str, year: Option<i64>) -> Self {
+        TargetInputs {
+            mal_id: 0,
+            title: title.to_string(),
+            english_title: None,
+            start_year: year,
+            show_type: ShowType::Movie,
+            total_episodes: Some(1),
+            season: 1,
+            fully_aired: true,
+            auto: true,
+            names: vec![title.to_string()],
+            other_names: Vec::new(),
+            season_maps: Vec::new(),
+            missing_episodes: Vec::new(),
+            owned_episodes: Vec::new(),
+        }
+    }
+
     /// A `score::Target` for the wanted episode.
     pub fn score_target(&self, wanted_episode: Option<f64>) -> score::Target<'_> {
+        let kind = if self.mal_id == 0 && self.show_type == ShowType::Movie {
+            Some(crate::indexer::types::MediaKind::Movie)
+        } else {
+            None
+        };
+        self.score_target_for_kind(wanted_episode, kind)
+    }
+
+    /// A `score::Target` with explicit media kind.
+    pub fn score_target_for_kind(
+        &self,
+        wanted_episode: Option<f64>,
+        media_kind: Option<crate::indexer::types::MediaKind>,
+    ) -> score::Target<'_> {
         score::Target {
             names: &self.names,
             other_names: &self.other_names,
@@ -104,7 +138,7 @@ impl TargetInputs {
             season_maps: &self.season_maps,
             missing_episodes: &self.missing_episodes,
             owned_episodes: &self.owned_episodes,
-            media_kind: None,
+            media_kind,
         }
     }
 

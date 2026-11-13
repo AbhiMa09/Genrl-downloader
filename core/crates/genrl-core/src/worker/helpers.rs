@@ -93,30 +93,70 @@ impl Engine {
         if self.sibling_asking(job.id, &torrent.info_hash)? {
             return Ok(SizeGate::WaitingOnSibling);
         }
-        let inputs = crate::matching::TargetInputs::load(&self.db, mal_id)?;
-        let options = self
-            .candidate_rows(mal_id)?
-            .into_iter()
-            .filter(|c| c.info_hash == torrent.info_hash)
-            .map(|c| crate::questions::MatchOption {
-                info_hash: c.info_hash,
-                name: c.release.raw,
-                magnet: c.magnet,
-                group: c.release.group,
-                resolution: c.release.resolution,
-                seeders: c.seeders,
-                size_bytes: c.size_bytes,
+        let (expected, options) = if mal_id == 0 {
+            let (title, year) =
+                if let Some(mid) = job.media_id {
+                    self.db
+                        .with(|c| {
+                            use rusqlite::OptionalExtension;
+                            Ok(c.query_row(
+                                "SELECT title, year FROM media WHERE id = ?1",
+                                [mid],
+                                |r| Ok((r.get::<_, String>(0)?, r.get::<_, Option<i64>>(1)?)),
+                            )
+                            .optional()?)
+                        })?
+                        .unwrap_or_else(|| (torrent.name.clone(), None))
+                } else {
+                    (torrent.name.clone(), None)
+                };
+            let exp = crate::questions::ExpectedShow {
+                mal_id: 0,
+                title,
+                english_title: None,
+                year,
+            };
+            let opts = vec![crate::questions::MatchOption {
+                info_hash: torrent.info_hash.clone(),
+                name: torrent.name.clone(),
+                magnet: torrent.magnet.clone(),
+                group: None,
+                resolution: None,
+                seeders: 0,
+                size_bytes: torrent.size_bytes as u64,
                 signal: 0.0,
                 ranking: 0.0,
                 title_ratio: 0.0,
                 why: vec![REASON.into()],
-            })
-            .collect();
+            }];
+            (exp, opts)
+        } else {
+            let inputs = crate::matching::TargetInputs::load(&self.db, mal_id)?;
+            let opts = self
+                .candidate_rows(mal_id)?
+                .into_iter()
+                .filter(|c| c.info_hash == torrent.info_hash)
+                .map(|c| crate::questions::MatchOption {
+                    info_hash: c.info_hash,
+                    name: c.release.raw,
+                    magnet: c.magnet,
+                    group: c.release.group,
+                    resolution: c.release.resolution,
+                    seeders: c.seeders,
+                    size_bytes: c.size_bytes,
+                    signal: 0.0,
+                    ranking: 0.0,
+                    title_ratio: 0.0,
+                    why: vec![REASON.into()],
+                })
+                .collect();
+            (inputs.expected_show(), opts)
+        };
         self.ask(
             job,
             mal_id,
             Payload::MatchReview {
-                expected: inputs.expected_show(),
+                expected,
                 options,
                 reason: REASON.into(),
             },
@@ -164,7 +204,9 @@ impl Engine {
 
     /// If single-episode download is used, ensure sibling missing episodes have search jobs queued.
     pub(crate) fn enqueue_sibling_episodes_if_needed(&self, job: &Job, mal_id: i64) -> Result<()> {
-        let current_episode_id = job.episode_id;
+        let Some(current_episode_id) = job.episode_id else {
+            return Ok(());
+        };
         let manual = jobs::is_manual(&self.db, job.id)?;
         let missing_ids: Vec<i64> = self.db.with(|c| {
             let mut stmt = c.prepare(
@@ -299,7 +341,7 @@ impl Engine {
         let id = QuestionStore::ask(
             &self.db,
             Some(job.id),
-            Some(mal_id),
+            if mal_id > 0 { Some(mal_id) } else { None },
             &payload,
             now,
             Some(i64::from(settings.question_expiry_hours) * 3600),
@@ -341,10 +383,13 @@ impl Engine {
     }
 
     pub(crate) fn episode_mal_id(&self, job: &Job) -> Result<i64> {
+        let Some(episode_id) = job.episode_id else {
+            return Ok(0);
+        };
         self.db.with(|c| {
             Ok(c.query_row(
                 "SELECT mal_id FROM episodes WHERE id = ?1",
-                [job.episode_id],
+                [episode_id],
                 |r| r.get(0),
             )?)
         })
@@ -377,7 +422,7 @@ impl Engine {
             let mut stmt = c.prepare(
                 "SELECT name, info_hash, magnet, seeders, leechers, size, \"group\",
                         resolution, trusted, found_at
-                 FROM torrents WHERE mal_id = ?1 AND rejected = 0
+                 FROM torrents WHERE (mal_id = ?1 OR (mal_id IS NULL AND ?1 = 0)) AND rejected = 0
                  ORDER BY found_at DESC, seeders DESC LIMIT 50",
             )?;
             let rows = stmt.query_map([mal_id], |r| {

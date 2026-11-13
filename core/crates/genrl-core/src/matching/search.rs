@@ -17,23 +17,42 @@ use super::types::{TargetInputs, Verdict};
 /// This is the request-count control from Step 2: the main (romaji) name is
 /// asked first, and the translated and synonym names are only spent when the
 /// first did not turn up enough.
-use crate::indexer::{IndexerRegistry, MediaKind, NyaaAdapter, SearchQuery as IndexerQuery};
+use crate::indexer::{
+    config::IndexerConfig, fetch::GateFetch, torznab_client::TorznabClient, IndexerRegistry,
+    MediaKind, NyaaAdapter, SearchQuery as IndexerQuery,
+};
 
-pub async fn search_candidates(
+pub async fn search_candidates_for_kind(
     gate: &Gate,
     settings: &Settings,
     names: &[String],
     _per_name: usize,
     stop_after: usize,
+    kind: MediaKind,
 ) -> Result<Vec<Candidate>> {
     let mut registry = IndexerRegistry::new();
-    registry.add(
-        std::sync::Arc::new(NyaaAdapter::new(
-            std::sync::Arc::new(gate.clone()),
-            settings.clone(),
-        )),
-        vec![MediaKind::Anime],
-    );
+    if kind == MediaKind::Anime {
+        registry.add(
+            std::sync::Arc::new(NyaaAdapter::new(
+                std::sync::Arc::new(gate.clone()),
+                settings.clone(),
+            )),
+            vec![MediaKind::Anime],
+        );
+    }
+    if let Ok(configs) = IndexerConfig::load_all(gate.db()) {
+        for cfg in configs.into_iter().filter(|c| c.enabled) {
+            let fetch = std::sync::Arc::new(GateFetch::new(std::sync::Arc::new(gate.clone())));
+            let client = TorznabClient::new(
+                &cfg.id,
+                &cfg.base_url,
+                cfg.api_key.as_deref().unwrap_or(""),
+                fetch,
+                gate.db().clone(),
+            );
+            registry.add(std::sync::Arc::new(client), cfg.media_kinds);
+        }
+    }
 
     let mut seen: Vec<String> = Vec::new();
     let mut found: Vec<Candidate> = Vec::new();
@@ -42,7 +61,7 @@ pub async fn search_candidates(
         if found.len() >= stop_after {
             break;
         }
-        let query = IndexerQuery::new(name.as_str(), MediaKind::Anime);
+        let query = IndexerQuery::new(name.as_str(), kind);
         let releases = registry.search(&query).await?;
         for rel in releases.into_iter() {
             if let Some(ref hash) = rel.info_hash {
@@ -52,7 +71,8 @@ pub async fn search_candidates(
                 seen.push(hash.clone());
             }
             let release = filename::parse_release(&rel.title);
-            found.push(Candidate::from_indexer_release(&release, &rel));
+            let cand = Candidate::from_indexer_release(&release, &rel);
+            found.push(cand);
         }
     }
 
@@ -60,6 +80,24 @@ pub async fn search_candidates(
     found.sort_by_key(|a| std::cmp::Reverse(a.seeders));
     found.truncate(stop_after.max(1));
     Ok(found)
+}
+
+pub async fn search_candidates(
+    gate: &Gate,
+    settings: &Settings,
+    names: &[String],
+    per_name: usize,
+    stop_after: usize,
+) -> Result<Vec<Candidate>> {
+    search_candidates_for_kind(
+        gate,
+        settings,
+        names,
+        per_name,
+        stop_after,
+        MediaKind::Anime,
+    )
+    .await
 }
 
 /// A parsed feed item as a scoring candidate.

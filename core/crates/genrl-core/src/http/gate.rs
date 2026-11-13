@@ -18,7 +18,7 @@ pub(crate) struct ServiceState {
 }
 
 pub struct Gate {
-    client: reqwest::Client,
+    pub(crate) client: reqwest::Client,
     db: crate::Db,
     states: Mutex<HashMap<Service, Arc<ServiceState>>>,
     pub(crate) dynamic_states: Mutex<HashMap<String, Arc<ServiceState>>>,
@@ -94,7 +94,7 @@ impl Gate {
         &self.db
     }
 
-    fn state(&self, service: Service) -> Arc<ServiceState> {
+    pub(crate) fn state(&self, service: Service) -> Arc<ServiceState> {
         let map = self.states.lock().unwrap_or_else(|e| e.into_inner());
         map.get(&service)
             .cloned()

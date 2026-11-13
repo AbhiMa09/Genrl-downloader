@@ -106,7 +106,7 @@ fn insert_episode_and_job(db: &Db, mal_id: i64, number: f64) -> (i64, Job) {
 
     let job = Job {
         id: job_id,
-        episode_id,
+        episode_id: Some(episode_id),
         kind: JobKind::Finalize,
         state: JobState::Finalize,
         attempts: 0,
@@ -118,6 +118,8 @@ fn insert_episode_and_job(db: &Db, mal_id: i64, number: f64) -> (i64, Job) {
         progress: 1.0,
         last_progress_at: None,
         blocked_from: None,
+        media_kind: None,
+        media_id: None,
     };
     (episode_id, job)
 }

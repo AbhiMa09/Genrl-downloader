@@ -266,12 +266,28 @@ impl Qbit {
         save_path: Option<&str>,
         category: Option<&str>,
     ) -> Result<()> {
+        self.add_with_tags(gate, urls, save_path, category, &[])
+            .await
+    }
+
+    /// Add torrents with tags.
+    pub async fn add_with_tags(
+        &self,
+        gate: &Gate,
+        urls: &[String],
+        save_path: Option<&str>,
+        category: Option<&str>,
+        tags: &[&str],
+    ) -> Result<()> {
         let mut form = vec![("urls".to_string(), urls.join("\n"))];
         if let Some(save_path) = save_path {
             form.push(("savepath".to_string(), save_path.to_string()));
         }
         if let Some(category) = category {
             form.push(("category".to_string(), category.to_string()));
+        }
+        if !tags.is_empty() {
+            form.push(("tags".to_string(), tags.join(",")));
         }
         match self.post(gate, "/api/v2/torrents/add", &form).await {
             Ok(_) => Ok(()),
@@ -297,6 +313,50 @@ impl Qbit {
                 } else {
                     Err(err)
                 }
+            }
+            Err(err) => Err(err),
+        }
+    }
+
+    /// Upload a `.torrent` file directly via multipart POST to `/api/v2/torrents/add`.
+    pub async fn add_torrent_file(
+        &self,
+        gate: &Gate,
+        bytes: &[u8],
+        filename: &str,
+        save_path: Option<&str>,
+        category: Option<&str>,
+        tags: &[&str],
+    ) -> Result<()> {
+        let mut fields = Vec::new();
+        if let Some(sp) = save_path {
+            fields.push(("savepath".to_string(), sp.to_string()));
+        }
+        if let Some(cat) = category {
+            fields.push(("category".to_string(), cat.to_string()));
+        }
+        if !tags.is_empty() {
+            fields.push(("tags".to_string(), tags.join(",")));
+        }
+        let url = self.url("/api/v2/torrents/add");
+        let file_part = ("torrents".to_string(), filename.to_string(), bytes.to_vec());
+        let opts = self.opts(self.session().as_deref());
+
+        match gate
+            .post_multipart(Service::Qbit, &url, &fields, file_part.clone(), &opts)
+            .await
+        {
+            Ok(_) => Ok(()),
+            Err(Error::Status { status: 403, .. }) => {
+                self.login(gate).await?;
+                let opts = self.opts(self.session().as_deref());
+                gate.post_multipart(Service::Qbit, &url, &fields, file_part, &opts)
+                    .await
+                    .map(|_| ())
+            }
+            Err(Error::Status { status: 409, .. }) => {
+                tracing::info!("torrent already present in qBittorrent on 409 conflict");
+                Ok(())
             }
             Err(err) => Err(err),
         }

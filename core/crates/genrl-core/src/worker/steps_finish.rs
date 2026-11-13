@@ -183,20 +183,57 @@ impl Engine {
         } else {
             crate::locations::resolve_home_dir(&settings.library_folder)
         };
-        let (title, start_year) = self.db.with(|c| {
-            Ok(c.query_row(
-                "SELECT title, start_year FROM shows WHERE mal_id = ?1",
-                [context.mal_id],
-                |r| Ok((r.get::<_, String>(0)?, r.get::<_, Option<i64>>(1)?)),
-            )?)
-        })?;
-        let dest_show_dir = crate::library::resolve_show_folder(
-            &self.db,
-            &lib_root,
-            context.mal_id,
-            &title,
-            start_year,
-        )?;
+        let is_media = job
+            .media_kind
+            .as_deref()
+            .map(|k| k != "anime")
+            .unwrap_or(false);
+        let (title, start_year) = if is_media {
+            if let Some(media_id) = job.media_id {
+                self.db.with(|c| {
+                    Ok(c.query_row(
+                        "SELECT title, year FROM media WHERE id = ?1",
+                        [media_id],
+                        |r| Ok((r.get::<_, String>(0)?, r.get::<_, Option<i64>>(1)?)),
+                    )?)
+                })?
+            } else {
+                (context.title.clone(), None)
+            }
+        } else {
+            self.db.with(|c| {
+                Ok(c.query_row(
+                    "SELECT title, start_year FROM shows WHERE mal_id = ?1",
+                    [context.mal_id],
+                    |r| Ok((r.get::<_, String>(0)?, r.get::<_, Option<i64>>(1)?)),
+                )?)
+            })?
+        };
+        let dest_show_dir = if is_media {
+            if job.media_kind.as_deref() == Some("movie") {
+                let sanitized =
+                    crate::library::layout::sanitize_component(&title).unwrap_or(title.clone());
+                let folder_name = match start_year {
+                    Some(y) => format!("{sanitized} ({y})"),
+                    None => sanitized,
+                };
+                lib_root
+                    .join(crate::library::layout::MOVIES_SUBFOLDER)
+                    .join(folder_name)
+            } else {
+                lib_root
+                    .join(crate::library::layout::SERIES_SUBFOLDER)
+                    .join(&title)
+            }
+        } else {
+            crate::library::resolve_show_folder(
+                &self.db,
+                &lib_root,
+                context.mal_id,
+                &title,
+                start_year,
+            )?
+        };
 
         if !dest_show_dir.exists() {
             if let Err(e) = std::fs::create_dir_all(&dest_show_dir) {
@@ -239,7 +276,7 @@ impl Engine {
             .finalizer
             .finalize(&FinalizeContext {
                 job,
-                episode_id: job.episode_id,
+                episode_id: job.episode_id.unwrap_or(0),
                 mal_id: context.mal_id,
                 content_path: &content_path,
                 size_bytes,
@@ -266,33 +303,44 @@ impl Engine {
         };
 
         if target_covered {
-            let episode_file_size = match std::fs::metadata(&dest_path) {
-                Ok(meta) if meta.is_file() => meta.len() as i64,
-                _ => {
-                    let recorded: Option<Option<i64>> = self.db.with(|c| {
-                        use rusqlite::OptionalExtension;
-                        let s = c
-                            .query_row(
-                                "SELECT size FROM episodes WHERE id = ?1",
-                                [job.episode_id],
-                                |r| r.get::<_, Option<i64>>(0),
-                            )
-                            .optional()?;
-                        Ok(s)
-                    })?;
-                    match recorded.flatten() {
-                        Some(s) if s > 0 && s != size_bytes => s,
-                        _ => size_bytes,
+            if let Some(ep_id) = job.episode_id {
+                let episode_file_size = match std::fs::metadata(&dest_path) {
+                    Ok(meta) if meta.is_file() => meta.len() as i64,
+                    _ => {
+                        let recorded: Option<Option<i64>> = self.db.with(|c| {
+                            use rusqlite::OptionalExtension;
+                            let s = c
+                                .query_row(
+                                    "SELECT size FROM episodes WHERE id = ?1",
+                                    [ep_id],
+                                    |r| r.get::<_, Option<i64>>(0),
+                                )
+                                .optional()?;
+                            Ok(s)
+                        })?;
+                        match recorded.flatten() {
+                            Some(s) if s > 0 && s != size_bytes => s,
+                            _ => size_bytes,
+                        }
                     }
-                }
-            };
+                };
 
-            planner::mark_done(&self.db, job.episode_id, &dest_path, episode_file_size)?;
-        } else {
+                planner::mark_done(&self.db, ep_id, &dest_path, episode_file_size)?;
+            }
+            if let Some(media_id) = job.media_id {
+                self.db.with(|c| {
+                    c.execute(
+                        "UPDATE media SET status = 'downloaded' WHERE id = ?1",
+                        [media_id],
+                    )?;
+                    Ok(())
+                })?;
+            }
+        } else if let Some(ep_id) = job.episode_id {
             self.db.with(|c| {
                 c.execute(
                     "UPDATE episodes SET state = 'missing', file_path = NULL, size = NULL, torrent_id = NULL WHERE id = ?1",
-                    [job.episode_id],
+                    [ep_id],
                 )?;
                 Ok(())
             })?;

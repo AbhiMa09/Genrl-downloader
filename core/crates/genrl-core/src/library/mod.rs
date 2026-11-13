@@ -37,14 +37,21 @@
 mod finalizer;
 mod folders;
 mod formatting;
+pub mod fscheck;
 mod icons;
+pub mod layout;
+pub mod media_finalizer;
 mod rescan;
+pub mod select;
 mod service;
 mod types;
 
 pub use folders::*;
 pub use formatting::*;
+pub use fscheck::same_volume;
 pub use icons::*;
+pub use layout::{movie_path, series_path, MOVIES_SUBFOLDER, SERIES_SUBFOLDER};
 pub use rescan::*;
+pub use select::*;
 pub use service::*;
 pub use types::*;

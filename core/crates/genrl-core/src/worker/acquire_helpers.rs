@@ -1,4 +1,5 @@
-use crate::error::Result;
+use super::types::ChosenTorrent;
+use crate::error::{Error, Result};
 use crate::jobs::MoveOptions;
 use crate::models::{Job, JobState};
 use crate::questions::Payload;
@@ -95,13 +96,16 @@ impl Engine {
         job: &Job,
         torrent: &super::types::ChosenTorrent,
     ) -> Result<()> {
+        let Some(ep_id) = job.episode_id else {
+            return Ok(());
+        };
         self.db.with(|c| {
             c.execute(
                 "UPDATE episodes SET state = 'downloading', torrent_id = (
                      SELECT id FROM torrents WHERE info_hash = ?1
                  )
                  WHERE id = ?2",
-                rusqlite::params![torrent.info_hash, job.episode_id],
+                rusqlite::params![torrent.info_hash, ep_id],
             )?;
             Ok(())
         })
@@ -113,6 +117,9 @@ impl Engine {
         mal_id: i64,
         torrent: &super::types::ChosenTorrent,
     ) -> Result<()> {
+        let Some(ep_id) = job.episode_id else {
+            return Ok(());
+        };
         let release = crate::filename::parse_release(&torrent.name);
         let range = release.episode_range;
 
@@ -133,7 +140,7 @@ impl Engine {
                      SELECT id FROM torrents WHERE info_hash = ?1
                  )
                  WHERE id = ?2",
-                rusqlite::params![torrent.info_hash, job.episode_id],
+                rusqlite::params![torrent.info_hash, ep_id],
             )?;
 
             let sibling_jobs: Vec<i64> = match range {
@@ -237,5 +244,172 @@ impl Engine {
             return Ok(Some(next));
         }
         Ok(None)
+    }
+
+    pub(crate) async fn add_torrent_to_qbit(
+        &self,
+        job: &Job,
+        torrent: &ChosenTorrent,
+        save_path: &str,
+        category: &str,
+        settings: &Settings,
+    ) -> Result<()> {
+        let client = crate::qbit::Qbit::from_settings(settings)?;
+        let tag_kind = job.media_kind.as_deref().unwrap_or("anime");
+        let tags = ["genrl", tag_kind];
+
+        let is_torrent_url =
+            torrent.magnet.starts_with("http://") || torrent.magnet.starts_with("https://");
+        if is_torrent_url {
+            let breaker_key = reqwest::Url::parse(&torrent.magnet)
+                .ok()
+                .and_then(|u| u.host_str().map(|h| format!("indexer:{h}")))
+                .unwrap_or_else(|| "indexer:default".to_string());
+            let fetched = match self.gate.get_keyed(&breaker_key, &torrent.magnet).await {
+                Ok(f) => f,
+                Err(err) if err.is_transient() || err.is_connection_failure() => {
+                    return Err(Error::Other(format!("indexer download unreachable: {err}")));
+                }
+                Err(err) => {
+                    return Err(Error::Other(format!("failed downloading .torrent: {err}")))
+                }
+            };
+
+            if fetched.body.len() > crate::torrent::bencode::MAX_TORRENT_SIZE {
+                return Err(Error::Other("torrent file exceeds 10 MB cap".into()));
+            }
+
+            let torrent_info = crate::torrent::bencode::parse_torrent_info_hash(&fetched.body)?;
+            let computed_hash = &torrent_info.info_hash;
+
+            let redacted_url = crate::indexer::redact_secrets(&torrent.magnet);
+            self.db.with(|c| {
+                c.execute(
+                    "UPDATE torrents SET info_hash = ?1, magnet = ?2 WHERE info_hash = ?3 OR magnet = ?4",
+                    rusqlite::params![computed_hash, redacted_url, torrent.info_hash, torrent.magnet],
+                )?;
+                Ok(())
+            })?;
+
+            let sanitized = crate::library::layout::sanitize_component(&torrent.name)
+                .unwrap_or_else(|_| "download".to_string());
+            let filename = format!("{sanitized}.torrent");
+            client
+                .add_torrent_file(
+                    &self.gate,
+                    &fetched.body,
+                    &filename,
+                    Some(save_path),
+                    Some(category),
+                    &tags,
+                )
+                .await?;
+        } else {
+            client
+                .add_with_tags(
+                    &self.gate,
+                    std::slice::from_ref(&torrent.magnet),
+                    Some(save_path),
+                    Some(category),
+                    &tags,
+                )
+                .await?;
+        }
+        Ok(())
+    }
+
+    pub(crate) fn job_search_queries(
+        &self,
+        job: &Job,
+        context: &super::types::JobContext,
+        settings: &Settings,
+    ) -> Result<(crate::matching::TargetInputs, Vec<String>)> {
+        let is_movie = job.media_kind.as_deref() == Some("movie");
+        if is_movie {
+            let (title, year) = if let Some(media_id) = job.media_id {
+                self.db.with(|c| {
+                    Ok(c.query_row(
+                        "SELECT title, year FROM media WHERE id = ?1",
+                        [media_id],
+                        |r| Ok((r.get::<_, String>(0)?, r.get::<_, Option<i64>>(1)?)),
+                    )?)
+                })?
+            } else {
+                (context.title.clone(), None)
+            };
+            Ok((
+                crate::matching::TargetInputs::for_movie(&title, year),
+                vec![title],
+            ))
+        } else {
+            let inputs = crate::matching::TargetInputs::load(&self.db, context.mal_id)?;
+            let rules = Rules::for_show(&self.db, context.mal_id)?;
+            let is_pack_grab = self.is_pack_grab(context.mal_id, settings)?;
+            let mut search_names = inputs.names.clone();
+            if is_pack_grab {
+                let mut pack_queries = Vec::new();
+                for n in &inputs.names {
+                    pack_queries.push(n.clone());
+                    pack_queries.push(format!("{n} batch"));
+                    pack_queries.push(format!("{n} complete"));
+                }
+                search_names = pack_queries;
+            } else if inputs.fully_aired && rules.prefer_batch_when_finished {
+                let mut batch_queries = Vec::new();
+                for n in &inputs.names {
+                    batch_queries.push(format!("{n} Batch"));
+                    batch_queries.push(format!("{n} Season {}", inputs.season));
+                }
+                batch_queries.extend(search_names);
+                search_names = batch_queries;
+            } else {
+                let ep_int = context.number as i64;
+                let mut ep_queries = Vec::new();
+                for n in &inputs.names {
+                    ep_queries.push(format!("{n} - {ep_int}"));
+                    ep_queries.push(format!("{n} {ep_int}"));
+                    ep_queries.push(format!("{n} - {:02}", ep_int));
+                    ep_queries.push(format!("{n} {:02}", ep_int));
+                }
+                search_names = ep_queries;
+            }
+            Ok((inputs, search_names))
+        }
+    }
+
+    pub(crate) fn choose_inputs(
+        &self,
+        job: &Job,
+        context: &super::types::JobContext,
+    ) -> Result<(
+        crate::matching::TargetInputs,
+        Vec<crate::score::Candidate>,
+        Rules,
+    )> {
+        let is_movie = job.media_kind.as_deref() == Some("movie");
+        if is_movie {
+            let (title, year) = if let Some(media_id) = job.media_id {
+                self.db.with(|c| {
+                    Ok(c.query_row(
+                        "SELECT title, year FROM media WHERE id = ?1",
+                        [media_id],
+                        |r| Ok((r.get::<_, String>(0)?, r.get::<_, Option<i64>>(1)?)),
+                    )?)
+                })?
+            } else {
+                (context.title.clone(), None)
+            };
+            Ok((
+                crate::matching::TargetInputs::for_movie(&title, year),
+                self.candidate_rows(0)?,
+                Rules::default(),
+            ))
+        } else {
+            Ok((
+                crate::matching::TargetInputs::load(&self.db, context.mal_id)?,
+                self.candidate_rows(context.mal_id)?,
+                Rules::for_show(&self.db, context.mal_id)?,
+            ))
+        }
     }
 }

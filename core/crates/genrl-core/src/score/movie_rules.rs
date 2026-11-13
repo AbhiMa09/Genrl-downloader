@@ -193,57 +193,69 @@ pub fn evaluate_media(
     }
 
     // Episode / Feature match
-    match (target.wanted_episode, parsed.episode) {
-        (None, None) => {
-            signal += 30.0;
-            notes.push("feature / season pack: no episodes expected (+30.0)".into());
-        }
-        (None, Some(found)) => {
+    if target.media_kind == Some(crate::indexer::types::MediaKind::Movie)
+        || target.show_type == crate::models::ShowType::Movie
+    {
+        if let Some(found) = parsed.episode {
             if !parsed.is_batch {
                 return Err(Rejection::EpisodeOnAFeature { found });
             }
-            signal += 30.0;
-            notes.push("batch release for feature/series (+30.0)".into());
         }
-        (Some(wanted), Some(found)) => {
-            if (wanted - found).abs() <= f64::EPSILON {
+        signal += 30.0;
+        notes.push("feature: no episode expected (+30.0)".into());
+    } else {
+        match (target.wanted_episode, parsed.episode) {
+            (None, None) => {
                 signal += 30.0;
-                notes.push(format!("episode {found} matches (+30.0)"));
-            } else if parsed.is_batch || parsed.episode_range.is_some() {
-                if let Some((from, to)) = parsed.episode_range {
-                    if wanted >= from && wanted <= to {
-                        signal += 30.0;
-                        notes.push(format!(
-                            "batch range {from}-{to} covers episode {wanted} (+30.0)"
-                        ));
-                    } else {
-                        return Err(Rejection::WrongEpisode { wanted, found: to });
-                    }
-                } else {
-                    signal += 30.0;
-                    notes.push("batch covering wanted episode (+30.0)".into());
-                }
-            } else {
-                return Err(Rejection::WrongEpisode { wanted, found });
+                notes.push("feature / season pack: no episodes expected (+30.0)".into());
             }
-        }
-        (Some(wanted), None) => {
-            if parsed.is_batch || parsed.episode_range.is_some() {
-                if let Some((from, to)) = parsed.episode_range {
-                    if wanted >= from && wanted <= to {
-                        signal += 30.0;
-                        notes.push(format!(
-                            "batch range {from}-{to} covers episode {wanted} (+30.0)"
-                        ));
+            (None, Some(found)) => {
+                if !parsed.is_batch {
+                    return Err(Rejection::EpisodeOnAFeature { found });
+                }
+                signal += 30.0;
+                notes.push("batch release for feature/series (+30.0)".into());
+            }
+            (Some(wanted), Some(found)) => {
+                if (wanted - found).abs() <= f64::EPSILON {
+                    signal += 30.0;
+                    notes.push(format!("episode {found} matches (+30.0)"));
+                } else if parsed.is_batch || parsed.episode_range.is_some() {
+                    if let Some((from, to)) = parsed.episode_range {
+                        if wanted >= from && wanted <= to {
+                            signal += 30.0;
+                            notes.push(format!(
+                                "batch range {from}-{to} covers episode {wanted} (+30.0)"
+                            ));
+                        } else {
+                            return Err(Rejection::WrongEpisode { wanted, found: to });
+                        }
                     } else {
-                        return Err(Rejection::WrongEpisode { wanted, found: to });
+                        signal += 30.0;
+                        notes.push("batch covering wanted episode (+30.0)".into());
                     }
                 } else {
-                    signal += 30.0;
-                    notes.push("batch covering wanted episode (+30.0)".into());
+                    return Err(Rejection::WrongEpisode { wanted, found });
                 }
-            } else {
-                return Err(Rejection::WrongEpisode { wanted, found: 0.0 });
+            }
+            (Some(wanted), None) => {
+                if parsed.is_batch || parsed.episode_range.is_some() {
+                    if let Some((from, to)) = parsed.episode_range {
+                        if wanted >= from && wanted <= to {
+                            signal += 30.0;
+                            notes.push(format!(
+                                "batch range {from}-{to} covers episode {wanted} (+30.0)"
+                            ));
+                        } else {
+                            return Err(Rejection::WrongEpisode { wanted, found: to });
+                        }
+                    } else {
+                        signal += 30.0;
+                        notes.push("batch covering wanted episode (+30.0)".into());
+                    }
+                } else {
+                    return Err(Rejection::WrongEpisode { wanted, found: 0.0 });
+                }
             }
         }
     }

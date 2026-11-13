@@ -196,7 +196,7 @@ pub struct Torrent {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Job {
     pub id: i64,
-    pub episode_id: i64,
+    pub episode_id: Option<i64>,
     pub kind: JobKind,
     pub state: JobState,
     pub attempts: i64,
@@ -211,6 +211,8 @@ pub struct Job {
     pub last_progress_at: Option<i64>,
     /// The state a `blocked` job returns to once its blocker clears.
     pub blocked_from: Option<JobState>,
+    pub media_kind: Option<String>,
+    pub media_id: Option<i64>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]

@@ -21,6 +21,7 @@ tracing.workspace = true
 tracing-subscriber.workspace = true
 rand.workspace = true
 sha2.workspace = true
+sha1.workspace = true
 url.workspace = true
 bytes.workspace = true
 keyring.workspace = true

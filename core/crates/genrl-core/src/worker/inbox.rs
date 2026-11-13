@@ -177,9 +177,9 @@ pub fn apply_answer(
         Choice::PickAnother => Some(JobState::Search),
         Choice::Keep => {
             // Already on disk: the episode is owned, the job is done.
-            let (episode_id, path): (i64, Option<String>) = db.with(|c| {
+            let (episode_id, path): (Option<i64>, Option<String>) = db.with(|c| {
                 Ok(c.query_row(
-                    "SELECT j.episode_id, e.file_path FROM jobs j JOIN episodes e ON e.id = j.episode_id
+                    "SELECT j.episode_id, e.file_path FROM jobs j LEFT JOIN episodes e ON e.id = j.episode_id
                      WHERE j.id = ?1",
                     [job_id],
                     |r| Ok((r.get(0)?, r.get(1)?)),
@@ -190,7 +190,9 @@ pub fn apply_answer(
                 .and_then(|p| std::fs::metadata(p).ok())
                 .map(|m| m.len() as i64)
                 .unwrap_or(0);
-            planner::mark_done(db, episode_id, path.as_deref().unwrap_or(""), size)?;
+            if let Some(ep_id) = episode_id {
+                planner::mark_done(db, ep_id, path.as_deref().unwrap_or(""), size)?;
+            }
             Some(JobState::Done)
         }
         Choice::Replace | Choice::KeepBoth => {

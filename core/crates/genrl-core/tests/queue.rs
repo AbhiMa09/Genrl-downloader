@@ -1178,7 +1178,12 @@ async fn the_first_sync_previews_confirms_once_and_replans_without_duplicating()
 
     // Enqueuing the same episode again hands back the job that exists.
     let rows = jobs::list(&world.db, None, 10).expect("jobs");
-    let again = jobs::enqueue_search(&world.db, &world.clock, rows[0].episode_id).expect("enqueue");
+    let again = jobs::enqueue_search(
+        &world.db,
+        &world.clock,
+        rows[0].episode_id.expect("episode_id"),
+    )
+    .expect("enqueue");
     assert_eq!(again, rows[0].id, "idempotent by episode");
     assert_eq!(job_count(&world), 2, "still two jobs");
 }
