@@ -28,21 +28,19 @@ pub struct Rules {
     pub blocked_uploaders: Vec<String>,
     /// Languages you asked for; empty means no preference.
     pub preferred_languages: Vec<String>,
-    /// Size sanity range for a 24-minute episode. Catches fakes and mislabeled batches.
     pub min_size_mb: u64,
     pub max_size_mb: u64,
-    /// At or above this many seeders, download automatically.
+    pub movie_min_size_mb: u64,
+    pub movie_max_size_mb: u64,
+    pub episode_min_size_mb: u64,
+    pub episode_max_size_mb: u64,
     pub seed_auto_threshold: u32,
-    /// Between these seed counts the app asks (or flags, for auto-list shows).
     pub seed_ask_min: u32,
     pub seed_ask_max: u32,
-    /// Prefer a batch when the show has finished airing.
     pub prefer_batch_when_finished: bool,
-    /// Per-show override of the Plan to watch switch.
+    pub prefer_softsub: bool,
     pub auto_plan_to_watch: Option<bool>,
-    /// How finished files get into the library (hardlink vs move vs copy).
     pub move_mode: Option<crate::settings::MoveMode>,
-    /// Keep the torrent until it reaches this ratio.
     pub seed_ratio_target: Option<f64>,
 }
 
@@ -57,10 +55,15 @@ impl Default for Rules {
             preferred_languages: Vec::new(),
             min_size_mb: 100,
             max_size_mb: 4096,
+            movie_min_size_mb: 300,
+            movie_max_size_mb: 81_920,
+            episode_min_size_mb: 80,
+            episode_max_size_mb: 15_360,
             seed_auto_threshold: 10,
             seed_ask_min: 1,
             seed_ask_max: 9,
             prefer_batch_when_finished: true,
+            prefer_softsub: true,
             auto_plan_to_watch: None,
             move_mode: None,
             seed_ratio_target: None,
@@ -234,6 +237,10 @@ pub fn ensure_known_key(key: &str) -> Result<()> {
         "preferred_languages",
         "min_size_mb",
         "max_size_mb",
+        "movie_min_size_mb",
+        "movie_max_size_mb",
+        "episode_min_size_mb",
+        "episode_max_size_mb",
         "seed_auto_threshold",
         "seed_ask_min",
         "seed_ask_max",
@@ -241,6 +248,7 @@ pub fn ensure_known_key(key: &str) -> Result<()> {
         "auto_plan_to_watch",
         "move_mode",
         "seed_ratio_target",
+        "prefer_softsub",
     ];
     if KEYS.contains(&key) {
         Ok(())

@@ -48,6 +48,67 @@ pub fn evaluate_media(
 
     let parsed = parse_media_release(&candidate.release.raw);
 
+    // Reject low quality sources outright (CAM, HDCAM, TS, HDTS, TELESYNC, TC, TELECINE, SCR)
+    if parsed.is_cam {
+        let src = parsed.source.unwrap_or_else(|| "cam".to_string());
+        return Err(Rejection::LowQualitySource { source: src });
+    }
+
+    // Size sanity check
+    if candidate.size_bytes > 0 {
+        let size_mb = candidate.size_bytes / (1024 * 1024);
+        if target.media_kind == Some(crate::indexer::types::MediaKind::Movie) {
+            let min_mb = rules.movie_min_size_mb;
+            let max_mb = rules.movie_max_size_mb;
+            if size_mb < min_mb || size_mb > max_mb {
+                return Err(Rejection::SizeOutOfRange {
+                    size_mb,
+                    min_mb,
+                    max_mb,
+                });
+            }
+        } else {
+            // Series / TV
+            if parsed.is_batch {
+                let ep_count = parsed
+                    .episode_range
+                    .map(|(from, to)| (to - from + 1.0).max(1.0) as u64)
+                    .or(target.total_episodes.map(|t| t.max(1) as u64));
+
+                if let Some(count) = ep_count {
+                    let min_mb = rules.episode_min_size_mb.saturating_mul(count);
+                    let max_mb = rules.episode_max_size_mb.saturating_mul(count);
+                    if size_mb < min_mb || size_mb > max_mb {
+                        return Err(Rejection::SizeOutOfRange {
+                            size_mb,
+                            min_mb,
+                            max_mb,
+                        });
+                    }
+                } else {
+                    let min_mb = rules.episode_min_size_mb;
+                    if size_mb < min_mb {
+                        return Err(Rejection::SizeOutOfRange {
+                            size_mb,
+                            min_mb,
+                            max_mb: u64::MAX,
+                        });
+                    }
+                }
+            } else {
+                let min_mb = rules.episode_min_size_mb;
+                let max_mb = rules.episode_max_size_mb;
+                if size_mb < min_mb || size_mb > max_mb {
+                    return Err(Rejection::SizeOutOfRange {
+                        size_mb,
+                        min_mb,
+                        max_mb,
+                    });
+                }
+            }
+        }
+    }
+
     // Codec block
     if let Some(codec) = &parsed.codec {
         if rules
@@ -148,19 +209,41 @@ pub fn evaluate_media(
             if (wanted - found).abs() <= f64::EPSILON {
                 signal += 30.0;
                 notes.push(format!("episode {found} matches (+30.0)"));
-            } else if parsed.is_batch {
-                signal += 30.0;
-                notes.push("batch covering wanted episode (+30.0)".into());
+            } else if parsed.is_batch || parsed.episode_range.is_some() {
+                if let Some((from, to)) = parsed.episode_range {
+                    if wanted >= from && wanted <= to {
+                        signal += 30.0;
+                        notes.push(format!(
+                            "batch range {from}-{to} covers episode {wanted} (+30.0)"
+                        ));
+                    } else {
+                        return Err(Rejection::WrongEpisode { wanted, found: to });
+                    }
+                } else {
+                    signal += 30.0;
+                    notes.push("batch covering wanted episode (+30.0)".into());
+                }
             } else {
                 return Err(Rejection::WrongEpisode { wanted, found });
             }
         }
-        (Some(_wanted), None) => {
-            if parsed.is_batch {
-                signal += 30.0;
-                notes.push("batch covering wanted episode (+30.0)".into());
+        (Some(wanted), None) => {
+            if parsed.is_batch || parsed.episode_range.is_some() {
+                if let Some((from, to)) = parsed.episode_range {
+                    if wanted >= from && wanted <= to {
+                        signal += 30.0;
+                        notes.push(format!(
+                            "batch range {from}-{to} covers episode {wanted} (+30.0)"
+                        ));
+                    } else {
+                        return Err(Rejection::WrongEpisode { wanted, found: to });
+                    }
+                } else {
+                    signal += 30.0;
+                    notes.push("batch covering wanted episode (+30.0)".into());
+                }
             } else {
-                notes.push("no episode number found".into());
+                return Err(Rejection::WrongEpisode { wanted, found: 0.0 });
             }
         }
     }
@@ -186,14 +269,8 @@ pub fn evaluate_media(
         notes.push(note.into());
     }
 
-    // CAM / TS / TC heavy penalty: always ranks far below any real source
-    if parsed.is_cam {
-        ranking -= 100.0;
-        notes.push("CAM/TS/TC release penalty (-100.0)".into());
-    }
-
-    // Hardcoded subs penalty (user prefers softsub)
-    if parsed.is_hardcoded_subs {
+    // Hardcoded subs penalty (only when user prefers softsub)
+    if parsed.is_hardcoded_subs && rules.prefer_softsub {
         ranking -= 30.0;
         notes.push("hardcoded subs penalty (-30.0)".into());
     }

@@ -42,8 +42,17 @@ static S_ONLY_RX: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(?i)\bS(\d{1,2})([.\s_-]|$)").unwrap());
 static RES_RX: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(?i)\b(2160p|1080p|720p|480p|4k|uhd)\b").unwrap());
-static CAM_RX: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"(?i)\b(camrip|hdcam|hd-ts|hdts|telesync|cam)\b").unwrap());
+static CAM_RX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?i)\b(camrip|hdcam|hd-ts|hdts|telesync|ts|tc|telecine|dvdscr|scr|cam)\b").unwrap()
+});
+static CAM_TS_RX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?i)\b(ts|hd-ts|hdts)\b").unwrap());
+static CAM_TC_RX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?i)\b(tc|telecine)\b").unwrap());
+static CAM_SCR_RX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?i)\b(dvdscr|scr)\b").unwrap());
+static HARDSUB_RX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?i)\b(korsub|hc|hardsub|hardsubs|hardcoded)\b").unwrap());
+static DUAL_AUDIO_RX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?i)\b(dual[\s._-]?audio|multi[\s._-]?audio)\b").unwrap());
 static CODEC_RX: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(?i)\b(x265|h\.?265|hevc|x264|h\.?264|avc|av1)\b").unwrap());
 static AUDIO_RX: LazyLock<Regex> =
@@ -57,7 +66,7 @@ pub fn parse_media_release(raw_input: &str) -> MediaRelease {
     // 1. Remove file extension (.mkv, .mp4, etc.)
     if let Some((stem, ext)) = clean.rsplit_once('.') {
         let ext_lower = ext.to_ascii_lowercase();
-        if ["mkv", "mp4", "avi", "mov"].contains(&ext_lower.as_str()) {
+        if ["mkv", "mp4", "avi", "mov", "ts", "m4v"].contains(&ext_lower.as_str()) {
             clean = stem.to_string();
         }
     }
@@ -86,9 +95,7 @@ pub fn parse_media_release(raw_input: &str) -> MediaRelease {
     let is_cam = CAM_RX.is_match(&clean);
     let is_proper = clean.to_ascii_uppercase().contains("PROPER");
     let is_repack = clean.to_ascii_uppercase().contains("REPACK");
-    let is_hardcoded_subs = clean.to_ascii_uppercase().contains("KORSUB")
-        || clean.to_ascii_uppercase().contains("HC")
-        || clean.to_ascii_uppercase().contains("SUBBED");
+    let is_hardcoded_subs = HARDSUB_RX.is_match(&clean);
 
     // 4. Source
     let lower_clean = clean.to_ascii_lowercase();
@@ -110,6 +117,14 @@ pub fn parse_media_release(raw_input: &str) -> MediaRelease {
         Some("hdts".to_string())
     } else if lower_clean.contains("telesync") {
         Some("telesync".to_string())
+    } else if lower_clean.contains("telecine") {
+        Some("telecine".to_string())
+    } else if CAM_SCR_RX.is_match(&clean) {
+        Some("scr".to_string())
+    } else if CAM_TC_RX.is_match(&clean) {
+        Some("tc".to_string())
+    } else if CAM_TS_RX.is_match(&clean) {
+        Some("ts".to_string())
     } else if lower_clean.contains("cam") {
         Some("cam".to_string())
     } else if lower_clean.contains("hdrip") {
@@ -140,7 +155,11 @@ pub fn parse_media_release(raw_input: &str) -> MediaRelease {
     });
 
     // 7. Audio
-    let audio = AUDIO_RX.captures(&clean).map(|c| c[1].to_ascii_lowercase());
+    let audio = if DUAL_AUDIO_RX.is_match(&clean) {
+        Some("dual-audio".to_string())
+    } else {
+        AUDIO_RX.captures(&clean).map(|c| c[1].to_ascii_lowercase())
+    };
 
     // 8. Season, Episode, Batch
     let mut season = None;
@@ -179,37 +198,56 @@ pub fn parse_media_release(raw_input: &str) -> MediaRelease {
     let mut year = None;
     let mut boundary = clean.len();
 
-    // Check year position
-    if let Some(m) = YEAR_RX.find(&clean) {
-        if let Ok(y) = m.as_str().parse::<u32>() {
-            // Only treat as release year if it doesn't look like date YYYY.MM.DD in middle of title
+    let mut tag_boundary = clean.len();
+    if let Some(m) = S_RANGE_RX.find(&clean) {
+        tag_boundary = tag_boundary.min(m.start());
+    }
+    if let Some(m) = SE_RANGE_RX.find(&clean) {
+        tag_boundary = tag_boundary.min(m.start());
+    }
+    if let Some(m) = SE_RX.find(&clean) {
+        tag_boundary = tag_boundary.min(m.start());
+    }
+    if let Some(m) = X_EP_RX.find(&clean) {
+        tag_boundary = tag_boundary.min(m.start());
+    }
+    if let Some(m) = SEASON_WORD_RX.find(&clean) {
+        tag_boundary = tag_boundary.min(m.start());
+    }
+    if let Some(m) = S_ONLY_RX.find(&clean) {
+        tag_boundary = tag_boundary.min(m.start());
+    }
+    if let Some(m) = EP_ONLY_RX.find(&clean) {
+        tag_boundary = tag_boundary.min(m.start());
+    }
+    if let Some(m) = RES_RX.find(&clean) {
+        tag_boundary = tag_boundary.min(m.start());
+    }
+    if let Some(m) = CAM_RX.find(&clean) {
+        tag_boundary = tag_boundary.min(m.start());
+    }
+
+    let year_matches: Vec<_> = YEAR_RX.find_iter(&clean[..tag_boundary]).collect();
+    if year_matches.len() > 1 {
+        let last_m = year_matches.last().unwrap();
+        if let Ok(y) = last_m.as_str().parse::<u32>() {
             year = Some(y);
-            boundary = boundary.min(m.start());
+            boundary = boundary.min(last_m.start());
+        }
+    } else if let Some(m) = year_matches.first() {
+        if let Ok(y) = m.as_str().parse::<u32>() {
+            let after_year = clean[m.end()..tag_boundary]
+                .trim_matches(|c: char| c == '.' || c == ' ' || c == '_' || c == '-');
+            if m.start() == 0 && !after_year.is_empty() {
+                // e.g. "2001.A.Space.Odyssey..." with no second year: part of title
+            } else {
+                year = Some(y);
+                boundary = boundary.min(m.start());
+            }
         }
     }
 
-    // Season/episode markers also mark end of title
-    if let Some(m) = S_RANGE_RX.find(&clean) {
-        boundary = boundary.min(m.start());
-    }
-    if let Some(m) = SE_RANGE_RX.find(&clean) {
-        boundary = boundary.min(m.start());
-    }
-    if let Some(m) = SE_RX.find(&clean) {
-        boundary = boundary.min(m.start());
-    }
-    if let Some(m) = X_EP_RX.find(&clean) {
-        boundary = boundary.min(m.start());
-    }
-    if let Some(m) = SEASON_WORD_RX.find(&clean) {
-        boundary = boundary.min(m.start());
-    }
-    if let Some(m) = S_ONLY_RX.find(&clean) {
-        boundary = boundary.min(m.start());
-    }
-    if let Some(m) = EP_ONLY_RX.find(&clean) {
-        boundary = boundary.min(m.start());
-    }
+    boundary = boundary.min(tag_boundary);
 
     // Anime dash marker: "Title - 28"
     if episode.is_none() {
@@ -221,14 +259,6 @@ pub fn parse_media_release(raw_input: &str) -> MediaRelease {
                 }
             }
         }
-    }
-
-    // Quality/tag boundary
-    if let Some(m) = RES_RX.find(&clean) {
-        boundary = boundary.min(m.start());
-    }
-    if let Some(m) = CAM_RX.find(&clean) {
-        boundary = boundary.min(m.start());
     }
 
     let title_slice = &clean[..boundary];

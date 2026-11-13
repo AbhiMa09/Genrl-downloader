@@ -178,6 +178,9 @@ pub enum Rejection {
         covered_missing: u64,
         covered_owned: u64,
     },
+    LowQualitySource {
+        source: String,
+    },
 }
 
 impl fmt::Display for Rejection {
@@ -222,6 +225,9 @@ impl fmt::Display for Rejection {
                     f,
                     "wasteful overlap: covers {covered_owned} owned vs {covered_missing} missing"
                 )
+            }
+            Rejection::LowQualitySource { source } => {
+                write!(f, "source {source} is low quality (CAM/TS/TC/SCR)")
             }
         }
     }
