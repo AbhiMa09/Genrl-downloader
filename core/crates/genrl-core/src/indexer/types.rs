@@ -2,9 +2,10 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 /// Media categories supported by the application.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum MediaKind {
+    #[default]
     Anime,
     Movie,
     Series,

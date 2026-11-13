@@ -21,7 +21,7 @@ impl Gate {
         }
         let rate = if key.starts_with("tmdb") {
             super::policy::RateSpec {
-                permits_per_second: 4.0,
+                permits_per_second: 10.0,
                 burst: 10,
                 per_minute_cap: None,
                 jitter: false,

@@ -4,7 +4,9 @@
 //! on startup the core re-opens this database and reconciles against qBittorrent
 //! instead of trusting memory.
 
+pub mod media_repo;
 mod migrations;
+pub use media_repo::{MediaRecord, UpsertMedia};
 
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};

@@ -6,12 +6,20 @@ pub mod batch;
 pub mod fetch;
 pub mod models;
 pub mod poster;
+pub mod provider_trait;
+pub mod tmdb;
+pub mod tmdb_models;
+pub mod types;
 
 pub use apply::*;
 pub use batch::*;
 pub use fetch::*;
 pub use models::*;
 pub use poster::*;
+pub use provider_trait::*;
+pub use tmdb::*;
+pub use tmdb_models::*;
+pub use types::*;
 
 /// Download/search guards share the same resolution rule.
 pub fn is_resolved(db: &crate::Db, mal_id: i64) -> crate::Result<bool> {

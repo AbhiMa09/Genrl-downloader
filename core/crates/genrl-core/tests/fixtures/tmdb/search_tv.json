@@ -1,0 +1,23 @@
+{
+  "page": 1,
+  "results": [
+    {
+      "adult": false,
+      "backdrop_path": "/7cqKGQMnUTwt2k4d2qBf91T9D2i.jpg",
+      "genre_ids": [18, 10768],
+      "id": 126308,
+      "origin_country": ["US"],
+      "original_language": "en",
+      "original_name": "Shōgun",
+      "overview": "When a mysterious European ship is found marooned in a nearby fishing village, Lord Yoshii Toranaga discovers secrets that could tip the scales of power.",
+      "popularity": 320.12,
+      "poster_path": "/7O4iVfOMQmdCSxhOg1WNzG1AgYT.jpg",
+      "first_air_date": "2024-02-27",
+      "name": "Shōgun",
+      "vote_average": 8.52,
+      "vote_count": 1100
+    }
+  ],
+  "total_pages": 1,
+  "total_results": 1
+}
