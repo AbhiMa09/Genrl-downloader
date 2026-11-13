@@ -31,9 +31,70 @@ pub fn unix_secs_to_date_string(secs: i64) -> String {
     format!("{y:04}-{m:02}-{d:02}")
 }
 
-/// Fill `media_episodes` from TMDB season data.
+pub const DEFAULT_AIR_DATE_DELAY_DAYS: u32 = 1;
+
+pub fn is_leap_year(year: i32) -> bool {
+    year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
+}
+
+pub fn days_in_month(year: i32, month: u32) -> u32 {
+    match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 => {
+            if is_leap_year(year) {
+                29
+            } else {
+                28
+            }
+        }
+        _ => 30,
+    }
+}
+
+/// Calculate the latest aired date cutoff given today's date and a delay in days.
+/// TMDB dates are local to the broadcaster, so episodes are treated as aired
+/// only when air_date is at least delay_days in the past (default 1 day).
+pub fn air_date_cutoff(today: &str, delay_days: u32) -> String {
+    let parts: Vec<&str> = today.split('-').collect();
+    if parts.len() != 3 {
+        return today.to_string();
+    }
+    let mut year: i32 = match parts[0].parse() {
+        Ok(y) => y,
+        Err(_) => return today.to_string(),
+    };
+    let mut month: u32 = match parts[1].parse() {
+        Ok(m) => m,
+        Err(_) => return today.to_string(),
+    };
+    let mut day: u32 = match parts[2].parse() {
+        Ok(d) => d,
+        Err(_) => return today.to_string(),
+    };
+
+    let mut remaining = delay_days;
+    while remaining > 0 {
+        if day > remaining {
+            day -= remaining;
+            remaining = 0;
+        } else {
+            remaining -= day;
+            if month <= 1 {
+                month = 12;
+                year -= 1;
+            } else {
+                month -= 1;
+            }
+            day = days_in_month(year, month);
+        }
+    }
+    format!("{year:04}-{month:02}-{day:02}")
+}
+
+/// Fill `media_episodes` from TMDB season data with default 1-day broadcast delay.
 /// - Skips season 0 (specials).
-/// - Only episodes with air_date <= today are "wanted".
+/// - Only episodes with air_date <= cutoff (today - delay_days) are "wanted".
 /// - Null or future air_date counts as unaired.
 /// - Existing episodes with state='done' are preserved.
 pub fn sync_tmdb_episodes(
@@ -42,6 +103,18 @@ pub fn sync_tmdb_episodes(
     episodes: &[EpisodeMetadata],
     today: &str,
 ) -> Result<()> {
+    sync_tmdb_episodes_with_delay(db, media_id, episodes, today, DEFAULT_AIR_DATE_DELAY_DAYS)
+}
+
+/// Fill `media_episodes` from TMDB season data with configurable broadcast delay in days.
+pub fn sync_tmdb_episodes_with_delay(
+    db: &Db,
+    media_id: i64,
+    episodes: &[EpisodeMetadata],
+    today: &str,
+    delay_days: u32,
+) -> Result<()> {
+    let cutoff = air_date_cutoff(today, delay_days);
     db.with(|c| {
         let tx = c.unchecked_transaction()?;
         for ep in episodes {
@@ -51,7 +124,7 @@ pub fn sync_tmdb_episodes(
             let is_aired = ep
                 .air_date
                 .as_deref()
-                .map(|d| !d.is_empty() && d <= today)
+                .map(|d| !d.is_empty() && d <= cutoff.as_str())
                 .unwrap_or(false);
 
             let initial_state = if is_aired { "wanted" } else { "unaired" };
@@ -95,11 +168,20 @@ pub fn is_covering_pack(
         }
     });
 
-    if cand_season != season {
+    let covers_season = if cand_season == season {
+        true
+    } else if let Some((start, end)) = candidate.release.season_range {
+        season >= start && season <= end
+    } else {
+        false
+    };
+
+    if !covers_season {
         return false;
     }
 
     let is_pack = candidate.release.is_batch
+        || candidate.release.season_range.is_some()
         || candidate.release.episode_range.is_some()
         || candidate
             .release
@@ -125,6 +207,7 @@ pub fn is_covering_pack(
         false
     } else {
         candidate.release.is_batch
+            || candidate.release.season_range.is_some()
             || candidate
                 .release
                 .raw
@@ -145,13 +228,14 @@ pub fn plan_season_jobs(
     today: &str,
     total_season_episodes: Option<u32>,
 ) -> Result<Vec<PlannedSeriesJob>> {
+    let cutoff = air_date_cutoff(today, DEFAULT_AIR_DATE_DELAY_DAYS);
     let rows: Vec<(u32, String)> = db.with(|c| {
         let mut stmt = c.prepare(
             "SELECT episode, state FROM media_episodes
              WHERE media_id = ?1 AND season = ?2 AND air_date IS NOT NULL AND length(trim(air_date)) > 0 AND air_date <= ?3
              ORDER BY episode",
         )?;
-        let mapped = stmt.query_map(rusqlite::params![media_id, season, today], |r| {
+        let mapped = stmt.query_map(rusqlite::params![media_id, season, cutoff], |r| {
             Ok((r.get::<_, u32>(0)?, r.get::<_, String>(1)?))
         })?;
         let mut list = Vec::new();

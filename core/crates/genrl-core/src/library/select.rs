@@ -203,6 +203,12 @@ pub fn select_series_pack_files(files: &[TorrentFile]) -> Result<SelectedSeriesP
         }
     }
 
+    if episodes.is_empty() {
+        return Err(Error::Other(
+            "no episodes could be mapped in series pack (unparseable file names)".into(),
+        ));
+    }
+
     episodes.sort_by(|a, b| {
         a.season.cmp(&b.season).then_with(|| {
             a.episode

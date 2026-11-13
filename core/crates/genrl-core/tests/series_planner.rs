@@ -299,3 +299,110 @@ fn test_series_planner_null_air_date_not_planned() {
         "No jobs must be planned for null air_date episodes"
     );
 }
+
+#[test]
+fn test_series_planner_air_date_today_not_wanted_yesterday_wanted() {
+    let db = Db::open_in_memory().unwrap();
+    let today = "2024-03-15"; // Cutoff with 1 day delay is 2024-03-14
+
+    let media_id = db.with(|c| {
+        c.execute(
+            "INSERT INTO media (kind, title, year, created_at) VALUES ('series', 'The Studio', 2024, 1000)",
+            [],
+        )?;
+        Ok(c.last_insert_rowid())
+    }).unwrap();
+
+    let episodes = vec![
+        EpisodeMetadata {
+            season: 1,
+            episode: 1,
+            title: "Ep 1 Yesterday".into(),
+            air_date: Some("2024-03-14".into()), // yesterday
+        },
+        EpisodeMetadata {
+            season: 1,
+            episode: 2,
+            title: "Ep 2 Today".into(),
+            air_date: Some("2024-03-15".into()), // today
+        },
+        EpisodeMetadata {
+            season: 1,
+            episode: 3,
+            title: "Ep 3 Tomorrow".into(),
+            air_date: Some("2024-03-16".into()), // future
+        },
+    ];
+
+    sync_tmdb_episodes(&db, media_id, &episodes, today).unwrap();
+
+    let (ep1_state, ep2_state, ep3_state): (String, String, String) = db
+        .with(|c| {
+            let ep1 = c.query_row(
+                "SELECT state FROM media_episodes WHERE media_id = ?1 AND episode = 1",
+                [media_id],
+                |r| r.get(0),
+            )?;
+            let ep2 = c.query_row(
+                "SELECT state FROM media_episodes WHERE media_id = ?1 AND episode = 2",
+                [media_id],
+                |r| r.get(0),
+            )?;
+            let ep3 = c.query_row(
+                "SELECT state FROM media_episodes WHERE media_id = ?1 AND episode = 3",
+                [media_id],
+                |r| r.get(0),
+            )?;
+            Ok((ep1, ep2, ep3))
+        })
+        .unwrap();
+
+    assert_eq!(
+        ep1_state, "wanted",
+        "Episode aired yesterday (at least 1 day in past) must be wanted"
+    );
+    assert_eq!(
+        ep2_state, "unaired",
+        "Episode airing today must be unaired due to broadcaster timezone delay"
+    );
+    assert_eq!(
+        ep3_state, "unaired",
+        "Episode airing tomorrow must be unaired"
+    );
+}
+
+#[test]
+fn test_series_planner_multi_season_pack_accepted_for_wanted_season() {
+    let db = Db::open_in_memory().unwrap();
+    let today = "2024-03-15";
+
+    let media_id = db.with(|c| {
+        c.execute(
+            "INSERT INTO media (kind, title, year, created_at) VALUES ('series', 'Dark', 2017, 1000)",
+            [],
+        )?;
+        Ok(c.last_insert_rowid())
+    }).unwrap();
+
+    // 8 episodes for Season 2, all aired in 2019
+    let episodes: Vec<EpisodeMetadata> = (1..=8)
+        .map(|i| EpisodeMetadata {
+            season: 2,
+            episode: i,
+            title: format!("Ep {i}"),
+            air_date: Some("2019-06-21".into()),
+        })
+        .collect();
+    sync_tmdb_episodes(&db, media_id, &episodes, today).unwrap();
+
+    // A multi-season pack candidate S01-S03
+    let mut candidate = make_candidate("Dark S01-S03 1080p NF WEB-DL", true, None);
+    candidate.release.season_range = Some((1, 3));
+
+    let jobs = plan_season_jobs(&db, media_id, 2, &[candidate], 4, today, Some(8)).unwrap();
+    assert_eq!(
+        jobs,
+        vec![PlannedSeriesJob::Pack { season: 2 }],
+        "S01-S03 pack covering wanted season 2 must be accepted as pack job"
+    );
+}

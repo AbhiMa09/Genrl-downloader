@@ -43,6 +43,7 @@ pub mod layout;
 pub mod media_finalizer;
 mod rescan;
 pub mod select;
+pub mod series_finalizer;
 mod service;
 mod types;
 
