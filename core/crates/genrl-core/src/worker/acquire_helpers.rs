@@ -338,7 +338,8 @@ impl Engine {
         settings: &Settings,
     ) -> Result<(crate::matching::TargetInputs, Vec<String>)> {
         let is_movie = job.media_kind.as_deref() == Some("movie");
-        if is_movie {
+        let is_series = job.media_kind.as_deref() == Some("series");
+        if is_movie || is_series {
             let (title, year) = if let Some(media_id) = job.media_id {
                 self.db.with(|c| {
                     Ok(c.query_row(
@@ -350,6 +351,16 @@ impl Engine {
             } else {
                 (context.title.clone(), None)
             };
+            if is_series {
+                return Ok((
+                    crate::matching::TargetInputs::for_series(&title, year),
+                    vec![
+                        title.clone(),
+                        format!("{title} Season 1"),
+                        format!("{title} S01"),
+                    ],
+                ));
+            }
             Ok((
                 crate::matching::TargetInputs::for_movie(&title, year),
                 vec![title],
@@ -400,7 +411,8 @@ impl Engine {
         Rules,
     )> {
         let is_movie = job.media_kind.as_deref() == Some("movie");
-        if is_movie {
+        let is_series = job.media_kind.as_deref() == Some("series");
+        if is_movie || is_series {
             let (title, year) = if let Some(media_id) = job.media_id {
                 self.db.with(|c| {
                     Ok(c.query_row(
@@ -412,11 +424,12 @@ impl Engine {
             } else {
                 (context.title.clone(), None)
             };
-            Ok((
-                crate::matching::TargetInputs::for_movie(&title, year),
-                self.candidate_rows(0)?,
-                Rules::default(),
-            ))
+            let inputs = if is_series {
+                crate::matching::TargetInputs::for_series(&title, year)
+            } else {
+                crate::matching::TargetInputs::for_movie(&title, year)
+            };
+            Ok((inputs, self.candidate_rows(0)?, Rules::default()))
         } else {
             Ok((
                 crate::matching::TargetInputs::load(&self.db, context.mal_id)?,

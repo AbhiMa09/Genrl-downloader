@@ -110,10 +110,34 @@ impl TargetInputs {
         }
     }
 
+    /// Create target inputs for a TV series.
+    pub fn for_series(title: &str, year: Option<i64>) -> Self {
+        TargetInputs {
+            mal_id: 0,
+            title: title.to_string(),
+            english_title: None,
+            start_year: year,
+            show_type: ShowType::Tv,
+            total_episodes: None,
+            season: 1,
+            fully_aired: true,
+            auto: true,
+            names: vec![title.to_string()],
+            other_names: Vec::new(),
+            season_maps: Vec::new(),
+            missing_episodes: Vec::new(),
+            owned_episodes: Vec::new(),
+        }
+    }
+
     /// A `score::Target` for the wanted episode.
     pub fn score_target(&self, wanted_episode: Option<f64>) -> score::Target<'_> {
-        let kind = if self.mal_id == 0 && self.show_type == ShowType::Movie {
-            Some(crate::indexer::types::MediaKind::Movie)
+        let kind = if self.mal_id == 0 {
+            if self.show_type == ShowType::Movie {
+                Some(crate::indexer::types::MediaKind::Movie)
+            } else {
+                Some(crate::indexer::types::MediaKind::Series)
+            }
         } else {
             None
         };

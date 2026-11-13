@@ -299,6 +299,24 @@ async fn finalize_movie(
     }))
 }
 
+fn is_same_size(a: &Path, b: &Path) -> bool {
+    let sa = fs::metadata(a).map(|m| m.len()).unwrap_or(0);
+    let sb = fs::metadata(b).map(|m| m.len()).unwrap_or(0);
+    sa > 0 && sa == sb
+}
+
+fn mark_media_episode_done(db: &Db, media_id: Option<i64>, season: u32, episode: i64, path: &str) {
+    if let Some(mid) = media_id {
+        let _ = db.with(|c| {
+            c.execute(
+                "UPDATE media_episodes SET state = 'done', file_path = ?1 WHERE media_id = ?2 AND season = ?3 AND episode = ?4",
+                rusqlite::params![path, mid, season, episode],
+            )?;
+            Ok(())
+        });
+    }
+}
+
 async fn finalize_series(
     db: &Db,
     event_log: &EventLog,
@@ -309,22 +327,45 @@ async fn finalize_series(
     source_path: &Path,
 ) -> Result<FinalizeOutcome> {
     if !source_path.is_dir() {
+        let filename = source_path
+            .file_name()
+            .and_then(|f| f.to_str())
+            .unwrap_or_default();
+        let parsed = crate::matching::release_parse::parse_media_release(filename);
+        let season = parsed.season.unwrap_or(1);
+        let episode = parsed.episode.unwrap_or(1.0);
         let ext = source_path
             .extension()
             .and_then(|e| e.to_str())
             .unwrap_or("mkv");
-        let target_path = series_path(library_root, title, year, 1, 1, ext)?;
+        let target_path = series_path(
+            library_root,
+            title,
+            year,
+            season as i64,
+            episode as i64,
+            ext,
+        )?;
         if let Some(parent) = target_path.parent() {
             fs::create_dir_all(parent)?;
         }
-        transfer_single_file(
+        if !is_same_size(&target_path, source_path) {
+            transfer_single_file(
+                db,
+                event_log,
+                context.job.id,
+                context.mal_id,
+                source_path,
+                &target_path,
+            )?;
+        }
+        mark_media_episode_done(
             db,
-            event_log,
-            context.job.id,
-            context.mal_id,
-            source_path,
-            &target_path,
-        )?;
+            context.job.media_id,
+            season,
+            episode as i64,
+            &target_path.display().to_string(),
+        );
         return Ok(FinalizeOutcome::Done(FinalizeSuccess {
             destination_path: target_path.display().to_string(),
             target_episode_covered: true,
@@ -359,14 +400,23 @@ async fn finalize_series(
         if let Some(p) = target.parent() {
             fs::create_dir_all(p)?;
         }
-        transfer_single_file(
+        if !is_same_size(&target, &ep_src) {
+            transfer_single_file(
+                db,
+                event_log,
+                context.job.id,
+                context.mal_id,
+                &ep_src,
+                &target,
+            )?;
+        }
+        mark_media_episode_done(
             db,
-            event_log,
-            context.job.id,
-            context.mal_id,
-            &ep_src,
-            &target,
-        )?;
+            context.job.media_id,
+            ep.season,
+            ep.episode as i64,
+            &target.display().to_string(),
+        );
         if first_dest.is_none() {
             first_dest = Some(target.display().to_string());
         }

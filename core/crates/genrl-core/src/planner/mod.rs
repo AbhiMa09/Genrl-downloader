@@ -20,11 +20,13 @@ pub mod apply;
 pub mod db_ops;
 pub mod list;
 pub mod preview;
+pub mod series;
 
 pub use apply::*;
 pub use db_ops::*;
 pub use list::*;
 pub use preview::*;
+pub use series::*;
 
 #[cfg(test)]
 mod tests {

@@ -390,9 +390,9 @@ fn test_migration_creates_backup_before_table_rebuild_and_prunes_to_three() {
     let temp = tempfile::tempdir().unwrap();
     let db_path = temp.path().join("genrl.db");
 
-    // Open file-backed DB; runs migrations 1 to 11
+    // Open file-backed DB; runs all migrations
     let db = genrl_core::db::Db::open(&db_path).unwrap();
-    assert_eq!(db.schema_version().unwrap(), 11);
+    assert_eq!(db.schema_version().unwrap(), 12);
 
     // Migration 11 contains DROP TABLE, so a backup must have been created
     let backup_11 = temp.path().join("genrl.db.bak-before-migration-11");

@@ -47,18 +47,29 @@ impl Engine {
         let settings = Settings::load(&self.db)?;
         let (_inputs, search_names) = self.job_search_queries(job, &context, &settings)?;
 
-        if !is_movie && !self.gate.would_allow(Service::Nyaa) {
+        let is_movie = job.media_kind.as_deref() == Some("movie");
+        let is_series = job.media_kind.as_deref() == Some("series");
+
+        if !is_movie && !is_series && !self.gate.would_allow(Service::Nyaa) {
             return self.block(job, "Nyaa's circuit breaker is open");
         }
 
-        let candidates = if is_movie {
+        let media_kind_opt = if is_movie {
+            Some(crate::indexer::MediaKind::Movie)
+        } else if is_series {
+            Some(crate::indexer::MediaKind::Series)
+        } else {
+            None
+        };
+
+        let candidates = if let Some(kind) = media_kind_opt {
             match matching::search_candidates_for_kind(
                 &self.gate,
                 &settings,
                 &search_names,
                 1000,
                 1000,
-                crate::indexer::MediaKind::Movie,
+                kind,
             )
             .await
             {

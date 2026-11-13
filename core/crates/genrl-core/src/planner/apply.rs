@@ -111,6 +111,29 @@ pub fn confirm_capped(
     Ok(queued)
 }
 
+/// Minimal dispatch entry point for planning non-anime media items.
+pub fn plan_media(db: &Db, clock: &dyn Clock, media_id: i64) -> Result<usize> {
+    let kind: String = db.with(|c| {
+        Ok(
+            c.query_row("SELECT kind FROM media WHERE id = ?1", [media_id], |r| {
+                r.get(0)
+            })?,
+        )
+    })?;
+    if kind == "series" {
+        return super::series::plan_series_media(db, clock, media_id);
+    }
+    let now = clock.now();
+    db.with(|c| {
+        c.execute(
+            "INSERT INTO jobs (kind, media_kind, media_id, state, created_at, updated_at)
+             VALUES ('search', 'movie', ?1, 'search', ?2, ?2)",
+            rusqlite::params![media_id, now],
+        )?;
+        Ok(1)
+    })
+}
+
 /// Plan and queue an episode or entire season for a specific show directly.
 pub fn plan_single(
     db: &Db,
