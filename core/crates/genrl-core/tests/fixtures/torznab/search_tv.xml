@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:torznab="http://torznab.com/schemas/2015/feed">
+  <channel>
+    <title>Torznab TV Search Results</title>
+    <item>
+      <title>Shogun.2024.S01E01.1080p.WEB-DL.DDP5.1.Atmos.H.264-FLUX</title>
+      <guid>https://prowlarr.local/tv/1</guid>
+      <pubDate>Thu, 01 Feb 2024 10:00:00 +0000</pubDate>
+      <enclosure url="https://prowlarr.local/download/tv1.torrent" length="1500000000" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="5000" />
+      <torznab:attr name="category" value="5040" />
+      <torznab:attr name="size" value="1500000000" />
+      <torznab:attr name="seeders" value="85" />
+      <torznab:attr name="peers" value="95" />
+      <torznab:attr name="infohash" value="1111222233334444555566667777888899990000" />
+      <torznab:attr name="magneturl" value="magnet:?xt=urn:btih:1111222233334444555566667777888899990000&amp;dn=Shogun+S01E01" />
+    </item>
+    <item>
+      <title>Shogun.2024.Season.1.Complete.1080p.WEB-DL.DDP5.1.Atmos.H.264-FLUX</title>
+      <guid>https://prowlarr.local/tv/2</guid>
+      <pubDate>Fri, 02 Feb 2024 10:00:00 +0000</pubDate>
+      <enclosure url="https://prowlarr.local/download/tv2.torrent" length="15000000000" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="5000" />
+      <torznab:attr name="category" value="5040" />
+      <torznab:attr name="size" value="15000000000" />
+      <torznab:attr name="seeders" value="120" />
+      <torznab:attr name="peers" value="140" />
+      <torznab:attr name="infohash" value="2222333344445555666677778888999900001111" />
+      <torznab:attr name="magneturl" value="magnet:?xt=urn:btih:2222333344445555666677778888999900001111&amp;dn=Shogun+S01+Complete" />
+    </item>
+    <item>
+      <title>Shogun.2024.S01E02.720p.HDTV.x264-SYNCOPY</title>
+      <guid>https://prowlarr.local/tv/3</guid>
+      <pubDate>Sat, 03 Feb 2024 10:00:00 +0000</pubDate>
+      <enclosure url="https://prowlarr.local/download/tv3.torrent" length="800000000" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="5000" />
+      <torznab:attr name="size" value="800000000" />
+      <torznab:attr name="seeders" value="15" />
+      <torznab:attr name="peers" value="18" />
+      <torznab:attr name="infohash" value="3333444455556666777788889999000011112222" />
+      <torznab:attr name="magneturl" value="magnet:?xt=urn:btih:3333444455556666777788889999000011112222&amp;dn=Shogun+S01E02" />
+    </item>
+  </channel>
+</rss>

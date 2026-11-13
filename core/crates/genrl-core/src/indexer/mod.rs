@@ -1,15 +1,23 @@
+pub mod config;
 pub mod dedupe;
 pub mod fetch;
 pub mod indexer_trait;
 pub mod nyaa_adapter;
 pub mod redact;
 pub mod registry;
+pub mod torznab_caps;
+pub mod torznab_client;
+pub mod torznab_rss;
 pub mod types;
 
+pub use config::*;
 pub use dedupe::*;
 pub use fetch::*;
 pub use indexer_trait::*;
 pub use nyaa_adapter::*;
 pub use redact::*;
 pub use registry::*;
+pub use torznab_caps::*;
+pub use torznab_client::*;
+pub use torznab_rss::*;
 pub use types::*;

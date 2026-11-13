@@ -94,4 +94,11 @@ impl Gate {
             .unwrap_or_else(|e| e.into_inner());
         map.remove(breaker_key);
     }
+
+    /// Return the current breaker failures count for a dynamic service key.
+    pub fn dynamic_breaker_failures(&self, key: &str) -> u32 {
+        let state = self.dynamic_state(key);
+        let guard = state.breaker.lock().unwrap_or_else(|e| e.into_inner());
+        guard.failures()
+    }
 }

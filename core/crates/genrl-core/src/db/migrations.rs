@@ -41,4 +41,8 @@ pub const MIGRATIONS: &[Migration] = &[
         version: 8,
         sql: include_str!("migrations/008_reconcile_orphaned_downloading_episodes.sql"),
     },
+    Migration {
+        version: 9,
+        sql: include_str!("migrations/009_indexers_and_media.sql"),
+    },
 ];

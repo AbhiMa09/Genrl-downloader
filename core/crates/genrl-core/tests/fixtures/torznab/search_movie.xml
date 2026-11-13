@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:torznab="http://torznab.com/schemas/2015/feed">
+  <channel>
+    <title>Torznab Movie Search Results</title>
+    <item>
+      <title>Dune.Part.Two.2024.1080p.WEB-DL.DDP5.1.Atmos.H.264-FLUX</title>
+      <guid>https://prowlarr.local/1</guid>
+      <link>https://prowlarr.local/download/1.torrent</link>
+      <comments>https://prowlarr.local/details/1</comments>
+      <pubDate>Mon, 01 Jan 2024 12:00:00 +0000</pubDate>
+      <size>2500000000</size>
+      <enclosure url="https://prowlarr.local/download/1.torrent" length="2500000000" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="2000" />
+      <torznab:attr name="category" value="2040" />
+      <torznab:attr name="size" value="2500000000" />
+      <torznab:attr name="seeders" value="45" />
+      <torznab:attr name="peers" value="50" />
+      <torznab:attr name="infohash" value="aaaabbbbcccc11112222333344445555aaaabbbb" />
+      <torznab:attr name="magneturl" value="magnet:?xt=urn:btih:aaaabbbbcccc11112222333344445555aaaabbbb&amp;dn=Dune+Part+Two" />
+    </item>
+    <item>
+      <title>Oppenheimer.2023.2160p.UHD.BluRay.x265-TERMINAL</title>
+      <guid>https://prowlarr.local/2</guid>
+      <comments>https://prowlarr.local/details/2</comments>
+      <pubDate>Tue, 02 Jan 2024 12:00:00 +0000</pubDate>
+      <enclosure url="https://prowlarr.local/download/2.torrent" length="3200000000" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="2000" />
+      <torznab:attr name="category" value="2045" />
+      <torznab:attr name="size" value="3200000000" />
+      <torznab:attr name="seeders" value="20" />
+      <torznab:attr name="peers" value="25" />
+      <torznab:attr name="infohash" value="bbbbccccdddd11112222333344445555bbbbcccc" />
+    </item>
+    <item>
+      <title>Poor.Things.2023.1080p.WEBRip.x264-YTS</title>
+      <guid>https://prowlarr.local/3</guid>
+      <link>https://prowlarr.local/download/3.torrent</link>
+      <comments>https://prowlarr.local/details/3</comments>
+      <pubDate>Wed, 03 Jan 2024 12:00:00 +0000</pubDate>
+      <enclosure url="https://prowlarr.local/download/3.torrent" length="1800000000" type="application/x-bittorrent" />
+      <torznab:attr name="category" value="2040" />
+      <torznab:attr name="size" value="1800000000" />
+      <torznab:attr name="infohash" value="ccccddddeeee11112222333344445555ccccdddd" />
+    </item>
+  </channel>
+</rss>
