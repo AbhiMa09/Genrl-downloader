@@ -12,6 +12,7 @@ use super::types::{MediaKind, Release, SearchQuery};
 pub struct IndexerEntry {
     pub indexer: Arc<dyn Indexer>,
     pub kinds: Vec<MediaKind>,
+    pub enabled: bool,
 }
 
 #[derive(Default)]
@@ -25,7 +26,19 @@ impl IndexerRegistry {
     }
 
     pub fn add(&mut self, indexer: Arc<dyn Indexer>, kinds: Vec<MediaKind>) {
-        self.entries.push(IndexerEntry { indexer, kinds });
+        self.entries.push(IndexerEntry {
+            indexer,
+            kinds,
+            enabled: true,
+        });
+    }
+
+    pub fn add_entry(&mut self, indexer: Arc<dyn Indexer>, kinds: Vec<MediaKind>, enabled: bool) {
+        self.entries.push(IndexerEntry {
+            indexer,
+            kinds,
+            enabled,
+        });
     }
 
     /// Search all indexers configured for the given MediaKind in parallel with a 10s timeout.
@@ -46,7 +59,7 @@ impl IndexerRegistry {
         let matching: Vec<_> = self
             .entries
             .iter()
-            .filter(|e| e.kinds.contains(&query.kind))
+            .filter(|e| e.enabled && e.kinds.contains(&query.kind))
             .map(|e| e.indexer.clone())
             .collect();
 
@@ -231,5 +244,32 @@ mod tests {
             .await;
 
         assert!(result.is_err(), "must return error when all indexers fail");
+    }
+
+    #[tokio::test]
+    async fn disabled_indexer_is_skipped_by_search() {
+        let mut registry = IndexerRegistry::new();
+        // Add failing indexer as disabled
+        registry.add_entry(Arc::new(FakeFailingIndexer), vec![MediaKind::Movie], false);
+        // Add ok indexer as enabled
+        registry.add_entry(Arc::new(FakeOkIndexer), vec![MediaKind::Movie], true);
+
+        let query = SearchQuery::new("Dune", MediaKind::Movie);
+        let results = registry
+            .search_with_timeout(&query, Duration::from_millis(50))
+            .await
+            .expect("should succeed without error because failing indexer was disabled");
+
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].indexer_id, "ok_idx");
+
+        // Now test when the only indexer matching is disabled -> returns empty list immediately
+        let mut disabled_only = IndexerRegistry::new();
+        disabled_only.add_entry(Arc::new(FakeFailingIndexer), vec![MediaKind::Movie], false);
+        let res = disabled_only
+            .search_with_timeout(&query, Duration::from_millis(50))
+            .await
+            .expect("should return empty list when all matching indexers are disabled");
+        assert!(res.is_empty());
     }
 }

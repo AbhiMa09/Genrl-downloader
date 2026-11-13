@@ -127,6 +127,7 @@ pub async fn settings_cmd(data_dir: &Path, command: SettingsCommand) -> Result<(
 
             match client.search("test", MediaKind::Movie, None).await {
                 Ok(_) => {
+                    let _ = genrl_core::settings::write_state(&db, "last_tmdb_test_status", "ok");
                     if json {
                         println!(
                             "{}",
@@ -137,6 +138,8 @@ pub async fn settings_cmd(data_dir: &Path, command: SettingsCommand) -> Result<(
                     }
                 }
                 Err(e) => {
+                    let _ =
+                        genrl_core::settings::write_state(&db, "last_tmdb_test_status", "failed");
                     let err_msg = redact_secrets(&e.to_string());
                     if json {
                         println!(
@@ -329,7 +332,9 @@ pub fn doctor(data_dir: &Path) -> Result<()> {
 
     // --- Torznab ---
     let indexers = genrl_core::indexer::config::IndexerConfig::load_all(&db).unwrap_or_default();
-    if !indexers.is_empty() {
+    if indexers.is_empty() {
+        println!("  Torznab    : not configured");
+    } else {
         let count = indexers.len();
         let any_failed = indexers.iter().any(|idx| {
             idx.last_test_status
@@ -338,9 +343,22 @@ pub fn doctor(data_dir: &Path) -> Result<()> {
                 .unwrap_or(false)
                 || !gate.would_allow_key(&format!("torznab:{}", idx.id))
         });
+        let any_ok = indexers.iter().any(|idx| {
+            idx.last_test_status
+                .as_deref()
+                .map(|s| s.starts_with("ok"))
+                .unwrap_or(false)
+        });
+        let status = if any_failed {
+            "configured, last test failed"
+        } else if any_ok {
+            "configured, last test ok"
+        } else {
+            "configured, last test never"
+        };
         println!(
             "  Torznab    : {} ({} indexer{})",
-            if any_failed { "failed" } else { "ok" },
+            status,
             count,
             if count == 1 { "" } else { "s" }
         );
@@ -348,8 +366,20 @@ pub fn doctor(data_dir: &Path) -> Result<()> {
 
     // --- TMDB ---
     if genrl_core::indexer::config::load_tmdb_key().is_some() {
-        let tmdb_ok = gate.would_allow_key("tmdb");
-        println!("  TMDB       : {}", if tmdb_ok { "ok" } else { "failed" });
+        let last_test = genrl_core::settings::read_state(&db, "last_tmdb_test_status")
+            .ok()
+            .flatten();
+        let tmdb_breaker_open = !gate.would_allow_key("tmdb");
+        let status = if tmdb_breaker_open || last_test.as_deref() == Some("failed") {
+            "configured, last test failed"
+        } else if last_test.as_deref() == Some("ok") {
+            "configured, last test ok"
+        } else {
+            "configured, last test never"
+        };
+        println!("  TMDB       : {}", status);
+    } else {
+        println!("  TMDB       : not configured");
     }
 
     let log = EventLog::new(db.clone());

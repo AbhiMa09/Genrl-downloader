@@ -41,7 +41,7 @@ pub async fn search_candidates_for_kind(
         );
     }
     if let Ok(configs) = IndexerConfig::load_all(gate.db()) {
-        for cfg in configs.into_iter().filter(|c| c.enabled) {
+        for cfg in configs.into_iter() {
             let fetch = std::sync::Arc::new(GateFetch::new(std::sync::Arc::new(gate.clone())));
             let client = TorznabClient::new(
                 &cfg.id,
@@ -50,7 +50,7 @@ pub async fn search_candidates_for_kind(
                 fetch,
                 gate.db().clone(),
             );
-            registry.add(std::sync::Arc::new(client), cfg.media_kinds);
+            registry.add_entry(std::sync::Arc::new(client), cfg.media_kinds, cfg.enabled);
         }
     }
 

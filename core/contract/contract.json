@@ -192,16 +192,88 @@
       "cli": "genrl step"
     },
     {
-      "name": "indexers",
-      "description": "Manage Torznab indexers (list, add, remove, test, set-enabled)",
-      "internal": true,
-      "cli": "genrl indexers"
+      "name": "indexers list",
+      "description": "List configured Torznab indexers",
+      "internal": false,
+      "cli": "genrl indexers list",
+      "ui_method": "listIndexers"
     },
     {
-      "name": "media",
-      "description": "Manage non-anime movie and series media (search, add, list, remove)",
-      "internal": true,
-      "cli": "genrl media"
+      "name": "indexers add",
+      "description": "Add a Torznab indexer",
+      "internal": false,
+      "cli": "genrl indexers add",
+      "ui_method": "addIndexer"
+    },
+    {
+      "name": "indexers remove",
+      "description": "Remove a Torznab indexer by id",
+      "internal": false,
+      "cli": "genrl indexers remove",
+      "ui_method": "removeIndexer"
+    },
+    {
+      "name": "indexers test",
+      "description": "Test connectivity for an indexer",
+      "internal": false,
+      "cli": "genrl indexers test",
+      "ui_method": "testIndexer"
+    },
+    {
+      "name": "indexers set-enabled",
+      "description": "Enable or disable a Torznab indexer",
+      "internal": false,
+      "cli": "genrl indexers set-enabled",
+      "ui_method": "setIndexerEnabled"
+    },
+    {
+      "name": "media search",
+      "description": "Search TMDB for movies or series",
+      "internal": false,
+      "cli": "genrl media search",
+      "ui_method": "searchMedia"
+    },
+    {
+      "name": "media add",
+      "description": "Add media by TMDB ID",
+      "internal": false,
+      "cli": "genrl media add",
+      "ui_method": "addMedia"
+    },
+    {
+      "name": "media list",
+      "description": "List managed non-anime media",
+      "internal": false,
+      "cli": "genrl media list",
+      "ui_method": "listMedia"
+    },
+    {
+      "name": "media remove",
+      "description": "Remove managed media by media_id",
+      "internal": false,
+      "cli": "genrl media remove",
+      "ui_method": "removeMedia"
+    },
+    {
+      "name": "settings set-tmdb-key",
+      "description": "Configure TMDB API key",
+      "internal": false,
+      "cli": "genrl settings set-tmdb-key",
+      "ui_method": "setTmdbKey"
+    },
+    {
+      "name": "settings test-tmdb",
+      "description": "Test TMDB API key connectivity",
+      "internal": false,
+      "cli": "genrl settings test-tmdb",
+      "ui_method": "testTmdb"
+    },
+    {
+      "name": "settings tmdb-status",
+      "description": "Check TMDB API key status",
+      "internal": false,
+      "cli": "genrl settings tmdb-status",
+      "ui_method": "getTmdbStatus"
     }
   ],
   "queries": [

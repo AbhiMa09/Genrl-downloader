@@ -535,8 +535,8 @@ async fn test_secret_is_never_leaked_in_stdout_stderr_db_or_events() {
     let (_, out, err) = ctx.run(&["doctor"]);
     all_stdout.push_str(&out);
     all_stderr.push_str(&err);
-    assert!(out.contains("Torznab    : ok (1 indexer)"));
-    assert!(out.contains("TMDB       : ok"));
+    assert!(out.contains("Torznab    : configured, last test ok (1 indexer)"));
+    assert!(out.contains("TMDB       : configured, last test never"));
 
     // 5. Run media search
     let (_, out, err) = ctx.run_with_input_and_env(
@@ -600,4 +600,275 @@ fn test_contract_generation_deterministic() {
         "run 2 must succeed: {}",
         String::from_utf8_lossy(&output2.stderr)
     );
+}
+
+#[test]
+fn test_stdin_path_and_key_env_and_trimming() {
+    let ctx = TestContext::new();
+
+    // 1. Empty stdin gives a clear error
+    let (ok, _out, err) =
+        ctx.run_with_input_and_env(&["settings", "set-tmdb-key"], Some("   \n"), &[]);
+    assert!(!ok);
+    assert!(err.contains("No API key provided on stdin"));
+
+    let (ok, _out, err) = ctx.run_with_input_and_env(
+        &[
+            "indexers",
+            "add",
+            "idx_empty",
+            "Indexer Empty",
+            "https://indexer.example.com",
+        ],
+        Some(""),
+        &[],
+    );
+    assert!(!ok);
+    assert!(err.contains("No API key provided on stdin"));
+
+    // 2. Trailing newline and spaces trimmed for settings set-tmdb-key
+    let (ok, out, _) = ctx.run_with_input_and_env(
+        &["settings", "set-tmdb-key"],
+        Some("  my_tmdb_trimmed_key  \r\n"),
+        &[],
+    );
+    assert!(ok);
+    assert!(out.contains("TMDB API key stored successfully"));
+
+    // Verify secrets.json has the trimmed key without whitespace
+    let secrets_file = ctx.temp_dir.path().join("secrets.json");
+    let secrets_content = std::fs::read_to_string(&secrets_file).unwrap();
+    assert!(secrets_content.contains("\"indexer_key_tmdb\": \"my_tmdb_trimmed_key\""));
+
+    // 3. Trailing newline and spaces trimmed for indexers add via stdin
+    let (ok, out, _) = ctx.run_with_input_and_env(
+        &[
+            "indexers",
+            "add",
+            "idx_trim",
+            "Indexer Trim",
+            "https://indexer.example.com",
+        ],
+        Some("  my_indexer_trimmed_key  \n"),
+        &[],
+    );
+    assert!(ok);
+    assert!(out.contains("Indexer added: Indexer Trim (idx_trim)"));
+
+    let secrets_content = std::fs::read_to_string(&secrets_file).unwrap();
+    assert!(secrets_content.contains("\"indexer_key_idx_trim\": \"my_indexer_trimmed_key\""));
+
+    // 4. Test --key-env with valid, missing, and whitespace env var
+    let (ok, out, _) = ctx.run_with_input_and_env(
+        &["settings", "set-tmdb-key", "--key-env", "VALID_TMDB_ENV"],
+        None,
+        &[("VALID_TMDB_ENV", "  env_tmdb_key_val  \n")],
+    );
+    assert!(ok);
+    assert!(out.contains("TMDB API key stored successfully"));
+    let secrets_content = std::fs::read_to_string(&secrets_file).unwrap();
+    assert!(secrets_content.contains("\"indexer_key_tmdb\": \"env_tmdb_key_val\""));
+
+    let (ok, out, _) = ctx.run_with_input_and_env(
+        &[
+            "indexers",
+            "add",
+            "idx_env",
+            "Indexer Env",
+            "https://indexer.example.com",
+            "--key-env",
+            "VALID_IDX_ENV",
+        ],
+        None,
+        &[("VALID_IDX_ENV", "  env_idx_key_val  ")],
+    );
+    assert!(ok);
+    assert!(out.contains("Indexer added: Indexer Env (idx_env)"));
+    let secrets_content = std::fs::read_to_string(&secrets_file).unwrap();
+    assert!(secrets_content.contains("\"indexer_key_idx_env\": \"env_idx_key_val\""));
+
+    // Missing env var error
+    let (ok, _out, err) = ctx.run(&["settings", "set-tmdb-key", "--key-env", "NONEXISTENT_VAR"]);
+    assert!(!ok);
+    assert!(err.contains("is not set or empty"));
+
+    // Empty/whitespace env var error
+    let (ok, _out, err) = ctx.run_with_input_and_env(
+        &["settings", "set-tmdb-key", "--key-env", "EMPTY_VAR"],
+        None,
+        &[("EMPTY_VAR", "   \t\n")],
+    );
+    assert!(!ok);
+    assert!(err.contains("contains an empty API key"));
+}
+
+#[tokio::test]
+async fn test_doctor_wording() {
+    let ctx = TestContext::new();
+
+    // 1. Unconfigured state
+    let (_, out, _) = ctx.run(&["doctor"]);
+    assert!(out.contains("Torznab    : not configured"));
+    assert!(out.contains("TMDB       : not configured"));
+
+    // 2. Add an indexer without testing -> "configured, last test never (1 indexer)"
+    ctx.run_with_input_and_env(
+        &[
+            "indexers",
+            "add",
+            "doc_idx",
+            "Doctor Idx",
+            "https://doc.example.com",
+        ],
+        Some("test_key\n"),
+        &[],
+    );
+    let (_, out, _) = ctx.run(&["doctor"]);
+    assert!(out.contains("Torznab    : configured, last test never (1 indexer)"));
+
+    // 3. Set TMDB key without testing -> "configured, last test never"
+    ctx.run_with_input_and_env(&["settings", "set-tmdb-key"], Some("tmdb_key\n"), &[]);
+    let (_, out, _) = ctx.run(&["doctor"]);
+    assert!(out.contains("Torznab    : configured, last test never (1 indexer)"));
+    assert!(out.contains("TMDB       : configured, last test never"));
+
+    // 4. Test indexer with wiremock server responding with caps
+    let mock = wiremock::MockServer::start().await;
+    wiremock::Mock::given(wiremock::matchers::method("GET"))
+        .and(wiremock::matchers::query_param("t", "caps"))
+        .respond_with(wiremock::ResponseTemplate::new(200).set_body_string(
+            r#"<caps><server version="1.0" title="mock"/><searching><movie-search available="yes"/></searching><categories><category id="2000" name="Movies"/></categories></caps>"#,
+        ))
+        .mount(&mock)
+        .await;
+
+    // Remove old indexer and add with mock uri and --test
+    ctx.run(&["indexers", "remove", "doc_idx"]);
+    let (ok, _, _) = ctx.run_with_input_and_env(
+        &[
+            "indexers",
+            "add",
+            "doc_idx",
+            "Doctor Idx",
+            &mock.uri(),
+            "--test",
+        ],
+        Some("test_key\n"),
+        &[],
+    );
+    assert!(ok);
+
+    let (_, out, _) = ctx.run(&["doctor"]);
+    assert!(out.contains("Torznab    : configured, last test ok (1 indexer)"));
+
+    // 5. Test TMDB with wiremock server responding OK
+    wiremock::Mock::given(wiremock::matchers::method("GET"))
+        .and(wiremock::matchers::path("/search/movie"))
+        .respond_with(
+            wiremock::ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "page": 1,
+                "results": [],
+                "total_pages": 1,
+                "total_results": 0
+            })),
+        )
+        .mount(&mock)
+        .await;
+
+    let (ok, _, _) = ctx.run_with_input_and_env(
+        &["settings", "test-tmdb"],
+        None,
+        &[("GENRL_TMDB_BASE_URL", &mock.uri())],
+    );
+    assert!(ok);
+
+    let (_, out, _) = ctx.run(&["doctor"]);
+    assert!(out.contains("TMDB       : configured, last test ok"));
+}
+
+#[test]
+fn test_indexers_add_url_validation_rules() {
+    let ctx = TestContext::new();
+
+    // 1. userinfo (username / password in URL)
+    let (ok, _, err) = ctx.run_with_input_and_env(
+        &[
+            "indexers",
+            "add",
+            "idx1",
+            "Name",
+            "http://user:pass@example.com/api",
+        ],
+        Some("key\n"),
+        &[],
+    );
+    assert!(!ok);
+    assert!(err.contains("userinfo"));
+
+    // 2. URL fragment (#)
+    let (ok, _, err) = ctx.run_with_input_and_env(
+        &[
+            "indexers",
+            "add",
+            "idx2",
+            "Name",
+            "http://example.com/api#fragment",
+        ],
+        Some("key\n"),
+        &[],
+    );
+    assert!(!ok);
+    assert!(err.contains("fragment"));
+
+    // 3. Query string containing key-like parameter
+    let (ok, _, err) = ctx.run_with_input_and_env(
+        &[
+            "indexers",
+            "add",
+            "idx3",
+            "Name",
+            "http://example.com/api?apikey=12345",
+        ],
+        Some("key\n"),
+        &[],
+    );
+    assert!(!ok);
+    assert!(err.contains("API key parameters in query string"));
+
+    // 4. Non-http scheme (ftp)
+    let (ok, _, err) = ctx.run_with_input_and_env(
+        &["indexers", "add", "idx4", "Name", "ftp://example.com/api"],
+        Some("key\n"),
+        &[],
+    );
+    assert!(!ok);
+    assert!(err.contains("http or https scheme"));
+
+    // 5. Length over 2048 chars
+    let long_path = "a".repeat(2050);
+    let long_url = format!("http://example.com/{long_path}");
+    let (ok, _, err) = ctx.run_with_input_and_env(
+        &["indexers", "add", "idx5", "Name", &long_url],
+        Some("key\n"),
+        &[],
+    );
+    assert!(!ok);
+    assert!(err.contains("exceeds maximum length of 2048 characters"));
+}
+
+#[test]
+fn test_media_search_without_tmdb_key_returns_tmdb_not_configured() {
+    let ctx = TestContext::new();
+
+    // 1. Text mode
+    let (ok, out, err) = ctx.run(&["media", "search", "Dune"]);
+    assert!(!ok);
+    let combined = format!("{out}\n{err}");
+    assert!(combined.contains("tmdb_not_configured"));
+
+    // 2. JSON mode
+    let (ok, out, _err) = ctx.run(&["media", "search", "Dune", "--json"]);
+    assert!(ok); // In JSON mode it prints JSON error payload
+    let v: serde_json::Value = serde_json::from_str(&out).expect("valid json output");
+    assert_eq!(v["error"], "tmdb_not_configured");
 }
