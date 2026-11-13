@@ -275,7 +275,7 @@ class GenrlContract {
     ),
     CoreCommandMeta(
       name: 'media list',
-      description: 'List managed non-anime media',
+      description: 'List managed non-anime media with poster_path and overview',
       internal: false,
       cli: 'genrl media list',
       uiMethod: 'listMedia',

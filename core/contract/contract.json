@@ -242,10 +242,11 @@
     },
     {
       "name": "media list",
-      "description": "List managed non-anime media",
+      "description": "List managed non-anime media with poster_path and overview",
       "internal": false,
       "cli": "genrl media list",
-      "ui_method": "listMedia"
+      "ui_method": "listMedia",
+      "fields": ["id", "kind", "title", "year", "tmdb_id", "status", "progress", "poster_path", "overview"]
     },
     {
       "name": "media remove",

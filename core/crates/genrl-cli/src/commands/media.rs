@@ -82,6 +82,8 @@ pub struct MediaListItem {
     pub status: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub progress: Option<EpisodeProgress>,
+    pub poster_path: Option<String>,
+    pub overview: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -96,6 +98,34 @@ pub fn parse_kind(s: &str) -> Result<MediaKind> {
         "series" | "tv" => Ok(MediaKind::Series),
         _ => bail!("Unsupported media kind '{s}'. Supported: movie, series"),
     }
+}
+
+const OVERVIEW_CAP: usize = 1000;
+
+/// TMDB poster paths are exposed only in the strict `/name.ext` shape so the
+/// UI can never build an image URL from arbitrary stored data.
+fn sanitize_poster_path(raw: Option<&str>) -> Option<String> {
+    let path = raw?;
+    let stem = path.strip_prefix('/').and_then(|rest| {
+        rest.strip_suffix(".jpeg")
+            .or_else(|| rest.strip_suffix(".jpg"))
+            .or_else(|| rest.strip_suffix(".png"))
+    })?;
+    let valid = !stem.is_empty()
+        && stem
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-');
+    valid.then(|| path.to_string())
+}
+
+fn cap_overview(overview: String) -> String {
+    overview.chars().take(OVERVIEW_CAP).collect()
+}
+
+/// `raw_json` holds only `{"overview": "..."}` for media added by the UI.
+fn overview_from_raw(raw: Option<&str>) -> Option<String> {
+    let value: serde_json::Value = serde_json::from_str(raw?).ok()?;
+    value.get("overview")?.as_str().map(str::to_string)
 }
 
 pub async fn media_cmd(data_dir: &Path, command: MediaCommand) -> Result<()> {
@@ -218,6 +248,9 @@ pub async fn media_cmd(data_dir: &Path, command: MediaCommand) -> Result<()> {
                     upsert_media.year = parsed_year;
                     upsert_media.tmdb_id = Some(tmdb_id);
                     upsert_media.poster_path = movie_details.poster_path;
+                    upsert_media.raw_json = movie_details
+                        .overview
+                        .map(|ov| serde_json::json!({ "overview": cap_overview(ov) }).to_string());
                     let m_id = media_repo::upsert(&db, &upsert_media, now)?;
 
                     // Check if an active job already exists for this movie
@@ -258,6 +291,9 @@ pub async fn media_cmd(data_dir: &Path, command: MediaCommand) -> Result<()> {
                     upsert_media.tmdb_id = Some(tmdb_id);
                     upsert_media.poster_path = tv_details.poster_path;
                     upsert_media.status = tv_details.status;
+                    upsert_media.raw_json = tv_details
+                        .overview
+                        .map(|ov| serde_json::json!({ "overview": cap_overview(ov) }).to_string());
                     let m_id = media_repo::upsert(&db, &upsert_media, now)?;
 
                     // Sync episodes for all seasons > 0
@@ -363,6 +399,8 @@ pub async fn media_cmd(data_dir: &Path, command: MediaCommand) -> Result<()> {
                     tmdb_id: rec.tmdb_id,
                     status: rec.status,
                     progress,
+                    poster_path: sanitize_poster_path(rec.poster_path.as_deref()),
+                    overview: overview_from_raw(rec.raw_json.as_deref()),
                 });
             }
 

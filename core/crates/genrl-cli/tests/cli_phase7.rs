@@ -872,3 +872,130 @@ fn test_media_search_without_tmdb_key_returns_tmdb_not_configured() {
     let v: serde_json::Value = serde_json::from_str(&out).expect("valid json output");
     assert_eq!(v["error"], "tmdb_not_configured");
 }
+
+#[tokio::test]
+async fn test_media_list_poster_path_and_overview_fields() {
+    let mock = MockServer::start().await;
+
+    // Movie details with an overview longer than the 1000-char storage cap.
+    let long_overview = "A".repeat(1500);
+    Mock::given(method("GET"))
+        .and(path("/movie/693134"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "id": 693134,
+            "title": "Dune: Part Two",
+            "original_title": "Dune: Part Two",
+            "release_date": "2024-03-01",
+            "poster_path": "/dune.jpg",
+            "overview": long_overview
+        })))
+        .mount(&mock)
+        .await;
+
+    let ctx = TestContext::new();
+
+    // Configure the TMDB key via stdin with the known fake secret (never as an argument).
+    let (ok, _, _) = ctx.run_with_input_and_env(
+        &["settings", "set-tmdb-key"],
+        Some(&format!("{KNOWN_FAKE_SECRET}\n")),
+        &[],
+    );
+    assert!(ok);
+
+    // media add stores only {"overview": ...} in raw_json, capped at 1000 chars.
+    let (ok, out, err) = ctx.run_with_input_and_env(
+        &["media", "add", "693134", "--kind", "movie", "--json"],
+        None,
+        &[("GENRL_TMDB_BASE_URL", &mock.uri())],
+    );
+    assert!(ok, "media add failed: {out} {err}");
+    let add_res: serde_json::Value = serde_json::from_str(&out).expect("valid json output");
+    let media_id = add_res["media_id"].as_i64().unwrap();
+
+    // media list returns the stored poster_path and the capped overview.
+    let (ok, out, _) = ctx.run(&["media", "list", "--json"]);
+    assert!(ok, "media list failed: {out}");
+    let list: serde_json::Value = serde_json::from_str(&out).expect("valid json output");
+    let movie = list
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|it| it["id"] == media_id)
+        .expect("added movie present in list");
+    assert_eq!(movie["poster_path"], "/dune.jpg");
+    assert_eq!(movie["overview"].as_str().unwrap().chars().count(), 1000);
+
+    // raw_json holds ONLY the overview JSON, and never the API key.
+    let db_path = ctx.temp_dir.path().join("genrl.db");
+    let conn = rusqlite::Connection::open(&db_path).unwrap();
+    let raw: Option<String> = conn
+        .query_row(
+            "SELECT raw_json FROM media WHERE id = ?1",
+            [media_id],
+            |r| r.get(0),
+        )
+        .unwrap();
+    let raw = raw.expect("media add must store raw_json");
+    let parsed: serde_json::Value = serde_json::from_str(&raw).expect("raw_json is valid JSON");
+    assert_eq!(
+        parsed.as_object().unwrap().len(),
+        1,
+        "raw_json must hold only the overview"
+    );
+    assert!(parsed.get("overview").is_some());
+    assert!(
+        !raw.contains(KNOWN_FAKE_SECRET),
+        "API key must never be stored in raw_json"
+    );
+
+    // Old row (added before overview existed): overview is null, poster untouched.
+    conn.execute(
+        "INSERT INTO media (kind, title, poster_path, created_at) VALUES ('movie', 'Legacy', '/legacy.jpg', 0)",
+        [],
+    )
+    .unwrap();
+    // Rows whose poster_path is not the strict /name.ext shape: poster_path is null.
+    conn.execute(
+        "INSERT INTO media (kind, title, poster_path, created_at) VALUES ('movie', 'Remote', 'https://evil.example/x.jpg', 0)",
+        [],
+    )
+    .unwrap();
+    conn.execute(
+        "INSERT INTO media (kind, title, poster_path, created_at) VALUES ('movie', 'Traversal', '/../secret.jpg', 0)",
+        [],
+    )
+    .unwrap();
+    drop(conn);
+
+    let (ok, out, _) = ctx.run(&["media", "list", "--kind", "movie", "--json"]);
+    assert!(ok, "media list failed: {out}");
+    let list: serde_json::Value = serde_json::from_str(&out).expect("valid json output");
+    let arr = list.as_array().unwrap();
+
+    let legacy = arr.iter().find(|it| it["title"] == "Legacy").unwrap();
+    assert_eq!(legacy["overview"], serde_json::Value::Null);
+    assert_eq!(legacy["poster_path"], "/legacy.jpg");
+
+    let remote = arr.iter().find(|it| it["title"] == "Remote").unwrap();
+    assert_eq!(remote["poster_path"], serde_json::Value::Null);
+    assert_eq!(remote["overview"], serde_json::Value::Null);
+
+    let traversal = arr.iter().find(|it| it["title"] == "Traversal").unwrap();
+    assert_eq!(traversal["poster_path"], serde_json::Value::Null);
+
+    // The fake secret never appears in command output or the SQLite dump.
+    let (ok, out, err) = ctx.run(&["media", "list", "--json"]);
+    assert!(ok);
+    assert!(
+        !out.contains(KNOWN_FAKE_SECRET),
+        "Secret leaked in media list stdout!"
+    );
+    assert!(
+        !err.contains(KNOWN_FAKE_SECRET),
+        "Secret leaked in media list stderr!"
+    );
+    assert!(
+        !ctx.dump_db().contains(KNOWN_FAKE_SECRET),
+        "Secret leaked in SQLite database!"
+    );
+}
