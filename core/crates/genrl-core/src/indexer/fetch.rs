@@ -45,19 +45,26 @@ impl HttpFetch for GateFetch {
             }
         }
         let full_url = parsed.to_string();
-        let fetched = self
-            .gate
-            .get_keyed(breaker_key, &full_url)
-            .await
-            .map_err(|e| match e {
-                crate::error::Error::BreakerOpen { service, .. } => {
-                    IndexerError::BreakerOpen(service)
-                }
-                crate::error::Error::Timeout { .. } => IndexerError::Timeout,
-                other => IndexerError::Http(other.to_string()),
-            })?;
-        String::from_utf8(fetched.body)
-            .map_err(|e| IndexerError::Parse(format!("utf-8 conversion error: {e}")))
+        match self.gate.get_keyed(breaker_key, &full_url).await {
+            Ok(fetched) => String::from_utf8(fetched.body)
+                .map_err(|e| IndexerError::Parse(format!("utf-8 conversion error: {e}"))),
+            Err(crate::error::Error::Status {
+                status,
+                body: Some(body),
+                ..
+            }) if (400..=499).contains(&status) && !body.trim().is_empty() => {
+                // Hand the response body back on 4xx so Torznab parser can inspect for <error> payload
+                Ok(body)
+            }
+            Err(crate::error::Error::Status {
+                status: 401 | 403, ..
+            }) => Err(IndexerError::Http("unauthorized, check API key".into())),
+            Err(crate::error::Error::BreakerOpen { service, .. }) => {
+                Err(IndexerError::BreakerOpen(service))
+            }
+            Err(crate::error::Error::Timeout { .. }) => Err(IndexerError::Timeout),
+            Err(other) => Err(IndexerError::Http(other.to_string())),
+        }
     }
 }
 
@@ -125,5 +132,75 @@ impl HttpFetch for FakeFetch {
         Err(IndexerError::Http(format!(
             "FakeFetch: unmocked URL {full}"
         )))
+    }
+}
+
+impl FakeFetch {
+    /// Helper to mock HTTP responses according to CHECK 3 rules:
+    /// - 200 with body -> Ok(body)
+    /// - 4xx with non-empty body -> Ok(body) (lets Torznab parser check for <error>)
+    /// - 401/403 with empty body -> Err("unauthorized, check API key")
+    pub fn set_status_response(&self, url_prefix: &str, status: u16, body: &str) {
+        if (400..=499).contains(&status) {
+            if body.trim().is_empty() {
+                if status == 401 || status == 403 {
+                    self.set_error(url_prefix, "unauthorized, check API key");
+                } else {
+                    self.set_error(url_prefix, format!("http status {status}"));
+                }
+            } else {
+                self.set_response(url_prefix, body);
+            }
+        } else if (200..=299).contains(&status) {
+            self.set_response(url_prefix, body);
+        } else {
+            self.set_error(url_prefix, format!("http status {status}"));
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_fetch_200_with_error_body() {
+        let fetch = FakeFetch::new();
+        fetch.set_status_response(
+            "http://localhost:9696",
+            200,
+            r#"<error code="100" description="Invalid API Key"/>"#,
+        );
+        let res = fetch
+            .get_text("torznab:1", "http://localhost:9696", &[])
+            .await
+            .expect("must hand body back on 200");
+        assert!(res.contains("Invalid API Key"));
+    }
+
+    #[tokio::test]
+    async fn test_fetch_401_with_error_body() {
+        let fetch = FakeFetch::new();
+        fetch.set_status_response(
+            "http://localhost:9696",
+            401,
+            r#"<error code="100" description="Unauthorized access"/>"#,
+        );
+        let res = fetch
+            .get_text("torznab:1", "http://localhost:9696", &[])
+            .await
+            .expect("must hand body back on 401 with XML body");
+        assert!(res.contains("Unauthorized access"));
+    }
+
+    #[tokio::test]
+    async fn test_fetch_401_with_empty_body() {
+        let fetch = FakeFetch::new();
+        fetch.set_status_response("http://localhost:9696", 401, "");
+        let err = fetch
+            .get_text("torznab:1", "http://localhost:9696", &[])
+            .await
+            .expect_err("must error on 401 with empty body");
+        assert_eq!(err.to_string(), "http error: unauthorized, check API key");
     }
 }

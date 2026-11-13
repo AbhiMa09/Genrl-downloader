@@ -80,6 +80,7 @@ mod tests {
             download: DownloadSource::Magnet("magnet:?xt=test".into()),
             info_hash: hash.map(str::to_string),
             categories: vec![2000],
+            native_category: None,
             published_date: None,
             trusted: false,
             remake: false,

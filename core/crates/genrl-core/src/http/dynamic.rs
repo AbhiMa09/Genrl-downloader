@@ -85,4 +85,13 @@ impl Gate {
         self.dispatch(breaker_key, parsed, key, state, opts, wire, opts.ttl)
             .await
     }
+
+    /// Drop a dynamic service breaker state when an indexer is removed.
+    pub fn remove_dynamic_state(&self, breaker_key: &str) {
+        let mut map = self
+            .dynamic_states
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        map.remove(breaker_key);
+    }
 }

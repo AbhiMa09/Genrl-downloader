@@ -22,7 +22,7 @@ impl NyaaAdapter {
             movie_available: true,
             tv_params: vec!["q".into()],
             movie_params: vec!["q".into()],
-            categories: vec![1, 2, 3, 4, 5, 6],
+            categories: Vec::new(),
         };
         Self {
             gate,
@@ -56,25 +56,19 @@ impl Indexer for NyaaAdapter {
 
         let releases = items
             .into_iter()
-            .map(|item| {
-                let categories: Vec<i32> = item
-                    .category_id
-                    .split('_')
-                    .filter_map(|s| s.parse::<i32>().ok())
-                    .collect();
-                Release {
-                    title: item.title.clone(),
-                    indexer_id: "nyaa".to_string(),
-                    size_bytes: item.size_bytes,
-                    seeders: item.seeders,
-                    leechers: item.leechers,
-                    download: DownloadSource::Magnet(item.magnet()),
-                    info_hash: Some(item.info_hash),
-                    categories,
-                    published_date: Some(item.published_at.to_string()),
-                    trusted: item.trusted,
-                    remake: item.remake,
-                }
+            .map(|item| Release {
+                title: item.title.clone(),
+                indexer_id: "nyaa".to_string(),
+                size_bytes: item.size_bytes,
+                seeders: item.seeders,
+                leechers: item.leechers,
+                download: DownloadSource::Magnet(item.magnet()),
+                info_hash: Some(item.info_hash),
+                categories: Vec::new(),
+                native_category: Some(item.category_id),
+                published_date: Some(item.published_at.to_string()),
+                trusted: item.trusted,
+                remake: item.remake,
             })
             .collect();
 

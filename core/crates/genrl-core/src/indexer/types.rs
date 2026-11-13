@@ -88,7 +88,8 @@ pub struct Release {
     pub leechers: u32,
     pub download: DownloadSource,
     pub info_hash: Option<String>,
-    pub categories: Vec<i32>,
+    pub categories: Vec<u32>,
+    pub native_category: Option<String>,
     pub published_date: Option<String>,
     #[serde(default)]
     pub trusted: bool,
@@ -103,7 +104,7 @@ pub struct Caps {
     pub movie_available: bool,
     pub tv_params: Vec<String>,
     pub movie_params: Vec<String>,
-    pub categories: Vec<i32>,
+    pub categories: Vec<u32>,
 }
 
 /// Indexer errors.

@@ -1227,3 +1227,59 @@ async fn test_nyaa_failure_bubbles_transient_error_identically() {
         "error must be recognized as transient: {err:?}"
     );
 }
+
+/// CHECK 2: A Torznab-style release with categories [2040, 2045] and no native_category
+/// does NOT trigger the Nyaa-specific "1_" category rejection branch.
+#[test]
+fn test_torznab_release_categories_do_not_trigger_nyaa_scoring_branch() {
+    let release_info = genrl_core::indexer::Release {
+        title: "Dune.Part.Two.2024.1080p.WEB-DL.DDP5.1.Atmos.H.264-FLUX".to_string(),
+        indexer_id: "prowlarr_torznab".to_string(),
+        size_bytes: 4_500_000_000,
+        seeders: 120,
+        leechers: 10,
+        download: genrl_core::indexer::DownloadSource::Magnet(
+            "magnet:?xt=urn:btih:0123456789abcdef0123456789abcdef01234567".into(),
+        ),
+        info_hash: Some("0123456789abcdef0123456789abcdef01234567".into()),
+        categories: vec![2040, 2045],
+        native_category: None,
+        published_date: Some("1710000000".into()),
+        trusted: false,
+        remake: false,
+    };
+
+    let parsed = genrl_core::filename::parse_release(&release_info.title);
+    let cand = genrl_core::score::Candidate::from_indexer_release(&parsed, &release_info);
+
+    assert!(
+        cand.category_id.is_none(),
+        "Torznab candidate must have category_id None so Nyaa 1_ check is bypassed"
+    );
+
+    let names = vec!["Dune Part Two".to_string()];
+    let others = vec![];
+    let target = genrl_core::score::Target {
+        names: &names,
+        other_names: &others,
+        wanted_episode: None,
+        show_type: genrl_core::models::ShowType::Movie,
+        season: 1,
+        start_year: Some(2024),
+        fully_aired: true,
+        total_episodes: None,
+        season_maps: &[],
+        missing_episodes: &[],
+        owned_episodes: &[],
+    };
+
+    let rules = genrl_core::rules::Rules::default();
+    let settings = genrl_core::settings::Settings::default();
+    let evaluated = genrl_core::score::evaluate(&cand, &target, &rules, &settings, 1710000000);
+
+    assert!(
+        evaluated.is_ok(),
+        "Torznab candidate with categories [2040, 2045] must evaluate successfully without Nyaa type mismatch: {:?}",
+        evaluated.err()
+    );
+}
