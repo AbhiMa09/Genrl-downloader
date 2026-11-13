@@ -133,6 +133,14 @@ impl Db {
             if migration.version <= current {
                 continue;
             }
+            if migration.sql.to_uppercase().contains("DROP TABLE") {
+                if let Some(db_path) = &self.path {
+                    if db_path.exists() {
+                        let _ = conn.execute_batch("PRAGMA wal_checkpoint(TRUNCATE);");
+                        Self::create_migration_backup(db_path, migration.version)?;
+                    }
+                }
+            }
             conn.execute_batch("PRAGMA foreign_keys = OFF;")?;
             let run_migration = |c: &mut Connection| -> Result<()> {
                 let tx = c.transaction()?;
@@ -145,8 +153,8 @@ impl Db {
                     let parent: String = row.get(2)?;
                     let fkid: i64 = row.get(3)?;
                     return Err(Error::Other(format!(
-                        "migration {} broke foreign keys: {table} row {rowid} references {parent} (fk {fkid})",
-                        migration.version
+                        "migration {} broke foreign key constraint on table '{}' rowid {} -> '{}' (fkid {}). Please restore database from backup.",
+                        migration.version, table, rowid, parent, fkid
                     )));
                 }
                 drop(rows);
@@ -176,6 +184,41 @@ impl Db {
             )
             .map_err(Into::into)
         })
+    }
+
+    fn create_migration_backup(db_path: &Path, version: i64) -> Result<()> {
+        let file_name = db_path.file_name().unwrap_or_default().to_string_lossy();
+        let backup_path =
+            db_path.with_file_name(format!("{file_name}.bak-before-migration-{version}"));
+        std::fs::copy(db_path, &backup_path)?;
+        harden_file(&backup_path)?;
+
+        if let Some(parent) = db_path.parent() {
+            let prefix = format!("{file_name}.bak-before-migration-");
+            if let Ok(entries) = std::fs::read_dir(parent) {
+                let mut backups = Vec::new();
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
+                        if name.starts_with(&prefix) {
+                            if let Ok(meta) = entry.metadata() {
+                                if let Ok(mtime) = meta.modified() {
+                                    backups.push((mtime, path));
+                                }
+                            }
+                        }
+                    }
+                }
+                backups.sort_by_key(|(mtime, _)| *mtime);
+                while backups.len() > 3 {
+                    if let Some((_, oldest)) = backups.first() {
+                        let _ = std::fs::remove_file(oldest);
+                    }
+                    backups.remove(0);
+                }
+            }
+        }
+        Ok(())
     }
 }
 

@@ -181,6 +181,11 @@ pub enum Rejection {
     LowQualitySource {
         source: String,
     },
+    TitleMismatch {
+        parsed: String,
+        wanted: String,
+        similarity: f64,
+    },
 }
 
 impl fmt::Display for Rejection {
@@ -228,6 +233,16 @@ impl fmt::Display for Rejection {
             }
             Rejection::LowQualitySource { source } => {
                 write!(f, "source {source} is low quality (CAM/TS/TC/SCR)")
+            }
+            Rejection::TitleMismatch {
+                parsed,
+                wanted,
+                similarity,
+            } => {
+                write!(
+                    f,
+                    "title '{parsed}' does not match wanted '{wanted}' (similarity {similarity:.2} < 0.85)"
+                )
             }
         }
     }

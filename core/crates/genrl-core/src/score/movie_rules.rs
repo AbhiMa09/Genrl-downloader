@@ -1,6 +1,6 @@
 use crate::matching::release_parse::parse_media_release;
 use crate::rules::Rules;
-use crate::score::helpers::{best_own_ratio, best_ratio};
+use crate::score::helpers::best_ratio;
 use crate::score::types::{Candidate, Rejection, Scored, Target};
 use crate::settings::Settings;
 
@@ -19,12 +19,103 @@ fn resolution_rank(res: &str) -> u32 {
     }
 }
 
+fn normalize_for_title_match(raw: &str) -> (String, Vec<String>) {
+    let lower = raw.to_lowercase();
+    let replaced_and = lower.replace('&', " and ");
+    let mut cleaned = String::with_capacity(replaced_and.len());
+    for c in replaced_and.chars() {
+        if c.is_alphanumeric() {
+            cleaned.push(c);
+        } else {
+            cleaned.push(' ');
+        }
+    }
+    let words: Vec<String> = cleaned
+        .split_whitespace()
+        .filter(|w| *w != "the")
+        .filter(|w| {
+            if w.len() == 4 && w.chars().all(|c| c.is_ascii_digit()) {
+                if let Ok(y) = w.parse::<u32>() {
+                    return !(1900..=2099).contains(&y);
+                }
+            }
+            true
+        })
+        .map(|w| w.to_string())
+        .collect();
+    let norm = words.join(" ");
+    (norm, words)
+}
+
+fn extract_numbers_and_numerals(words: &[String]) -> Vec<String> {
+    words
+        .iter()
+        .filter_map(|w| match w.as_str() {
+            "1" | "i" | "one" => Some("1".to_string()),
+            "2" | "ii" | "two" => Some("2".to_string()),
+            "3" | "iii" | "three" => Some("3".to_string()),
+            "4" | "iv" | "four" => Some("4".to_string()),
+            "5" | "v" | "five" => Some("5".to_string()),
+            "6" | "vi" | "six" => Some("6".to_string()),
+            "7" | "vii" | "seven" => Some("7".to_string()),
+            "8" | "viii" | "eight" => Some("8".to_string()),
+            "9" | "ix" | "nine" => Some("9".to_string()),
+            other if other.chars().all(|c| c.is_ascii_digit()) => Some(other.to_string()),
+            _ => None,
+        })
+        .collect()
+}
+
+pub fn calculate_title_similarity(parsed: &str, wanted: &str) -> f64 {
+    let (norm_p, words_p) = normalize_for_title_match(parsed);
+    let (norm_w, words_w) = normalize_for_title_match(wanted);
+
+    if norm_p.is_empty() || norm_w.is_empty() {
+        return 0.0;
+    }
+    if norm_p == norm_w {
+        return 1.0;
+    }
+
+    let nums_p = extract_numbers_and_numerals(&words_p);
+    let nums_w = extract_numbers_and_numerals(&words_w);
+    if (!nums_p.is_empty() || !nums_w.is_empty()) && nums_p != nums_w {
+        return 0.0;
+    }
+
+    let set_p: std::collections::HashSet<&String> = words_p.iter().collect();
+    let set_w: std::collections::HashSet<&String> = words_w.iter().collect();
+    let inter = set_p.intersection(&set_w).count();
+    let union = set_p.union(&set_w).count();
+    let token_sim = if union > 0 {
+        inter as f64 / union as f64
+    } else {
+        0.0
+    };
+
+    let str_sim = crate::filename::fuzzy_ratio(&norm_p, &norm_w);
+    token_sim.max(str_sim)
+}
+
+pub fn best_title_similarity(parsed: &str, wanted_names: &[String]) -> (f64, String) {
+    let mut best_sim = 0.0;
+    let mut best_name = String::new();
+    for wanted in wanted_names {
+        let sim = calculate_title_similarity(parsed, wanted);
+        if sim > best_sim {
+            best_sim = sim;
+            best_name = wanted.clone();
+        }
+    }
+    (best_sim, best_name)
+}
+
 /// Evaluate a candidate against a movie or TV drama series target.
 pub fn evaluate_media(
     candidate: &Candidate,
     target: &Target,
     rules: &Rules,
-    settings: &Settings,
+    _settings: &Settings,
     _now: i64,
 ) -> Result<Scored, Rejection> {
     let mut notes = Vec::new();
@@ -134,32 +225,29 @@ pub fn evaluate_media(
         }
     }
 
-    // ------------------------------------------------------------- 2. Signal score
-    let mut signal = 0.0;
+    // Title match: normalized comparison (lowercase, strip punctuation, "the", "&"/"and", year, common separators)
+    let (best_sim, matched_title) = best_title_similarity(&parsed.title, target.names);
+    if best_sim < 0.85 {
+        return Err(Rejection::TitleMismatch {
+            parsed: parsed.title.clone(),
+            wanted: target.names.first().cloned().unwrap_or_default(),
+            similarity: best_sim,
+        });
+    }
 
-    // Title match
     let (best_other, other_match) = best_ratio(target.other_names, &parsed.title);
-    let (best_own, matched) = best_own_ratio(target.names, &parsed.title);
-
-    if best_other >= 0.85 && best_other > best_own {
+    if best_other >= 0.85 && best_other > best_sim {
         return Err(Rejection::TitleIsAnotherShow {
             name: other_match.unwrap_or_default(),
             ratio: best_other,
         });
     }
 
-    if best_own >= settings.fuzzy_threshold {
-        signal += 50.0;
-        notes.push(format!(
-            "title matches {:?} ({best_own:.2})",
-            matched.clone().unwrap_or_default()
-        ));
-    } else {
-        notes.push(format!(
-            "title match below threshold ({best_own:.2} < {:.2})",
-            settings.fuzzy_threshold
-        ));
-    }
+    // ------------------------------------------------------------- 2. Signal score
+    let mut signal = 0.0;
+
+    signal += 50.0;
+    notes.push(format!("title matches {matched_title:?} ({best_sim:.2})"));
 
     // Exact year match bonus or mismatch penalty
     if let (Some(rel_year), Some(tgt_year)) = (parsed.year, target.start_year) {
@@ -328,8 +416,8 @@ pub fn evaluate_media(
     Ok(Scored {
         signal,
         ranking,
-        title_ratio: best_own,
-        matched_name: matched,
+        title_ratio: best_sim,
+        matched_name: Some(matched_title),
         notes,
     })
 }

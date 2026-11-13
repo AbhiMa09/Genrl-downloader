@@ -631,3 +631,103 @@ fn test_parser_garbage_strings_never_panic() {
         let _ = format!("{:?}", parsed);
     }
 }
+
+#[test]
+fn test_title_matching_normalized_and_rejections() {
+    use genrl_core::score::movie_rules::calculate_title_similarity;
+
+    // 1. "The Bear" vs "Bear" -> exact match after stripping "the"
+    let sim_bear = calculate_title_similarity("The Bear", "Bear");
+    assert_eq!(sim_bear, 1.0, "The Bear vs Bear must match identically");
+
+    // 2. "Dune Part Two" vs "Dune" -> missing sequel/part 2
+    let sim_dune = calculate_title_similarity("Dune Part Two", "Dune");
+    assert!(
+        sim_dune < 0.85,
+        "Dune Part Two vs Dune must not match: {sim_dune}"
+    );
+
+    // 3. "Alien Romulus" vs "Aliens" -> distinct movie
+    let sim_alien = calculate_title_similarity("Alien Romulus", "Aliens");
+    assert!(
+        sim_alien < 0.85,
+        "Alien Romulus vs Aliens must not match: {sim_alien}"
+    );
+
+    // 4. Sequel numbering: "Toy Story 2" vs "Toy Story 3"
+    let sim_toy = calculate_title_similarity("Toy Story 2", "Toy Story 3");
+    assert!(
+        sim_toy < 0.85,
+        "Toy Story 2 vs Toy Story 3 must not match: {sim_toy}"
+    );
+
+    // 5. Korean drama romanized title vs English title (via original_title in wanted names)
+    use genrl_core::score::movie_rules::best_title_similarity;
+    let wanted_names = vec!["Squid Game".to_string(), "Ojingeo Game".to_string()];
+    let (sim_korean, matched) = best_title_similarity("Ojingeo Game", &wanted_names);
+    assert_eq!(sim_korean, 1.0);
+    assert_eq!(matched, "Ojingeo Game");
+
+    // 6. Ampersand and punctuation normalization
+    let sim_fast = calculate_title_similarity("Fast & Furious", "Fast and Furious");
+    assert_eq!(sim_fast, 1.0);
+}
+
+#[test]
+fn test_evaluate_media_rejects_title_mismatch() {
+    use genrl_core::filename::Release;
+    use genrl_core::rules::Rules;
+    use genrl_core::score::movie_rules::evaluate_media;
+    use genrl_core::score::types::{Candidate, Rejection, Target};
+    use genrl_core::settings::Settings;
+
+    let candidate = Candidate {
+        release: Release {
+            raw: "Dune.Part.Two.2024.1080p.BluRay.x264-SPARKS".to_string(),
+            ..Release::default()
+        },
+        info_hash: "1111111111111111111111111111111111111111".to_string(),
+        magnet: "magnet:?xt=urn:btih:1111111111111111111111111111111111111111".to_string(),
+        seeders: 50,
+        leechers: 5,
+        trusted: true,
+        remake: false,
+        size_bytes: 2_000_000_000,
+        published_at: 1700000000,
+        uploader: None,
+        show_type: None,
+        category_id: None,
+    };
+
+    let names = vec!["Dune".to_string()];
+    let others = vec![];
+    let target_wrong = Target {
+        names: &names,
+        other_names: &others,
+        wanted_episode: None,
+        show_type: genrl_core::models::ShowType::Movie,
+        season: 1,
+        start_year: Some(2021),
+        fully_aired: true,
+        total_episodes: None,
+        season_maps: &[],
+        missing_episodes: &[],
+        owned_episodes: &[],
+        media_kind: Some(genrl_core::indexer::types::MediaKind::Movie),
+    };
+
+    let err = evaluate_media(
+        &candidate,
+        &target_wrong,
+        &Rules::default(),
+        &Settings::default(),
+        1700000000,
+    )
+    .unwrap_err();
+
+    assert!(
+        matches!(err, Rejection::TitleMismatch { .. }),
+        "expected TitleMismatch for Dune Part Two vs Dune, got: {:?}",
+        err
+    );
+}

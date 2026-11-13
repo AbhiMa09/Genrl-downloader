@@ -255,9 +255,11 @@ impl Engine {
         settings: &Settings,
     ) -> Result<()> {
         let client = crate::qbit::Qbit::from_settings(settings)?;
-        let tag_kind = job.media_kind.as_deref().unwrap_or("anime");
-        let scoped_tag = format!("genrl:{tag_kind}");
-        let tags = ["genrl", scoped_tag.as_str()];
+        let tags: Vec<&str> = match job.media_kind.as_deref() {
+            Some("movie") => vec!["genrl", "genrl:movie"],
+            Some("series") => vec!["genrl", "genrl:series"],
+            _ => vec![],
+        };
 
         let is_torrent_url =
             torrent.magnet.starts_with("http://") || torrent.magnet.starts_with("https://");

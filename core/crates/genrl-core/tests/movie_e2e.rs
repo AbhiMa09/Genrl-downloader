@@ -195,10 +195,10 @@ fn movie_feed_xml(server_uri: &str, bluray_hash: &str) -> String {
     <item>
       <title>Dune.Part.Two.2024.1080p.BluRay.x264-SPARKS</title>
       <guid>{server_uri}/3</guid>
-      <link>{server_uri}/download/bluray.torrent</link>
+      <link>{server_uri}/download/bluray.torrent?apikey={PROWLARR_SECRET}</link>
       <pubDate>Mon, 01 Jan 2024 14:00:00 +0000</pubDate>
       <size>1800000000</size>
-      <enclosure url="{server_uri}/download/bluray.torrent" length="1800000000" type="application/x-bittorrent" />
+      <enclosure url="{server_uri}/download/bluray.torrent?apikey={PROWLARR_SECRET}" length="1800000000" type="application/x-bittorrent" />
       <torznab:attr name="category" value="2000" />
       <torznab:attr name="size" value="1800000000" />
       <torznab:attr name="seeders" value="80" />
@@ -489,9 +489,17 @@ async fn test_movie_e2e_full_flow() {
         "Prowlarr secret must never appear in SQLite database dump"
     );
 
-    // 10. Verify torrent cleaned up from client
+    // 10. Verify torrent cleaned up from client and raw secret absent from qBit requests
     {
         let guard = qbit_state.lock().unwrap();
+        assert!(
+            guard
+                .received_bodies
+                .iter()
+                .all(|b| !b.contains(PROWLARR_SECRET)),
+            "qBittorrent received requests must never contain raw secret: {:?}",
+            guard.received_bodies
+        );
         assert!(guard.present.is_empty(), "torrent removed after completion");
     }
 }
@@ -842,8 +850,8 @@ async fn test_anime_add_applies_genrl_anime_tag() {
         guard
             .received_bodies
             .iter()
-            .any(|b| b.contains("genrl:anime") || b.contains("genrl%3Aanime")),
-        "anime add must include genrl:anime tag: {:?}",
+            .all(|b| !b.contains("tags=") && !b.contains("name=\"tags\"")),
+        "anime add must NOT send any tags (legacy behavior preserved): {:?}",
         guard.received_bodies
     );
 }
