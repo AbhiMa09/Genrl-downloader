@@ -101,6 +101,7 @@ impl HttpFetch for GateFetch {
 pub struct FakeFetch {
     responses: Mutex<HashMap<String, String>>,
     errors: Mutex<HashMap<String, String>>,
+    recorded: Mutex<Vec<String>>,
 }
 
 impl FakeFetch {
@@ -120,6 +121,13 @@ impl FakeFetch {
             .lock()
             .unwrap_or_else(|e| e.into_inner())
             .insert(url_prefix.to_string(), error.into());
+    }
+
+    pub fn recorded_requests(&self) -> Vec<String> {
+        self.recorded
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
     }
 }
 
@@ -142,6 +150,10 @@ impl HttpFetch for FakeFetch {
                 sep = '&';
             }
         }
+        self.recorded
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .push(full.clone());
 
         let errs = self.errors.lock().unwrap_or_else(|e| e.into_inner());
         for (pattern, err) in errs.iter() {

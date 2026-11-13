@@ -62,7 +62,7 @@ impl SearchQuery {
 }
 
 /// Download source: magnet link or remote .torrent URL.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Deserialize)]
 #[serde(tag = "type", content = "url")]
 pub enum DownloadSource {
     Magnet(String),
@@ -75,6 +75,48 @@ impl DownloadSource {
             DownloadSource::Magnet(s) => s,
             DownloadSource::TorrentUrl(s) => s,
         }
+    }
+}
+
+impl std::fmt::Debug for DownloadSource {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            DownloadSource::Magnet(s) => f
+                .debug_tuple("Magnet")
+                .field(&crate::indexer::redact_secrets(s))
+                .finish(),
+            DownloadSource::TorrentUrl(s) => f
+                .debug_tuple("TorrentUrl")
+                .field(&crate::indexer::redact_secrets(s))
+                .finish(),
+        }
+    }
+}
+
+impl std::fmt::Display for DownloadSource {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&crate::indexer::redact_secrets(self.url()))
+    }
+}
+
+impl Serialize for DownloadSource {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        #[derive(Serialize)]
+        #[serde(tag = "type", content = "url")]
+        enum Redacted<'a> {
+            Magnet(&'a str),
+            TorrentUrl(&'a str),
+        }
+
+        let redacted = crate::indexer::redact_secrets(self.url());
+        let view = match self {
+            DownloadSource::Magnet(_) => Redacted::Magnet(&redacted),
+            DownloadSource::TorrentUrl(_) => Redacted::TorrentUrl(&redacted),
+        };
+        view.serialize(serializer)
     }
 }
 

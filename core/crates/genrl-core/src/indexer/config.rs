@@ -1,4 +1,6 @@
+use std::collections::HashMap;
 use std::fmt;
+use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
@@ -105,7 +107,9 @@ impl IndexerConfig {
         } else {
             all.push(config.clone());
         }
-        Self::save_all(db, &all)
+        Self::save_all(db, &all)?;
+        let _ = crate::indexer::torznab_caps::delete_cached_caps(db, &config.id);
+        Ok(())
     }
 
     /// Remove an indexer config and its stored secret.
@@ -116,6 +120,7 @@ impl IndexerConfig {
         if all.len() != initial_len {
             Self::save_all(db, &all)?;
             delete_api_key(id);
+            let _ = crate::indexer::torznab_caps::delete_cached_caps(db, id);
             Ok(true)
         } else {
             Ok(false)
@@ -131,34 +136,86 @@ fn keyring_key(id: &str) -> String {
     format!("indexer_key_{id}")
 }
 
-fn load_api_key(id: &str) -> Option<String> {
+fn secrets_file_path() -> PathBuf {
+    if let Ok(path) = std::env::var("GENRL_SECRETS_FILE") {
+        if !path.trim().is_empty() {
+            return PathBuf::from(path);
+        }
+    }
+    dirs::config_dir()
+        .map(|d| d.join("genrl-downloader"))
+        .or_else(|| dirs::data_dir().map(|d| d.join("genrl-downloader")))
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join("secrets.json")
+}
+
+fn read_secrets_file() -> HashMap<String, String> {
+    let path = secrets_file_path();
+    if let Ok(bytes) = std::fs::read(path) {
+        serde_json::from_slice(&bytes).unwrap_or_default()
+    } else {
+        HashMap::new()
+    }
+}
+
+fn write_secrets_file(map: &HashMap<String, String>) {
+    let path = secrets_file_path();
+    if let Some(parent) = path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    if let Ok(json) = serde_json::to_vec_pretty(map) {
+        if std::fs::write(&path, json).is_ok() {
+            let _ = crate::platform::set_file_permissions(&path, 0o600);
+        }
+    }
+}
+
+pub fn load_api_key(id: &str) -> Option<String> {
     if let Ok(val) = std::env::var(env_key_var(id)) {
         if !val.trim().is_empty() {
             return Some(val);
         }
     }
-    if std::env::var("GENRL_FORCE_NO_KEYRING").as_deref() == Ok("1") {
-        return None;
+    if std::env::var("GENRL_FORCE_NO_KEYRING").as_deref() != Ok("1") {
+        if let Ok(entry) = keyring::Entry::new("genrl-downloader", &keyring_key(id)) {
+            if let Ok(pw) = entry.get_password() {
+                if !pw.is_empty() {
+                    return Some(pw);
+                }
+            }
+        }
     }
-    let entry = keyring::Entry::new("genrl-downloader", &keyring_key(id)).ok()?;
-    entry.get_password().ok()
+    read_secrets_file().get(&keyring_key(id)).cloned()
 }
 
-fn save_api_key(id: &str, key: &str) {
-    if std::env::var("GENRL_FORCE_NO_KEYRING").as_deref() == Ok("1") || key.is_empty() {
+pub fn save_api_key(id: &str, key: &str) {
+    if key.is_empty() {
         return;
     }
-    if let Ok(entry) = keyring::Entry::new("genrl-downloader", &keyring_key(id)) {
-        let _ = entry.set_password(key);
+    let mut saved_to_keyring = false;
+    if std::env::var("GENRL_FORCE_NO_KEYRING").as_deref() != Ok("1") {
+        if let Ok(entry) = keyring::Entry::new("genrl-downloader", &keyring_key(id)) {
+            if entry.set_password(key).is_ok() {
+                saved_to_keyring = true;
+            }
+        }
+    }
+    if !saved_to_keyring {
+        let mut map = read_secrets_file();
+        map.insert(keyring_key(id), key.to_string());
+        write_secrets_file(&map);
     }
 }
 
-fn delete_api_key(id: &str) {
-    if std::env::var("GENRL_FORCE_NO_KEYRING").as_deref() == Ok("1") {
-        return;
+pub fn delete_api_key(id: &str) {
+    if std::env::var("GENRL_FORCE_NO_KEYRING").as_deref() != Ok("1") {
+        if let Ok(entry) = keyring::Entry::new("genrl-downloader", &keyring_key(id)) {
+            let _ = entry.delete_credential();
+        }
     }
-    if let Ok(entry) = keyring::Entry::new("genrl-downloader", &keyring_key(id)) {
-        let _ = entry.delete_credential();
+    let mut map = read_secrets_file();
+    if map.remove(&keyring_key(id)).is_some() {
+        write_secrets_file(&map);
     }
 }
 

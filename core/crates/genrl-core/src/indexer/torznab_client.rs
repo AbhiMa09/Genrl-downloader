@@ -138,8 +138,6 @@ impl Indexer for TorznabClient {
                     .collect();
                 if !movie_cats.is_empty() {
                     params.push(("cat", movie_cats.join(",")));
-                } else {
-                    params.push(("cat", "2000".to_string()));
                 }
 
                 if let Some(imdb) = &query.imdb_id {
@@ -174,8 +172,6 @@ impl Indexer for TorznabClient {
                     .collect();
                 if !tv_cats.is_empty() {
                     params.push(("cat", tv_cats.join(",")));
-                } else {
-                    params.push(("cat", "5000".to_string()));
                 }
 
                 if let Some(imdb) = &query.imdb_id {
@@ -245,8 +241,6 @@ impl Indexer for TorznabClient {
 
                 if !anime_cats.is_empty() {
                     params.push(("cat", anime_cats.join(",")));
-                } else {
-                    params.push(("cat", "5070,5000".to_string()));
                 }
                 params.push(("q", query.text.clone()));
             }

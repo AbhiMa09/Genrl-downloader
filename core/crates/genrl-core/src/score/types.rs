@@ -27,7 +27,7 @@ pub fn seed_health(seeders: u32, rules: &Rules) -> SeedHealth {
 ///
 /// Fully owned: the parsed release is kept (cloned) alongside the feed facts,
 /// so callers never juggle self-referential lifetimes.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct Candidate {
     pub release: Release,
     /// Info hash, lower-case hex: the identity a question answer refers to.
@@ -45,6 +45,25 @@ pub struct Candidate {
     /// means "unknown", which scores nothing but never rejects.
     pub show_type: Option<ShowType>,
     pub category_id: Option<String>,
+}
+
+impl std::fmt::Debug for Candidate {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Candidate")
+            .field("release", &self.release)
+            .field("info_hash", &self.info_hash)
+            .field("magnet", &crate::indexer::redact_secrets(&self.magnet))
+            .field("seeders", &self.seeders)
+            .field("leechers", &self.leechers)
+            .field("trusted", &self.trusted)
+            .field("remake", &self.remake)
+            .field("size_bytes", &self.size_bytes)
+            .field("published_at", &self.published_at)
+            .field("uploader", &self.uploader)
+            .field("show_type", &self.show_type)
+            .field("category_id", &self.category_id)
+            .finish()
+    }
 }
 
 impl Candidate {

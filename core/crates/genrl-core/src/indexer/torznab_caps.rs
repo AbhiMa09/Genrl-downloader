@@ -156,6 +156,18 @@ pub fn save_cached_caps(
     .map_err(|e| IndexerError::Parse(format!("db error saving caps: {e}")))
 }
 
+/// Invalidate and remove cached caps for an indexer.
+pub fn delete_cached_caps(db: &Db, indexer_id: &str) -> Result<(), IndexerError> {
+    db.with(|c| {
+        c.execute(
+            "DELETE FROM indexer_caps WHERE indexer_id = ?1",
+            rusqlite::params![indexer_id],
+        )?;
+        Ok(())
+    })
+    .map_err(|e| IndexerError::Parse(format!("db error deleting caps: {e}")))
+}
+
 fn redact_snippet(text: &str, max_len: usize) -> String {
     let redacted = redact_secrets(text);
     if redacted.len() > max_len {
