@@ -10,43 +10,40 @@ use super::types::Release;
 ///
 /// In either case, preserves the candidate with the higher seed count.
 pub fn dedupe_releases(releases: Vec<Release>) -> Vec<Release> {
-    let mut by_hash: HashMap<String, Release> = HashMap::new();
-    let mut no_hash: HashMap<String, Release> = HashMap::new();
+    let mut result: Vec<Release> = Vec::new();
+    let mut hash_index: HashMap<String, usize> = HashMap::new();
+    let mut title_index: HashMap<String, usize> = HashMap::new();
 
     for release in releases {
         if let Some(ref hash) = release.info_hash {
             let key = hash.trim().to_ascii_lowercase();
             if !key.is_empty() {
-                match by_hash.get_mut(&key) {
-                    Some(existing) => {
-                        if release.seeders > existing.seeders {
-                            *existing = release;
-                        }
+                if let Some(&idx) = hash_index.get(&key) {
+                    if release.seeders > result[idx].seeders {
+                        result[idx] = release;
                     }
-                    None => {
-                        by_hash.insert(key, release);
-                    }
+                    continue;
                 }
+                let idx = result.len();
+                hash_index.insert(key, idx);
+                result.push(release);
                 continue;
             }
         }
 
         let normalized_title = normalize_title_for_dedupe(&release.title);
         let key = format!("{}:{}", normalized_title, release.size_bytes);
-        match no_hash.get_mut(&key) {
-            Some(existing) => {
-                if release.seeders > existing.seeders {
-                    *existing = release;
-                }
+        if let Some(&idx) = title_index.get(&key) {
+            if release.seeders > result[idx].seeders {
+                result[idx] = release;
             }
-            None => {
-                no_hash.insert(key, release);
-            }
+            continue;
         }
+        let idx = result.len();
+        title_index.insert(key, idx);
+        result.push(release);
     }
 
-    let mut result: Vec<Release> = by_hash.into_values().collect();
-    result.extend(no_hash.into_values());
     result.sort_by_key(|r| std::cmp::Reverse(r.seeders));
     result
 }

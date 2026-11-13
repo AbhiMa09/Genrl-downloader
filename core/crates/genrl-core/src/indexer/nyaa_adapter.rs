@@ -57,12 +57,11 @@ impl Indexer for NyaaAdapter {
         let releases = items
             .into_iter()
             .map(|item| {
-                let cat_id = item
+                let categories: Vec<i32> = item
                     .category_id
                     .split('_')
-                    .next_back()
-                    .and_then(|s| s.parse::<i32>().ok())
-                    .unwrap_or(0);
+                    .filter_map(|s| s.parse::<i32>().ok())
+                    .collect();
                 Release {
                     title: item.title.clone(),
                     indexer_id: "nyaa".to_string(),
@@ -71,7 +70,7 @@ impl Indexer for NyaaAdapter {
                     leechers: item.leechers,
                     download: DownloadSource::Magnet(item.magnet()),
                     info_hash: Some(item.info_hash),
-                    categories: vec![cat_id],
+                    categories,
                     published_date: Some(item.published_at.to_string()),
                     trusted: item.trusted,
                     remake: item.remake,

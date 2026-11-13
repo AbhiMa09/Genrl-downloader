@@ -1115,3 +1115,115 @@ async fn conan_pack_job_diagnostic() {
         Err(genrl_core::score::Rejection::SizeOutOfRange { .. })
     ));
 }
+
+/// Phase 1 regression proof: search_candidates with NyaaAdapter produces
+/// 100% IDENTICAL candidates (count, order, and every field) compared to the
+/// pre-refactor direct Nyaa code.
+#[tokio::test]
+async fn test_nyaa_only_search_candidates_identical_to_legacy_direct_code() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/"))
+        .respond_with(ResponseTemplate::new(200).set_body_string(FEED))
+        .mount(&server)
+        .await;
+
+    let settings = settings_with(&server.uri(), Vec::new());
+    let g = gate();
+    let names = vec![
+        "sousou no frieren 1080p".to_string(),
+        "frieren beyond journeys end".to_string(),
+    ];
+
+    // 1. Refactored candidate extraction using IndexerRegistry + NyaaAdapter
+    let refactored = genrl_core::matching::search_candidates(&g, &settings, &names, 1000, 50)
+        .await
+        .expect("refactored search_candidates must succeed");
+
+    // 2. Pre-refactor legacy algorithm verbatim from git history f1c2065~1
+    async fn legacy_search_candidates(
+        gate: &Gate,
+        settings: &Settings,
+        names: &[String],
+        per_name: usize,
+        stop_after: usize,
+    ) -> genrl_core::error::Result<Vec<genrl_core::score::Candidate>> {
+        let mut seen: Vec<String> = Vec::new();
+        let mut found: Vec<genrl_core::score::Candidate> = Vec::new();
+
+        for name in names {
+            if found.len() >= stop_after {
+                break;
+            }
+            let mut query = genrl_core::nyaa::SearchQuery::new(name.as_str());
+            query.min_seeders = 1;
+            query.limit = per_name.clamp(1, 1000);
+            let items = genrl_core::nyaa::search(gate, settings, &query).await?;
+            for item in items.iter() {
+                if seen.contains(&item.info_hash) {
+                    continue;
+                }
+                seen.push(item.info_hash.clone());
+                let release = genrl_core::filename::parse_release(&item.title);
+                let mut candidate = genrl_core::score::Candidate::from_item(&release, item);
+                candidate.uploader = None;
+                found.push(candidate);
+            }
+        }
+
+        found.sort_by_key(|a| std::cmp::Reverse(a.seeders));
+        found.truncate(stop_after.max(1));
+        Ok(found)
+    }
+
+    let legacy = legacy_search_candidates(&g, &settings, &names, 1000, 50)
+        .await
+        .expect("legacy direct search must succeed");
+
+    assert!(!refactored.is_empty(), "must find candidates from fixture");
+    assert_eq!(
+        refactored.len(),
+        legacy.len(),
+        "candidate count must be identical"
+    );
+
+    for (i, (r, l)) in refactored.iter().zip(legacy.iter()).enumerate() {
+        if r != l {
+            eprintln!("Difference at index {i}:");
+            eprintln!("Refactored: {r:#?}");
+            eprintln!("Legacy:     {l:#?}");
+            panic!("Mismatch at index {i}");
+        }
+    }
+
+    // Assert that every single Candidate struct matches completely
+    assert_eq!(
+        refactored, legacy,
+        "refactored candidates must be 100% identical in order, count, and fields"
+    );
+}
+
+/// Confirm that when Nyaa fails, the refactored IndexerRegistry bubbles up the error
+/// identically, classifying it as transient so worker steps park in Blocked state.
+#[tokio::test]
+async fn test_nyaa_failure_bubbles_transient_error_identically() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/"))
+        .respond_with(ResponseTemplate::new(500).set_body_string("Nyaa internal error"))
+        .mount(&server)
+        .await;
+
+    let settings = settings_with(&server.uri(), Vec::new());
+    let g = gate();
+    let names = vec!["sousou no frieren".to_string()];
+
+    let err = genrl_core::matching::search_candidates(&g, &settings, &names, 1000, 1000)
+        .await
+        .expect_err("search against dead nyaa must return error");
+
+    assert!(
+        err.is_transient() || err.is_connection_failure(),
+        "error must be recognized as transient: {err:?}"
+    );
+}

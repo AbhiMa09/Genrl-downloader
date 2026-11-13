@@ -352,6 +352,11 @@ fn test_planner_apply_total_episodes_zero_with_season_map() {
              VALUES (235, 'Detective Conan', 1, 0, 'tv', 'airing', 'ready')",
             [],
         )?;
+        genrl_core::season_map::ensure_episodes_exist(c, 235)?;
+        c.execute(
+            "UPDATE episodes SET state = 'done' WHERE mal_id = 235 AND number < 1050",
+            [],
+        )?;
         Ok(())
     })
     .expect("insert conan");

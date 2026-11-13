@@ -68,6 +68,15 @@ impl Candidate {
 
     /// Build from an Indexer release plus its parsed release name.
     pub fn from_indexer_release(release: &Release, item: &crate::indexer::Release) -> Self {
+        let category_id = if item.indexer_id == "nyaa" {
+            if item.categories.len() >= 2 {
+                Some(format!("{}_{}", item.categories[0], item.categories[1]))
+            } else {
+                item.categories.first().map(|c| c.to_string())
+            }
+        } else {
+            item.categories.first().map(|c| c.to_string())
+        };
         Candidate {
             release: release.clone(),
             info_hash: item
@@ -89,7 +98,7 @@ impl Candidate {
                 .unwrap_or(0),
             uploader: None,
             show_type: None,
-            category_id: item.categories.first().map(|c| c.to_string()),
+            category_id,
         }
     }
 }
