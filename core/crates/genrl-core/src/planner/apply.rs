@@ -174,10 +174,9 @@ pub fn plan_single(
     } else if entry.total_episodes.unwrap_or(0) <= 0 {
         let mapped = db.with(|c| {
             crate::season_map::ensure_episodes_exist(c, mal_id)?;
-            let seasons = crate::season_map::all_for_show(c, mal_id)?;
-            for s in seasons {
+            if let Some(latest) = crate::season_map::latest_season(c, mal_id)? {
                 let mut list = Vec::new();
-                for i in s.first_ep..=s.last_ep {
+                for i in latest.first_ep..=latest.last_ep {
                     let already: i64 = c
                         .query_row(
                             "SELECT COUNT(*) FROM episodes WHERE mal_id = ?1 AND number = ?2 AND state = 'done'",
@@ -189,11 +188,10 @@ pub fn plan_single(
                         list.push(i as f64);
                     }
                 }
-                if !list.is_empty() {
-                    return Ok(list);
-                }
+                Ok(list)
+            } else {
+                Ok(Vec::new())
             }
-            Ok(Vec::new())
         })?;
         if !mapped.is_empty() {
             mapped

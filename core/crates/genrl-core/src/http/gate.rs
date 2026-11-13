@@ -21,6 +21,28 @@ pub struct Gate {
     client: reqwest::Client,
     db: crate::Db,
     states: Mutex<HashMap<Service, Arc<ServiceState>>>,
+    pub(crate) dynamic_states: Mutex<HashMap<String, Arc<ServiceState>>>,
+}
+
+impl Clone for Gate {
+    fn clone(&self) -> Self {
+        Self {
+            client: self.client.clone(),
+            db: self.db.clone(),
+            states: Mutex::new(
+                self.states
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .clone(),
+            ),
+            dynamic_states: Mutex::new(
+                self.dynamic_states
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .clone(),
+            ),
+        }
+    }
 }
 
 impl Gate {
@@ -64,6 +86,7 @@ impl Gate {
             client,
             db,
             states: Mutex::new(states),
+            dynamic_states: Mutex::new(HashMap::new()),
         })
     }
 
@@ -146,7 +169,7 @@ impl Gate {
         let wire = Wire::Get {
             if_none_match: if_none_match.as_deref(),
         };
-        self.dispatch(service, parsed, key, state, opts, wire, ttl)
+        self.dispatch(service.as_str(), parsed, key, state, opts, wire, ttl)
             .await
     }
 
@@ -166,15 +189,15 @@ impl Gate {
         let state = self.state(service);
         self.allow(service, &state)?;
         let wire = Wire::Form { fields: form };
-        self.dispatch(service, parsed, key, state, opts, wire, None)
+        self.dispatch(service.as_str(), parsed, key, state, opts, wire, None)
             .await
     }
 
     // `last_err` starts empty and is only read after an attempt has filled it.
     #[allow(unused_assignments, clippy::too_many_arguments)]
-    async fn dispatch(
+    pub(crate) async fn dispatch(
         &self,
-        service: Service,
+        service_name: &str,
         parsed: reqwest::Url,
         key: String,
         state: Arc<ServiceState>,
@@ -200,9 +223,15 @@ impl Gate {
             state.limiter.acquire().await;
             // We already hold the breaker's permission (including a half-open
             // probe); only bail if another job hard-opened it while we waited.
-            if self.breaker_state(service) == BreakerState::Open {
+            let is_open = state
+                .breaker
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .state()
+                == BreakerState::Open;
+            if is_open {
                 return Err(Error::BreakerOpen {
-                    service: service.as_str().to_string(),
+                    service: service_name.to_string(),
                     retry_in_secs: state.policy.breaker_cooldown.as_secs(),
                 });
             }
@@ -218,8 +247,8 @@ impl Gate {
                     if status == 304 {
                         // Server confirmed our copy: refresh the clock, no body.
                         if let Some(ttl) = ttl {
-                            cache::touch(&self.db, service.as_str(), &key, ttl.as_secs())?;
-                            if let Some(entry) = cache::get(&self.db, service.as_str(), &key)? {
+                            cache::touch(&self.db, service_name, &key, ttl.as_secs())?;
+                            if let Some(entry) = cache::get(&self.db, service_name, &key)? {
                                 return Ok(Fetched {
                                     url: key,
                                     status: 304,
@@ -242,7 +271,7 @@ impl Gate {
                     if let Some(ttl) = ttl {
                         cache::put(
                             &self.db,
-                            service.as_str(),
+                            service_name,
                             &key,
                             &body,
                             etag.as_deref(),
@@ -260,7 +289,7 @@ impl Gate {
                 }
                 Ok(Outcome::RateLimited { retry_after }) => {
                     last_err = Some(Error::RateLimited {
-                        service: service.as_str().to_string(),
+                        service: service_name.to_string(),
                         retry_after,
                     });
                     self.record_failure(&state);
@@ -302,9 +331,15 @@ impl Gate {
 
             // Preserve the actual failure and Retry-After on the opening request.
             // Subsequent callers are rejected by allow() with BreakerOpen.
-            if self.breaker_state(service) == BreakerState::Open {
+            let is_open = state
+                .breaker
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .state()
+                == BreakerState::Open;
+            if is_open {
                 return Err(last_err.unwrap_or_else(|| Error::BreakerOpen {
-                    service: service.as_str().to_string(),
+                    service: service_name.to_string(),
                     retry_in_secs: state.policy.breaker_cooldown.as_secs(),
                 }));
             }
@@ -328,16 +363,20 @@ impl Gate {
         }
     }
 
-    fn allow(&self, service: Service, state: &Arc<ServiceState>) -> Result<()> {
+    pub(crate) fn allow_str(&self, service_name: &str, state: &Arc<ServiceState>) -> Result<()> {
         use breaker::Verdict;
         let mut guard = state.breaker.lock().unwrap_or_else(|e| e.into_inner());
         match guard.check(Instant::now()) {
             Verdict::Allow => Ok(()),
             Verdict::Reject { retry_in } => Err(Error::BreakerOpen {
-                service: service.as_str().to_string(),
+                service: service_name.to_string(),
                 retry_in_secs: retry_in.as_secs().max(1),
             }),
         }
+    }
+
+    fn allow(&self, service: Service, state: &Arc<ServiceState>) -> Result<()> {
+        self.allow_str(service.as_str(), state)
     }
 
     fn record_success(&self, state: &Arc<ServiceState>) {

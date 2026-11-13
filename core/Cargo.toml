@@ -40,6 +40,7 @@ url = "2"
 bytes = "1"
 regex = "1"
 quick-xml = "0.37"
+async-trait = "0.1"
 # Dev / test
 wiremock = "0.6"
 tempfile = "3"

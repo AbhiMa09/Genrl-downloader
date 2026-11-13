@@ -36,6 +36,7 @@ pub mod error;
 pub mod events;
 pub mod filename;
 pub mod http;
+pub mod indexer;
 pub mod jobs;
 pub mod library;
 pub mod locations;

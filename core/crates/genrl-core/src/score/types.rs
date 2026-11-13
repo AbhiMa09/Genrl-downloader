@@ -65,6 +65,33 @@ impl Candidate {
             category_id: Some(item.category_id.clone()),
         }
     }
+
+    /// Build from an Indexer release plus its parsed release name.
+    pub fn from_indexer_release(release: &Release, item: &crate::indexer::Release) -> Self {
+        Candidate {
+            release: release.clone(),
+            info_hash: item
+                .info_hash
+                .as_deref()
+                .unwrap_or("")
+                .trim()
+                .to_lowercase(),
+            magnet: item.download.url().to_string(),
+            seeders: item.seeders,
+            leechers: item.leechers,
+            trusted: item.trusted,
+            remake: item.remake,
+            size_bytes: item.size_bytes,
+            published_at: item
+                .published_date
+                .as_deref()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(0),
+            uploader: None,
+            show_type: None,
+            category_id: item.categories.first().map(|c| c.to_string()),
+        }
+    }
 }
 
 /// What we are looking for: the show's names, the episode, its type.

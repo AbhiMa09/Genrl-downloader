@@ -3,7 +3,7 @@ use crate::error::Result;
 use crate::filename;
 use crate::http::Gate;
 use crate::models::{AiringStatus, Show, ShowType};
-use crate::nyaa::{self, FeedItem, SearchQuery};
+use crate::nyaa::FeedItem;
 use crate::rules::Rules;
 use crate::score::Candidate;
 use crate::settings::Settings;
@@ -17,13 +17,24 @@ use super::types::{TargetInputs, Verdict};
 /// This is the request-count control from Step 2: the main (romaji) name is
 /// asked first, and the translated and synonym names are only spent when the
 /// first did not turn up enough.
+use crate::indexer::{IndexerRegistry, MediaKind, NyaaAdapter, SearchQuery as IndexerQuery};
+
 pub async fn search_candidates(
     gate: &Gate,
     settings: &Settings,
     names: &[String],
-    per_name: usize,
+    _per_name: usize,
     stop_after: usize,
 ) -> Result<Vec<Candidate>> {
+    let mut registry = IndexerRegistry::new();
+    registry.add(
+        std::sync::Arc::new(NyaaAdapter::new(
+            std::sync::Arc::new(gate.clone()),
+            settings.clone(),
+        )),
+        vec![MediaKind::Anime],
+    );
+
     let mut seen: Vec<String> = Vec::new();
     let mut found: Vec<Candidate> = Vec::new();
 
@@ -31,17 +42,17 @@ pub async fn search_candidates(
         if found.len() >= stop_after {
             break;
         }
-        let mut query = SearchQuery::new(name.as_str());
-        query.min_seeders = 1; // dead torrents are never candidates
-        query.limit = per_name.clamp(1, 1000);
-        let items = nyaa::search(gate, settings, &query).await?;
-        for item in items.iter() {
-            if seen.contains(&item.info_hash) {
-                continue;
+        let query = IndexerQuery::new(name.as_str(), MediaKind::Anime);
+        let releases = registry.search(&query).await?;
+        for rel in releases.into_iter() {
+            if let Some(ref hash) = rel.info_hash {
+                if seen.contains(hash) {
+                    continue;
+                }
+                seen.push(hash.clone());
             }
-            seen.push(item.info_hash.clone());
-            let release = filename::parse_release(&item.title);
-            found.push(candidate_from(&release, item));
+            let release = filename::parse_release(&rel.title);
+            found.push(Candidate::from_indexer_release(&release, &rel));
         }
     }
 

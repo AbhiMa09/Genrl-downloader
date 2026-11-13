@@ -14,6 +14,7 @@
 pub mod backoff;
 pub mod breaker;
 pub mod cache;
+pub mod dynamic;
 pub mod gate;
 pub mod limiter;
 pub mod policy;

@@ -64,3 +64,5 @@ test_*.txt
 callback_method*.txt
 fixed_methods.txt
 __pycache__/
+graphify-out/
+.agents/

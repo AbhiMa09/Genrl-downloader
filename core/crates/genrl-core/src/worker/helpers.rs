@@ -198,12 +198,12 @@ impl Engine {
     /// overwritten by the failure that step is about to record.
     fn is_cancelled(&self, job_id: i64) -> Result<bool> {
         let last_error: Option<String> = self.db.with(|c| {
-            Ok(
-                c.query_row("SELECT last_error FROM jobs WHERE id = ?1", [job_id], |r| {
-                    r.get(0)
+            let row = c
+                .query_row("SELECT last_error FROM jobs WHERE id = ?1", [job_id], |r| {
+                    r.get::<_, Option<String>>(0)
                 })
-                .optional()?,
-            )
+                .optional()?;
+            Ok(row.flatten())
         })?;
         Ok(last_error.as_deref() == Some(jobs::CANCELLED_BY_USER))
     }

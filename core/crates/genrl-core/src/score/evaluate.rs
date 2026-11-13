@@ -275,12 +275,7 @@ pub fn evaluate(
                 notes.push("batch release covering season episodes".into());
             }
         }
-        (Some(wanted), None) => {
-            if !is_batch && effective_episode_range.is_none() {
-                return Err(Rejection::WrongEpisode { wanted, found: 0.0 });
-            }
-            notes.push("no episode number (batch or feature)".into());
-        }
+        (Some(_), None) => notes.push("no episode number (batch or feature)".into()),
     }
 
     if let (Some(wanted), Some((from, to))) = (target.wanted_episode, effective_episode_range) {
