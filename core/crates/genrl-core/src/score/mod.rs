@@ -15,6 +15,7 @@
 
 pub mod evaluate;
 pub mod helpers;
+pub mod movie_rules;
 pub mod size;
 pub mod types;
 
@@ -22,5 +23,6 @@ pub mod types;
 mod tests;
 
 pub use evaluate::*;
+pub use movie_rules::*;
 pub use size::*;
 pub use types::*;

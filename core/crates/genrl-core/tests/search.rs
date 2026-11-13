@@ -1006,6 +1006,7 @@ async fn conan_pack_job_diagnostic() {
         season_maps: &season_maps,
         missing_episodes: &missing,
         owned_episodes: &owned,
+        media_kind: None,
     };
 
     let rules = Rules::default();
@@ -1271,6 +1272,7 @@ fn test_torznab_release_categories_do_not_trigger_nyaa_scoring_branch() {
         season_maps: &[],
         missing_episodes: &[],
         owned_episodes: &[],
+        media_kind: None,
     };
 
     let rules = genrl_core::rules::Rules::default();

@@ -104,6 +104,7 @@ impl TargetInputs {
             season_maps: &self.season_maps,
             missing_episodes: &self.missing_episodes,
             owned_episodes: &self.owned_episodes,
+            media_kind: None,
         }
     }
 

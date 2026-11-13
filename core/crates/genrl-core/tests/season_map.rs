@@ -107,6 +107,7 @@ fn test_evaluate_priority_contract_mapped_relative_episode() {
         season_maps: &maps,
         missing_episodes: &[],
         owned_episodes: &[],
+        media_kind: None,
     };
 
     // Candidate specifies Season 33 episode 5 -> 1050 + 5 - 1 = 1054
@@ -164,6 +165,7 @@ fn test_evaluate_priority_contract_mapped_batch() {
         season_maps: &maps,
         missing_episodes: &[],
         owned_episodes: &[],
+        media_kind: None,
     };
 
     let mut batch_cand = mock_candidate(
@@ -202,6 +204,7 @@ fn test_evaluate_priority_contract_no_season_marker_absolute() {
         season_maps: &maps,
         missing_episodes: &[],
         owned_episodes: &[],
+        media_kind: None,
     };
 
     // No season marker in release -> absolute episode 1054
@@ -237,6 +240,7 @@ fn test_evaluate_priority_contract_unmapped_season_rejects() {
         season_maps: &maps,
         missing_episodes: &[],
         owned_episodes: &[],
+        media_kind: None,
     };
 
     // Release specifies Season 40, which is unmapped

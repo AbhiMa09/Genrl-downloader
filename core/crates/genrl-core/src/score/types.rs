@@ -132,6 +132,7 @@ pub struct Target<'a> {
     pub season_maps: &'a [crate::season_map::SeasonMapEntry],
     pub missing_episodes: &'a [f64],
     pub owned_episodes: &'a [f64],
+    pub media_kind: Option<crate::indexer::types::MediaKind>,
 }
 
 /// Why a candidate was rejected outright.

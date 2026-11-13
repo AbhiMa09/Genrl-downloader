@@ -20,10 +20,12 @@
 //! functions, which is what the fixture suite tests.
 
 pub mod decide;
+pub mod release_parse;
 pub mod search;
 pub mod types;
 
 pub use decide::*;
+pub use release_parse::*;
 pub use search::*;
 pub use types::*;
 

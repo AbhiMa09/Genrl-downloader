@@ -12,6 +12,12 @@ pub fn evaluate(
     settings: &Settings,
     now: i64,
 ) -> Result<Scored, Rejection> {
+    if let Some(kind) = target.media_kind {
+        if kind != crate::indexer::types::MediaKind::Anime {
+            return super::movie_rules::evaluate_media(candidate, target, rules, settings, now);
+        }
+    }
+
     let mut notes = Vec::new();
 
     // ---------------------------------------------------------------- stage 1

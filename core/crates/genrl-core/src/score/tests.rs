@@ -25,6 +25,7 @@ fn frieren_target<'a>(names: &'a [String], others: &'a [String]) -> Target<'a> {
         season_maps: &[],
         missing_episodes: &[],
         owned_episodes: &[],
+        media_kind: None,
     }
 }
 

@@ -93,6 +93,7 @@ fn test_waste_rejection_when_owned_exceeds_missing() {
         season_maps: &[],
         missing_episodes: &missing,
         owned_episodes: &owned,
+        media_kind: None,
     };
 
     // Pack covers 1-1006: 1000 owned vs 6 missing -> wasteful overlap -> rejected
@@ -135,6 +136,7 @@ fn test_size_budget_known_range_and_unknown_count() {
         season_maps: &[],
         missing_episodes: &missing_1000,
         owned_episodes: &[],
+        media_kind: None,
     };
     let pack_300gb = mock_candidate(
         "[Group] Detective Conan (001-0300) [1080p] [Batch]",
@@ -161,6 +163,7 @@ fn test_size_budget_known_range_and_unknown_count() {
         season_maps: &[],
         missing_episodes: &missing_30,
         owned_episodes: &[],
+        media_kind: None,
     };
     assert!(
         matches!(
@@ -184,6 +187,7 @@ fn test_size_budget_known_range_and_unknown_count() {
         season_maps: &[],
         missing_episodes: &missing_1093,
         owned_episodes: &[],
+        media_kind: None,
     };
     let unk_pack_300gb = mock_candidate(
         "[PsyPlex] Detective Conan Complete [Batch]",
@@ -217,6 +221,7 @@ fn test_size_budget_known_range_and_unknown_count() {
         season_maps: &[],
         missing_episodes: &missing_100,
         owned_episodes: &[],
+        media_kind: None,
     };
     assert!(
         matches!(
@@ -248,6 +253,7 @@ fn test_greedy_tiling_prefers_largest_coverage() {
         season_maps: &[],
         missing_episodes: &missing_782,
         owned_episodes: &[],
+        media_kind: None,
     };
 
     // Candidate A: 001-574 (covers 574 missing), 100 seeders
@@ -291,6 +297,7 @@ fn test_greedy_tiling_prefers_largest_coverage() {
         season_maps: &[],
         missing_episodes: &missing_rem,
         owned_episodes: &owned_574,
+        media_kind: None,
     };
 
     // Candidate B: 575-782 (covers remaining 208 missing)
