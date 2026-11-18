@@ -28,3 +28,37 @@ The following items are documented as known limitations, unverified behaviors, o
 
 9. **Upstream Public Jikan Gateway Availability**
    - Public endpoint `api.jikan.moe` has experienced persistent connection drops/shutdowns, requiring reliance on local/offline cache layers or alternative metadata proxies for reliable resolution.
+
+10. **Public Indexer Noise & False Positives**
+    - Public indexers give noisy or fake results; scoring rejects CAM/TS/TC and bad sizes but cannot catch everything.
+
+11. **Prowlarr External Dependency & Indexer Health**
+    - Prowlarr must be running separately and must have healthy indexers; some are blocked by ISPs or need FlareSolverr.
+
+12. **Private Tracker Support**
+    - No direct private-tracker support; users add them in Prowlarr.
+
+13. **Filesystem Volume Constraint for Hardlinks**
+    - Hardlinks require the same volume (copy fallback otherwise).
+
+14. **Series Detail Dialog Level of Detail**
+    - Series detail dialog shows only totals, not per-season or per-episode state.
+
+15. **Multi-Season Torrent Packs**
+    - Multi-season packs: only files for wanted seasons are placed; others are skipped.
+
+16. **TMDB Air Date Window**
+    - Air dates: an episode is "aired" one day after TMDB's date.
+
+17. **Real Data Wizard Verification Test Fragility**
+    - real_data_wizard_verification_test.dart: 10 tests skipped by design without a scratch DB, and 7 of them fail when the scratch DB exists because of UI string changes from commit 73ebb86 (pre-existing, not from this work; they need updating).
+
+18. **Desktop Visual Verification Scope**
+    - Movies/Dramas visuals were verified only with headless widget tests, not on a live desktop session (until user confirms otherwise).
+
+19. **Legacy Media Row Overview Field**
+    - Overview text is stored only for items added after Phase 8; older rows show a placeholder.
+
+20. **Doctor Command Indexer Status Scope**
+    - doctor reports "configured, last test ok/failed/never", not a live probe.
+

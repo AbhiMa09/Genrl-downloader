@@ -228,6 +228,80 @@ genrl rules set min_seeders 10
 genrl library rescan
 ```
 
+## 🎬 Movies and Dramas Setup
+
+Genrl Downloader includes support for tracking, searching, and automating movie and live-action series/drama downloads alongside anime.
+
+### 1. Prowlarr (Optional Torznab Indexer Aggregator)
+- **What it is**: [Prowlarr](https://prowlarr.com) is an open-source indexer manager that aggregates public and private BitTorrent trackers and provides standard Torznab API feeds.
+- **Setup**:
+  1. Install and start Prowlarr.
+  2. Navigate to **Settings > General** to locate your Prowlarr API Key.
+  3. Under **Indexers**, add your preferred public indexers and verify them using the **Test** button.
+  4. Copy each indexer's Torznab API URL: `http://localhost:9696/<indexer_id>/api`.
+- **Optional**: Prowlarr is completely optional. Without it, Genrl Downloader works exactly as before (using built-in Nyaa scraping for anime).
+
+### 2. The Movie Database (TMDB) Integration
+- **API Key**: Create a free personal account at [themoviedb.org](https://www.themoviedb.org), open your account settings, and generate a free **v3 API Key** (use the v3 API Key only; never use the v4 Read Access Token).
+- **Attribution**: *This product uses the TMDB API but is not endorsed or certified by TMDB.* No TMDB logos or branding assets are bundled in the application.
+
+### 3. Secret & API Key Storage
+- **Input**: Enter your API keys only through the application **Settings** page (or pipe them securely via CLI `stdin` or `--key-env`). API keys are **never** accepted as CLI arguments (`--apikey` is explicitly rejected).
+- **Storage Priority**:
+  1. Environment overrides (`GENRL_TMDB_API_KEY`, `GENRL_INDEXER_<ID>_KEY`).
+  2. OS Keyring / Secret Service (`libsecret` on Linux, Credential Vault on Windows).
+  3. Secure 0600 file fallback:
+     - Linux: `~/.local/share/genrl-downloader/secrets.json`
+     - Windows: `%APPDATA%\Genrl Downloader\secrets.json`
+
+### 4. Library Layout & File Organization
+- **Movies**: `<library_path>/Movies/<Title> (<Year>)/<Title> (<Year>) [1080p].<ext>`
+- **Series / Dramas**: `<library_path>/Series/<Title> (<Year>)/Season <NN>/<Title> - S<NN>E<NN> [1080p].<ext>`
+- **Anime**: Existing anime layout (`<library_path>/<Anime Title>/...`) remains unchanged.
+
+### 5. Storage & Hardlinks
+- **Same Volume Required**: Zero-copy hardlinking requires your download directory and media library to be mounted on the **same filesystem volume**. If they are on different volumes/mounts, Genrl Downloader falls back to copying the completed file and displays a warning in activity logs.
+
+### 6. qBittorrent Tags
+Torrents dispatched to qBittorrent are automatically tagged:
+- **Anime**: No tags assigned (preserves historical behavior).
+- **Movies**: `genrl`, `genrl:movie`
+- **Series**: `genrl`, `genrl:series`
+
+### 7. CLI Commands
+All key-accepting CLI commands receive secrets strictly via standard input or `--key-env`:
+```bash
+# Set TMDB API key via stdin
+echo "$TMDB_KEY" | genrl settings set-tmdb-key
+
+# Set TMDB API key from an environment variable name
+genrl settings set-tmdb-key --key-env TMDB_ENV_VAR
+
+# Check TMDB status and run connection test
+genrl settings tmdb-status
+genrl settings test-tmdb
+
+# Add a Torznab indexer (API key via stdin)
+echo "$PROWLARR_API_KEY" | genrl indexers add prowlarr-1337x "1337x" "http://localhost:9696/1/api" --kinds movie,series
+
+# List, test, and toggle indexers
+genrl indexers list
+genrl indexers test prowlarr-1337x
+genrl indexers set-enabled prowlarr-1337x false
+genrl indexers remove prowlarr-1337x
+
+# Search and manage movies / series
+genrl media search "Dune" --kind movie --year 2024
+genrl media add 693134 --kind movie
+genrl media list --kind movie
+genrl media remove 1
+```
+*Note: Any attempt to pass `--apikey` on the CLI results in immediate rejection to protect shell history and `/proc` argv inspection.*
+
+### 8. Database Migrations & Automated Backups
+Database schema migrations 009 through 012 automatically create timestamped backup files before applying changes:
+`<data-dir>/genrl.db.bak-before-migration-<version>` (the newest 3 backups are preserved automatically).
+
 ---
 
 ## 🎨 The Obsidian Violet Design System
