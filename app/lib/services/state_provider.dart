@@ -6,6 +6,9 @@ import '../models/inbox_item.dart';
 import '../models/queue_item.dart';
 import '../models/system_status.dart';
 import '../widgets/loading/ingestion_progress.dart' show formatEta;
+import '../state/dramas_cubit.dart';
+import '../state/indexer_cubit.dart';
+import '../state/movies_cubit.dart';
 import 'core_bridge.dart';
 import 'state/activity_state.dart';
 import 'state/ingestion_state.dart';
@@ -74,6 +77,10 @@ class StateProvider extends StateContext
     });
   }
 
+  late final MoviesCubit moviesCubit = MoviesCubit(bridge: bridge);
+  late final DramasCubit dramasCubit = DramasCubit(bridge: bridge);
+  late final IndexerCubit indexerCubit = IndexerCubit(bridge: bridge);
+
   bool _disposed = false;
 
   @override
@@ -82,6 +89,9 @@ class StateProvider extends StateContext
     _pollingTimer?.cancel();
     _workerStatusSub?.cancel();
     bridge.stopWorker();
+    moviesCubit.dispose();
+    dramasCubit.dispose();
+    indexerCubit.dispose();
     super.dispose();
   }
 
@@ -158,6 +168,10 @@ class StateProvider extends StateContext
       refreshLocations(),
       refreshPlanPreview(),
       refreshSettings(),
+      moviesCubit.loadMovies(),
+      dramasCubit.loadDramas(),
+      indexerCubit.loadIndexers(),
+      indexerCubit.loadTmdbStatus(),
     ]);
   }
 

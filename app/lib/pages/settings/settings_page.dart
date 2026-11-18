@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 
 import '../../services/state_provider.dart';
 import '../../theme/colors.dart';
+import '../../widgets/indexer_settings_card.dart';
+import '../../widgets/tmdb_settings_card.dart';
 import 'about_section.dart';
 import 'accounts_section.dart';
 import 'engine_section.dart';
@@ -189,6 +191,14 @@ class _SettingsPageState extends State<SettingsPage> {
           legacySecondarySubtitle: widget.legacySecondarySubtitle,
           legacySecondaryButton: widget.legacySecondaryButton,
         ),
+        const SizedBox(height: 16),
+
+        // TMDB Metadata Settings Card
+        const TmdbSettingsCard(),
+        const SizedBox(height: 16),
+
+        // Torznab / Newznab Indexer Card
+        const IndexerSettingsCard(),
         const SizedBox(height: 16),
 
         // SECTION C: qBittorrent Client Integration Card
