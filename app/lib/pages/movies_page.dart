@@ -345,6 +345,29 @@ class _MovieDetailDialog extends StatelessWidget {
           ),
           onPressed: () async {
             final nav = Navigator.of(context);
+            final confirm = await showDialog<bool>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: Text('Remove ${item.title}?'),
+                content: const Text(
+                  'This removes the entry from your library and cancels pending jobs. Downloaded files and torrent data will not be deleted.',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(ctx).pop(false),
+                    child: const Text('Cancel'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.of(ctx).pop(true),
+                    child: const Text(
+                      'Remove',
+                      style: TextStyle(color: ObsidianColors.error),
+                    ),
+                  ),
+                ],
+              ),
+            );
+            if (confirm != true) return;
             await cubit.removeMovie(item.id);
             if (nav.mounted) {
               nav.pop();

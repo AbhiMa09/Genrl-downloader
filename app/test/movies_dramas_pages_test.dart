@@ -159,6 +159,22 @@ void main() {
       expect(find.text('Remove'), findsOneWidget);
       expect(find.text('Close'), findsOneWidget);
 
+      // Tapping Remove opens the confirmation dialog
+      await tester.tap(find.text('Remove'));
+      await tester.pumpAndSettle();
+      expect(find.text('Remove Spirited Away?'), findsOneWidget);
+      expect(
+        find.text(
+          'This removes the entry from your library and cancels pending jobs. Downloaded files and torrent data will not be deleted.',
+        ),
+        findsOneWidget,
+      );
+
+      // Cancel keeps movie
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(find.text('Remove Spirited Away?'), findsNothing);
+
       // Close dialog
       await tester.tap(find.text('Close'));
       await tester.pumpAndSettle();
