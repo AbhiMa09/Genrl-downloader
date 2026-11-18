@@ -231,33 +231,63 @@ void main() {
     });
   });
 
-  group('NavRail Movies and Dramas navigation', () {
-    testWidgets('contains Movies and Dramas and selects pages 8 and 9', (
-      tester,
-    ) async {
-      final bridge = _FakeMediaBridge();
-      final stateProvider = StateProvider(bridge: bridge, startPolling: false);
+  group('NavRail full order and navigation', () {
+    testWidgets(
+      'asserts visible top-to-bottom order and index mapping for all 10 items',
+      (tester) async {
+        final bridge = _FakeMediaBridge();
+        final stateProvider = StateProvider(
+          bridge: bridge,
+          startPolling: false,
+        );
 
-      await tester.pumpWidget(
-        ChangeNotifierProvider<StateProvider>.value(
-          value: stateProvider,
-          child: const MaterialApp(home: Scaffold(body: NavRail())),
-        ),
-      );
-      await tester.pump();
+        await tester.pumpWidget(
+          ChangeNotifierProvider<StateProvider>.value(
+            value: stateProvider,
+            child: const MaterialApp(home: Scaffold(body: NavRail())),
+          ),
+        );
+        await tester.pump();
 
-      expect(find.text('Movies'), findsOneWidget);
-      expect(find.text('Dramas'), findsOneWidget);
+        const expectedItems = <(String, int)>[
+          ('Dashboard', 0),
+          ('Inbox', 1),
+          ('Queue', 2),
+          ('Library', 3),
+          ('Movies', 8),
+          ('Dramas', 9),
+          ('Search', 4),
+          ('Activity', 5),
+          ('Rules', 6),
+          ('Settings', 7),
+        ];
 
-      await tester.tap(find.text('Movies'));
-      await tester.pump();
-      expect(stateProvider.selectedPageIndex, equals(8));
+        double previousY = -1.0;
+        for (final item in expectedItems) {
+          final label = item.$1;
+          final expectedIndex = item.$2;
 
-      await tester.tap(find.text('Dramas'));
-      await tester.pump();
-      expect(stateProvider.selectedPageIndex, equals(9));
+          final finder = find.text(label);
+          expect(finder, findsOneWidget, reason: '$label must be present');
+          final currentY = tester.getTopLeft(finder).dy;
+          expect(
+            currentY,
+            greaterThan(previousY),
+            reason: '$label must appear below the previous navigation item',
+          );
+          previousY = currentY;
 
-      stateProvider.dispose();
-    });
+          await tester.tap(finder);
+          await tester.pump();
+          expect(
+            stateProvider.selectedPageIndex,
+            equals(expectedIndex),
+            reason: 'Tapping $label must select page index $expectedIndex',
+          );
+        }
+
+        stateProvider.dispose();
+      },
+    );
   });
 }

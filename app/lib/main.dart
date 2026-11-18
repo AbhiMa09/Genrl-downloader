@@ -108,6 +108,9 @@ int _parsePageIndex(String value) {
   }
 }
 
+@visibleForTesting
+int parsePageIndex(String value) => _parsePageIndex(value);
+
 class GenrlApp extends StatefulWidget {
   final StateProvider? stateProvider;
   final String? dataDir;

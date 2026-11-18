@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../services/state_provider.dart';
+import '../../state/indexer_cubit.dart';
 import '../../theme/colors.dart';
 import '../../widgets/indexer_settings_card.dart';
 import '../../widgets/tmdb_settings_card.dart';
@@ -181,61 +182,64 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Widget _buildSettingsPanels(BuildContext context, StateProvider state) {
-    return Column(
-      children: [
-        // SECTION B: Tracker & Indexer Accounts
-        SettingsAccountsSection(
-          state: state,
-          isGoldenTest: widget.isGoldenTest,
-          legacySecondaryTitle: widget.legacySecondaryTitle,
-          legacySecondarySubtitle: widget.legacySecondarySubtitle,
-          legacySecondaryButton: widget.legacySecondaryButton,
-        ),
-        const SizedBox(height: 16),
+    return ChangeNotifierProvider<IndexerCubit>.value(
+      value: state.indexerCubit,
+      child: Column(
+        children: [
+          // SECTION B: Tracker & Indexer Accounts
+          SettingsAccountsSection(
+            state: state,
+            isGoldenTest: widget.isGoldenTest,
+            legacySecondaryTitle: widget.legacySecondaryTitle,
+            legacySecondarySubtitle: widget.legacySecondarySubtitle,
+            legacySecondaryButton: widget.legacySecondaryButton,
+          ),
+          const SizedBox(height: 16),
 
-        // TMDB Metadata Settings Card
-        const TmdbSettingsCard(),
-        const SizedBox(height: 16),
+          // TMDB Metadata Settings Card
+          const TmdbSettingsCard(),
+          const SizedBox(height: 16),
 
-        // Torznab / Newznab Indexer Card
-        const IndexerSettingsCard(),
-        const SizedBox(height: 16),
+          // Torznab / Newznab Indexer Card
+          const IndexerSettingsCard(),
+          const SizedBox(height: 16),
 
-        // SECTION C: qBittorrent Client Integration Card
-        SettingsQbittorrentSection(
-          state: state,
-          urlController: _qbitUrlController,
-          categoryController: _qbitCategoryController,
-          userController: _qbitUserController,
-          passwordController: _qbitPasswordController,
-        ),
-        const SizedBox(height: 16),
+          // SECTION C: qBittorrent Client Integration Card
+          SettingsQbittorrentSection(
+            state: state,
+            urlController: _qbitUrlController,
+            categoryController: _qbitCategoryController,
+            userController: _qbitUserController,
+            passwordController: _qbitPasswordController,
+          ),
+          const SizedBox(height: 16),
 
-        // SECTION D: Folders & Filesystem Ingestion Card
-        SettingsFoldersSection(
-          state: state,
-          libraryFolderController: _libraryFolderController,
-          downloadFolderController: _downloadFolderController,
-          namingPatternController: _namingPatternController,
-          ingestionStrategy: _ingestionStrategy,
-          onIngestionStrategyChanged: (val) =>
-              setState(() => _ingestionStrategy = val),
-        ),
-        const SizedBox(height: 16),
+          // SECTION D: Folders & Filesystem Ingestion Card
+          SettingsFoldersSection(
+            state: state,
+            libraryFolderController: _libraryFolderController,
+            downloadFolderController: _downloadFolderController,
+            namingPatternController: _namingPatternController,
+            ingestionStrategy: _ingestionStrategy,
+            onIngestionStrategyChanged: (val) =>
+                setState(() => _ingestionStrategy = val),
+          ),
+          const SizedBox(height: 16),
 
-        // SECTION E: Download Engine & Concurrency Card
-        SettingsEngineSection(
-          state: state,
-          concurrency: _concurrency,
-          onConcurrencyChanged: (val) => setState(() => _concurrency = val),
-          dailyCap: _dailyCap,
-          onDailyCapChanged: (val) => setState(() => _dailyCap = val),
-        ),
-        const SizedBox(height: 16),
+          // SECTION E: Download Engine & Concurrency Card
+          SettingsEngineSection(
+            state: state,
+            concurrency: _concurrency,
+            onConcurrencyChanged: (val) => setState(() => _concurrency = val),
+            dailyCap: _dailyCap,
+            onDailyCapChanged: (val) => setState(() => _dailyCap = val),
+          ),
+          const SizedBox(height: 16),
 
-        // SECTION F: About & System Information
-        const SettingsAboutSection(),
-      ],
+          // SECTION F: About & System Information
+          const SettingsAboutSection(),
+        ],
+      ),
     );
   }
 }

@@ -46,9 +46,6 @@ def validate_ui_coverage(contract):
             found = True
         elif f"'{name}'" in bridge_code or f'"{name}"' in bridge_code:
             found = True
-        elif ui_method and any(name.startswith(p) for p in ('indexers ', 'media ', 'settings set-tmdb', 'settings test-tmdb', 'settings tmdb-status')):
-            # Declared in contract ahead of Phase 8 UI bridge mixin implementation
-            found = True
 
         if not found:
             uncovered.append(name)

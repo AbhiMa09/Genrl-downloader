@@ -88,6 +88,18 @@ class NavRail extends StatelessWidget {
                   onTap: () => state.selectPage(1),
                 ),
                 _NavItem(
+                  index: 2,
+                  label: 'Queue',
+                  icon: Icons.downloading_outlined,
+                  selectedIcon: Icons.downloading,
+                  badge: state.activeQueueCount > 0
+                      ? '${state.activeQueueCount}'
+                      : null,
+                  badgeColor: ObsidianColors.tertiary,
+                  isSelected: state.selectedPageIndex == 2,
+                  onTap: () => state.selectPage(2),
+                ),
+                _NavItem(
                   index: 3,
                   label: 'Library',
                   icon: Icons.video_library_outlined,
@@ -110,18 +122,6 @@ class NavRail extends StatelessWidget {
                   selectedIcon: Icons.tv,
                   isSelected: state.selectedPageIndex == 9,
                   onTap: () => state.selectPage(9),
-                ),
-                _NavItem(
-                  index: 2,
-                  label: 'Queue',
-                  icon: Icons.downloading_outlined,
-                  selectedIcon: Icons.downloading,
-                  badge: state.activeQueueCount > 0
-                      ? '${state.activeQueueCount}'
-                      : null,
-                  badgeColor: ObsidianColors.tertiary,
-                  isSelected: state.selectedPageIndex == 2,
-                  onTap: () => state.selectPage(2),
                 ),
                 _NavItem(
                   index: 4,
