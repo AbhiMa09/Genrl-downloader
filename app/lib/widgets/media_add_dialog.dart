@@ -124,6 +124,7 @@ class _MediaAddDialogState extends State<MediaAddDialog> {
                     ],
                   ),
                   IconButton(
+                    tooltip: 'Close',
                     icon: const Icon(
                       Icons.close,
                       color: ObsidianColors.outline,
@@ -179,6 +180,8 @@ class _MediaAddDialogState extends State<MediaAddDialog> {
                   Expanded(
                     child: TextField(
                       controller: _searchController,
+                      autofocus: true,
+                      onChanged: (_) => setState(() {}),
                       style: ObsidianTypography.bodyMd(),
                       decoration: InputDecoration(
                         hintText: 'Search $label by title on TMDB...',
@@ -189,6 +192,16 @@ class _MediaAddDialogState extends State<MediaAddDialog> {
                           Icons.search,
                           color: ObsidianColors.outline,
                         ),
+                        suffixIcon: _searchController.text.isNotEmpty
+                            ? IconButton(
+                                tooltip: 'Clear query',
+                                icon: const Icon(Icons.clear, size: 16),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  setState(() {});
+                                },
+                              )
+                            : null,
                         filled: true,
                         fillColor: ObsidianColors.surfaceContainerHigh,
                         contentPadding: const EdgeInsets.symmetric(

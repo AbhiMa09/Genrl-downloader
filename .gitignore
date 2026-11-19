@@ -66,3 +66,4 @@ fixed_methods.txt
 __pycache__/
 graphify-out/
 .agents/
+dist/

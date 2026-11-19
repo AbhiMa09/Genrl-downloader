@@ -11,6 +11,8 @@ class MoviesState {
   final List<MediaSearchResult> searchResults;
   final bool isSearching;
   final String? searchError;
+  final MediaListItem? selectedMovie;
+  final bool isDownloading;
 
   const MoviesState({
     this.movies = const [],
@@ -19,6 +21,8 @@ class MoviesState {
     this.searchResults = const [],
     this.isSearching = false,
     this.searchError,
+    this.selectedMovie,
+    this.isDownloading = false,
   });
 
   MoviesState copyWith({
@@ -30,6 +34,9 @@ class MoviesState {
     bool? isSearching,
     String? searchError,
     bool clearSearchError = false,
+    MediaListItem? selectedMovie,
+    bool clearSelectedMovie = false,
+    bool? isDownloading,
   }) {
     return MoviesState(
       movies: movies ?? this.movies,
@@ -38,6 +45,10 @@ class MoviesState {
       searchResults: searchResults ?? this.searchResults,
       isSearching: isSearching ?? this.isSearching,
       searchError: clearSearchError ? null : (searchError ?? this.searchError),
+      selectedMovie: clearSelectedMovie
+          ? null
+          : (selectedMovie ?? this.selectedMovie),
+      isDownloading: isDownloading ?? this.isDownloading,
     );
   }
 }
@@ -128,10 +139,46 @@ class MoviesCubit extends ChangeNotifier {
     return false;
   }
 
+  void openMovieDetail(MediaListItem item) {
+    _state = _state.copyWith(selectedMovie: item);
+    notifyListeners();
+  }
+
+  void closeMovieDetail() {
+    _state = _state.copyWith(clearSelectedMovie: true);
+    notifyListeners();
+  }
+
+  Future<bool> downloadMovie(int mediaId) async {
+    _state = _state.copyWith(isDownloading: true);
+    notifyListeners();
+    try {
+      final res = await bridge.mediaDownload(mediaId);
+      await loadMovies();
+      if (_state.selectedMovie != null && _state.selectedMovie!.id == mediaId) {
+        final updated = _state.movies.firstWhere(
+          (m) => m.id == mediaId,
+          orElse: () => _state.selectedMovie!,
+        );
+        _state = _state.copyWith(selectedMovie: updated);
+      }
+      return res != null && res['ok'] == true;
+    } catch (e) {
+      _state = _state.copyWith(error: e.toString());
+      return false;
+    } finally {
+      _state = _state.copyWith(isDownloading: false);
+      notifyListeners();
+    }
+  }
+
   Future<bool> removeMovie(int mediaId) async {
     try {
       final ok = await bridge.removeMedia(mediaId);
       if (ok) {
+        if (_state.selectedMovie?.id == mediaId) {
+          _state = _state.copyWith(clearSelectedMovie: true);
+        }
         await loadMovies();
         return true;
       }

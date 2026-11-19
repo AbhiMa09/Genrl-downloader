@@ -107,8 +107,14 @@ class CoreBridge with CoreBridgeJobControls, CoreBridgeDownloads {
   }
 
   /// Perform candidate search on Nyaa
-  Future<List<Map<String, dynamic>>> search(String query) async {
-    final res = await execute(['search', query, '--json']);
+  Future<List<Map<String, dynamic>>> search(
+    String query, {
+    bool anyCategory = true,
+  }) async {
+    final args = ['search', query];
+    if (anyCategory) args.add('--any-category');
+    args.add('--json');
+    final res = await execute(args);
     if (res.exitCode == 0) {
       try {
         final decoded = jsonDecode(res.stdout as String);

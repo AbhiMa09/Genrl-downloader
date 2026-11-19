@@ -162,9 +162,10 @@ impl Engine {
                     })?,
                 )
             })?;
+            let ep_num = job.episode.map(|e| e as f64).unwrap_or(1.0);
             return Ok(JobContext {
                 mal_id: 0,
-                number: 1.0,
+                number: ep_num,
                 title,
             });
         }

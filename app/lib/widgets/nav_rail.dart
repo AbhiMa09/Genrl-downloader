@@ -282,68 +282,78 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 2),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        hoverColor: ObsidianColors.surfaceContainer,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? ObsidianColors.surfaceContainerHigh
-                : Colors.transparent,
+    return Semantics(
+      button: true,
+      selected: isSelected,
+      label: label,
+      child: Tooltip(
+        message: label,
+        waitDuration: const Duration(milliseconds: 600),
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 2),
+          child: InkWell(
+            onTap: onTap,
             borderRadius: BorderRadius.circular(8),
-            border: isSelected
-                ? Border.all(
-                    color: ObsidianColors.primary.withOpacity(0.2),
-                    width: 1,
-                  )
-                : null,
-          ),
-          child: Row(
-            children: [
-              Icon(
-                isSelected ? selectedIcon : icon,
-                size: 18,
+            hoverColor: ObsidianColors.surfaceContainer,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+              decoration: BoxDecoration(
                 color: isSelected
-                    ? ObsidianColors.primary
-                    : ObsidianColors.onSurfaceVariant,
+                    ? ObsidianColors.surfaceContainerHigh
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(8),
+                border: isSelected
+                    ? Border.all(
+                        color: ObsidianColors.primary.withOpacity(0.35),
+                        width: 1,
+                      )
+                    : null,
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  label,
-                  style: isSelected
-                      ? ObsidianTypography.bodySm(color: ObsidianColors.primary)
-                            .copyWith(fontWeight: FontWeight.w600)
-                      : ObsidianTypography.bodySm(
-                          color: ObsidianColors.onSurfaceVariant,
-                        ),
-                ),
-              ),
-              if (badge != null)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 1,
+              child: Row(
+                children: [
+                  Icon(
+                    isSelected ? selectedIcon : icon,
+                    size: 18,
+                    color: isSelected
+                        ? ObsidianColors.primary
+                        : ObsidianColors.onSurfaceVariant,
                   ),
-                  decoration: BoxDecoration(
-                    color: badgeColor.withOpacity(0.18),
-                    borderRadius: BorderRadius.circular(4),
-                    border: Border.all(
-                      color: badgeColor.withOpacity(0.35),
-                      width: 1,
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      label,
+                      style: isSelected
+                          ? ObsidianTypography.bodySm(
+                              color: ObsidianColors.primary,
+                            ).copyWith(fontWeight: FontWeight.w600)
+                          : ObsidianTypography.bodySm(
+                              color: ObsidianColors.onSurfaceVariant,
+                            ),
                     ),
                   ),
-                  child: Text(
-                    badge!,
-                    style: ObsidianTypography.labelBadge(color: badgeColor),
-                  ),
-                ),
-            ],
+                  if (badge != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 1,
+                      ),
+                      decoration: BoxDecoration(
+                        color: badgeColor.withOpacity(0.18),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(
+                          color: badgeColor.withOpacity(0.35),
+                          width: 1,
+                        ),
+                      ),
+                      child: Text(
+                        badge!,
+                        style: ObsidianTypography.labelBadge(color: badgeColor),
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ),
         ),
       ),

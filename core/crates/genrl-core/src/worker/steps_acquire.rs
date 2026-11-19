@@ -16,7 +16,8 @@ impl Engine {
     pub(crate) async fn search_step(&self, job: &Job) -> Result<JobState> {
         let context = self.context(job)?;
         let is_movie = job.media_kind.as_deref() == Some("movie");
-        if !is_movie && !crate::metadata::is_resolved(&self.db, context.mal_id)? {
+        let is_series = job.media_kind.as_deref() == Some("series");
+        if !is_movie && !is_series && !crate::metadata::is_resolved(&self.db, context.mal_id)? {
             let settings = Settings::load(&self.db)?;
             let store = crate::mal::KeyringStore;
             let mal = crate::mal::MalClient::new(
@@ -174,6 +175,8 @@ impl Engine {
 
         let is_pack_grab = if job.media_kind.as_deref() == Some("movie") {
             false
+        } else if job.media_kind.as_deref() == Some("series") {
+            job.episode.is_none()
         } else {
             self.is_pack_grab(context.mal_id, &settings)?
         };

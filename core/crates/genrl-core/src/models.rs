@@ -213,6 +213,8 @@ pub struct Job {
     pub blocked_from: Option<JobState>,
     pub media_kind: Option<String>,
     pub media_id: Option<i64>,
+    pub season: Option<u32>,
+    pub episode: Option<u32>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]

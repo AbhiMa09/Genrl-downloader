@@ -256,6 +256,22 @@
       "ui_method": "removeMedia"
     },
     {
+      "name": "media episodes",
+      "description": "List episodes and download states for a series",
+      "internal": false,
+      "cli": "genrl media episodes",
+      "ui_method": "mediaEpisodes",
+      "fields": ["id", "media_id", "season", "episode", "air_date", "state", "file_path"]
+    },
+    {
+      "name": "media download",
+      "description": "Queue download for a series season pack or single episode",
+      "internal": false,
+      "cli": "genrl media download",
+      "ui_method": "mediaDownload",
+      "fields": ["ok", "media_id", "season", "episode", "jobs_created"]
+    },
+    {
       "name": "settings set-tmdb-key",
       "description": "Configure TMDB API key",
       "internal": false,

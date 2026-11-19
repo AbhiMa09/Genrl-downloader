@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../models/queue_item.dart';
 import '../../services/state_provider.dart';
+import '../../theme/colors.dart';
 import '../../widgets/state_views.dart';
 import '../show_detail/show_detail_utils.dart';
 import 'queue_filter_bar.dart';
@@ -49,12 +50,25 @@ class _QueuePageState extends State<QueuePage> {
     }
 
     if (state.queue.isEmpty) {
-      return const Center(
+      return Center(
         child: Padding(
-          padding: EdgeInsets.all(24.0),
+          padding: const EdgeInsets.all(24.0),
           child: EmptyStateView(
+            icon: Icons.download_done_rounded,
             title: 'No Transfers In Queue',
             description: 'Active downloads and jobs will appear here live as they are processed.',
+            action: ElevatedButton.icon(
+              onPressed: () => state.selectPage(4),
+              icon: const Icon(Icons.search_rounded, size: 16),
+              label: const Text('Search Releases'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: ObsidianColors.primary,
+                foregroundColor: ObsidianColors.onPrimary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
           ),
         ),
       );

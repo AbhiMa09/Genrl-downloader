@@ -268,7 +268,7 @@ pub fn plan_season_jobs(
         let has_covering_pack = candidates
             .iter()
             .any(|c| is_covering_pack(c, season, &all_aired, is_ongoing));
-        if has_covering_pack {
+        if has_covering_pack || candidates.is_empty() {
             return Ok(vec![PlannedSeriesJob::Pack { season }]);
         }
     }
@@ -292,12 +292,23 @@ pub fn enqueue_series_jobs(
     let now = clock.now();
     db.with(|c| {
         let tx = c.unchecked_transaction()?;
-        for _job in planned_jobs {
-            tx.execute(
-                "INSERT INTO jobs (kind, media_kind, media_id, state, created_at, updated_at)
-                 VALUES ('search', 'series', ?1, 'search', ?2, ?2)",
-                rusqlite::params![media_id, now],
-            )?;
+        for job in planned_jobs {
+            match job {
+                PlannedSeriesJob::Pack { season } => {
+                    tx.execute(
+                        "INSERT INTO jobs (kind, media_kind, media_id, season, episode, state, created_at, updated_at)
+                         VALUES ('search', 'series', ?1, ?2, NULL, 'search', ?3, ?3)",
+                        rusqlite::params![media_id, season, now],
+                    )?;
+                }
+                PlannedSeriesJob::Single { season, episode } => {
+                    tx.execute(
+                        "INSERT INTO jobs (kind, media_kind, media_id, season, episode, state, created_at, updated_at)
+                         VALUES ('search', 'series', ?1, ?2, ?3, 'search', ?4, ?4)",
+                        rusqlite::params![media_id, season, episode, now],
+                    )?;
+                }
+            }
         }
         tx.commit()?;
         Ok(planned_jobs.len())

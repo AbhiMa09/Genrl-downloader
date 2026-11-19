@@ -74,4 +74,32 @@ extension CoreBridgeMedia on CoreBridge {
     final obj = tryJsonObject(stdoutOf(res));
     return obj?['ok'] == true;
   }
+
+  /// List episodes and download states for a series.
+  Future<List<MediaEpisodeItem>> mediaEpisodes(
+    int mediaId, {
+    int? season,
+  }) async {
+    final args = <String>['media', 'episodes', mediaId.toString()];
+    if (season != null) args.addAll(['--season', season.toString()]);
+    args.add('--json');
+    final res = await execute(args);
+    if (res.exitCode != 0) return const [];
+    return parseMediaEpisodes(stdoutOf(res));
+  }
+
+  /// Queue download for a series season pack or single episode.
+  Future<Map<String, dynamic>?> mediaDownload(
+    int mediaId, {
+    int? season,
+    int? episode,
+  }) async {
+    final args = <String>['media', 'download', mediaId.toString()];
+    if (season != null) args.addAll(['--season', season.toString()]);
+    if (episode != null) args.addAll(['--episode', episode.toString()]);
+    args.add('--json');
+    final res = await execute(args);
+    if (res.exitCode != 0) return null;
+    return tryJsonObject(stdoutOf(res));
+  }
 }

@@ -116,11 +116,11 @@ pub fn parse_rss(indexer_id: &str, xml: &str) -> Result<Vec<Release>, IndexerErr
                     b"enclosure" if in_item => {
                         for attr in e.attributes().flatten() {
                             if attr.key.as_ref() == b"url" {
-                                if let Ok(s) = std::str::from_utf8(&attr.value) {
+                                if let Ok(s) = attr.unescape_value() {
                                     item_enclosure_url = Some(s.to_string());
                                 }
                             } else if attr.key.as_ref() == b"length" {
-                                if let Ok(s) = std::str::from_utf8(&attr.value) {
+                                if let Ok(s) = attr.unescape_value() {
                                     item_enclosure_len = s.parse().ok();
                                 }
                             }
@@ -131,11 +131,11 @@ pub fn parse_rss(indexer_id: &str, xml: &str) -> Result<Vec<Release>, IndexerErr
                         let mut attr_val = String::new();
                         for attr in e.attributes().flatten() {
                             if attr.key.as_ref() == b"name" {
-                                if let Ok(s) = std::str::from_utf8(&attr.value) {
+                                if let Ok(s) = attr.unescape_value() {
                                     attr_name = s.to_ascii_lowercase();
                                 }
                             } else if attr.key.as_ref() == b"value" {
-                                if let Ok(s) = std::str::from_utf8(&attr.value) {
+                                if let Ok(s) = attr.unescape_value() {
                                     attr_val = s.to_string();
                                 }
                             }

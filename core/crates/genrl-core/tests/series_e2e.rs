@@ -82,6 +82,8 @@ async fn test_series_pack_finalize_e2e_maps_files_and_updates_states() {
         blocked_from: None,
         media_kind: Some("series".into()),
         media_id: Some(media_id),
+        season: None,
+        episode: None,
     };
 
     let pack_path_str = pack_dir.display().to_string();
@@ -218,6 +220,8 @@ async fn test_series_multi_season_pack_maps_only_wanted_season_files() {
         blocked_from: None,
         media_kind: Some("series".into()),
         media_id: Some(media_id),
+        season: None,
+        episode: None,
     };
 
     let pack_path_str = pack_dir.display().to_string();
@@ -321,6 +325,8 @@ async fn test_series_pack_with_unparseable_files_rejected() {
         blocked_from: None,
         media_kind: Some("series".into()),
         media_id: Some(media_id),
+        season: None,
+        episode: None,
     };
 
     let pack_path_str = pack_dir.display().to_string();

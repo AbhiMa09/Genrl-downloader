@@ -38,6 +38,8 @@ void main(List<String> args) {
   GoogleFonts.config.allowRuntimeFetching = false;
   int initialPage = 0;
   int? initialShowId;
+  int? initialDramaId;
+  int? initialMovieId;
   bool isWizard = false;
   bool isTray = false;
   bool isLogo = false;
@@ -57,6 +59,12 @@ void main(List<String> args) {
       initialPage = _parsePageIndex(name);
     } else if (args[i] == '--show' && i + 1 < args.length) {
       initialShowId = int.tryParse(args[i + 1]);
+    } else if ((args[i] == '--drama' || args[i] == '--drama-id') &&
+        i + 1 < args.length) {
+      initialDramaId = int.tryParse(args[i + 1]);
+    } else if ((args[i] == '--movie' || args[i] == '--movie-id') &&
+        i + 1 < args.length) {
+      initialMovieId = int.tryParse(args[i + 1]);
     } else if (args[i] == '--wizard') {
       isWizard = true;
     } else if (args[i] == '--tray') {
@@ -73,6 +81,8 @@ void main(List<String> args) {
       dataDir: dataDir,
       initialPage: initialPage,
       initialShowId: initialShowId,
+      initialDramaId: initialDramaId,
+      initialMovieId: initialMovieId,
       isWizard: isWizard,
       isTray: isTray,
       isLogo: isLogo,
@@ -116,6 +126,8 @@ class GenrlApp extends StatefulWidget {
   final String? dataDir;
   final int initialPage;
   final int? initialShowId;
+  final int? initialDramaId;
+  final int? initialMovieId;
   final bool isWizard;
   final bool isTray;
   final bool isLogo;
@@ -127,6 +139,8 @@ class GenrlApp extends StatefulWidget {
     this.dataDir,
     this.initialPage = 0,
     this.initialShowId,
+    this.initialDramaId,
+    this.initialMovieId,
     this.isWizard = false,
     this.isTray = false,
     this.isLogo = false,
@@ -164,6 +178,28 @@ class _GenrlAppState extends State<GenrlApp> {
               // The show page lives under Library (page 3).
               if (widget.initialPage == 0) sp.selectPage(3);
               sp.loadShowDetail(widget.initialShowId!);
+            }
+            if (widget.initialDramaId != null) {
+              if (widget.initialPage == 0) sp.selectPage(9);
+              sp.dramasCubit.loadDramas().then((_) {
+                for (final d in sp.dramasCubit.state.dramas) {
+                  if (d.id == widget.initialDramaId) {
+                    sp.dramasCubit.openDramaDetail(d);
+                    break;
+                  }
+                }
+              });
+            }
+            if (widget.initialMovieId != null) {
+              if (widget.initialPage == 0) sp.selectPage(8);
+              sp.moviesCubit.loadMovies().then((_) {
+                for (final m in sp.moviesCubit.state.movies) {
+                  if (m.id == widget.initialMovieId) {
+                    sp.moviesCubit.openMovieDetail(m);
+                    break;
+                  }
+                }
+              });
             }
             return sp;
           },

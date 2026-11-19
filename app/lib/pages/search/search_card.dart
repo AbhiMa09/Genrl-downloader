@@ -89,7 +89,7 @@ class SearchCard extends StatelessWidget {
                                     fontSize: 12,
                                   ),
                                   decoration: InputDecoration(
-                                    hintText: 'Search anime release or torrent hash...',
+                                    hintText: 'Search release title, movie, series, or hash...',
                                     hintStyle: ObsidianTypography.monoCode(
                                       color: ObsidianColors.outline,
                                       fontSize: 12,
@@ -101,6 +101,7 @@ class SearchCard extends StatelessWidget {
                                 ),
                               ),
                               IconButton(
+                                tooltip: 'Clear query',
                                 icon: const Icon(
                                   Icons.close_rounded,
                                   size: 16,
@@ -111,20 +112,24 @@ class SearchCard extends StatelessWidget {
                                 constraints: const BoxConstraints(),
                               ),
                               const SizedBox(width: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: ObsidianColors.surfaceContainerHighest,
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  'ENTER',
-                                  style: ObsidianTypography.monoCode(
-                                    color: ObsidianColors.outline,
-                                    fontSize: 9,
+                              Tooltip(
+                                message: 'Press Enter to search',
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color:
+                                        ObsidianColors.surfaceContainerHighest,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    'ENTER',
+                                    style: ObsidianTypography.monoCode(
+                                      color: ObsidianColors.outline,
+                                      fontSize: 9,
+                                    ),
                                   ),
                                 ),
                               ),

@@ -1,12 +1,10 @@
-use super::types::ChosenTorrent;
+use super::{engine::Engine, types::ChosenTorrent};
 use crate::error::{Error, Result};
 use crate::jobs::MoveOptions;
 use crate::models::{Job, JobState};
 use crate::questions::Payload;
 use crate::rules::Rules;
 use crate::settings::Settings;
-
-use super::engine::Engine;
 
 impl Engine {
     pub(crate) fn is_pack_grab(&self, mal_id: i64, settings: &Settings) -> Result<bool> {
@@ -15,8 +13,7 @@ impl Engine {
                 "SELECT COUNT(*) FROM episodes WHERE mal_id = ?1 AND state = 'missing'",
                 [mal_id],
                 |r| r.get(0),
-            )
-            .unwrap_or(0))
+            )?)
         })?;
         let rules = Rules::for_show(&self.db, mal_id)?;
         let (status_str, total): (Option<String>, Option<i64>) = self.db.with(|c| {
@@ -24,14 +21,12 @@ impl Engine {
                 "SELECT status, total_episodes FROM shows WHERE mal_id = ?1",
                 [mal_id],
                 |r| Ok((r.get(0)?, r.get(1)?)),
-            )
-            .unwrap_or((None, None)))
+            )?)
         })?;
         let is_finished = status_str
-            .map(|s| {
-                crate::models::AiringStatus::parse(&s) == crate::models::AiringStatus::Finished
-            })
-            .unwrap_or(false);
+            .as_deref()
+            .map(crate::models::AiringStatus::parse)
+            == Some(crate::models::AiringStatus::Finished);
         let has_season_map = self
             .db
             .with(|c| crate::season_map::latest_season(c, mal_id))
@@ -59,36 +54,33 @@ impl Engine {
                 .cloned()
                 .collect();
             let had_candidates = !ranked.is_empty();
-            let none_fit = had_candidates && fitting.is_empty();
             if !fitting.is_empty() {
                 return (fitting, false);
             }
-            return (ranked, none_fit);
+            return (ranked, had_candidates);
         }
         (ranked, false)
     }
 
     pub(crate) fn is_proven_batch_release(&self, name: &str) -> bool {
-        let raw_lower = name.to_ascii_lowercase();
-        if raw_lower.contains("batch")
-            || raw_lower.contains("complete")
-            || raw_lower.contains("compilation")
-            || raw_lower.contains("all episodes")
-            || raw_lower.contains("entire season")
+        let raw = name.to_ascii_lowercase();
+        if [
+            "batch",
+            "complete",
+            "compilation",
+            "all episodes",
+            "entire season",
+        ]
+        .iter()
+        .any(|w| raw.contains(w))
         {
             return true;
         }
-        let release = crate::filename::parse_release(name);
-        if release.is_batch {
-            return true;
-        }
-        if release.episode_range.is_some() || release.season_range.is_some() {
-            return true;
-        }
-        if release.season.is_some() && release.episode.is_none() {
-            return true;
-        }
-        false
+        let rel = crate::filename::parse_release(name);
+        rel.is_batch
+            || rel.episode_range.is_some()
+            || rel.season_range.is_some()
+            || (rel.season.is_some() && rel.episode.is_none())
     }
 
     pub(crate) fn handle_single_add(
@@ -264,11 +256,62 @@ impl Engine {
         let is_torrent_url =
             torrent.magnet.starts_with("http://") || torrent.magnet.starts_with("https://");
         if is_torrent_url {
-            let breaker_key = reqwest::Url::parse(&torrent.magnet)
+            let mut download_url = torrent.magnet.clone();
+            if download_url.contains("[REDACTED]") || download_url.contains("%5BREDACTED%5D") {
+                if let Ok(configs) = crate::indexer::config::IndexerConfig::load_all(&self.db) {
+                    for indexer in configs {
+                        if let Ok(idx_url) = reqwest::Url::parse(&indexer.base_url) {
+                            if let Ok(dl_url) = reqwest::Url::parse(&download_url) {
+                                if idx_url.host_str() == dl_url.host_str()
+                                    && idx_url.port() == dl_url.port()
+                                {
+                                    let idx_base = idx_url.path().trim_end_matches("/api");
+                                    if dl_url.path().starts_with(idx_base) {
+                                        if let Some(key) =
+                                            crate::indexer::config::load_api_key(&indexer.id)
+                                        {
+                                            download_url = download_url
+                                                .replace("[REDACTED]", &key)
+                                                .replace("%5BREDACTED%5D", &key);
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            if let Ok(cp) = reqwest::Client::builder()
+                .redirect(reqwest::redirect::Policy::none())
+                .timeout(std::time::Duration::from_secs(10))
+                .build()
+            {
+                if let Ok(resp) = cp.get(&download_url).send().await {
+                    if resp.status().is_redirection() {
+                        if let Some(loc) = resp.headers().get(reqwest::header::LOCATION) {
+                            if let Ok(loc_str) = loc.to_str() {
+                                if loc_str.starts_with("magnet:") {
+                                    return client
+                                        .add_with_tags(
+                                            &self.gate,
+                                            &[loc_str.to_string()],
+                                            Some(save_path),
+                                            Some(category),
+                                            &tags,
+                                        )
+                                        .await;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            let breaker_key = reqwest::Url::parse(&download_url)
                 .ok()
                 .and_then(|u| u.host_str().map(|h| format!("indexer:{h}")))
                 .unwrap_or_else(|| "indexer:default".to_string());
-            let fetched = match self.gate.get_keyed(&breaker_key, &torrent.magnet).await {
+            let fetched = match self.gate.get_keyed(&breaker_key, &download_url).await {
                 Ok(f) => f,
                 Err(err) => {
                     let redacted_url = crate::indexer::redact_secrets(&torrent.magnet);
@@ -280,11 +323,12 @@ impl Engine {
                         Ok(())
                     });
                     let msg = crate::indexer::redact_secrets(&err.to_string());
-                    if err.is_transient() || err.is_connection_failure() {
-                        return Err(Error::Other(format!("indexer download unreachable: {msg}")));
+                    let pfx = if err.is_transient() || err.is_connection_failure() {
+                        "indexer download unreachable"
                     } else {
-                        return Err(Error::Other(format!("failed downloading .torrent: {msg}")));
-                    }
+                        "failed downloading .torrent"
+                    };
+                    return Err(Error::Other(format!("{pfx}: {msg}")));
                 }
             };
 
@@ -340,25 +384,31 @@ impl Engine {
         let is_movie = job.media_kind.as_deref() == Some("movie");
         let is_series = job.media_kind.as_deref() == Some("series");
         if is_movie || is_series {
-            let (title, year) = if let Some(media_id) = job.media_id {
-                self.db.with(|c| {
-                    Ok(c.query_row(
-                        "SELECT title, year FROM media WHERE id = ?1",
-                        [media_id],
-                        |r| Ok((r.get::<_, String>(0)?, r.get::<_, Option<i64>>(1)?)),
-                    )?)
-                })?
-            } else {
-                (context.title.clone(), None)
+            let (title, year) = match job.media_id {
+                Some(id) => self.db.with(|c| {
+                    Ok(
+                        c.query_row("SELECT title, year FROM media WHERE id = ?1", [id], |r| {
+                            Ok((r.get(0)?, r.get(1)?))
+                        })?,
+                    )
+                })?,
+                None => (context.title.clone(), None),
             };
             if is_series {
+                let s = job.season.unwrap_or(1);
+                let queries = match job.episode {
+                    Some(ep) => vec![
+                        format!("{title} S{s:02}E{ep:02}"),
+                        format!("{title} S{s}E{ep}"),
+                    ],
+                    None => vec![
+                        format!("{title} Season {s} Complete"),
+                        format!("{title} Batch"),
+                    ],
+                };
                 return Ok((
                     crate::matching::TargetInputs::for_series(&title, year),
-                    vec![
-                        title.clone(),
-                        format!("{title} Season 1"),
-                        format!("{title} S01"),
-                    ],
+                    queries,
                 ));
             }
             Ok((
@@ -371,31 +421,38 @@ impl Engine {
             let is_pack_grab = self.is_pack_grab(context.mal_id, settings)?;
             let mut search_names = inputs.names.clone();
             if is_pack_grab {
-                let mut pack_queries = Vec::new();
-                for n in &inputs.names {
-                    pack_queries.push(n.clone());
-                    pack_queries.push(format!("{n} batch"));
-                    pack_queries.push(format!("{n} complete"));
-                }
-                search_names = pack_queries;
+                search_names = inputs
+                    .names
+                    .iter()
+                    .flat_map(|n| [n.clone(), format!("{n} batch"), format!("{n} complete")])
+                    .collect();
             } else if inputs.fully_aired && rules.prefer_batch_when_finished {
-                let mut batch_queries = Vec::new();
-                for n in &inputs.names {
-                    batch_queries.push(format!("{n} Batch"));
-                    batch_queries.push(format!("{n} Season {}", inputs.season));
-                }
+                let mut batch_queries: Vec<String> = inputs
+                    .names
+                    .iter()
+                    .flat_map(|n| {
+                        [
+                            format!("{n} Batch"),
+                            format!("{n} Season {}", inputs.season),
+                        ]
+                    })
+                    .collect();
                 batch_queries.extend(search_names);
                 search_names = batch_queries;
             } else {
-                let ep_int = context.number as i64;
-                let mut ep_queries = Vec::new();
-                for n in &inputs.names {
-                    ep_queries.push(format!("{n} - {ep_int}"));
-                    ep_queries.push(format!("{n} {ep_int}"));
-                    ep_queries.push(format!("{n} - {:02}", ep_int));
-                    ep_queries.push(format!("{n} {:02}", ep_int));
-                }
-                search_names = ep_queries;
+                let ep = context.number as i64;
+                search_names = inputs
+                    .names
+                    .iter()
+                    .flat_map(|n| {
+                        [
+                            format!("{n} - {ep}"),
+                            format!("{n} {ep}"),
+                            format!("{n} - {:02}", ep),
+                            format!("{n} {:02}", ep),
+                        ]
+                    })
+                    .collect();
             }
             Ok((inputs, search_names))
         }

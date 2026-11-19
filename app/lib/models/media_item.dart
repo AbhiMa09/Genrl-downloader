@@ -143,3 +143,39 @@ class MediaAddResult {
 
 /// Alias for compatibility.
 typedef MediaSearchResult = MediaSearchItem;
+
+/// One managed episode row for a series.
+class MediaEpisodeItem {
+  final int id;
+  final int mediaId;
+  final int season;
+  final int episode;
+  final String? airDate;
+  final String state; // 'wanted', 'queued', 'done'
+  final String? filePath;
+
+  const MediaEpisodeItem({
+    required this.id,
+    required this.mediaId,
+    required this.season,
+    required this.episode,
+    this.airDate,
+    required this.state,
+    this.filePath,
+  });
+
+  bool get isDone => state.toLowerCase() == 'done';
+  bool get isQueued => state.toLowerCase() == 'queued';
+  bool get isWanted => state.toLowerCase() == 'wanted';
+
+  factory MediaEpisodeItem.fromJson(Map<String, dynamic> json) =>
+      MediaEpisodeItem(
+        id: (json['id'] as num?)?.toInt() ?? 0,
+        mediaId: (json['media_id'] as num?)?.toInt() ?? 0,
+        season: (json['season'] as num?)?.toInt() ?? 1,
+        episode: (json['episode'] as num?)?.toInt() ?? 1,
+        airDate: json['air_date']?.toString(),
+        state: json['state']?.toString() ?? 'wanted',
+        filePath: json['file_path']?.toString(),
+      );
+}

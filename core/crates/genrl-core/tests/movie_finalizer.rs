@@ -29,6 +29,8 @@ fn mock_movie_job(job_id: i64, media_id: Option<i64>) -> Job {
         blocked_from: None,
         media_kind: Some("movie".to_string()),
         media_id,
+        season: None,
+        episode: None,
     }
 }
 

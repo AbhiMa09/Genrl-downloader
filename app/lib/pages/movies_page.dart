@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../models/media_item.dart';
 import '../services/state_provider.dart';
 import '../state/movies_cubit.dart';
 import '../theme/colors.dart';
 import '../theme/typography.dart';
-import '../widgets/cyber_badge.dart';
 import '../widgets/media_add_dialog.dart';
 import '../widgets/poster_grid.dart';
 import '../widgets/state_views.dart';
+import 'movie_detail_page.dart';
 
 class MoviesPage extends StatefulWidget {
   const MoviesPage({super.key});
@@ -59,17 +58,14 @@ class _MoviesPageState extends State<MoviesPage> {
     );
   }
 
-  void _showMovieDetail(MediaListItem item, MoviesCubit cubit) {
-    showDialog<void>(
-      context: context,
-      builder: (dialogCtx) => _MovieDetailDialog(item: item, cubit: cubit),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final cubit = _watchCubit(context);
     final state = cubit.state;
+
+    if (state.selectedMovie != null) {
+      return MovieDetailPage(item: state.selectedMovie!, cubit: cubit);
+    }
 
     final filterText = _filterController.text.trim().toLowerCase();
     final items = filterText.isEmpty
@@ -111,6 +107,7 @@ class _MoviesPageState extends State<MoviesPage> {
                       ),
                       suffixIcon: _filterController.text.isNotEmpty
                           ? IconButton(
+                              tooltip: 'Clear filter',
                               icon: const Icon(Icons.clear, size: 16),
                               onPressed: () {
                                 _filterController.clear();
@@ -147,15 +144,18 @@ class _MoviesPageState extends State<MoviesPage> {
                 onPressed: state.isLoading ? null : () => cubit.loadMovies(),
               ),
               const SizedBox(width: 8),
-              ElevatedButton.icon(
-                onPressed: _openAddMovieDialog,
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('Add movie'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: ObsidianColors.primary,
-                  foregroundColor: ObsidianColors.onPrimary,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+              Tooltip(
+                message: 'Add new movie from TMDB',
+                child: ElevatedButton.icon(
+                  onPressed: _openAddMovieDialog,
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('Add movie'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: ObsidianColors.primary,
+                    foregroundColor: ObsidianColors.onPrimary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                 ),
               ),
@@ -210,189 +210,10 @@ class _MoviesPageState extends State<MoviesPage> {
               }
               return PosterGrid(
                 items: items,
-                onItemTap: (item) => _showMovieDetail(item, cubit),
+                onItemTap: (item) => cubit.openMovieDetail(item),
               );
             },
           ),
-        ),
-      ],
-    );
-  }
-}
-
-class _MovieDetailDialog extends StatelessWidget {
-  final MediaListItem item;
-  final MoviesCubit cubit;
-
-  const _MovieDetailDialog({required this.item, required this.cubit});
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      backgroundColor: ObsidianColors.surfaceContainerHigh,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      titlePadding: const EdgeInsets.fromLTRB(24, 20, 16, 12),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      actionsAlignment: MainAxisAlignment.spaceBetween,
-      actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-      title: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Text(
-              item.year != null ? '${item.title} (${item.year})' : item.title,
-              style: ObsidianTypography.titleSm(fontSize: 16),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.close, size: 20),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-        ],
-      ),
-      content: SizedBox(
-        width: 480,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (item.posterUrl != null)
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: SizedBox(
-                      width: 90,
-                      height: 135,
-                      child: Image.network(
-                        item.posterUrl!,
-                        fit: BoxFit.cover,
-                        cacheWidth: 180,
-                        errorBuilder: (_, __, ___) => Container(
-                          color: ObsidianColors.surfaceContainer,
-                          child: const Icon(
-                            Icons.movie_outlined,
-                            color: ObsidianColors.outline,
-                          ),
-                        ),
-                      ),
-                    ),
-                  )
-                else
-                  Container(
-                    width: 90,
-                    height: 135,
-                    decoration: BoxDecoration(
-                      color: ObsidianColors.surfaceContainer,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(
-                      Icons.movie_outlined,
-                      size: 32,
-                      color: ObsidianColors.outline,
-                    ),
-                  ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text('Status: ', style: ObsidianTypography.bodySm()),
-                          CyberBadge.fromStatus(item.status),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      if (item.tmdbId != null)
-                        Text(
-                          'TMDB ID: ${item.tmdbId}',
-                          style: ObsidianTypography.monoCode(
-                            color: ObsidianColors.outline,
-                          ),
-                        ),
-                      const SizedBox(height: 8),
-                      if (item.overview != null && item.overview!.isNotEmpty)
-                        Text(
-                          item.overview!,
-                          style: ObsidianTypography.bodySm(
-                            color: ObsidianColors.onSurfaceVariant,
-                          ),
-                          maxLines: 4,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton.icon(
-          icon: const Icon(
-            Icons.delete_outline,
-            size: 18,
-            color: ObsidianColors.error,
-          ),
-          label: const Text(
-            'Remove',
-            style: TextStyle(color: ObsidianColors.error),
-          ),
-          onPressed: () async {
-            final nav = Navigator.of(context);
-            final confirm = await showDialog<bool>(
-              context: context,
-              builder: (ctx) => AlertDialog(
-                title: Text('Remove ${item.title}?'),
-                content: const Text(
-                  'This removes the entry from your library and cancels pending jobs. Downloaded files and torrent data will not be deleted.',
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(ctx).pop(false),
-                    child: const Text('Cancel'),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.of(ctx).pop(true),
-                    child: const Text(
-                      'Remove',
-                      style: TextStyle(color: ObsidianColors.error),
-                    ),
-                  ),
-                ],
-              ),
-            );
-            if (confirm != true) return;
-            await cubit.removeMovie(item.id);
-            if (nav.mounted) {
-              nav.pop();
-            }
-          },
-        ),
-        if (item.status == 'failed' && item.tmdbId != null)
-          ElevatedButton.icon(
-            icon: const Icon(Icons.refresh, size: 18),
-            label: const Text('Retry'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: ObsidianColors.surfaceContainer,
-              foregroundColor: ObsidianColors.primary,
-            ),
-            onPressed: () async {
-              final nav = Navigator.of(context);
-              await cubit.addMovie(item.tmdbId!);
-              if (nav.mounted) {
-                nav.pop();
-              }
-            },
-          ),
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Close'),
         ),
       ],
     );

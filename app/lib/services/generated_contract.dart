@@ -288,6 +288,20 @@ class GenrlContract {
       uiMethod: 'removeMedia',
     ),
     CoreCommandMeta(
+      name: 'media episodes',
+      description: 'List episodes and download states for a series',
+      internal: false,
+      cli: 'genrl media episodes',
+      uiMethod: 'mediaEpisodes',
+    ),
+    CoreCommandMeta(
+      name: 'media download',
+      description: 'Queue download for a series season pack or single episode',
+      internal: false,
+      cli: 'genrl media download',
+      uiMethod: 'mediaDownload',
+    ),
+    CoreCommandMeta(
       name: 'settings set-tmdb-key',
       description: 'Configure TMDB API key',
       internal: false,

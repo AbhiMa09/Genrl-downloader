@@ -120,6 +120,8 @@ fn insert_episode_and_job(db: &Db, mal_id: i64, number: f64) -> (i64, Job) {
         blocked_from: None,
         media_kind: None,
         media_id: None,
+        season: None,
+        episode: None,
     };
     (episode_id, job)
 }

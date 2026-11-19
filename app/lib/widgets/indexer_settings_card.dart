@@ -373,18 +373,22 @@ class _IndexerSettingsCardState extends State<IndexerSettingsCard> {
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      OutlinedButton(
-                        onPressed: isTestingThis
-                            ? null
-                            : () => context.read<IndexerCubit>().testIndexer(
-                                idx.id,
-                              ),
-                        child: isTestingThis
-                            ? const InlineSpinner(size: 14)
-                            : const Text('Test'),
+                      Tooltip(
+                        message: 'Test indexer connection and capabilities',
+                        child: OutlinedButton(
+                          onPressed: isTestingThis
+                              ? null
+                              : () => context.read<IndexerCubit>().testIndexer(
+                                  idx.id,
+                                ),
+                          child: isTestingThis
+                              ? const InlineSpinner(size: 14)
+                              : const Text('Test'),
+                        ),
                       ),
                       const SizedBox(width: 8),
                       IconButton(
+                        tooltip: 'Remove indexer',
                         icon: const Icon(
                           Icons.delete_outline,
                           color: ObsidianColors.error,

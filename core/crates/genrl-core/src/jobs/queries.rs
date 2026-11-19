@@ -54,7 +54,7 @@ pub fn due_jobs_filtered(
     let manual_filter = if manual_only { " AND manual = 1" } else { "" };
     let sql = format!(
         "SELECT id, episode_id, kind, state, attempts, next_run_at, last_error, torrent_id,
-                created_at, updated_at, progress, last_progress_at, blocked_from, media_kind, media_id
+                created_at, updated_at, progress, last_progress_at, blocked_from, media_kind, media_id, season, episode
          FROM jobs
          WHERE (next_run_at IS NULL OR next_run_at <= ?1){kind_filter}{manual_filter}
            AND state NOT IN ('blocked', 'needs_input', 'failed', 'done')
@@ -80,7 +80,7 @@ pub fn non_terminal_jobs(db: &Db) -> Result<Vec<Job>> {
     db.with_rusqlite(|c| {
         let mut stmt = c.prepare(
             "SELECT id, episode_id, kind, state, attempts, next_run_at, last_error, torrent_id,
-                    created_at, updated_at, progress, last_progress_at, blocked_from, media_kind, media_id
+                    created_at, updated_at, progress, last_progress_at, blocked_from, media_kind, media_id, season, episode
              FROM jobs WHERE state != 'done' ORDER BY id",
         )?;
         let rows = stmt.query_map([], job_from_row)?;
@@ -96,7 +96,7 @@ pub fn get(db: &Db, job_id: i64) -> Result<Option<Job>> {
     db.with_rusqlite(|c| {
         c.query_row(
             "SELECT id, episode_id, kind, state, attempts, next_run_at, last_error, torrent_id,
-                    created_at, updated_at, progress, last_progress_at, blocked_from, media_kind, media_id
+                    created_at, updated_at, progress, last_progress_at, blocked_from, media_kind, media_id, season, episode
              FROM jobs WHERE id = ?1",
             [job_id],
             job_from_row,
@@ -111,7 +111,7 @@ pub fn list(db: &Db, state: Option<JobState>, limit: usize) -> Result<Vec<Job>> 
         Some(state) => (
             format!(
                 "SELECT id, episode_id, kind, state, attempts, next_run_at, last_error, torrent_id,
-                        created_at, updated_at, progress, last_progress_at, blocked_from, media_kind, media_id
+                        created_at, updated_at, progress, last_progress_at, blocked_from, media_kind, media_id, season, episode
                  FROM jobs WHERE state = '{}' ORDER BY created_at LIMIT ?1",
                 sql_text(state.as_str())
             ),
@@ -119,7 +119,7 @@ pub fn list(db: &Db, state: Option<JobState>, limit: usize) -> Result<Vec<Job>> 
         ),
         None => (
             "SELECT id, episode_id, kind, state, attempts, next_run_at, last_error, torrent_id,
-                    created_at, updated_at, progress, last_progress_at, blocked_from, media_kind, media_id
+                    created_at, updated_at, progress, last_progress_at, blocked_from, media_kind, media_id, season, episode
              FROM jobs ORDER BY created_at LIMIT ?1"
                 .to_string(),
             vec![limit.to_string()],
@@ -188,5 +188,7 @@ pub fn job_from_row(r: &rusqlite::Row<'_>) -> rusqlite::Result<Job> {
             .map(JobState::parse),
         media_kind: r.get(13)?,
         media_id: r.get(14)?,
+        season: r.get(15)?,
+        episode: r.get(16)?,
     })
 }

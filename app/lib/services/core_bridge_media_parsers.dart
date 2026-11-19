@@ -55,3 +55,17 @@ MediaAddResult? parseMediaAdd(String stdout) {
   if (obj['media_id'] == null) return null;
   return MediaAddResult.fromJson(obj);
 }
+
+List<MediaEpisodeItem> parseMediaEpisodes(String stdout) {
+  final trimmed = stdout.trim();
+  if (!trimmed.startsWith('[')) return const [];
+  try {
+    final decoded = jsonDecodeList(trimmed);
+    return decoded
+        .whereType<Map<String, dynamic>>()
+        .map(MediaEpisodeItem.fromJson)
+        .toList(growable: false);
+  } catch (_) {
+    return const [];
+  }
+}
