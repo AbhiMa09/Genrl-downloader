@@ -346,9 +346,11 @@ impl Engine {
             })?;
         }
 
+        let client = qbit::Qbit::from_settings(&settings)?;
         if settings.remove_when_finished {
-            let client = qbit::Qbit::from_settings(&settings)?;
             let _ = client.remove(&self.gate, &torrent.info_hash, false).await;
+        } else {
+            let _ = client.set_active(&self.gate, &torrent.info_hash, false).await;
         }
 
         crate::events::EventLog::new(self.db.clone()).info(

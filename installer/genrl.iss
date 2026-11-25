@@ -2,7 +2,7 @@
 ; Bundles the Flutter desktop runner, assets, and genrl.exe core binary.
 
 #define MyAppName "Genrl Downloader"
-#define MyAppVersion "0.1.0"
+#define MyAppVersion "2.5.1"
 #define MyAppPublisher "Genrl"
 #define MyAppURL "https://github.com/genrl/Genrl-downloader"
 #define MyAppExeName "genrl_downloader.exe"

@@ -230,25 +230,12 @@ async fn finalize_movie(
                 }
             }
             None => {
-                let payload = Payload::FileExists {
-                    episode: 1.0,
-                    existing: target_path.display().to_string(),
-                    candidate: main_video_path.display().to_string(),
-                };
-                let mal_id_opt = if context.mal_id > 0 {
-                    Some(context.mal_id)
-                } else {
-                    None
-                };
-                let qid = QuestionStore::ask(
-                    db,
-                    Some(context.job.id),
-                    mal_id_opt,
-                    &payload,
-                    crate::db::now_unix(),
-                    Some(3600),
-                )?;
-                return Ok(FinalizeOutcome::NeedsInput { question_id: qid });
+                if target_size > 0 {
+                    return Ok(FinalizeOutcome::Done(FinalizeSuccess {
+                        destination_path: target_path.display().to_string(),
+                        target_episode_covered: true,
+                    }));
+                }
             }
         }
     }

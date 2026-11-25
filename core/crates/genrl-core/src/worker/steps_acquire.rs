@@ -15,6 +15,22 @@ impl Engine {
 
     pub(crate) async fn search_step(&self, job: &Job) -> Result<JobState> {
         let context = self.context(job)?;
+        let settings_check = Settings::load(&self.db)?;
+        if let Some(existing) = self.already_downloaded_on_disk(job, &context, &settings_check)? {
+            crate::events::EventLog::new(self.db.clone()).info(
+                Some(job.id),
+                Some(context.mal_id),
+                format!("already downloaded at {existing}; skipping search"),
+            )?;
+            return jobs::transition(
+                &self.db,
+                self.clock.as_ref(),
+                job.id,
+                JobState::Done,
+                "already downloaded on disk",
+                &MoveOptions::default(),
+            );
+        }
         let is_movie = job.media_kind.as_deref() == Some("movie");
         let is_series = job.media_kind.as_deref() == Some("series");
         if !is_movie && !is_series && !crate::metadata::is_resolved(&self.db, context.mal_id)? {
@@ -148,6 +164,21 @@ impl Engine {
     pub(crate) async fn choose_step(&self, job: &Job) -> Result<JobState> {
         let context = self.context(job)?;
         let settings = Settings::load(&self.db)?;
+        if let Some(existing) = self.already_downloaded_on_disk(job, &context, &settings)? {
+            crate::events::EventLog::new(self.db.clone()).info(
+                Some(job.id),
+                Some(context.mal_id),
+                format!("already downloaded at {existing}; skipping choose"),
+            )?;
+            return jobs::transition(
+                &self.db,
+                self.clock.as_ref(),
+                job.id,
+                JobState::Done,
+                "already downloaded on disk",
+                &MoveOptions::default(),
+            );
+        }
         let (inputs, rows, rules) = self.choose_inputs(job, &context)?;
         if rows.is_empty() {
             return self.fail_or_reschedule(job, "no candidates left to choose from");
@@ -343,6 +374,21 @@ impl Engine {
     pub(crate) async fn add_step(&self, job: &Job) -> Result<JobState> {
         let context = self.context(job)?;
         let settings = Settings::load(&self.db)?;
+        if let Some(existing) = self.already_downloaded_on_disk(job, &context, &settings)? {
+            crate::events::EventLog::new(self.db.clone()).info(
+                Some(job.id),
+                Some(context.mal_id),
+                format!("already downloaded at {existing}; skipping add"),
+            )?;
+            return jobs::transition(
+                &self.db,
+                self.clock.as_ref(),
+                job.id,
+                JobState::Done,
+                "already downloaded on disk",
+                &MoveOptions::default(),
+            );
+        }
 
         // Resources first: the design adds no torrent it cannot store.
         if let Some(reason) = self.blocking_reason(&settings) {

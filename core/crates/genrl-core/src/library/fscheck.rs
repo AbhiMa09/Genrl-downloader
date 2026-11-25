@@ -30,17 +30,69 @@ fn get_volume_id(path: &Path) -> Result<u64> {
 
 #[cfg(windows)]
 fn get_volume_id(path: &Path) -> Result<u64> {
-    use std::os::windows::fs::MetadataExt;
+    use std::os::windows::ffi::OsStrExt;
+
+    #[link(name = "kernel32")]
+    extern "system" {
+        fn GetVolumePathNameW(
+            lpszFileName: *const u16,
+            lpszVolumePathName: *mut u16,
+            cchBufferLength: u32,
+        ) -> i32;
+        fn GetVolumeInformationW(
+            lpRootPathName: *const u16,
+            lpVolumeNameBuffer: *mut u16,
+            nVolumeNameSize: u32,
+            lpVolumeSerialNumber: *mut u32,
+            lpMaximumComponentLength: *mut u32,
+            lpFileSystemFlags: *mut u32,
+            lpFileSystemNameBuffer: *mut u16,
+            nFileSystemNameSize: u32,
+        ) -> i32;
+    }
+
     let existing = nearest_existing_ancestor(path)?;
-    let file = std::fs::File::open(&existing)
-        .map_err(|e| Error::Other(format!("failed to open {}: {e}", existing.display())))?;
-    let meta = file.metadata().map_err(|e| {
-        Error::Other(format!(
-            "failed to read metadata for {}: {e}",
-            existing.display()
-        ))
-    })?;
-    Ok(meta.volume_serial_number().map(|v| v as u64).unwrap_or(0))
+    let wide_path: Vec<u16> = existing
+        .as_os_str()
+        .encode_wide()
+        .chain(std::iter::once(0))
+        .collect();
+    let mut vol_path = vec![0u16; 260];
+    let ok = unsafe {
+        GetVolumePathNameW(
+            wide_path.as_ptr(),
+            vol_path.as_mut_ptr(),
+            vol_path.len() as u32,
+        )
+    };
+    if ok == 0 {
+        return Err(Error::Other(format!(
+            "failed to resolve volume path for {}: {}",
+            existing.display(),
+            std::io::Error::last_os_error()
+        )));
+    }
+    let mut serial: u32 = 0;
+    let ok = unsafe {
+        GetVolumeInformationW(
+            vol_path.as_ptr(),
+            std::ptr::null_mut(),
+            0,
+            &mut serial,
+            std::ptr::null_mut(),
+            std::ptr::null_mut(),
+            std::ptr::null_mut(),
+            0,
+        )
+    };
+    if ok == 0 {
+        return Err(Error::Other(format!(
+            "failed to read volume serial for {}: {}",
+            existing.display(),
+            std::io::Error::last_os_error()
+        )));
+    }
+    Ok(serial as u64)
 }
 
 #[cfg(not(any(unix, windows)))]

@@ -8,7 +8,7 @@ use rusqlite::OptionalExtension;
 use crate::error::{Error, Result};
 use crate::events::EventLog;
 use crate::models::ShowType;
-use crate::questions::{Answer, Choice, Payload, QuestionStore};
+use crate::questions::{Answer, Choice};
 use crate::settings::{MoveMode, Settings};
 use crate::worker::{FinalizeContext, FinalizeOutcome, FinalizeSuccess, Finalizer};
 
@@ -429,27 +429,13 @@ impl Finalizer for LibraryFinalizer {
                     None => {}
                 }
 
-                // Ask question in Inbox
-                let payload = Payload::FileExists {
-                    episode: ep_number,
-                    existing: target_path.display().to_string(),
-                    candidate: context.content_path.to_string(),
-                };
-                let now = self.clock.now();
-                let qid = QuestionStore::ask(
-                    &self.db,
-                    Some(context.job.id),
-                    Some(context.mal_id),
-                    &payload,
-                    now,
-                    Some(i64::from(settings.question_expiry_hours) * 3600),
-                )?;
-                EventLog::new(self.db.clone()).warn(
-                    Some(context.job.id),
-                    Some(context.mal_id),
-                    format!("destination file exists: asked question #{qid}"),
-                )?;
-                return Ok(FinalizeOutcome::NeedsInput { question_id: qid });
+                // File already exists on disk: keep it and mark done without asking in Inbox.
+                if fs::metadata(&target_path).map(|m| m.len() > 0).unwrap_or(false) {
+                    return Ok(FinalizeOutcome::Done(FinalizeSuccess {
+                        destination_path: target_path.display().to_string(),
+                        target_episode_covered: true,
+                    }));
+                }
             }
 
             // 5. Transfer file into show folder

@@ -7,6 +7,107 @@ use crate::rules::Rules;
 use crate::settings::Settings;
 
 impl Engine {
+    /// Check if the job's episode is already downloaded on disk (DB or Library folder).
+    pub(crate) fn already_downloaded_on_disk(
+        &self,
+        job: &Job,
+        context: &super::types::JobContext,
+        settings: &Settings,
+    ) -> Result<Option<String>> {
+        let Some(ep_id) = job.episode_id else {
+            return Ok(None);
+        };
+        // 1. Check DB state + file_path on disk
+        let existing: Option<(String, Option<String>)> = self.db.with(|c| {
+            use rusqlite::OptionalExtension;
+            Ok(c.query_row(
+                "SELECT state, file_path FROM episodes WHERE id = ?1",
+                [ep_id],
+                |r| Ok((r.get::<_, String>(0)?, r.get::<_, Option<String>>(1)?)),
+            )
+            .optional()?)
+        })?;
+        if let Some((state, Some(path))) = existing {
+            if state == "done" && std::path::Path::new(&path).is_file() {
+                return Ok(Some(path));
+            }
+        }
+        // 2. Scan the show's library folder for a matching episode file
+        if job.media_kind.as_deref().unwrap_or("anime") == "anime" && context.mal_id > 0 {
+            let lib_root = if settings.library_folder.trim().is_empty() {
+                crate::locations::default_library_dir()
+            } else {
+                crate::locations::resolve_home_dir(&settings.library_folder)
+            };
+            let year: Option<i64> = self.db.with(|c| {
+                use rusqlite::OptionalExtension;
+                Ok(c.query_row(
+                    "SELECT start_year FROM shows WHERE mal_id = ?1",
+                    [context.mal_id],
+                    |r| r.get(0),
+                )
+                .optional()?
+                .flatten())
+            })?;
+            if let Ok(show_dir) = crate::library::resolve_show_folder(
+                &self.db,
+                &lib_root,
+                context.mal_id,
+                &context.title,
+                year,
+            ) {
+                if show_dir.is_dir() {
+                    let mut stack = vec![show_dir];
+                    while let Some(dir) = stack.pop() {
+                        let Ok(entries) = std::fs::read_dir(&dir) else {
+                            continue;
+                        };
+                        for entry in entries.flatten() {
+                            let p = entry.path();
+                            if p.is_dir() {
+                                stack.push(p);
+                                continue;
+                            }
+                            let Some(ext) = p.extension().and_then(|e| e.to_str()) else {
+                                continue;
+                            };
+                            if !matches!(
+                                ext.to_ascii_lowercase().as_str(),
+                                "mkv" | "mp4" | "avi" | "webm"
+                            ) {
+                                continue;
+                            }
+                            let Ok(meta) = p.metadata() else { continue };
+                            if meta.len() == 0 {
+                                continue;
+                            }
+                            let fname = p.file_name().and_then(|f| f.to_str()).unwrap_or("");
+                            let parsed = crate::filename::parse_release(fname);
+                            let matched = match (parsed.episode, parsed.episode_range) {
+                                (Some(ep), _) => (ep - context.number).abs() < 0.01,
+                                (None, Some((from, to))) => {
+                                    from <= context.number && context.number <= to
+                                }
+                                (None, None) => false,
+                            };
+                            if matched {
+                                let p_str = p.display().to_string();
+                                let _ = crate::planner::mark_done(
+                                    &self.db,
+                                    ep_id,
+                                    &p_str,
+                                    meta.len() as i64,
+                                );
+                                return Ok(Some(p_str));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        Ok(None)
+    }
+
     pub(crate) fn is_pack_grab(&self, mal_id: i64, settings: &Settings) -> Result<bool> {
         let count: i64 = self.db.with(|c| {
             Ok(c.query_row(
